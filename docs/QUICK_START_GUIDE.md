@@ -7,6 +7,7 @@
 ## 👋 Welcome!
 
 This guide will help you:
+
 1. Understand the project structure
 2. Set up your development environment
 3. Run the application locally
@@ -41,6 +42,7 @@ This guide will help you:
 A unified billing and POS system that works for restaurants, retail, salons, and bars from a single codebase.
 
 **Tech Stack**:
+
 - **Frontend**: SvelteKit 5 + Tailwind CSS 4 + shadcn-svelte
 - **Backend**: NestJS (planned) + PostgreSQL
 - **Payments**: Dodo Payments (MVP - lowest fees) / Stripe (Global) / Pine Labs (Enterprise)
@@ -98,6 +100,7 @@ PUBLIC_ENABLE_ANALYTICS=false
 ```
 
 **Getting Dodo Payments Test Keys** (Optional for MVP):
+
 1. Go to https://dodopayments.com/
 2. Sign up (no business registration needed for test mode)
 3. Dashboard → Settings → API Keys → Generate Test Key
@@ -118,6 +121,7 @@ npm run dev
 ```
 
 You should see:
+
 - Landing page at `/`
 - Login at `/login`
 - POS demo at `/demo-business/pos`
@@ -169,13 +173,13 @@ frontend/
 
 ### Important Files to Know
 
-| File | Purpose | When to Edit |
-|------|---------|--------------|
-| `src/routes/(protected)/[business]/pos/+page.svelte` | Main POS screen | Adding POS features |
-| `src/lib/stores/cart.svelte.ts` | Cart state management | Changing cart logic |
-| `src/lib/components/pos/MenuItemCard.svelte` | Menu item display | Changing item card UI |
-| `src/lib/types/menu.ts` | Menu type definitions | Adding menu fields |
-| `src/lib/data/sample-menu.ts` | Mock menu data | Testing with different data |
+| File                                                 | Purpose               | When to Edit                |
+| ---------------------------------------------------- | --------------------- | --------------------------- |
+| `src/routes/(protected)/[business]/pos/+page.svelte` | Main POS screen       | Adding POS features         |
+| `src/lib/stores/cart.svelte.ts`                      | Cart state management | Changing cart logic         |
+| `src/lib/components/pos/MenuItemCard.svelte`         | Menu item display     | Changing item card UI       |
+| `src/lib/types/menu.ts`                              | Menu type definitions | Adding menu fields          |
+| `src/lib/data/sample-menu.ts`                        | Mock menu data        | Testing with different data |
 
 ---
 
@@ -190,13 +194,14 @@ frontend/
 **Files to Edit**: `src/lib/components/pos/MenuItemCard.svelte`
 
 **Steps**:
+
 1. Open `MenuItemCard.svelte`
 2. Find the badges section (around line 40)
 3. Add this code:
 
 ```svelte
 {#if item.preparationTime && item.preparationTime > 20}
-  <Badge variant="outline">🌶️ Spicy</Badge>
+	<Badge variant="outline">🌶️ Spicy</Badge>
 {/if}
 ```
 
@@ -209,16 +214,15 @@ frontend/
 **Files to Edit**: `src/routes/(protected)/[business]/pos/+page.svelte`
 
 **Steps**:
+
 1. Open the POS page
 2. Find the "Clear All" button
 3. Add a counter next to it:
 
 ```svelte
 <div class="flex items-center gap-2">
-  <Badge>{cart.itemCount} items</Badge>
-  <Button variant="ghost" size="sm" onclick={onClear}>
-    Clear All
-  </Button>
+	<Badge>{cart.itemCount} items</Badge>
+	<Button variant="ghost" size="sm" onclick={onClear}>Clear All</Button>
 </div>
 ```
 
@@ -229,6 +233,7 @@ frontend/
 **Files to Edit**: `src/lib/components/pos/MenuItemCard.svelte`
 
 **Steps**:
+
 1. Accept a `searchQuery` prop
 2. Highlight matching text in the item name
 3. (This is more advanced - check the frontend guide for hints)
@@ -298,12 +303,12 @@ npm run dev
 
 Based on your interest, read the relevant doc:
 
-| Interest | Documentation | What You'll Build |
-|----------|---------------|-------------------|
-| **Payments** | PAYMENT_GATEWAY_ARCHITECTURE.md | Dodo Payments/Stripe integration |
-| **UI/UX** | FRONTEND_IMPLEMENTATION_GUIDE.md | New components, layouts |
-| **Business Logic** | ONBOARDING_BUSINESS_FLOW.md | Onboarding flow, menus |
-| **Full-Stack** | UNIFIED_POS_SYSTEM_OVERVIEW.md | End-to-end features |
+| Interest           | Documentation                    | What You'll Build                |
+| ------------------ | -------------------------------- | -------------------------------- |
+| **Payments**       | PAYMENT_GATEWAY_ARCHITECTURE.md  | Dodo Payments/Stripe integration |
+| **UI/UX**          | FRONTEND_IMPLEMENTATION_GUIDE.md | New components, layouts          |
+| **Business Logic** | ONBOARDING_BUSINESS_FLOW.md      | Onboarding flow, menus           |
+| **Full-Stack**     | UNIFIED_POS_SYSTEM_OVERVIEW.md   | End-to-end features              |
 
 ---
 
@@ -395,21 +400,25 @@ Before starting development, make sure:
 ### The Lean Learning Path
 
 **Week 1**: Get familiar
+
 - Set up the project
 - Understand the POS flow
 - Make small UI changes
 
 **Week 2**: Build features
+
 - Add a new component
 - Implement a simple feature
 - Write tests
 
 **Week 3**: Deep dive
+
 - Understand state management
 - Learn payment integration
 - Contribute to docs
 
 **Week 4**: Own a module
+
 - Take ownership of a feature (Menu, Orders, Reports)
 - Implement end-to-end
 - Review others' code
@@ -417,12 +426,14 @@ Before starting development, make sure:
 ### Building Your Portfolio
 
 This project is perfect for showcasing:
+
 - **Modern Stack**: SvelteKit 5, TypeScript, Tailwind
 - **Real-World**: Actual business problem (POS systems)
 - **Full-Stack**: Frontend + Backend integration
 - **Best Practices**: Testing, documentation, architecture
 
 **Resume Bullets**:
+
 - "Built a multi-tenant POS system serving restaurants and retail stores using SvelteKit 5"
 - "Integrated payment gateways (Stripe, Razorpay) using the Adapter Pattern"
 - "Implemented real-time order management with WebSocket and Svelte stores"
@@ -434,18 +445,21 @@ This project is perfect for showcasing:
 Track your progress:
 
 ### Code Contributions
+
 - [ ] 1 merged PR
 - [ ] 5 merged PRs
 - [ ] 10 merged PRs
 - [ ] 1 feature owned end-to-end
 
 ### Knowledge
+
 - [ ] Can explain the Adapter Pattern
 - [ ] Can build a Svelte component from scratch
 - [ ] Understand SvelteKit routing
 - [ ] Can integrate an API
 
 ### Community
+
 - [ ] Helped another developer
 - [ ] Reviewed someone's PR
 - [ ] Wrote documentation

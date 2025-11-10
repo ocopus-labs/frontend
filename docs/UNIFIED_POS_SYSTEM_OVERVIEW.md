@@ -10,16 +10,20 @@
 ## 🎯 Vision & Mission
 
 ### The Vision
+
 Create a **truly unified billing and POS application** that serves all business types—restaurants, cafes, retail stores, salons, bars—from a single, adaptable platform.
 
 ### The Mission
+
 Eliminate the fragmentation of industry-specific POS systems by building a flexible, intelligent platform that:
+
 - Adapts to any business type without changing core architecture
 - Scales from single-location businesses to multi-location enterprises
 - Supports both cash and digital payment methods (globally and India-specific)
 - Provides real-time analytics and operational insights
 
 ### Target Users
+
 1. **Small & Medium Businesses (SMBs)** in India
 2. **Student Entrepreneurs** building their first startup
 3. **Multi-location Businesses** needing centralized management
@@ -84,12 +88,14 @@ Eliminate the fragmentation of industry-specific POS systems by building a flexi
 ### 1. Business Onboarding (Progressive)
 
 **Stage 1: Quick Start (5 minutes)**
+
 - Business name & type selection
 - Country, timezone, currency
 - First store/location creation
 - **Goal**: Get operational immediately
 
 **Stage 2: Essential Operations (First week)**
+
 - Team member addition with roles
 - Payment method selection
 - Business hours configuration
@@ -97,6 +103,7 @@ Eliminate the fragmentation of industry-specific POS systems by building a flexi
 - **Goal**: Full operational capability
 
 **Stage 3: Optimization (Ongoing)**
+
 - Complete menu creation with modifiers
 - Advanced payment settings (tipping, split, surcharge)
 - Tax category configuration
@@ -106,6 +113,7 @@ Eliminate the fragmentation of industry-specific POS systems by building a flexi
 ### 2. Point of Sale (POS)
 
 **Core Capabilities**:
+
 - Real-time menu display with categories
 - Visual item cards with images
 - Quick search and filtering
@@ -117,6 +125,7 @@ Eliminate the fragmentation of industry-specific POS systems by building a flexi
 - Receipt generation (print/email/SMS)
 
 **Smart Features**:
+
 - Item customization (sizes, spice levels, add-ons, removals)
 - Running totals with tax breakdown
 - Customer identification (phone/email lookup)
@@ -124,6 +133,7 @@ Eliminate the fragmentation of industry-specific POS systems by building a flexi
 - Suggested items based on past orders
 
 **User Experience**:
+
 - Touch-optimized interface
 - Keyboard shortcuts for power users
 - Offline mode (local storage)
@@ -132,6 +142,7 @@ Eliminate the fragmentation of industry-specific POS systems by building a flexi
 ### 3. Menu Management
 
 **Hierarchical Structure**:
+
 ```
 Business
   └── Locations (Stores)
@@ -143,6 +154,7 @@ Business
 ```
 
 **Item Configuration**:
+
 - Name, description, price
 - Images (upload or URL)
 - Categories and tags
@@ -152,8 +164,9 @@ Business
 - Stock tracking (optional)
 
 **Modifier System** (Key Innovation):
+
 - **Reusable modifiers**: Create once, use across multiple items
-- **Modifier types**: 
+- **Modifier types**:
   - Single choice (size: small/medium/large)
   - Multiple choice (toppings: select multiple)
   - Price adjustments per option
@@ -163,6 +176,7 @@ Business
 ### 4. Multi-Location Support
 
 **From Day One**:
+
 - Centralized dashboard for all locations
 - Per-location menu customization
 - Location-specific pricing
@@ -171,6 +185,7 @@ Business
 - Staff assignment per location
 
 **Use Cases**:
+
 - Restaurant chain with multiple branches
 - Retail stores in different cities
 - Cloud kitchen with multiple outlets
@@ -178,6 +193,7 @@ Business
 ### 5. Team Management & Permissions
 
 **Role-Based Access Control (RBAC)**:
+
 - **Owner**: Full system access
 - **Manager**: Location management, reports, team
 - **Cashier**: POS access, basic reports
@@ -185,6 +201,7 @@ Business
 - **Custom Roles**: Granular permission configuration
 
 **Permissions**:
+
 - View orders / Create orders
 - Process refunds
 - Apply discounts
@@ -195,6 +212,7 @@ Business
 - Access financial data
 
 **Audit Logs**:
+
 - Track all user actions
 - View who changed what and when
 - Compliance reporting
@@ -202,6 +220,7 @@ Business
 ### 6. Payment Processing (Multi-Provider)
 
 **Supported Providers**:
+
 - **Dodo Payments** (India, recommended for MVP - lowest fees at 1.99%)
 - **Stripe** (Global, International markets)
 - **Pine Labs** (India, enterprise POS terminals)
@@ -209,6 +228,7 @@ Business
 - **Cash** (Manual tracking with balance management)
 
 **Payment Features**:
+
 - Card-present (physical terminal)
 - Card-not-present (manual entry)
 - Digital wallets (Google Pay, Apple Pay, PayTM)
@@ -222,6 +242,7 @@ Business
 ### 7. Customer Intelligence & CRM
 
 **Customer Profiles**:
+
 - Name, phone, email
 - Order history
 - Total lifetime value
@@ -231,12 +252,14 @@ Business
 - Special notes (allergies, preferences)
 
 **Segmentation**:
+
 - VIP customers (high lifetime value)
 - Frequent visitors
 - At-risk customers (haven't visited recently)
 - New customers
 
 **Engagement**:
+
 - Email receipts
 - SMS promotions
 - Birthday discounts
@@ -246,6 +269,7 @@ Business
 ### 8. Analytics & Reporting
 
 **Real-Time Dashboard**:
+
 - Today's revenue
 - Number of orders
 - Average order value
@@ -254,6 +278,7 @@ Business
 - Staff performance
 
 **Reports**:
+
 - Sales by date range
 - Category performance
 - Item profitability
@@ -263,6 +288,7 @@ Business
 - Inventory turnover
 
 **Data Visualization**:
+
 - Line charts for trends
 - Bar charts for comparisons
 - Pie charts for distribution
@@ -271,6 +297,7 @@ Business
 ### 9. Inventory Management
 
 **Features**:
+
 - Item-level stock tracking
 - Low stock alerts
 - Automatic deduction on sale
@@ -281,6 +308,7 @@ Business
 - Profitability analysis (cost vs. selling price)
 
 **Use Cases**:
+
 - Restaurant ingredient tracking
 - Retail product inventory
 - Salon product management
@@ -292,6 +320,7 @@ Business
 ### Frontend: SvelteKit 5
 
 **Why SvelteKit?**
+
 - **Performance**: Blazing fast, compiled components
 - **Developer Experience**: Less boilerplate, reactive by default
 - **Modern Features**: Runes, snippets, built-in routing
@@ -299,6 +328,7 @@ Business
 - **Type Safety**: Full TypeScript support
 
 **Key Libraries**:
+
 - **Tailwind CSS 4**: Utility-first styling
 - **shadcn-svelte**: Beautiful, accessible UI components
 - **LayerChart**: Data visualization
@@ -306,6 +336,7 @@ Business
 - **Mode Watcher**: Dark mode support
 
 **File Structure**:
+
 ```
 src/
 ├── routes/
@@ -329,6 +360,7 @@ src/
 ### Backend: NestJS (Planned)
 
 **Why NestJS?**
+
 - **Enterprise-Ready**: Built for scalability
 - **TypeScript Native**: Type safety end-to-end
 - **Modular Architecture**: Clean separation of concerns
@@ -336,6 +368,7 @@ src/
 - **Built-in Features**: WebSockets, GraphQL, microservices
 
 **Module Structure**:
+
 ```
 src/
 ├── auth/               # Authentication & authorization
@@ -357,6 +390,7 @@ src/
 ### Database: PostgreSQL
 
 **Why PostgreSQL?**
+
 - **Reliability**: ACID compliance, data integrity
 - **Performance**: Handles complex queries efficiently
 - **JSON Support**: Flexible schema for metadata
@@ -364,6 +398,7 @@ src/
 - **Mature Ecosystem**: ORMs, tools, community support
 
 **Core Tables**:
+
 ```sql
 -- Users & Authentication
 users (id, email, password_hash, name, role)
@@ -399,31 +434,37 @@ customer_orders (customer_id, order_id)
 ## 🚀 Unique Selling Points (USPs)
 
 ### 1. True Business-Type Agnostic
+
 - **Problem**: Existing POS systems are built for specific industries
 - **Our Solution**: Unified platform that adapts to any business type
 - **Example**: Same codebase serves restaurants, retail, salons, bars
 
 ### 2. Progressive Onboarding
+
 - **Problem**: Traditional POS requires 45-minute setup with decision paralysis
 - **Our Solution**: 5-minute quick start, configure features as needed
 - **Example**: Start selling in 5 minutes, add team and payments later
 
 ### 3. Context-Driven Configuration
+
 - **Problem**: Users forced to configure features they don't understand yet
 - **Our Solution**: Smart prompts appear when features are first used
 - **Example**: Tipping prompt appears on first card payment, not during setup
 
 ### 4. Multi-Location from Day One
+
 - **Problem**: Single-location systems require expensive upgrades to scale
 - **Our Solution**: Multi-location support built into core architecture
 - **Example**: Add locations without changing pricing or data model
 
 ### 5. Reusable Modifier System
+
 - **Problem**: Creating modifiers for every item is tedious
 - **Our Solution**: Create once, reuse across multiple items
 - **Example**: "Size" modifier works for drinks, food, retail products
 
 ### 6. Student & Startup Friendly
+
 - **Problem**: Payment gateway integration requires business registration (costly)
 - **Our Solution**: Start with test mode (free), go live when you have customers
 - **Example**: Build entire app with Razorpay test mode, register only after first sale
@@ -437,6 +478,7 @@ customer_orders (customer_id, order_id)
 #### 1. Subscription Plans (SaaS)
 
 **Free Tier** (Forever):
+
 - 1 location
 - 2 team members
 - 100 orders/month
@@ -444,6 +486,7 @@ customer_orders (customer_id, order_id)
 - Community support
 
 **Starter** (₹999/month or $15/month):
+
 - 1 location
 - 5 team members
 - Unlimited orders
@@ -452,6 +495,7 @@ customer_orders (customer_id, order_id)
 - Basic CRM
 
 **Growth** (₹2,999/month or $49/month):
+
 - 3 locations
 - 15 team members
 - Advanced reports
@@ -460,6 +504,7 @@ customer_orders (customer_id, order_id)
 - API access
 
 **Enterprise** (₹9,999/month or $199/month):
+
 - Unlimited locations
 - Unlimited team members
 - Custom integrations
@@ -554,12 +599,14 @@ customer_orders (customer_id, order_id)
 ### The Lean Approach
 
 **Don't Start With**:
+
 - ❌ Business registration
 - ❌ Paid payment gateway
 - ❌ Expensive hardware
 - ❌ Legal consultations
 
 **Start With**:
+
 - ✅ Razorpay test mode (free)
 - ✅ Free hosting (Vercel, Railway)
 - ✅ Open-source tools
@@ -577,12 +624,14 @@ customer_orders (customer_id, order_id)
 ### Cost Breakdown
 
 **Phase 1: Building ($0)**
+
 - Laptop + Internet: Already have
 - Development tools: Free (VS Code, Git)
 - Test APIs: Free
 - Learning resources: Free (YouTube, docs)
 
 **Phase 2: First Customer (~₹5,000)**
+
 - Sole Proprietorship registration: ₹2,000
 - GSTIN: Free
 - Current account: ₹1,000-2,000
@@ -590,6 +639,7 @@ customer_orders (customer_id, order_id)
 - Domain + Hosting: ₹1,000/year
 
 **Phase 3: Growth (~₹10,000-20,000)**
+
 - Private Limited registration: ₹8,000-15,000
 - CA fees: ₹5,000-10,000
 - Insurance: ₹3,000-5,000
@@ -634,18 +684,21 @@ We welcome contributions! See individual documentation files for specific areas:
 ## 🏆 Success Metrics
 
 ### Technical Metrics
+
 - Page load time: < 2 seconds
 - API response time: < 200ms
 - Uptime: > 99.5%
 - Test coverage: > 80%
 
 ### Business Metrics
+
 - Onboarding completion: > 80%
 - First transaction time: < 15 minutes
 - User retention (30 days): > 70%
 - Customer NPS: > 50
 
 ### Growth Metrics
+
 - Monthly Active Users (MAU)
 - Average Revenue Per User (ARPU)
 - Customer Acquisition Cost (CAC)
