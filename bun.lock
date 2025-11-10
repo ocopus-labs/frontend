@@ -13,6 +13,7 @@
         "@internationalized/date": "^3.8.1",
         "@lucide/svelte": "^0.544.0",
         "@playwright/test": "^1.56.1",
+        "@prgm/sveltekit-progress-bar": "^3.0.2",
         "@storybook/addon-a11y": "^10.0.4",
         "@storybook/addon-docs": "^10.0.4",
         "@storybook/addon-svelte-csf": "^5.0.10",
@@ -224,6 +225,8 @@
     "@polka/url": ["@polka/url@1.0.0-next.29", "", {}, "sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww=="],
 
     "@poppinss/macroable": ["@poppinss/macroable@1.1.0", "", {}, "sha512-y/YKzZDuG8XrpXpM7Z1RdQpiIc0MAKyva24Ux1PB4aI7RiSI/79K8JVDcdyubriTm7vJ1LhFs8CrZpmPnx/8Pw=="],
+
+    "@prgm/sveltekit-progress-bar": ["@prgm/sveltekit-progress-bar@3.0.2", "", { "peerDependencies": { "@sveltejs/kit": "^2.0.0", "svelte": "^5.0.0" } }, "sha512-RilKiPC2Lt/ahC1qmqvL5B8YJPmpwcz/PVebhOmGA7VRcU97xvbn83428r3pVfRNVlxKjHm9NatbIgQim/ccJA=="],
 
     "@rolldown/binding-darwin-arm64": ["@rolldown/binding-darwin-arm64@1.0.0-beta.9-commit.d91dfb5", "", { "os": "darwin", "cpu": "arm64" }, "sha512-Mp0/gqiPdepHjjVm7e0yL1acWvI0rJVVFQEADSezvAjon9sjQ7CEg9JnXICD4B1YrPmN9qV/e7cQZCp87tTV4w=="],
 
