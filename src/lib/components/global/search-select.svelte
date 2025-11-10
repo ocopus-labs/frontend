@@ -16,6 +16,8 @@
 	} = $props<{
 		value: string;
 		options: { label: string; value: string }[];
+		placeholder?: string;
+		emptyPlaceholder?: string;
 	}>();
 
 	let open = $state(false);
