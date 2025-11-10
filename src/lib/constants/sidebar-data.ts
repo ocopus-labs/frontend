@@ -15,6 +15,7 @@ import ClipboardListIcon from '@lucide/svelte/icons/clipboard-list';
 import TableIcon from '@lucide/svelte/icons/table';
 import PackageIcon from '@lucide/svelte/icons/package';
 import DollarSignIcon from '@lucide/svelte/icons/dollar-sign';
+import MonitorIcon from '@lucide/svelte/icons/monitor';
 
 export const sidebarData = {
 	restaurant: {
@@ -111,6 +112,21 @@ export const sidebarData = {
 					{
 						title: 'History',
 						url: '/restaurant/[slug]/orders/history'
+					}
+				]
+			},
+			{
+				title: 'Kitchen Display',
+				url: '/restaurant/[slug]/kitchen-display',
+				icon: MonitorIcon,
+				items: [
+					{
+						title: 'Orders Queue',
+						url: '/restaurant/[slug]/kitchen-display/orders'
+					},
+					{
+						title: 'Preparation Status',
+						url: '/restaurant/[slug]/kitchen-display/status'
 					}
 				]
 			},
