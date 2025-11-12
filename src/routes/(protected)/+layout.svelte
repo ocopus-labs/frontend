@@ -3,10 +3,23 @@
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
+	import { useSession } from '$lib/auth';
+	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 
 	let { children } = $props();
+	
+	const session = useSession();
+
+	onMount(() => {
+		// Redirect to login if not authenticated
+		if (!$session.data) {
+			goto('/login');
+		}
+	});
 </script>
 
+{#if $session.data}
 <Sidebar.Provider>
 	<AppSidebar />
 	<Sidebar.Inset>
@@ -32,3 +45,8 @@
 		{@render children()}
 	</Sidebar.Inset>
 </Sidebar.Provider>
+{:else}
+<div class="flex items-center justify-center min-h-screen">
+	<p>Loading...</p>
+</div>
+{/if}
