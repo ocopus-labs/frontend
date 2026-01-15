@@ -8,10 +8,56 @@
 	let { data } = $props();
 
 	const businessType = data.businessType;
-	const config = data.config;
+	const config = data.config ?? {
+		label: 'Dashboard',
+		description: 'Business management dashboard'
+	};
 
-	// Dynamic stats based on business type
+	// Helper to format currency
+	function formatCurrency(value: number): string {
+		return new Intl.NumberFormat('en-US', {
+			style: 'currency',
+			currency: 'USD',
+			minimumFractionDigits: 0,
+			maximumFractionDigits: 0
+		}).format(value);
+	}
+
+	// Build stats from real data if available, fallback to placeholders
 	let stats = $derived.by(() => {
+		const dashboardStats = data.dashboardStats;
+
+		if (dashboardStats) {
+			const { orders, payments } = dashboardStats;
+			return [
+				{
+					title: 'Total Orders',
+					value: orders.totalOrders,
+					change: 0, // TODO: Calculate from historical data
+					description: `${orders.activeOrders} active`
+				},
+				{
+					title: 'Total Revenue',
+					value: formatCurrency(orders.totalRevenue),
+					change: 0,
+					description: `${orders.completedOrders} completed`
+				},
+				{
+					title: 'Avg Order Value',
+					value: formatCurrency(orders.averageOrderValue),
+					change: 0,
+					description: 'Per completed order'
+				},
+				{
+					title: 'Payments',
+					value: payments.totalPayments,
+					change: 0,
+					description: formatCurrency(payments.totalAmount) + ' collected'
+				}
+			];
+		}
+
+		// Fallback to mock data based on business type
 		switch (businessType) {
 			case 'retail':
 				return [
