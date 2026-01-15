@@ -1,72 +1,45 @@
 <script lang="ts">
+	import type { PageData } from './$types';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Table from '$lib/components/ui/table';
 	import { Badge } from '$lib/components/ui/badge';
-	import { IconSearch, IconFilter, IconEye, IconPrinter } from '@tabler/icons-svelte';
+	import { IconSearch, IconFilter, IconEye, IconPrinter, IconRefresh } from '@tabler/icons-svelte';
+	import { invalidate } from '$app/navigation';
+	import type { Order } from '$lib/api/order';
 
-	// Sample orders data
-	let orders = $state([
-		{
-			id: 'ORD-001',
-			customer: 'John Doe',
-			table: 'T-05',
-			type: 'Dine-In',
-			status: 'completed',
-			total: 45.67,
-			date: '2024-11-06',
-			time: '14:30',
-			items: 3
-		},
-		{
-			id: 'ORD-002',
-			customer: 'Jane Smith',
-			table: 'Takeaway',
-			type: 'Takeaway',
-			status: 'preparing',
-			total: 23.45,
-			date: '2024-11-06',
-			time: '15:15',
-			items: 2
-		},
-		{
-			id: 'ORD-003',
-			customer: 'Mike Johnson',
-			table: 'T-12',
-			type: 'Dine-In',
-			status: 'pending',
-			total: 67.89,
-			date: '2024-11-06',
-			time: '16:00',
-			items: 4
-		},
-		{
-			id: 'ORD-004',
-			customer: 'Sarah Wilson',
-			table: 'Delivery',
-			type: 'Delivery',
-			status: 'completed',
-			total: 34.56,
-			date: '2024-11-05',
-			time: '19:45',
-			items: 2
-		},
-		{
-			id: 'ORD-005',
-			customer: 'Tom Brown',
-			table: 'T-08',
-			type: 'Dine-In',
-			status: 'cancelled',
-			total: 12.34,
-			date: '2024-11-05',
-			time: '18:20',
-			items: 1
+	let { data }: { data: PageData } = $props();
+
+	// Transform API orders to display format
+	let orders = $derived(
+		(data.orders || []).map((order: Order) => ({
+			id: order.orderNumber,
+			orderId: order.id,
+			customer: order.customerInfo?.name || 'Walk-in',
+			table: order.tableNumber || (order.orderType === 'dine_in' ? 'Table' : order.orderType.replace('_', ' ')),
+			type: formatOrderType(order.orderType),
+			status: order.status,
+			total: order.pricing.total,
+			date: new Date(order.createdAt).toLocaleDateString(),
+			time: new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+			items: order.items.length
+		}))
+	);
+
+	function formatOrderType(type: string): string {
+		switch (type) {
+			case 'dine_in': return 'Dine-In';
+			case 'takeaway': return 'Takeaway';
+			case 'delivery': return 'Delivery';
+			case 'online': return 'Online';
+			default: return type;
 		}
-	]);
+	}
 
 	let searchQuery = $state('');
 	let statusFilter = $state('all');
 	let typeFilter = $state('all');
+	let isRefreshing = $state(false);
 
 	// Filter orders based on search and filters
 	const filteredOrders = $derived(
@@ -83,15 +56,17 @@
 	function getStatusBadge(status: string) {
 		switch (status) {
 			case 'completed':
-				return { variant: 'default', text: 'Completed' };
+				return { variant: 'default' as const, text: 'Completed' };
 			case 'preparing':
-				return { variant: 'secondary', text: 'Preparing' };
+				return { variant: 'secondary' as const, text: 'Preparing' };
+			case 'active':
+				return { variant: 'outline' as const, text: 'Active' };
 			case 'pending':
-				return { variant: 'outline', text: 'Pending' };
+				return { variant: 'outline' as const, text: 'Pending' };
 			case 'cancelled':
-				return { variant: 'destructive', text: 'Cancelled' };
+				return { variant: 'destructive' as const, text: 'Cancelled' };
 			default:
-				return { variant: 'outline', text: status };
+				return { variant: 'outline' as const, text: status };
 		}
 	}
 
@@ -104,14 +79,28 @@
 		// TODO: Print order
 		console.log('Print order:', orderId);
 	}
+
+	async function refreshOrders() {
+		isRefreshing = true;
+		await invalidate('app:orders');
+		isRefreshing = false;
+	}
 </script>
 
 <div class="flex flex-1 flex-col">
 	<div class="@container/main flex flex-1 flex-col gap-4">
 		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
 			<div class="flex flex-col gap-2">
-				<h1 class="text-2xl font-bold">Orders</h1>
-				<p class="text-muted-foreground">Manage and track all your restaurant orders</p>
+				<div class="flex items-center justify-between">
+					<div>
+						<h1 class="text-2xl font-bold">Orders</h1>
+						<p class="text-muted-foreground">Manage and track all your restaurant orders</p>
+					</div>
+					<Button variant="outline" size="sm" onclick={refreshOrders} disabled={isRefreshing}>
+						<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
+						Refresh
+					</Button>
+				</div>
 			</div>
 
 			<!-- Filters and Search -->
