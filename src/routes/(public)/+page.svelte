@@ -57,7 +57,7 @@
 						excepturi ducimus iste provident dolores.
 					</p>
 
-					<Button href="/restaurant/xyz/dashboard" size="lg">
+					<Button href="/dashboard" size="lg">
 						<span class="btn-label">Start Building</span>
 					</Button>
 				</div>
