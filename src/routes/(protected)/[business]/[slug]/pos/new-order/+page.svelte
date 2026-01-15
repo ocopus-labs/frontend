@@ -16,238 +16,57 @@
 		MenuItemCard,
 		OrderSummary,
 		ItemCustomizationDialog,
-		type MenuItem,
-		type OrderItemType,
-		type Category
+		PaymentDialog,
+		type OrderItemType
 	} from '$lib/components/pos';
 
-	// Sample menu data - In real app, this would come from API
-	const categories: Category[] = [
-		{ name: 'Dish Menu', count: 43 },
-		{ name: 'Main Course', count: 18, active: true },
-		{ name: 'Beverages', count: 11 },
-		{ name: 'Dessert', count: 9 },
-		{ name: 'Appetizer', count: 6 }
-	];
+	import { createOrder, createPayment, type CreateOrderPayload, type CreateOrderItemPayload, type PaymentMethod } from '$lib/api';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
+	import { toast } from 'svelte-sonner';
 
-	const menuItems: MenuItem[] = [
-		{
-			id: 1,
-			name: 'Butter Chicken',
-			price: 12.84,
-			image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=400',
-			available: true,
-			modifiers: {
-				sizes: [
-					{ name: 'Regular', price: 0 },
-					{ name: 'Large', price: 3.0 }
-				],
-				spiceLevels: [
-					{ name: 'Mild', price: 0 },
-					{ name: 'Medium', price: 0 },
-					{ name: 'Spicy', price: 0 },
-					{ name: 'Extra Spicy', price: 1.0 }
-				],
-				addOns: [
-					{ name: 'Extra Naan', price: 2.0 },
-					{ name: 'Raita', price: 1.5 }
-				],
-				removals: ['Onions', 'Tomatoes']
-			}
-		},
-		{
-			id: 2,
-			name: 'French Fries',
-			price: 7.5,
-			image: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400',
-			available: true,
-			modifiers: {
-				sizes: [
-					{ name: 'Small', price: 0 },
-					{ name: 'Medium', price: 1.5 },
-					{ name: 'Large', price: 3.0 }
-				],
-				addOns: [
-					{ name: 'Cheese', price: 1.5 },
-					{ name: 'Bacon', price: 2.0 }
-				]
-			}
-		},
-		{
-			id: 3,
-			name: 'Roast Beef',
-			price: 29.0,
-			image: 'https://images.unsplash.com/photo-1558030006-450675393462?w=400',
-			available: true,
-			modifiers: {
-				sizes: [
-					{ name: '6oz', price: 0 },
-					{ name: '8oz', price: 5.0 },
-					{ name: '12oz', price: 10.0 }
-				],
-				preparation: ['Rare', 'Medium Rare', 'Medium', 'Medium Well', 'Well Done'],
-				addOns: [
-					{ name: 'Garlic Butter', price: 2.0 },
-					{ name: 'Bearnaise Sauce', price: 3.0 }
-				]
-			}
-		},
-		{
-			id: 4,
-			name: 'Sauerkraut',
-			price: 11.55,
-			image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400',
-			available: true
-		},
-		{
-			id: 5,
-			name: 'Beef Kebab',
-			price: 14.95,
-			image: 'https://images.unsplash.com/photo-1529042410759-befb1204b468?w=400',
-			available: false,
-			modifiers: {
-				spiceLevels: [
-					{ name: 'Mild', price: 0 },
-					{ name: 'Medium', price: 0 },
-					{ name: 'Spicy', price: 0 }
-				],
-				addOns: [{ name: 'Extra Yogurt', price: 1.0 }]
-			}
-		},
-		{
-			id: 6,
-			name: 'Fish and Chips',
-			price: 23.05,
-			image: 'https://images.unsplash.com/photo-1579208570378-8c970854bc23?w=400',
-			available: true,
-			modifiers: {
-				sizes: [
-					{ name: 'Regular', price: 0 },
-					{ name: 'Large', price: 4.0 }
-				],
-				addOns: [{ name: 'Extra Tartar Sauce', price: 0.5 }]
-			}
-		},
-		{
-			id: 7,
-			name: 'Wagyu Steak',
-			price: 31.17,
-			image: 'https://images.unsplash.com/photo-1546833998-877b37c2e5c6?w=400',
-			available: true,
-			modifiers: {
-				sizes: [
-					{ name: '6oz', price: 0 },
-					{ name: '8oz', price: 8.0 },
-					{ name: '12oz', price: 15.0 }
-				],
-				preparation: ['Rare', 'Medium Rare', 'Medium', 'Medium Well', 'Well Done'],
-				addOns: [
-					{ name: 'Truffle Oil', price: 5.0 },
-					{ name: 'Compound Butter', price: 3.0 }
-				]
-			}
-		},
-		{
-			id: 8,
-			name: 'Chicken Ramen',
-			price: 17.7,
-			image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400',
-			available: true,
-			modifiers: {
-				sizes: [
-					{ name: 'Regular', price: 0 },
-					{ name: 'Large', price: 3.0 }
-				],
-				spiceLevels: [
-					{ name: 'Mild', price: 0 },
-					{ name: 'Medium', price: 0 },
-					{ name: 'Spicy', price: 1.0 }
-				],
-				addOns: [
-					{ name: 'Extra Egg', price: 2.0 },
-					{ name: 'Extra Noodles', price: 1.5 }
-				],
-				removals: ['Green Onions', 'Corn']
-			}
-		},
-		{
-			id: 9,
-			name: 'Pasta Bolognese',
-			price: 23.5,
-			image: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=400',
-			available: true,
-			modifiers: {
-				sizes: [
-					{ name: 'Regular', price: 0 },
-					{ name: 'Large', price: 4.0 }
-				],
-				addOns: [
-					{ name: 'Extra Parmesan', price: 1.0 },
-					{ name: 'Meatballs', price: 3.0 }
-				]
-			}
-		},
-		{
-			id: 10,
-			name: 'Vegetable Salad',
-			price: 15.41,
-			image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400',
-			available: true,
-			modifiers: {
-				sizes: [
-					{ name: 'Small', price: 0 },
-					{ name: 'Large', price: 3.0 }
-				],
-				addOns: [
-					{ name: 'Grilled Chicken', price: 4.0 },
-					{ name: 'Feta Cheese', price: 2.0 }
-				],
-				removals: ['Tomatoes', 'Cucumbers', 'Olives']
-			}
-		},
-		{
-			id: 11,
-			name: 'Grilled Skewers',
-			price: 17.25,
-			image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400',
-			available: false,
-			modifiers: {
-				spiceLevels: [
-					{ name: 'Mild', price: 0 },
-					{ name: 'Medium', price: 0 },
-					{ name: 'Spicy', price: 0 }
-				]
-			}
-		},
-		{
-			id: 12,
-			name: 'Fried Rice',
-			price: 19.5,
-			image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400',
-			available: true,
-			modifiers: {
-				sizes: [
-					{ name: 'Regular', price: 0 },
-					{ name: 'Large', price: 3.0 }
-				],
-				addOns: [
-					{ name: 'Egg', price: 1.0 },
-					{ name: 'Chicken', price: 3.0 }
-				]
-			}
-		}
-	];
+	// Get data from load function
+	let { data } = $props();
+
+	// Extended order item type with API fields
+	interface ExtendedOrderItem extends OrderItemType {
+		menuItemId: string;
+		basePrice: number;
+	}
+
+	interface POSMenuItem {
+		id: string;
+		menuItemId: string;
+		categoryId: string;
+		name: string;
+		description?: string;
+		price: number;
+		image: string;
+		available: boolean;
+		isVegetarian?: boolean;
+		isVegan?: boolean;
+		isGlutenFree?: boolean;
+		preparationTime?: number;
+		modifiers?: {
+			sizes?: { id: string; name: string; price: number }[];
+			spiceLevels?: { id: string; name: string; price: number }[];
+			preparation?: string[];
+			addOns?: { id: string; name: string; price: number }[];
+			removals?: string[];
+		};
+	}
 
 	// State variables
-	let selectedCategory = $state('Main Course');
+	let selectedCategory = $state('All Items');
 	let searchQuery = $state('');
-	let orderType = $state('Dine-In');
+	let orderType = $state<'dine_in' | 'takeaway' | 'delivery'>('dine_in');
 	let selectedTable = $state(1);
-	let showOrderSummary = $state(false); // For mobile toggle
+	let showOrderSummary = $state(false);
+	let isSubmitting = $state(false);
 
 	// Customization dialog state
 	let showCustomizationDialog = $state(false);
-	let selectedItem = $state<MenuItem | null>(null);
+	let selectedItem = $state<POSMenuItem | null>(null);
 	let customizationQuantity = $state(1);
 	let selectedSize = $state('');
 	let selectedSpiceLevel = $state('');
@@ -258,43 +77,44 @@
 
 	// Optional fields
 	let showTaxes = $state(true);
-	let taxRate = $state(10); // percentage
-	let showDiscount = $state(true);
+	let taxRate = $state(10);
+	let showDiscount = $state(false);
 	let discountType = $state<'percentage' | 'fixed'>('percentage');
-	let discountValue = $state(10); // 10% or $10
+	let discountValue = $state(0);
 
-	// Filter menu items by selected category
-	const filteredMenuItems = $derived(
-		menuItems.filter(
-			(item) =>
-				selectedCategory === 'Dish Menu' ||
-				item.name.toLowerCase().includes(searchQuery.toLowerCase())
-		)
-	);
+	// Payment state
+	let showPaymentDialog = $state(false);
+	let currentOrderId = $state('');
+	let currentOrderNumber = $state('');
+	let currentOrderTotal = $state(0);
+	let currentBalanceDue = $state(0);
+	let isProcessingPayment = $state(false);
 
-	let orderItems = $state<OrderItemType[]>([
-		{
-			id: '1',
-			name: 'French Fries',
-			price: 7.5,
-			quantity: 1,
-			modifiers: { specialInstructions: 'None' }
-		},
-		{
-			id: '2',
-			name: 'Wagyu Steak',
-			price: 31.17,
-			quantity: 1,
-			modifiers: { size: 'Small', specialInstructions: 'Well Done' }
-		},
-		{
-			id: '3',
-			name: 'Chicken Ramen',
-			price: 17.7,
-			quantity: 1,
-			modifiers: { size: 'Medium', specialInstructions: 'Normal' }
+	// Filter menu items by selected category and search
+	const filteredMenuItems = $derived(() => {
+		let items = data.menuItems as POSMenuItem[];
+
+		// Filter by category
+		if (selectedCategory !== 'All Items') {
+			const category = data.categories.find((c: { name: string }) => c.name === selectedCategory);
+			if (category && category.id !== 'all') {
+				items = items.filter((item) => item.categoryId === category.id);
+			}
 		}
-	]);
+
+		// Filter by search
+		if (searchQuery) {
+			const query = searchQuery.toLowerCase();
+			items = items.filter((item) =>
+				item.name.toLowerCase().includes(query) ||
+				item.description?.toLowerCase().includes(query)
+			);
+		}
+
+		return items;
+	});
+
+	let orderItems = $state<ExtendedOrderItem[]>([]);
 
 	const subtotal = $derived(orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0));
 	const taxes = $derived(showTaxes ? (subtotal * taxRate) / 100 : 0);
@@ -311,9 +131,8 @@
 		selectedCategory = categoryName;
 	}
 
-	function addToOrder(item: MenuItem) {
+	function addToOrder(item: POSMenuItem) {
 		selectedItem = item;
-		// Reset customization state
 		customizationQuantity = 1;
 		selectedSize = item.modifiers?.sizes?.[0]?.name || '';
 		selectedSpiceLevel = item.modifiers?.spiceLevels?.[0]?.name || '';
@@ -327,16 +146,13 @@
 	function confirmAddToOrder() {
 		if (!selectedItem) return;
 
-		// Calculate total price with modifiers
 		let totalPrice = selectedItem.price;
 
-		// Add size price
 		if (selectedSize && selectedItem.modifiers?.sizes) {
 			const sizeOption = selectedItem.modifiers.sizes.find((s) => s.name === selectedSize);
 			if (sizeOption) totalPrice += sizeOption.price;
 		}
 
-		// Add spice level price
 		if (selectedSpiceLevel && selectedItem.modifiers?.spiceLevels) {
 			const spiceOption = selectedItem.modifiers.spiceLevels.find(
 				(s) => s.name === selectedSpiceLevel
@@ -344,7 +160,6 @@
 			if (spiceOption) totalPrice += spiceOption.price;
 		}
 
-		// Add add-ons prices
 		if (selectedItem.modifiers?.addOns) {
 			selectedAddOns.forEach((addOn) => {
 				const addOnOption = selectedItem?.modifiers!.addOns!.find((a) => a.name === addOn);
@@ -352,8 +167,8 @@
 			});
 		}
 
-		const newOrderItem: OrderItemType = {
-			id: Date.now().toString(),
+		const newOrderItem: ExtendedOrderItem = {
+			id: crypto.randomUUID(),
 			name: selectedItem.name,
 			price: totalPrice,
 			quantity: customizationQuantity,
@@ -364,10 +179,13 @@
 				addOns: selectedAddOns,
 				removals: selectedRemovals,
 				specialInstructions: specialInstructions
-			}
+			},
+			// Store menu item ID for API submission
+			menuItemId: selectedItem.menuItemId,
+			basePrice: selectedItem.price
 		};
 
-		orderItems.push(newOrderItem);
+		orderItems = [...orderItems, newOrderItem];
 		showCustomizationDialog = false;
 		selectedItem = null;
 	}
@@ -377,10 +195,12 @@
 	}
 
 	function updateQuantity(id: string, delta: number) {
-		const item = orderItems.find((item) => item.id === id);
-		if (item) {
-			item.quantity = Math.max(1, item.quantity + delta);
-		}
+		orderItems = orderItems.map((item) => {
+			if (item.id === id) {
+				return { ...item, quantity: Math.max(1, item.quantity + delta) };
+			}
+			return item;
+		});
 	}
 
 	function togglePreparation(prep: string) {
@@ -408,7 +228,7 @@
 	}
 
 	function handleOrderTypeChange(type: string) {
-		orderType = type;
+		orderType = type as 'dine_in' | 'takeaway' | 'delivery';
 	}
 
 	function toggleTaxes() {
@@ -417,6 +237,164 @@
 
 	function toggleDiscount() {
 		showDiscount = !showDiscount;
+	}
+
+	async function submitOrder() {
+		if (orderItems.length === 0) {
+			toast.error('Please add items to the order');
+			return;
+		}
+
+		isSubmitting = true;
+
+		try {
+			const businessId = $page.data.business.id;
+
+			const items: CreateOrderItemPayload[] = orderItems.map((item) => ({
+				menuItemId: (item as any).menuItemId || item.id,
+				name: item.name,
+				quantity: item.quantity,
+				basePrice: (item as any).basePrice || item.price,
+				modifiers: item.modifiers ? {
+					size: item.modifiers.size ? {
+						id: crypto.randomUUID(),
+						name: item.modifiers.size,
+						price: 0
+					} : undefined,
+					spiceLevel: item.modifiers.spiceLevel ? {
+						id: crypto.randomUUID(),
+						name: item.modifiers.spiceLevel,
+						price: 0
+					} : undefined,
+					preparation: item.modifiers.preparation,
+					addOns: item.modifiers.addOns?.map((name) => ({
+						id: crypto.randomUUID(),
+						name,
+						price: 0
+					})),
+					removals: item.modifiers.removals,
+					specialInstructions: item.modifiers.specialInstructions
+				} : undefined
+			}));
+
+			const orderPayload: CreateOrderPayload = {
+				orderType,
+				tableNumber: orderType === 'dine_in' ? `T${selectedTable}` : undefined,
+				items,
+				taxRate: showTaxes ? taxRate : 0,
+				discount: showDiscount && discountValue > 0 ? {
+					type: discountType,
+					value: discountValue
+				} : undefined
+			};
+
+			const result = await createOrder(businessId, orderPayload);
+			toast.success(`Order ${result.order.orderNumber} created successfully!`);
+
+			// Show payment dialog
+			currentOrderId = result.order.id;
+			currentOrderNumber = result.order.orderNumber;
+			currentOrderTotal = result.order.pricing.total;
+			currentBalanceDue = Number(result.order.balanceDue);
+			showPaymentDialog = true;
+			showOrderSummary = false;
+
+		} catch (error) {
+			console.error('Failed to create order:', error);
+			toast.error('Failed to create order. Please try again.');
+		} finally {
+			isSubmitting = false;
+		}
+	}
+
+	async function handlePaymentComplete(result: {
+		paymentMethod: PaymentMethod;
+		amount: number;
+		change?: number;
+		remainingBalance: number;
+	}) {
+		isProcessingPayment = true;
+
+		try {
+			const businessId = $page.data.business.id;
+
+			const paymentResult = await createPayment(businessId, {
+				orderId: currentOrderId,
+				amount: result.amount,
+				method: result.paymentMethod,
+				cashReceived: result.paymentMethod === 'cash' ? result.amount + (result.change || 0) : undefined
+			});
+
+			if (result.change && result.change > 0) {
+				toast.success(`Payment complete! Change: ${result.change.toFixed(2)}`);
+			} else {
+				toast.success('Payment processed successfully!');
+			}
+
+			if (paymentResult.remainingBalance <= 0) {
+				// Order fully paid - clear and reset
+				orderItems = [];
+				showPaymentDialog = false;
+				currentOrderId = '';
+				currentOrderNumber = '';
+			} else {
+				// Partial payment - update balance
+				currentBalanceDue = paymentResult.remainingBalance;
+				toast.info(`Remaining balance: ${paymentResult.remainingBalance.toFixed(2)}`);
+			}
+
+		} catch (error) {
+			console.error('Failed to process payment:', error);
+			toast.error('Failed to process payment. Please try again.');
+		} finally {
+			isProcessingPayment = false;
+		}
+	}
+
+	function handlePaymentCancel() {
+		showPaymentDialog = false;
+		// Order is created but not paid - notify user
+		toast.info(`Order ${currentOrderNumber} saved. You can pay later from the orders list.`);
+		orderItems = [];
+		currentOrderId = '';
+		currentOrderNumber = '';
+	}
+
+	// Transform for legacy MenuItem type expected by components
+	const legacyMenuItem = $derived(selectedItem ? {
+		id: parseInt(selectedItem.id.replace(/\D/g, '').slice(0, 8)) || 1,
+		name: selectedItem.name,
+		price: selectedItem.price,
+		image: selectedItem.image,
+		available: selectedItem.available,
+		modifiers: selectedItem.modifiers ? {
+			sizes: selectedItem.modifiers.sizes?.map(s => ({ name: s.name, price: s.price })),
+			spiceLevels: selectedItem.modifiers.spiceLevels?.map(s => ({ name: s.name, price: s.price })),
+			preparation: selectedItem.modifiers.preparation,
+			addOns: selectedItem.modifiers.addOns?.map(a => ({ name: a.name, price: a.price })),
+			removals: selectedItem.modifiers.removals
+		} : undefined
+	} : null);
+
+	// Transform menu items for MenuItemCard component
+	const displayMenuItems = $derived(filteredMenuItems().map(item => ({
+		id: parseInt(item.id.replace(/\D/g, '').slice(0, 8)) || 1,
+		name: item.name,
+		price: item.price,
+		image: item.image,
+		available: item.available,
+		modifiers: item.modifiers ? {
+			sizes: item.modifiers.sizes?.map(s => ({ name: s.name, price: s.price })),
+			spiceLevels: item.modifiers.spiceLevels?.map(s => ({ name: s.name, price: s.price })),
+			preparation: item.modifiers.preparation,
+			addOns: item.modifiers.addOns?.map(a => ({ name: a.name, price: a.price })),
+			removals: item.modifiers.removals
+		} : undefined,
+		_original: item
+	})));
+
+	function handleAddToOrderFromCard(item: any) {
+		addToOrder(item._original);
 	}
 </script>
 
@@ -431,7 +409,11 @@
 				<div class="border-b border-border p-2.5 md:p-4 lg:p-6">
 					<div class="mb-2.5 md:mb-3 lg:mb-4">
 						<MenuCategories
-							{categories}
+							categories={data.categories.map((c: { id: string; name: string; count: number }) => ({
+								name: c.name,
+								count: c.count,
+								active: c.name === selectedCategory
+							}))}
 							{selectedCategory}
 							onCategorySelect={handleCategorySelect}
 						/>
@@ -453,13 +435,19 @@
 
 				<!-- Menu Grid -->
 				<div class="flex-1 overflow-y-auto pb-20 lg:pb-0">
-					<div
-						class="grid grid-cols-1 gap-2.5 p-2.5 min-[400px]:grid-cols-2 sm:gap-3 sm:p-3 md:gap-4 md:p-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
-					>
-						{#each filteredMenuItems as item}
-							<MenuItemCard {item} onAddToOrder={addToOrder} />
-						{/each}
-					</div>
+					{#if displayMenuItems.length === 0}
+						<div class="flex h-64 items-center justify-center text-muted-foreground">
+							<p>No menu items found. {data.menuItems.length === 0 ? 'Add items to your menu first.' : 'Try a different search or category.'}</p>
+						</div>
+					{:else}
+						<div
+							class="grid grid-cols-1 gap-2.5 p-2.5 min-[400px]:grid-cols-2 sm:gap-3 sm:p-3 md:gap-4 md:p-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+						>
+							{#each displayMenuItems as item}
+								<MenuItemCard {item} onAddToOrder={handleAddToOrderFromCard} />
+							{/each}
+						</div>
+					{/if}
 				</div>
 			</div>
 
@@ -469,7 +457,7 @@
 			>
 				<OrderSummary
 					{orderItems}
-					{orderType}
+					orderType={orderType === 'dine_in' ? 'Dine-In' : orderType === 'takeaway' ? 'Takeaway' : 'Delivery'}
 					{selectedTable}
 					{subtotal}
 					{showTaxes}
@@ -486,6 +474,16 @@
 					onToggleTaxes={toggleTaxes}
 					onToggleDiscount={toggleDiscount}
 				/>
+				<div class="border-t border-border p-4">
+					<Button
+						class="w-full"
+						size="lg"
+						onclick={submitOrder}
+						disabled={orderItems.length === 0 || isSubmitting}
+					>
+						{isSubmitting ? 'Creating Order...' : 'Place Order'}
+					</Button>
+				</div>
 			</div>
 		</div>
 
@@ -510,7 +508,7 @@
 					<div class="flex-1 overflow-hidden">
 						<OrderSummary
 							{orderItems}
-							{orderType}
+							orderType={orderType === 'dine_in' ? 'Dine-In' : orderType === 'takeaway' ? 'Takeaway' : 'Delivery'}
 							{selectedTable}
 							{subtotal}
 							{showTaxes}
@@ -528,6 +526,16 @@
 							onToggleDiscount={toggleDiscount}
 						/>
 					</div>
+					<div class="border-t border-border p-4">
+						<Button
+							class="w-full"
+							size="lg"
+							onclick={submitOrder}
+							disabled={orderItems.length === 0 || isSubmitting}
+						>
+							{isSubmitting ? 'Creating Order...' : 'Place Order'}
+						</Button>
+					</div>
 				</Drawer.Content>
 			</Drawer.Portal>
 		</Drawer.Root>
@@ -537,7 +545,7 @@
 <!-- Item Customization Dialog -->
 <ItemCustomizationDialog
 	open={showCustomizationDialog}
-	{selectedItem}
+	selectedItem={legacyMenuItem}
 	{selectedSize}
 	{selectedSpiceLevel}
 	{selectedPreparation}
@@ -554,4 +562,16 @@
 	onQuantityChange={(delta) => (customizationQuantity = Math.max(1, customizationQuantity + delta))}
 	onConfirm={confirmAddToOrder}
 	onCancel={() => (showCustomizationDialog = false)}
+/>
+
+<!-- Payment Dialog -->
+<PaymentDialog
+	open={showPaymentDialog}
+	orderId={currentOrderId}
+	orderNumber={currentOrderNumber}
+	totalAmount={currentOrderTotal}
+	balanceDue={currentBalanceDue}
+	onPaymentComplete={handlePaymentComplete}
+	onCancel={handlePaymentCancel}
+	isProcessing={isProcessingPayment}
 />
