@@ -152,7 +152,9 @@ export const sampleMenuResponse: MenuResponse = {
 		}
 	],
 	totalCategories: 4,
-	totalItems: 4
+	totalItems: 4,
+	menuVersion: 1.0,
+	lastPublished: '2024-01-01T00:00:00Z'
 };
 
 // Helper function to get items by category

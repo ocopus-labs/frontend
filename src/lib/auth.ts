@@ -3,7 +3,7 @@ import { emailOTPClient } from 'better-auth/client/plugins';
 import { env } from '$env/dynamic/public';
 
 export const authClient = createAuthClient({
-	baseURL: env.PUBLIC_API_URL || 'http://localhost:3000',
+	baseURL: 'http://localhost:3000',
 	credentials: 'include',
 	plugins: [emailOTPClient()]
 });

@@ -47,4 +47,6 @@ export interface MenuResponse {
 	items: MenuItem[];
 	totalCategories: number;
 	totalItems: number;
+	menuVersion: number;
+	lastPublished?: string;
 }
