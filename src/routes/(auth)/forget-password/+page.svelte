@@ -54,7 +54,7 @@
 			// Clear the email field
 			email = '';
 		} catch (error: any) {
-			console.error('Forget password error:', error);
+
 			toast.error(error.message || 'An error occurred. Please try again.');
 		} finally {
 			isLoading = false;

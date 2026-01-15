@@ -52,7 +52,7 @@
         goto("/restaurant");
       }
     } catch (error) {
-      console.error("Registration error:", error);
+      toast.error(error)
       toast.error("Registration failed", {
         description: "An unexpected error occurred. Please try again.",
       });

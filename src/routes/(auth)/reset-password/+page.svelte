@@ -4,6 +4,7 @@
 	import * as Field from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import type { HTMLAttributes } from 'svelte/elements';
+	import { authClient } from '$lib/auth';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { page } from '$app/stores';
@@ -52,23 +53,13 @@
 		isLoading = true;
 
 		try {
-			// Call Better Auth reset password API
-			const response = await fetch('/api/auth/reset-password', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				credentials: 'include',
-				body: JSON.stringify({
-					token,
-					newPassword: password
-				})
+			const result = await authClient.resetPassword({
+				newPassword: password,
+				token
 			});
 
-			const data = await response.json();
-
-			if (!response.ok || data.error) {
-				toast.error(data.error?.message || data.message || 'Failed to reset password');
+			if (result.error) {
+				toast.error(result.error.message || 'Failed to reset password');
 				return;
 			}
 
@@ -80,7 +71,7 @@
 				goto('/login');
 			}, 2000);
 		} catch (error: any) {
-			console.error('Reset password error:', error);
+
 			toast.error(error.message || 'An error occurred. Please try again.');
 		} finally {
 			isLoading = false;

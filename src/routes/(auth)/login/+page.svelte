@@ -4,15 +4,18 @@
   import * as Field from "$lib/components/ui/field/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import type { HTMLAttributes } from "svelte/elements";
-  import { signIn } from "$lib/auth";
+  import { signIn, emailOtp } from "$lib/auth";
   import { goto } from "$app/navigation";
   import { toast } from "svelte-sonner";
 
   let { class: className, ...restProps }: HTMLAttributes<HTMLFormElement> = $props();
-  
+
   let email = $state("");
   let password = $state("");
+  let otp = $state("");
   let isLoading = $state(false);
+  let showVerification = $state(false);
+  let isSendingOtp = $state(false);
 
   async function handleSubmit(e: Event) {
     e.preventDefault();
@@ -26,18 +29,71 @@
       });
 
       if (result.error) {
-        toast.error("Login failed", {
-          description: result.error.message || "Invalid email or password",
-        });
+        const errorMsg = result.error.message?.toLowerCase() || "";
+        if (errorMsg.includes("email") && errorMsg.includes("verified")) {
+          showVerification = true;
+          toast.error("Email not verified", {
+            description: "Please verify your email to continue.",
+          });
+        } else {
+          toast.error("Login failed", {
+            description: result.error.message || "Invalid email or password",
+          });
+        }
       } else {
         toast.success("Login successful!");
         goto("/restaurant");
       }
     } catch (error) {
-      console.error("Login error:", error);
       toast.error("Login failed", {
         description: "An unexpected error occurred. Please try again.",
       });
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  async function sendVerificationOtp() {
+    if (!email) {
+      toast.error("Please enter your email address");
+      return;
+    }
+    isSendingOtp = true;
+    try {
+      const result = await emailOtp.sendVerificationOtp({ email, type: "email-verification" });
+      if (result.error) {
+        toast.error("Failed to send verification code", {
+          description: result.error.message,
+        });
+      } else {
+        toast.success("Verification code sent to your email");
+      }
+    } catch (error) {
+      toast.error("Failed to send verification code");
+    } finally {
+      isSendingOtp = false;
+    }
+  }
+
+  async function verifyEmail() {
+    if (!otp) {
+      toast.error("Please enter the verification code");
+      return;
+    }
+    isLoading = true;
+    try {
+      const result = await emailOtp.verifyEmail({ email, otp });
+      if (result.error) {
+        toast.error("Verification failed", {
+          description: result.error.message,
+        });
+      } else {
+        toast.success("Email verified! You can now log in.");
+        showVerification = false;
+        otp = "";
+      }
+    } catch (error) {
+      toast.error("Verification failed");
     } finally {
       isLoading = false;
     }
@@ -53,22 +109,49 @@
     </div>
     <Field.Field>
       <Field.Label for="email">Email</Field.Label>
-      <Input id="email" type="email" placeholder="m@example.com" bind:value={email} required />
+      <Input id="email" type="email" placeholder="m@example.com" bind:value={email} required disabled={showVerification} />
     </Field.Field>
-    <Field.Field>
-      <Field.Label for="password">Password</Field.Label>
-      <Input id="password" type="password" bind:value={password} required />
-    </Field.Field>
-    <Field.Field>
-      <Field.Description class="text-right">
-        <a href="/forget-password" class="text-sm underline">Forgot your password?</a>
-      </Field.Description>
-    </Field.Field>
-    <Field.Field>
-      <Button type="submit" disabled={isLoading}>
-        {isLoading ? "Logging in..." : "Log In"}
-      </Button>
-    </Field.Field>
+    {#if !showVerification}
+      <Field.Field>
+        <Field.Label for="password">Password</Field.Label>
+        <Input id="password" type="password" bind:value={password} required />
+      </Field.Field>
+      <Field.Field>
+        <Field.Description class="text-right">
+          <a href="/forget-password" class="text-sm underline">Forgot your password?</a>
+        </Field.Description>
+      </Field.Field>
+      <Field.Field>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? "Logging in..." : "Log In"}
+        </Button>
+      </Field.Field>
+    {:else}
+      <div class="rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
+        <p class="text-sm text-amber-800 dark:text-amber-200">
+          Your email is not verified. Enter the verification code sent to your email, or click "Send Code" to receive a new one.
+        </p>
+      </div>
+      <Field.Field>
+        <Field.Label for="otp">Verification Code</Field.Label>
+        <div class="flex gap-2">
+          <Input id="otp" type="text" placeholder="Enter 6-digit code" bind:value={otp} maxlength={6} class="flex-1" />
+          <Button type="button" variant="outline" onclick={sendVerificationOtp} disabled={isSendingOtp}>
+            {isSendingOtp ? "Sending..." : "Send Code"}
+          </Button>
+        </div>
+      </Field.Field>
+      <Field.Field>
+        <Button type="button" onclick={verifyEmail} disabled={isLoading || !otp}>
+          {isLoading ? "Verifying..." : "Verify Email"}
+        </Button>
+      </Field.Field>
+      <Field.Field>
+        <Button type="button" variant="ghost" onclick={() => showVerification = false}>
+          Back to Login
+        </Button>
+      </Field.Field>
+    {/if}
     <Field.Separator>Or continue with</Field.Separator>
     <Field.Field>
       <Button variant="outline" type="button" disabled>
