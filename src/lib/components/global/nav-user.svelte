@@ -9,8 +9,23 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { useSidebar } from '$lib/components/ui/sidebar/index.js';
+	import { signOut } from '$lib/auth';
+	import { goto } from '$app/navigation';
+	import { toast } from 'svelte-sonner';
+
 	let { user }: { user: { name: string; email: string; avatar: string } } = $props();
 	const sidebar = useSidebar();
+
+	async function handleLogout() {
+		try {
+			await signOut();
+			toast.success('Logged out successfully');
+			goto('/login');
+		} catch (error) {
+			console.error('Logout error:', error);
+			toast.error('Failed to logout');
+		}
+	}
 </script>
 
 <Sidebar.Menu>
@@ -76,7 +91,7 @@
 					</DropdownMenu.Item>
 				</DropdownMenu.Group>
 				<DropdownMenu.Separator />
-				<DropdownMenu.Item>
+				<DropdownMenu.Item onclick={handleLogout}>
 					<LogOutIcon />
 					Log out
 				</DropdownMenu.Item>
