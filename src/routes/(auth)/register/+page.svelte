@@ -40,7 +40,7 @@
         email,
         password,
         name,
-        callbackURL: "/restaurant",
+        callbackURL: "/dashboard",
       });
 
       if (result.error) {
@@ -49,7 +49,7 @@
         });
       } else {
         toast.success("Account created successfully!");
-        goto("/restaurant");
+        goto("/dashboard");
       }
     } catch (error) {
       toast.error(error)

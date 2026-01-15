@@ -25,7 +25,7 @@
       const result = await signIn.email({
         email,
         password,
-        callbackURL: "/restaurant",
+        callbackURL: "/dashboard",
       });
 
       if (result.error) {
@@ -42,7 +42,7 @@
         }
       } else {
         toast.success("Login successful!");
-        goto("/restaurant");
+        goto("/dashboard");
       }
     } catch (error) {
       toast.error("Login failed", {
