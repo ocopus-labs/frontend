@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { cn } from '$lib/utils';
+	import { toast } from 'svelte-sonner';
+	import { createBusiness, type CreateBusinessPayload, type BusinessType } from '$lib/api';
 
 	import Building2 from '@lucide/svelte/icons/building-2';
 	import MapPin from '@lucide/svelte/icons/map-pin';
@@ -10,6 +12,7 @@
 	import CheckCircle2 from '@lucide/svelte/icons/check-circle-2';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+	import Loader2 from '@lucide/svelte/icons/loader-2';
 
 	// Import step components
 	import BusinessEssentialsStep from '$lib/components/business-setup/business-essentials-step.svelte';
@@ -19,6 +22,24 @@
 	import BusinessHoursStep from '$lib/components/business-setup/business-hours-step.svelte';
 	import CompleteStep from '$lib/components/business-setup/complete-step.svelte';
 	import { goto } from '$app/navigation';
+	import { useSession, signOut } from '$lib/auth';
+	import * as Avatar from '$lib/components/ui/avatar';
+	import LogOut from '@lucide/svelte/icons/log-out';
+
+	// Session
+	const session = useSession();
+	const user = $derived($session.data?.user);
+
+	async function handleLogout() {
+		try {
+			await signOut();
+			toast.success('Logged out successfully');
+			goto('/login');
+		} catch (error) {
+			console.error('Logout error:', error);
+			toast.error('Failed to logout');
+		}
+	}
 
 	// Step navigation
 	type Step = {
@@ -110,6 +131,9 @@
 	// Form data - Step 5: Business Hours
 	let hoursType = $state('same');
 	let step5Errors = $state({});
+
+	// Loading state for form submission
+	let isSubmitting = $state(false);
 
 	// Component refs for validation
 	let step1Component = $state<any>(null);
@@ -279,43 +303,60 @@
 		}
 	}
 
-	function completeSetup() {
-		console.log('Setup completed!', {
-			businessName,
-			businessType,
-			restaurantSubType,
-			businessDescription,
-			businessLogo,
-			country,
-			city,
-			timezone,
-			currency,
-			storeName,
-			storeAddress,
-			storePhone,
-			taxRate,
-			storeNotes,
-			teamMembers,
-			acceptCash,
-			acceptCards,
-			cardProviders,
-			acceptDigitalWallets,
-			hoursType
-		});
+	async function completeSetup() {
+		if (isSubmitting) return;
+		isSubmitting = true;
 
-		// Clear saved progress
-		if (typeof window !== 'undefined') {
-			localStorage.removeItem('business-setup-progress');
+		try {
+			// Build the business payload
+			const payload: CreateBusinessPayload = {
+				name: businessName,
+				type: businessType as BusinessType,
+				description: businessDescription || undefined,
+				logo: businessLogo || undefined,
+				subType: restaurantSubType || undefined,
+				address: {
+					street: storeAddress || undefined,
+					city: city,
+					state: undefined,
+					country: country,
+					postalCode: undefined
+				},
+				contact: {
+					email: user?.email || undefined,
+					phone: storePhone || undefined
+				},
+				settings: {
+					timezone: timezone,
+					currency: currency,
+					taxRate: taxRate || '0'
+				}
+			};
+
+			// Create the business
+			const result = await createBusiness(payload);
+
+			// Clear saved progress
+			if (typeof window !== 'undefined') {
+				localStorage.removeItem('business-setup-progress');
+			}
+
+			toast.success('Business created successfully!');
+
+			// Navigate to the new business dashboard
+			goto(`/${result.business.type}/${result.business.slug}/dashboard`);
+		} catch (error) {
+			console.error('Setup failed:', error);
+			toast.error(error instanceof Error ? error.message : 'Failed to create business');
+		} finally {
+			isSubmitting = false;
 		}
-
-		// Navigate to dashboard
-		goto('/dashboard');
 	}
 </script>
 
 <div class="flex h-dvh w-full bg-background">
 	<!-- Left Sidebar - Steps Navigation -->
-	<aside class="hidden w-72 border-r bg-card px-6 py-8 lg:block">
+	<aside class="hidden w-72 flex-col border-r bg-card px-6 py-8 lg:flex">
 		<div class="mb-8">
 			<h2 class="text-2xl font-bold">Business Setup</h2>
 			<p class="mt-2 text-sm text-muted-foreground">Let's get your business up and running</p>
@@ -356,6 +397,36 @@
 				</button>
 			{/each}
 		</nav>
+
+		<!-- Profile Section -->
+		<div class="mt-auto border-t pt-4">
+			{#if user}
+				<div class="flex items-center gap-3 rounded-lg px-3 py-2">
+					<Avatar.Root class="size-9">
+						<Avatar.Image src={user.image} alt={user.name} />
+						<Avatar.Fallback class="bg-primary/10 text-primary">
+							{user.name?.charAt(0).toUpperCase() ?? user.email?.charAt(0).toUpperCase() ?? '?'}
+						</Avatar.Fallback>
+					</Avatar.Root>
+					<div class="min-w-0 flex-1">
+						<p class="truncate text-sm font-medium">{user.name ?? 'User'}</p>
+						<p class="truncate text-xs text-muted-foreground">{user.email}</p>
+					</div>
+				</div>
+				<Button variant="ghost" class="mt-2 w-full justify-start gap-2" onclick={handleLogout}>
+					<LogOut class="size-4" />
+					Log out
+				</Button>
+			{:else if $session.isPending}
+				<div class="flex items-center gap-3 px-3 py-2">
+					<div class="size-9 animate-pulse rounded-full bg-muted"></div>
+					<div class="flex-1 space-y-2">
+						<div class="h-3 w-20 animate-pulse rounded bg-muted"></div>
+						<div class="h-2 w-32 animate-pulse rounded bg-muted"></div>
+					</div>
+				</div>
+			{/if}
+		</div>
 	</aside>
 
 	<!-- Main Content -->
@@ -441,9 +512,14 @@
 								<ChevronRight class="ml-1 size-4" />
 							</Button>
 						{:else}
-							<Button onclick={completeSetup} size="lg">
-								Go to Dashboard
-								<ChevronRight class="ml-1 size-4" />
+							<Button onclick={completeSetup} size="lg" disabled={isSubmitting}>
+								{#if isSubmitting}
+									<Loader2 class="mr-2 size-4 animate-spin" />
+									Creating...
+								{:else}
+									Go to Dashboard
+									<ChevronRight class="ml-1 size-4" />
+								{/if}
 							</Button>
 						{/if}
 					</div>
