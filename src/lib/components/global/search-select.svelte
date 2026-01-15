@@ -1,6 +1,5 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/button/button.svelte';
-	import Label from '$lib/components/ui/label/label.svelte';
 
 	import Check from '@lucide/svelte/icons/check';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
@@ -28,8 +27,7 @@
 	}
 </script>
 
-<div class="space-y-2">
-	<Label>Select with search</Label>
+<div>
 	<Popover.Root bind:open>
 		<Popover.Trigger>
 			{#snippet child({ props })}

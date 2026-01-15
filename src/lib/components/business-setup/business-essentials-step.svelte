@@ -50,11 +50,12 @@
 	// Options for dropdowns
 	const businessTypeOptions = [
 		{ label: 'Restaurant', value: 'restaurant' },
+		{ label: 'Cafe / Coffee Shop', value: 'cafe' },
+		{ label: 'Bar / Pub', value: 'bar' },
+		{ label: 'Salon / Spa', value: 'salon' },
+		{ label: 'Gym / Fitness', value: 'gym' },
 		{ label: 'Retail Store', value: 'retail' },
-		{ label: 'Salon/Spa', value: 'salon' },
-		{ label: 'Coffee Shop', value: 'coffee' },
-		{ label: 'Fitness Center', value: 'fitness' },
-		{ label: 'Service (Other)', value: 'service' },
+		{ label: 'Clinic', value: 'clinic' },
 		{ label: 'Other', value: 'other' }
 	];
 

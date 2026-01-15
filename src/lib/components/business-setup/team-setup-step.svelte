@@ -4,6 +4,7 @@
 	import * as Field from '$lib/components/ui/field';
 	import SearchSelect from '$lib/components/global/search-select.svelte';
 	import { z } from 'zod';
+	import { useSession } from '$lib/auth';
 
 	type TeamMember = {
 		email: string;
@@ -18,6 +19,13 @@
 		teamMembers: TeamMember[];
 		errors: Record<string, string>;
 	} = $props();
+
+	const session = useSession();
+
+	// Derive user email from session
+	const userEmail = $derived(
+		$session.isPending ? 'Loading...' : ($session.data?.user?.email ?? 'Not logged in')
+	);
 
 	let newMemberEmail = $state('');
 	let newMemberRole = $state('');
@@ -105,7 +113,7 @@
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="font-medium">You (Owner)</p>
-					<p class="text-sm text-muted-foreground">owner@business.com</p>
+					<p class="text-sm text-muted-foreground">{userEmail}</p>
 				</div>
 				<span class="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
 					Full Access
