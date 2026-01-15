@@ -7,7 +7,7 @@
 	import { authClient } from '$lib/auth';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	
+
 	let { class: className, ...restProps }: HTMLAttributes<HTMLFormElement> = $props();
 
 	let email = $state('');
@@ -50,11 +50,10 @@
 
 			// Success - email sent
 			toast.success('Password reset email sent! Please check your inbox for the reset link.');
-			
+
 			// Clear the email field
 			email = '';
 		} catch (error: any) {
-
 			toast.error(error.message || 'An error occurred. Please try again.');
 		} finally {
 			isLoading = false;
@@ -62,11 +61,7 @@
 	}
 </script>
 
-<form
-	class={cn('flex flex-col gap-6', className)}
-	{...restProps}
-	onsubmit={handleEmailSubmit}
->
+<form class={cn('flex flex-col gap-6', className)} {...restProps} onsubmit={handleEmailSubmit}>
 	<Field.Group>
 		<div class="flex flex-col items-center gap-1 text-center">
 			<h1 class="text-2xl font-bold">Reset your password</h1>
@@ -89,7 +84,7 @@
 				<Field.Description class="text-red-600">{emailError}</Field.Description>
 			{/if}
 		</Field.Field>
-		
+
 		<Field.Field>
 			<Button type="submit" disabled={isLoading} class="w-full">
 				{#if isLoading}
