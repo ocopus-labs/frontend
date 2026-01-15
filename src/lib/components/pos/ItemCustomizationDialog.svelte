@@ -13,6 +13,7 @@
 		selectedItem: MenuItem | null;
 		selectedSize: string;
 		selectedSpiceLevel: string;
+		selectedMilkType?: string;
 		selectedPreparation: string[];
 		selectedAddOns: string[];
 		selectedRemovals: string[];
@@ -20,6 +21,7 @@
 		customizationQuantity: number;
 		onSizeChange: (size: string) => void;
 		onSpiceLevelChange: (spice: string) => void;
+		onMilkTypeChange?: (milk: string) => void;
 		onPreparationToggle: (prep: string) => void;
 		onAddOnToggle: (addOn: string) => void;
 		onRemovalToggle: (removal: string) => void;
@@ -34,6 +36,7 @@
 		selectedItem,
 		selectedSize,
 		selectedSpiceLevel,
+		selectedMilkType = '',
 		selectedPreparation,
 		selectedAddOns,
 		selectedRemovals,
@@ -41,6 +44,7 @@
 		customizationQuantity,
 		onSizeChange,
 		onSpiceLevelChange,
+		onMilkTypeChange = () => {},
 		onPreparationToggle,
 		onAddOnToggle,
 		onRemovalToggle,
@@ -70,6 +74,12 @@
 				(s) => s.name === selectedSpiceLevel
 			);
 			if (spiceOption) total += spiceOption.price;
+		}
+
+		// Add milk type price
+		if (selectedMilkType && selectedItem.modifiers?.milkTypes) {
+			const milkOption = selectedItem.modifiers.milkTypes.find((m) => m.name === selectedMilkType);
+			if (milkOption) total += milkOption.price;
 		}
 
 		// Add add-ons prices
@@ -148,6 +158,28 @@
 										{#if spice.price > 0}
 											<span class="text-xs text-muted-foreground sm:text-sm">
 												(+{i18n.formatCurrency(spice.price)})</span
+											>
+										{/if}
+									</Label>
+								</div>
+							{/each}
+						</RadioGroup>
+					</div>
+				{/if}
+
+				<!-- Milk Type Selection -->
+				{#if selectedItem.modifiers?.milkTypes && selectedItem.modifiers.milkTypes.length > 0}
+					<div class="space-y-2 sm:space-y-3">
+						<Label class="text-sm font-medium">Milk Type</Label>
+						<RadioGroup bind:value={selectedMilkType} onchange={onMilkTypeChange}>
+							{#each selectedItem.modifiers.milkTypes as milk}
+								<div class="flex items-center space-x-2">
+									<RadioGroupItem value={milk.name} id="milk-{milk.name}" />
+									<Label for="milk-{milk.name}" class="flex-1 cursor-pointer text-sm sm:text-base">
+										{milk.name}
+										{#if milk.price > 0}
+											<span class="text-xs text-muted-foreground sm:text-sm">
+												(+{i18n.formatCurrency(milk.price)})</span
 											>
 										{/if}
 									</Label>

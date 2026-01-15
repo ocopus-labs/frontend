@@ -8,12 +8,12 @@
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { page } from '$app/stores';
-	
+
 	let { class: className, ...restProps }: HTMLAttributes<HTMLFormElement> = $props();
 
 	// Get token from URL query parameter
 	let token = $derived($page.url.searchParams.get('token') || '');
-	
+
 	let password = $state('');
 	let confirmPassword = $state('');
 
@@ -65,13 +65,12 @@
 
 			// Success
 			toast.success('Password reset successfully! Redirecting to login...');
-			
+
 			// Redirect to login after 2 seconds
 			setTimeout(() => {
 				goto('/login');
 			}, 2000);
 		} catch (error: any) {
-
 			toast.error(error.message || 'An error occurred. Please try again.');
 		} finally {
 			isLoading = false;
@@ -79,17 +78,11 @@
 	}
 </script>
 
-<form
-	class={cn('flex flex-col gap-6', className)}
-	{...restProps}
-	onsubmit={handleResetSubmit}
->
+<form class={cn('flex flex-col gap-6', className)} {...restProps} onsubmit={handleResetSubmit}>
 	<Field.Group>
 		<div class="flex flex-col items-center gap-1 text-center">
 			<h1 class="text-2xl font-bold">Set new password</h1>
-			<p class="text-sm text-balance text-muted-foreground">
-				Enter your new password below
-			</p>
+			<p class="text-sm text-balance text-muted-foreground">Enter your new password below</p>
 		</div>
 
 		<Field.Field>

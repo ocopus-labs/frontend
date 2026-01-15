@@ -1,4 +1,4 @@
-<script lang="ts">
+<!-- <script lang="ts">
 	import TrendingUpIcon from '@lucide/svelte/icons/trending-up';
 	import * as Chart from '$lib/components/ui/chart/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
@@ -247,4 +247,4 @@
 			</div>
 		</div>
 	</Card.Footer>
-</Card.Root>
+</Card.Root> -->

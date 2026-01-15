@@ -1,0 +1,107 @@
+<script lang="ts">
+	import { Button } from '$lib/components/ui/button';
+	import {
+		IconCheck,
+		IconSparkles,
+		IconStorm,
+		IconUsers,
+		IconCreditCard,
+		IconClock
+	} from '@tabler/icons-svelte';
+
+	let {
+		onComplete = () => {}
+	}: {
+		onComplete: () => void;
+	} = $props();
+</script>
+
+<div class="space-y-8">
+	<div class="text-center">
+		<div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+			<IconSparkles class="h-8 w-8 text-primary" />
+		</div>
+		<h1 class="mt-4 text-3xl font-bold">You're all set!</h1>
+		<p class="mt-2 text-muted-foreground">Your business is ready to start accepting orders</p>
+	</div>
+
+	<div class="space-y-4">
+		<div class="rounded-lg border p-4">
+			<div class="flex items-start gap-3">
+				<div class="rounded-full bg-green-100 p-1 dark:bg-green-900">
+					<IconCheck class="h-5 w-5 text-green-600 dark:text-green-400" />
+				</div>
+				<div class="flex-1">
+					<div class="flex items-center gap-2">
+						<IconStorm class="h-5 w-5 text-muted-foreground" />
+						<h3 class="font-semibold">Business Profile</h3>
+					</div>
+					<p class="mt-1 text-sm text-muted-foreground">
+						Business details and first location created
+					</p>
+				</div>
+			</div>
+		</div>
+
+		<div class="rounded-lg border p-4">
+			<div class="flex items-start gap-3">
+				<div class="rounded-full bg-green-100 p-1 dark:bg-green-900">
+					<IconCheck class="h-5 w-5 text-green-600 dark:text-green-400" />
+				</div>
+				<div class="flex-1">
+					<div class="flex items-center gap-2">
+						<IconUsers class="h-5 w-5 text-muted-foreground" />
+						<h3 class="font-semibold">Team Setup</h3>
+					</div>
+					<p class="mt-1 text-sm text-muted-foreground">
+						Team members invited and roles configured
+					</p>
+				</div>
+			</div>
+		</div>
+
+		<div class="rounded-lg border p-4">
+			<div class="flex items-start gap-3">
+				<div class="rounded-full bg-green-100 p-1 dark:bg-green-900">
+					<IconCheck class="h-5 w-5 text-green-600 dark:text-green-400" />
+				</div>
+				<div class="flex-1">
+					<div class="flex items-center gap-2">
+						<IconCreditCard class="h-5 w-5 text-muted-foreground" />
+						<h3 class="font-semibold">Payment Methods</h3>
+					</div>
+					<p class="mt-1 text-sm text-muted-foreground">Payment options configured and ready</p>
+				</div>
+			</div>
+		</div>
+
+		<div class="rounded-lg border p-4">
+			<div class="flex items-start gap-3">
+				<div class="rounded-full bg-green-100 p-1 dark:bg-green-900">
+					<IconCheck class="h-5 w-5 text-green-600 dark:text-green-400" />
+				</div>
+				<div class="flex-1">
+					<div class="flex items-center gap-2">
+						<IconClock class="h-5 w-5 text-muted-foreground" />
+						<h3 class="font-semibold">Business Hours</h3>
+					</div>
+					<p class="mt-1 text-sm text-muted-foreground">Operating hours set for your location</p>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="space-y-4 border-t pt-6">
+		<h3 class="font-semibold">What's Next?</h3>
+		<div class="space-y-3 text-sm text-muted-foreground">
+			<p>✓ Add your menu items and products</p>
+			<p>✓ Configure tax rates and discounts</p>
+			<p>✓ Set up your hardware (printers, card readers)</p>
+			<p>✓ Test your first transaction</p>
+		</div>
+	</div>
+
+	<div class="flex justify-center pt-4">
+		<Button size="lg" onclick={onComplete} class="min-w-[200px]">Go to Dashboard</Button>
+	</div>
+</div>

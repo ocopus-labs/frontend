@@ -14,6 +14,7 @@
 		modifiers?: {
 			sizes?: { name: string; price: number }[];
 			spiceLevels?: { name: string; price: number }[];
+			milkTypes?: { name: string; price: number }[];
 			preparation?: string[];
 			addOns?: { name: string; price: number }[];
 			removals?: string[];

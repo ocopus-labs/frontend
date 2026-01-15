@@ -424,53 +424,6 @@
 	<!-- Main Content Area -->
 	<div class="flex flex-1 flex-col">
 		<!-- Header -->
-		<div class="w-full border-b border-border p-3 md:p-4">
-			<div class="flex w-full justify-between gap-3">
-				<div class="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
-					<h1 class="text-xl font-bold md:text-2xl">POS System</h1>
-					<div
-						class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground md:text-sm"
-					>
-						<div class="flex items-center gap-1">
-							<IconCalendar class="h-3 w-3 md:h-4 md:w-4" />
-							<span class="hidden sm:inline">{new Date().toLocaleDateString()}</span>
-							<span class="sm:hidden"
-								>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span
-							>
-						</div>
-						<div class="flex items-center gap-1">
-							<IconClock class="h-3 w-3 md:h-4 md:w-4" />
-							<span
-								>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span
-							>
-						</div>
-						<div class="flex items-center gap-1">
-							<IconUser class="h-3 w-3 md:h-4 md:w-4" />
-							<span class="hidden sm:inline">Staff Name</span>
-							<span class="sm:hidden">Staff</span>
-						</div>
-					</div>
-				</div>
-				<div class="flex items-center gap-2">
-					<Button variant="outline" size="sm" class="">
-						<IconEdit class="mr-2 h-4 w-4" />
-						Edit Menu
-					</Button>
-					<Button variant="outline" size="sm" class="">
-						<IconRefresh class="mr-2 h-4 w-4" />
-						<span class="hidden md:inline">Refresh</span>
-					</Button>
-					<!-- Mobile: Show icon buttons only -->
-					<!-- <Button variant="outline" size="icon" class="md:hidden">
-						<IconEdit class="h-4 w-4" />
-					</Button>
-					<Button variant="outline" size="icon" class="sm:hidden">
-						<IconRefresh class="h-4 w-4" />
-					</Button> -->
-				</div>
-			</div>
-		</div>
-
 		<div class="flex flex-1 flex-col overflow-hidden lg:flex-row">
 			<!-- Menu Section -->
 			<div class="flex flex-1 flex-col overflow-hidden lg:min-w-0">

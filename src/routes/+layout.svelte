@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
+	// import { ProgressBar } from '@prgm/sveltekit-progress-bar';
 
 	import { Toaster } from 'svelte-sonner';
 
@@ -12,4 +13,5 @@
 </svelte:head>
 
 <Toaster />
+<!-- <ProgressBar class="text-red-500" /> -->
 {@render children()}
