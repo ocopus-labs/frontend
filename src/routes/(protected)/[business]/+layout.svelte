@@ -28,7 +28,7 @@
 </script>
 
 <Sidebar.Provider>
-	<AppSidebar businesses={data.businesses} />
+	<AppSidebar businesses={data.businesses} subscription={data.subscription} />
 	<Sidebar.Inset>
 		<header
 			class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12"
