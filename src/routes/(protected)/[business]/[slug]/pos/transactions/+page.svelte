@@ -11,99 +11,38 @@
 		IconReceipt,
 		IconCreditCard,
 		IconCash,
-		IconCalendar
+		IconDeviceMobile,
+		IconRefresh
 	} from '@tabler/icons-svelte';
+	import { formatCurrency } from '$lib/utils/i18n';
+	import type { Payment, PaymentMethod, PaymentSummary } from '$lib/api/payment';
 
-	// Dummy transactions data
-	let transactions = $state([
-		{
-			id: 'TXN-001',
-			orderId: 'ORD-001',
-			customer: 'John Doe',
-			amount: 45.67,
-			paymentMethod: 'Card',
-			cardLast4: '4242',
-			status: 'completed',
-			date: '2024-11-06',
-			time: '14:35:22'
-		},
-		{
-			id: 'TXN-002',
-			orderId: 'ORD-002',
-			customer: 'Jane Smith',
-			amount: 23.45,
-			paymentMethod: 'Cash',
-			cardLast4: null,
-			status: 'completed',
-			date: '2024-11-06',
-			time: '15:20:18'
-		},
-		{
-			id: 'TXN-003',
-			orderId: 'ORD-003',
-			customer: 'Mike Johnson',
-			amount: 67.89,
-			paymentMethod: 'Card',
-			cardLast4: '8765',
-			status: 'pending',
-			date: '2024-11-06',
-			time: '16:05:44'
-		},
-		{
-			id: 'TXN-004',
-			orderId: 'ORD-004',
-			customer: 'Sarah Wilson',
-			amount: 34.56,
-			paymentMethod: 'UPI',
-			cardLast4: null,
-			status: 'completed',
-			date: '2024-11-05',
-			time: '19:48:33'
-		},
-		{
-			id: 'TXN-005',
-			orderId: 'ORD-005',
-			customer: 'Tom Brown',
-			amount: 12.34,
-			paymentMethod: 'Card',
-			cardLast4: '1234',
-			status: 'refunded',
-			date: '2024-11-05',
-			time: '18:22:11'
-		},
-		{
-			id: 'TXN-006',
-			orderId: 'ORD-006',
-			customer: 'Emily Davis',
-			amount: 89.99,
-			paymentMethod: 'Cash',
-			cardLast4: null,
-			status: 'completed',
-			date: '2024-11-05',
-			time: '20:15:55'
-		}
-	]);
+	let { data } = $props();
 
 	let searchQuery = $state('');
 	let statusFilter = $state('all');
 	let paymentFilter = $state('all');
+	let isRefreshing = $state(false);
 
-	const filteredTransactions = $derived(
-		transactions.filter((txn) => {
+	const payments = $derived(data.payments as Payment[]);
+	const summary = $derived(data.summary as PaymentSummary | null);
+
+	const filteredPayments = $derived(
+		payments.filter((payment) => {
 			const matchesSearch =
-				txn.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				txn.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				txn.orderId.toLowerCase().includes(searchQuery.toLowerCase());
-			const matchesStatus = statusFilter === 'all' || txn.status === statusFilter;
-			const matchesPayment = paymentFilter === 'all' || txn.paymentMethod === paymentFilter;
+				payment.paymentNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				payment.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				(payment.customerInfo?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+			const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
+			const matchesPayment = paymentFilter === 'all' || payment.method === paymentFilter;
 			return matchesSearch && matchesStatus && matchesPayment;
 		})
 	);
 
 	const totalAmount = $derived(
-		filteredTransactions.reduce((sum, txn) => {
-			if (txn.status === 'completed') return sum + txn.amount;
-			if (txn.status === 'refunded') return sum - txn.amount;
+		filteredPayments.reduce((sum, payment) => {
+			if (payment.status === 'completed') return sum + payment.amount;
+			if (payment.status === 'refunded') return sum - payment.amount;
 			return sum;
 		}, 0)
 	);
@@ -116,6 +55,8 @@
 				return { variant: 'secondary' as const, text: 'Pending' };
 			case 'refunded':
 				return { variant: 'destructive' as const, text: 'Refunded' };
+			case 'partially_refunded':
+				return { variant: 'outline' as const, text: 'Partial Refund' };
 			case 'failed':
 				return { variant: 'destructive' as const, text: 'Failed' };
 			default:
@@ -123,23 +64,77 @@
 		}
 	}
 
-	function getPaymentIcon(method: string) {
+	function getPaymentIcon(method: PaymentMethod) {
 		switch (method) {
-			case 'Card':
+			case 'card':
 				return IconCreditCard;
-			case 'Cash':
+			case 'cash':
 				return IconCash;
+			case 'upi':
+				return IconDeviceMobile;
 			default:
 				return IconReceipt;
 		}
 	}
 
-	function viewTransaction(txnId: string) {
-		console.log('View transaction:', txnId);
+	function getPaymentMethodLabel(method: PaymentMethod): string {
+		switch (method) {
+			case 'card':
+				return 'Card';
+			case 'cash':
+				return 'Cash';
+			case 'upi':
+				return 'UPI';
+			case 'net_banking':
+				return 'Net Banking';
+			case 'wallet':
+				return 'Wallet';
+			default:
+				return 'Other';
+		}
+	}
+
+	function formatDateTime(dateString: string) {
+		const date = new Date(dateString);
+		return {
+			date: date.toLocaleDateString(),
+			time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+		};
+	}
+
+	function viewTransaction(paymentId: string) {
+		console.log('View payment:', paymentId);
 	}
 
 	function exportTransactions() {
-		console.log('Export transactions');
+		// Export logic for CSV download
+		const csvContent = [
+			['Payment ID', 'Order Number', 'Customer', 'Method', 'Amount', 'Status', 'Date'].join(','),
+			...filteredPayments.map((p) =>
+				[
+					p.paymentNumber,
+					p.orderNumber,
+					p.customerInfo?.name || 'Guest',
+					p.method,
+					p.amount,
+					p.status,
+					new Date(p.createdAt).toISOString()
+				].join(',')
+			)
+		].join('\n');
+
+		const blob = new Blob([csvContent], { type: 'text/csv' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `transactions-${new Date().toISOString().split('T')[0]}.csv`;
+		a.click();
+		URL.revokeObjectURL(url);
+	}
+
+	async function refresh() {
+		isRefreshing = true;
+		window.location.reload();
 	}
 </script>
 
@@ -151,20 +146,26 @@
 					<h1 class="text-2xl font-bold">Transactions</h1>
 					<p class="text-muted-foreground">View and manage all payment transactions</p>
 				</div>
-				<Button onclick={exportTransactions}>
-					<IconDownload class="mr-2 h-4 w-4" />
-					Export
-				</Button>
+				<div class="flex gap-2">
+					<Button variant="outline" onclick={refresh} disabled={isRefreshing}>
+						<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
+						Refresh
+					</Button>
+					<Button onclick={exportTransactions}>
+						<IconDownload class="mr-2 h-4 w-4" />
+						Export
+					</Button>
+				</div>
 			</div>
 
 			<!-- Summary Cards -->
-			<div class="grid grid-cols-1 gap-4 px-6 sm:grid-cols-3">
+			<div class="grid grid-cols-1 gap-4 px-6 sm:grid-cols-4">
 				<Card.Root>
 					<Card.Header class="pb-2">
 						<Card.Title class="text-sm font-medium">Total Transactions</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold">{filteredTransactions.length}</div>
+						<div class="text-2xl font-bold">{filteredPayments.length}</div>
 					</Card.Content>
 				</Card.Root>
 				<Card.Root>
@@ -172,7 +173,7 @@
 						<Card.Title class="text-sm font-medium">Total Amount</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold">${totalAmount.toFixed(2)}</div>
+						<div class="text-2xl font-bold">{formatCurrency(totalAmount)}</div>
 					</Card.Content>
 				</Card.Root>
 				<Card.Root>
@@ -181,10 +182,20 @@
 					</Card.Header>
 					<Card.Content>
 						<div class="text-2xl font-bold">
-							${filteredTransactions.length > 0 ? (totalAmount / filteredTransactions.length).toFixed(2) : '0.00'}
+							{formatCurrency(filteredPayments.length > 0 ? totalAmount / filteredPayments.length : 0)}
 						</div>
 					</Card.Content>
 				</Card.Root>
+				{#if summary}
+					<Card.Root>
+						<Card.Header class="pb-2">
+							<Card.Title class="text-sm font-medium">Pending Amount</Card.Title>
+						</Card.Header>
+						<Card.Content>
+							<div class="text-2xl font-bold">{formatCurrency(summary.pendingAmount)}</div>
+						</Card.Content>
+					</Card.Root>
+				{/if}
 			</div>
 
 			<!-- Filters and Search -->
@@ -215,9 +226,11 @@
 						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
 					>
 						<option value="all">All Methods</option>
-						<option value="Card">Card</option>
-						<option value="Cash">Cash</option>
-						<option value="UPI">UPI</option>
+						<option value="card">Card</option>
+						<option value="cash">Cash</option>
+						<option value="upi">UPI</option>
+						<option value="net_banking">Net Banking</option>
+						<option value="wallet">Wallet</option>
 					</select>
 				</div>
 			</div>
@@ -228,7 +241,7 @@
 					<Table.Root>
 						<Table.Header>
 							<Table.Row>
-								<Table.Head>Transaction ID</Table.Head>
+								<Table.Head>Payment ID</Table.Head>
 								<Table.Head>Order</Table.Head>
 								<Table.Head>Customer</Table.Head>
 								<Table.Head>Payment Method</Table.Head>
@@ -239,37 +252,35 @@
 							</Table.Row>
 						</Table.Header>
 						<Table.Body>
-							{#each filteredTransactions as txn (txn.id)}
+							{#each filteredPayments as payment (payment.id)}
+								{@const dateTime = formatDateTime(payment.createdAt)}
 								<Table.Row>
-									<Table.Cell class="font-medium">{txn.id}</Table.Cell>
-									<Table.Cell class="text-muted-foreground">{txn.orderId}</Table.Cell>
-									<Table.Cell>{txn.customer}</Table.Cell>
+									<Table.Cell class="font-medium font-mono text-sm">{payment.paymentNumber}</Table.Cell>
+									<Table.Cell class="text-muted-foreground font-mono text-sm">{payment.orderNumber}</Table.Cell>
+									<Table.Cell>{payment.customerInfo?.name || 'Guest'}</Table.Cell>
 									<Table.Cell>
 										<div class="flex items-center gap-2">
 											<svelte:component
-												this={getPaymentIcon(txn.paymentMethod)}
+												this={getPaymentIcon(payment.method)}
 												class="h-4 w-4"
 											/>
-											{txn.paymentMethod}
-											{#if txn.cardLast4}
-												<span class="text-muted-foreground">••••{txn.cardLast4}</span>
-											{/if}
+											{getPaymentMethodLabel(payment.method)}
 										</div>
 									</Table.Cell>
-									<Table.Cell class="font-medium">${txn.amount.toFixed(2)}</Table.Cell>
+									<Table.Cell class="font-medium">{formatCurrency(payment.amount)}</Table.Cell>
 									<Table.Cell>
-										<Badge variant={getStatusBadge(txn.status).variant}>
-											{getStatusBadge(txn.status).text}
+										<Badge variant={getStatusBadge(payment.status).variant}>
+											{getStatusBadge(payment.status).text}
 										</Badge>
 									</Table.Cell>
 									<Table.Cell>
 										<div class="text-sm">
-											<div>{txn.date}</div>
-											<div class="text-muted-foreground">{txn.time}</div>
+											<div>{dateTime.date}</div>
+											<div class="text-muted-foreground">{dateTime.time}</div>
 										</div>
 									</Table.Cell>
 									<Table.Cell class="text-right">
-										<Button variant="ghost" size="sm" onclick={() => viewTransaction(txn.id)}>
+										<Button variant="ghost" size="sm" onclick={() => viewTransaction(payment.id)}>
 											<IconEye class="h-4 w-4" />
 										</Button>
 									</Table.Cell>
@@ -280,11 +291,17 @@
 				</div>
 			</div>
 
-			{#if filteredTransactions.length === 0}
+			{#if filteredPayments.length === 0}
 				<div class="flex flex-col items-center justify-center py-12 text-center">
 					<IconReceipt class="h-12 w-12 text-muted-foreground" />
 					<h3 class="mt-4 text-lg font-semibold">No transactions found</h3>
-					<p class="text-muted-foreground">Try adjusting your search or filter criteria.</p>
+					<p class="text-muted-foreground">
+						{#if payments.length === 0}
+							No payments have been processed yet. Create an order to get started.
+						{:else}
+							Try adjusting your search or filter criteria.
+						{/if}
+					</p>
 				</div>
 			{/if}
 		</div>

@@ -246,9 +246,11 @@
 		}
 
 		isSubmitting = true;
+		console.log('Submitting order...');
 
 		try {
 			const businessId = $page.data.business.id;
+			console.log('Business ID:', businessId);
 
 			const items: CreateOrderItemPayload[] = orderItems.map((item) => ({
 				menuItemId: (item as any).menuItemId || item.id,
@@ -288,7 +290,9 @@
 				} : undefined
 			};
 
+			console.log('Order payload:', orderPayload);
 			const result = await createOrder(businessId, orderPayload);
+			console.log('Order created:', result);
 			toast.success(`Order ${result.order.orderNumber} created successfully!`);
 
 			// Show payment dialog
@@ -296,6 +300,7 @@
 			currentOrderNumber = result.order.orderNumber;
 			currentOrderTotal = result.order.pricing.total;
 			currentBalanceDue = Number(result.order.balanceDue);
+			console.log('Opening payment dialog with balance:', currentBalanceDue);
 			showPaymentDialog = true;
 			showOrderSummary = false;
 
@@ -313,10 +318,12 @@
 		change?: number;
 		remainingBalance: number;
 	}) {
+		console.log('Payment complete callback:', result);
 		isProcessingPayment = true;
 
 		try {
 			const businessId = $page.data.business.id;
+			console.log('Processing payment for order:', currentOrderId);
 
 			const paymentResult = await createPayment(businessId, {
 				orderId: currentOrderId,
@@ -325,8 +332,10 @@
 				cashReceived: result.paymentMethod === 'cash' ? result.amount + (result.change || 0) : undefined
 			});
 
+			console.log('Payment result:', paymentResult);
+
 			if (result.change && result.change > 0) {
-				toast.success(`Payment complete! Change: ${result.change.toFixed(2)}`);
+				toast.success(`Payment complete! Change: ₹${result.change.toFixed(2)}`);
 			} else {
 				toast.success('Payment processed successfully!');
 			}
@@ -340,7 +349,7 @@
 			} else {
 				// Partial payment - update balance
 				currentBalanceDue = paymentResult.remainingBalance;
-				toast.info(`Remaining balance: ${paymentResult.remainingBalance.toFixed(2)}`);
+				toast.info(`Remaining balance: ₹${paymentResult.remainingBalance.toFixed(2)}`);
 			}
 
 		} catch (error) {
@@ -453,9 +462,10 @@
 
 			<!-- Order Summary Section - Desktop: Sidebar -->
 			<div
-				class="hidden lg:block lg:w-[380px] lg:shrink-0 lg:border-l lg:border-border xl:w-[420px]"
+				class="hidden lg:flex lg:w-[380px] lg:shrink-0 lg:flex-col lg:border-l lg:border-border xl:w-[420px]"
 			>
-				<OrderSummary
+				<div class="min-h-0 flex-1 overflow-hidden">
+					<OrderSummary
 					{orderItems}
 					orderType={orderType === 'dine_in' ? 'Dine-In' : orderType === 'takeaway' ? 'Takeaway' : 'Delivery'}
 					{selectedTable}
@@ -474,7 +484,8 @@
 					onToggleTaxes={toggleTaxes}
 					onToggleDiscount={toggleDiscount}
 				/>
-				<div class="border-t border-border p-4">
+				</div>
+				<div class="shrink-0 border-t border-border p-4">
 					<Button
 						class="w-full"
 						size="lg"
