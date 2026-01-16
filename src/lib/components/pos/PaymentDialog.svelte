@@ -46,9 +46,16 @@
 	$effect(() => {
 		if (open) {
 			paymentAmount = balanceDue;
-			cashReceived = 0;
+			cashReceived = balanceDue; // Default to exact amount for easier payment
 			transactionReference = '';
 			paymentMethod = 'cash';
+		}
+	});
+
+	// Update cashReceived when payment amount changes
+	$effect(() => {
+		if (paymentMethod === 'cash' && cashReceived < paymentAmount) {
+			cashReceived = paymentAmount;
 		}
 	});
 
@@ -59,6 +66,12 @@
 	);
 
 	const isValidPayment = $derived(() => {
+		console.log('Validating payment:', {
+			paymentAmount,
+			balanceDue,
+			cashReceived,
+			paymentMethod
+		});
 		if (paymentAmount <= 0 || paymentAmount > balanceDue) return false;
 		if (paymentMethod === 'cash' && cashReceived < paymentAmount) return false;
 		return true;
@@ -73,8 +86,19 @@
 	}
 
 	function handleSubmit() {
-		if (!isValidPayment()) return;
+		console.log('Payment submit clicked');
+		console.log('isValidPayment:', isValidPayment());
+		console.log('paymentMethod:', paymentMethod);
+		console.log('paymentAmount:', paymentAmount);
+		console.log('cashReceived:', cashReceived);
+		console.log('balanceDue:', balanceDue);
 
+		if (!isValidPayment()) {
+			console.log('Payment validation failed');
+			return;
+		}
+
+		console.log('Calling onPaymentComplete');
 		onPaymentComplete({
 			paymentMethod,
 			amount: paymentAmount,

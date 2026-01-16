@@ -94,7 +94,7 @@
 	});
 </script>
 
-<Dialog.Root {open}>
+<Dialog.Root {open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
 	<Dialog.Content class="max-h-[90vh] max-w-2xl overflow-y-auto p-4 sm:p-6">
 		<Dialog.Header>
 			<Dialog.Title class="text-lg sm:text-xl">Customize Your Order</Dialog.Title>

@@ -46,7 +46,7 @@
 	}: Props = $props();
 </script>
 
-<aside class="flex h-full flex-col bg-card">
+<aside class="flex h-full max-h-full flex-col overflow-hidden bg-card">
 	<!-- Order Header -->
 	<div class="border-b border-border p-3 md:p-4 lg:p-6">
 		<div class="mb-3 flex items-center justify-between md:mb-4">

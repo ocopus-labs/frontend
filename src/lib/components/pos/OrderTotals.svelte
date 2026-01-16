@@ -103,10 +103,9 @@
 	{/if}
 
 	<div class="border-t border-border pt-3">
-		<div class="mb-4 flex items-center justify-between">
+		<div class="flex items-center justify-between">
 			<span class="font-semibold">Total Payment</span>
 			<span class="text-xl font-bold">{i18n.formatCurrency(totalPayment)}</span>
 		</div>
-		<Button class="h-12 w-full text-base">Confirm Payment</Button>
 	</div>
 </div>
