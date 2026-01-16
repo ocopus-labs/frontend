@@ -16,8 +16,47 @@ import TableIcon from '@lucide/svelte/icons/table';
 import PackageIcon from '@lucide/svelte/icons/package';
 import DollarSignIcon from '@lucide/svelte/icons/dollar-sign';
 import MonitorIcon from '@lucide/svelte/icons/monitor';
+import UsersIcon from '@lucide/svelte/icons/users';
+import type { FeatureKey } from '$lib/utils/plan-features';
 
-export const sidebarData = {
+export interface NavSubItem {
+	title: string;
+	url: string;
+}
+
+export interface NavItem {
+	title: string;
+	url: string;
+	icon?: any;
+	isActive?: boolean;
+	requiredFeature?: FeatureKey;
+	requiredPlan?: 'PRO' | 'ENTERPRISE';
+	items?: NavSubItem[];
+}
+
+export interface ProjectItem {
+	name: string;
+	url: string;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	icon: any;
+}
+
+export interface SidebarData {
+	user: {
+		name: string;
+		email: string;
+		avatar: string;
+	};
+	teams: {
+		name: string;
+		logo: any;
+		plan: string;
+	}[];
+	navMain: NavItem[];
+	projects: ProjectItem[];
+}
+
+export const sidebarData: Record<string, SidebarData> = {
 	restaurant: {
 		user: {
 			name: 'John Manager',
@@ -119,6 +158,8 @@ export const sidebarData = {
 				title: 'Kitchen Display',
 				url: '/[business]/[slug]/kitchen-display',
 				icon: MonitorIcon,
+				requiredFeature: 'kitchenDisplay',
+				requiredPlan: 'PRO',
 				items: [
 					{
 						title: 'Orders Queue',
@@ -149,6 +190,8 @@ export const sidebarData = {
 				title: 'Inventory',
 				url: '/[business]/[slug]/inventory',
 				icon: PackageIcon,
+				requiredFeature: 'inventory',
+				requiredPlan: 'PRO',
 				items: [
 					{
 						title: 'Stock',
@@ -164,6 +207,8 @@ export const sidebarData = {
 				title: 'Expenses',
 				url: '/[business]/[slug]/expenses',
 				icon: DollarSignIcon,
+				requiredFeature: 'expenses',
+				requiredPlan: 'PRO',
 				items: [
 					{
 						title: 'Daily',
@@ -176,6 +221,25 @@ export const sidebarData = {
 					{
 						title: 'Reports',
 						url: '/[business]/[slug]/expenses/reports'
+					}
+				]
+			},
+			{
+				title: 'Team',
+				url: '/[business]/[slug]/team',
+				icon: UsersIcon,
+				items: [
+					{
+						title: 'Members',
+						url: '/[business]/[slug]/team'
+					},
+					{
+						title: 'Roles',
+						url: '/[business]/[slug]/team/roles'
+					},
+					{
+						title: 'Invitations',
+						url: '/[business]/[slug]/team/invitations'
 					}
 				]
 			}
