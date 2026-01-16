@@ -1,10 +1,13 @@
 <script lang="ts">
+	import type { PageData } from './$types';
+	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
+	import { Loader2 } from '@lucide/svelte';
 	import {
 		IconPlus,
 		IconPencil,
@@ -17,218 +20,209 @@
 		IconX
 	} from '@tabler/icons-svelte';
 	import { toast } from 'svelte-sonner';
+	import {
+		createReservation,
+		updateReservation,
+		confirmReservation as confirmReservationApi,
+		cancelReservation as cancelReservationApi,
+		deleteReservation as deleteReservationApi,
+		type Reservation,
+		type ReservationStatus,
+		type Table as TableType,
+		type CreateReservationPayload
+	} from '$lib/api';
 
-	// Dummy reservations data
-	let reservations = $state([
-		{
-			id: 1,
-			customerName: 'Smith Family',
-			phone: '+1 555-0123',
-			email: 'smith@email.com',
-			date: '2024-11-06',
-			time: '18:00',
-			partySize: 4,
-			table: 'T-04',
-			status: 'confirmed',
-			notes: 'Anniversary dinner, need cake'
-		},
-		{
-			id: 2,
-			customerName: 'Johnson Party',
-			phone: '+1 555-0456',
-			email: 'johnson@email.com',
-			date: '2024-11-06',
-			time: '19:00',
-			partySize: 6,
-			table: 'P-03',
-			status: 'confirmed',
-			notes: 'Birthday celebration'
-		},
-		{
-			id: 3,
-			customerName: 'Corporate Event',
-			phone: '+1 555-0789',
-			email: 'corp@business.com',
-			date: '2024-11-06',
-			time: '19:30',
-			partySize: 10,
-			table: 'VIP-01',
-			status: 'confirmed',
-			notes: 'Business dinner, need private area'
-		},
-		{
-			id: 4,
-			customerName: 'Davis Couple',
-			phone: '+1 555-0111',
-			email: 'davis@email.com',
-			date: '2024-11-07',
-			time: '18:30',
-			partySize: 2,
-			table: 'T-01',
-			status: 'pending',
-			notes: ''
-		},
-		{
-			id: 5,
-			customerName: 'Wilson Group',
-			phone: '+1 555-0222',
-			email: 'wilson@email.com',
-			date: '2024-11-07',
-			time: '20:00',
-			partySize: 8,
-			table: 'T-07',
-			status: 'pending',
-			notes: 'Vegetarian options needed'
-		},
-		{
-			id: 6,
-			customerName: 'Brown Anniversary',
-			phone: '+1 555-0333',
-			email: 'brown@email.com',
-			date: '2024-11-05',
-			time: '19:00',
-			partySize: 2,
-			table: 'P-01',
-			status: 'completed',
-			notes: ''
-		}
-	]);
+	let { data }: { data: PageData } = $props();
 
+	let reservations = $state<Reservation[]>(data.reservations || []);
+	let tables = $state<TableType[]>(data.tables || []);
 	let searchQuery = $state('');
 	let dateFilter = $state('upcoming');
-	let statusFilter = $state('all');
+	let statusFilter = $state<'all' | ReservationStatus>('all');
 	let showAddDialog = $state(false);
-	let editingReservation = $state<(typeof reservations)[0] | null>(null);
+	let editingReservation = $state<Reservation | null>(null);
+	let isSubmitting = $state(false);
 
-	let newReservation = $state({
+	let newReservation = $state<{
+		customerName: string;
+		customerPhone: string;
+		customerEmail: string;
+		reservationDate: string;
+		reservationTime: string;
+		partySize: number;
+		tableId: string;
+		notes: string;
+	}>({
 		customerName: '',
-		phone: '',
-		email: '',
-		date: '',
-		time: '',
+		customerPhone: '',
+		customerEmail: '',
+		reservationDate: '',
+		reservationTime: '',
 		partySize: 2,
-		table: '',
+		tableId: '',
 		notes: ''
 	});
 
-	const availableTables = [
-		'T-01',
-		'T-02',
-		'T-03',
-		'T-04',
-		'T-05',
-		'T-06',
-		'T-07',
-		'T-08',
-		'P-01',
-		'P-02',
-		'P-03',
-		'P-04',
-		'B-01',
-		'B-02',
-		'VIP-01'
-	];
+	const today = new Date().toISOString().split('T')[0];
+
+	const stats = $derived({
+		today: reservations.filter((r) => r.reservationDate === today && r.status !== 'cancelled').length,
+		upcoming: reservations.filter((r) => r.reservationDate > today && r.status !== 'cancelled').length,
+		pending: reservations.filter((r) => r.status === 'pending').length
+	});
 
 	const filteredReservations = $derived(
 		reservations.filter((res) => {
 			const matchesSearch =
 				res.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				res.phone.includes(searchQuery) ||
-				res.table.toLowerCase().includes(searchQuery.toLowerCase());
+				(res.customerPhone?.includes(searchQuery) ?? false);
 
 			const matchesStatus = statusFilter === 'all' || res.status === statusFilter;
 
 			let matchesDate = true;
-			const today = '2024-11-06';
 			if (dateFilter === 'today') {
-				matchesDate = res.date === today;
+				matchesDate = res.reservationDate === today;
 			} else if (dateFilter === 'upcoming') {
-				matchesDate = res.date >= today;
+				matchesDate = res.reservationDate >= today;
 			} else if (dateFilter === 'past') {
-				matchesDate = res.date < today;
+				matchesDate = res.reservationDate < today;
 			}
 
 			return matchesSearch && matchesStatus && matchesDate;
 		})
 	);
 
-	const stats = $derived({
-		today: reservations.filter((r) => r.date === '2024-11-06' && r.status !== 'cancelled').length,
-		upcoming: reservations.filter((r) => r.date > '2024-11-06' && r.status !== 'cancelled').length,
-		pending: reservations.filter((r) => r.status === 'pending').length
-	});
+	function getTableName(tableId?: string): string {
+		if (!tableId) return 'Not assigned';
+		return tables.find((t) => t.id === tableId)?.displayName || tableId;
+	}
 
-	function getStatusBadge(status: string) {
+	function getStatusBadge(status: ReservationStatus) {
 		switch (status) {
 			case 'confirmed':
 				return { variant: 'default' as const, text: 'Confirmed' };
 			case 'pending':
 				return { variant: 'secondary' as const, text: 'Pending' };
+			case 'seated':
+				return { variant: 'default' as const, text: 'Seated', class: 'bg-blue-100 text-blue-800' };
 			case 'completed':
 				return { variant: 'outline' as const, text: 'Completed' };
 			case 'cancelled':
 				return { variant: 'destructive' as const, text: 'Cancelled' };
+			case 'no_show':
+				return { variant: 'destructive' as const, text: 'No Show' };
 			default:
 				return { variant: 'outline' as const, text: status };
 		}
 	}
 
-	function addReservation() {
-		if (!newReservation.customerName.trim() || !newReservation.date || !newReservation.time) {
+	function formatDate(dateString: string): string {
+		return new Date(dateString).toLocaleDateString('en-US', {
+			month: 'short',
+			day: 'numeric',
+			year: 'numeric'
+		});
+	}
+
+	async function addReservation() {
+		if (!newReservation.customerName.trim() || !newReservation.reservationDate || !newReservation.reservationTime) {
 			toast.error('Please fill in all required fields');
 			return;
 		}
 
-		reservations = [
-			...reservations,
-			{
-				id: Math.max(...reservations.map((r) => r.id)) + 1,
-				...newReservation,
-				status: 'pending'
-			}
-		];
+		isSubmitting = true;
+		try {
+			const payload: CreateReservationPayload = {
+				customerName: newReservation.customerName,
+				customerPhone: newReservation.customerPhone || undefined,
+				customerEmail: newReservation.customerEmail || undefined,
+				reservationDate: newReservation.reservationDate,
+				reservationTime: newReservation.reservationTime,
+				partySize: newReservation.partySize,
+				tableId: newReservation.tableId || undefined,
+				notes: newReservation.notes || undefined
+			};
 
-		toast.success('Reservation created successfully');
-		showAddDialog = false;
-		newReservation = {
-			customerName: '',
-			phone: '',
-			email: '',
-			date: '',
-			time: '',
-			partySize: 2,
-			table: '',
-			notes: ''
-		};
+			const result = await createReservation(data.businessId, payload);
+			reservations = [...reservations, result.reservation];
+			toast.success('Reservation created successfully');
+			showAddDialog = false;
+			newReservation = {
+				customerName: '',
+				customerPhone: '',
+				customerEmail: '',
+				reservationDate: '',
+				reservationTime: '',
+				partySize: 2,
+				tableId: '',
+				notes: ''
+			};
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : 'Failed to create reservation');
+		} finally {
+			isSubmitting = false;
+		}
 	}
 
-	function confirmReservation(id: number) {
-		reservations = reservations.map((r) => (r.id === id ? { ...r, status: 'confirmed' } : r));
-		toast.success('Reservation confirmed');
+	async function handleConfirm(id: string) {
+		try {
+			const result = await confirmReservationApi(data.businessId, id);
+			reservations = reservations.map((r) => (r.id === id ? result.reservation : r));
+			toast.success('Reservation confirmed');
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : 'Failed to confirm reservation');
+		}
 	}
 
-	function cancelReservation(id: number) {
-		reservations = reservations.map((r) => (r.id === id ? { ...r, status: 'cancelled' } : r));
-		toast.success('Reservation cancelled');
+	async function handleCancel(id: string) {
+		const reason = prompt('Please enter cancellation reason (optional):');
+		try {
+			const result = await cancelReservationApi(data.businessId, id, reason || undefined);
+			reservations = reservations.map((r) => (r.id === id ? result.reservation : r));
+			toast.success('Reservation cancelled');
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : 'Failed to cancel reservation');
+		}
 	}
 
-	function deleteReservation(id: number) {
-		reservations = reservations.filter((r) => r.id !== id);
-		toast.success('Reservation deleted');
+	async function handleDelete(id: string) {
+		if (!confirm('Are you sure you want to delete this reservation?')) return;
+		try {
+			await deleteReservationApi(data.businessId, id);
+			reservations = reservations.filter((r) => r.id !== id);
+			toast.success('Reservation deleted');
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : 'Failed to delete reservation');
+		}
 	}
 
-	function editReservation(reservation: (typeof reservations)[0]) {
+	function editReservation(reservation: Reservation) {
 		editingReservation = { ...reservation };
 	}
 
-	function saveReservation() {
+	async function saveReservation() {
 		if (!editingReservation) return;
 
-		reservations = reservations.map((r) =>
-			r.id === editingReservation!.id ? editingReservation! : r
-		);
-		toast.success('Reservation updated');
-		editingReservation = null;
+		isSubmitting = true;
+		try {
+			const result = await updateReservation(data.businessId, editingReservation.id, {
+				customerName: editingReservation.customerName,
+				customerPhone: editingReservation.customerPhone,
+				customerEmail: editingReservation.customerEmail,
+				reservationDate: editingReservation.reservationDate,
+				reservationTime: editingReservation.reservationTime,
+				partySize: editingReservation.partySize,
+				tableId: editingReservation.tableId,
+				notes: editingReservation.notes
+			});
+			reservations = reservations.map((r) => (r.id === editingReservation!.id ? result.reservation : r));
+			toast.success('Reservation updated');
+			editingReservation = null;
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : 'Failed to update reservation');
+		} finally {
+			isSubmitting = false;
+		}
 	}
 </script>
 
@@ -301,6 +295,7 @@
 						<option value="all">All Status</option>
 						<option value="confirmed">Confirmed</option>
 						<option value="pending">Pending</option>
+						<option value="seated">Seated</option>
 						<option value="completed">Completed</option>
 						<option value="cancelled">Cancelled</option>
 					</select>
@@ -308,112 +303,118 @@
 			</div>
 
 			<!-- Reservations Table -->
-			<div class="px-6">
-				<div class="rounded-md border">
-					<Table.Root>
-						<Table.Header>
-							<Table.Row>
-								<Table.Head>Customer</Table.Head>
-								<Table.Head>Date & Time</Table.Head>
-								<Table.Head>Party Size</Table.Head>
-								<Table.Head>Table</Table.Head>
-								<Table.Head>Status</Table.Head>
-								<Table.Head>Notes</Table.Head>
-								<Table.Head class="text-right">Actions</Table.Head>
-							</Table.Row>
-						</Table.Header>
-						<Table.Body>
-							{#each filteredReservations as reservation (reservation.id)}
+			{#if filteredReservations.length > 0}
+				<div class="px-6">
+					<div class="rounded-md border">
+						<Table.Root>
+							<Table.Header>
 								<Table.Row>
-									<Table.Cell>
-										<div>
-											<div class="font-medium">{reservation.customerName}</div>
-											<div class="flex items-center gap-1 text-sm text-muted-foreground">
-												<IconPhone class="h-3 w-3" />
-												{reservation.phone}
-											</div>
-										</div>
-									</Table.Cell>
-									<Table.Cell>
-										<div class="flex items-center gap-1">
-											<IconCalendar class="h-4 w-4 text-muted-foreground" />
+									<Table.Head>Customer</Table.Head>
+									<Table.Head>Date & Time</Table.Head>
+									<Table.Head>Party Size</Table.Head>
+									<Table.Head>Table</Table.Head>
+									<Table.Head>Status</Table.Head>
+									<Table.Head>Notes</Table.Head>
+									<Table.Head class="text-right">Actions</Table.Head>
+								</Table.Row>
+							</Table.Header>
+							<Table.Body>
+								{#each filteredReservations as reservation (reservation.id)}
+									<Table.Row>
+										<Table.Cell>
 											<div>
-												<div>{reservation.date}</div>
-												<div class="text-sm text-muted-foreground">{reservation.time}</div>
+												<div class="font-medium">{reservation.customerName}</div>
+												{#if reservation.customerPhone}
+													<div class="flex items-center gap-1 text-sm text-muted-foreground">
+														<IconPhone class="h-3 w-3" />
+														{reservation.customerPhone}
+													</div>
+												{/if}
 											</div>
-										</div>
-									</Table.Cell>
-									<Table.Cell>
-										<div class="flex items-center gap-1">
-											<IconUsers class="h-4 w-4 text-muted-foreground" />
-											{reservation.partySize}
-										</div>
-									</Table.Cell>
-									<Table.Cell>
-										<Badge variant="outline">{reservation.table}</Badge>
-									</Table.Cell>
-									<Table.Cell>
-										<Badge variant={getStatusBadge(reservation.status).variant}>
-											{getStatusBadge(reservation.status).text}
-										</Badge>
-									</Table.Cell>
-									<Table.Cell>
-										<span class="max-w-[150px] truncate text-sm text-muted-foreground">
-											{reservation.notes || '-'}
-										</span>
-									</Table.Cell>
-									<Table.Cell class="text-right">
-										<div class="flex justify-end gap-1">
-											{#if reservation.status === 'pending'}
+										</Table.Cell>
+										<Table.Cell>
+											<div class="flex items-center gap-1">
+												<IconCalendar class="h-4 w-4 text-muted-foreground" />
+												<div>
+													<div>{formatDate(reservation.reservationDate)}</div>
+													<div class="text-sm text-muted-foreground">{reservation.reservationTime}</div>
+												</div>
+											</div>
+										</Table.Cell>
+										<Table.Cell>
+											<div class="flex items-center gap-1">
+												<IconUsers class="h-4 w-4 text-muted-foreground" />
+												{reservation.partySize}
+											</div>
+										</Table.Cell>
+										<Table.Cell>
+											<Badge variant="outline">{getTableName(reservation.tableId)}</Badge>
+										</Table.Cell>
+										<Table.Cell>
+											<Badge variant={getStatusBadge(reservation.status).variant}>
+												{getStatusBadge(reservation.status).text}
+											</Badge>
+										</Table.Cell>
+										<Table.Cell>
+											<span class="max-w-[150px] truncate text-sm text-muted-foreground">
+												{reservation.notes || '-'}
+											</span>
+										</Table.Cell>
+										<Table.Cell class="text-right">
+											<div class="flex justify-end gap-1">
+												{#if reservation.status === 'pending'}
+													<Button
+														variant="ghost"
+														size="sm"
+														class="h-8 w-8 p-0 text-green-600"
+														onclick={() => handleConfirm(reservation.id)}
+													>
+														<IconCheck class="h-4 w-4" />
+													</Button>
+												{/if}
 												<Button
 													variant="ghost"
 													size="sm"
-													class="h-8 w-8 p-0 text-green-600"
-													onclick={() => confirmReservation(reservation.id)}
+													class="h-8 w-8 p-0"
+													onclick={() => editReservation(reservation)}
 												>
-													<IconCheck class="h-4 w-4" />
+													<IconPencil class="h-4 w-4" />
 												</Button>
-											{/if}
-											<Button
-												variant="ghost"
-												size="sm"
-												class="h-8 w-8 p-0"
-												onclick={() => editReservation(reservation)}
-											>
-												<IconPencil class="h-4 w-4" />
-											</Button>
-											{#if reservation.status !== 'cancelled' && reservation.status !== 'completed'}
+												{#if reservation.status !== 'cancelled' && reservation.status !== 'completed'}
+													<Button
+														variant="ghost"
+														size="sm"
+														class="h-8 w-8 p-0 text-destructive"
+														onclick={() => handleCancel(reservation.id)}
+													>
+														<IconX class="h-4 w-4" />
+													</Button>
+												{/if}
 												<Button
 													variant="ghost"
 													size="sm"
 													class="h-8 w-8 p-0 text-destructive"
-													onclick={() => cancelReservation(reservation.id)}
+													onclick={() => handleDelete(reservation.id)}
 												>
-													<IconX class="h-4 w-4" />
+													<IconTrash class="h-4 w-4" />
 												</Button>
-											{/if}
-											<Button
-												variant="ghost"
-												size="sm"
-												class="h-8 w-8 p-0 text-destructive"
-												onclick={() => deleteReservation(reservation.id)}
-											>
-												<IconTrash class="h-4 w-4" />
-											</Button>
-										</div>
-									</Table.Cell>
-								</Table.Row>
-							{/each}
-						</Table.Body>
-					</Table.Root>
+											</div>
+										</Table.Cell>
+									</Table.Row>
+								{/each}
+							</Table.Body>
+						</Table.Root>
+					</div>
 				</div>
-			</div>
-
-			{#if filteredReservations.length === 0}
+			{:else}
 				<div class="flex flex-col items-center justify-center py-12 text-center">
 					<IconCalendar class="h-12 w-12 text-muted-foreground" />
 					<h3 class="mt-4 text-lg font-semibold">No reservations found</h3>
 					<p class="text-muted-foreground">Try adjusting your filters or create a new reservation.</p>
+					<Button class="mt-4" onclick={() => (showAddDialog = true)}>
+						<IconPlus class="mr-2 h-4 w-4" />
+						New Reservation
+					</Button>
 				</div>
 			{/if}
 		</div>
@@ -435,21 +436,21 @@
 				</div>
 				<div class="grid gap-2">
 					<label for="phone" class="text-sm font-medium">Phone</label>
-					<Input id="phone" bind:value={newReservation.phone} placeholder="+1 555-0123" />
+					<Input id="phone" bind:value={newReservation.customerPhone} placeholder="+1 555-0123" />
 				</div>
 			</div>
 			<div class="grid gap-2">
 				<label for="email" class="text-sm font-medium">Email</label>
-				<Input id="email" type="email" bind:value={newReservation.email} placeholder="email@example.com" />
+				<Input id="email" type="email" bind:value={newReservation.customerEmail} placeholder="email@example.com" />
 			</div>
 			<div class="grid grid-cols-2 gap-4">
 				<div class="grid gap-2">
 					<label for="date" class="text-sm font-medium">Date *</label>
-					<Input id="date" type="date" bind:value={newReservation.date} />
+					<Input id="date" type="date" bind:value={newReservation.reservationDate} />
 				</div>
 				<div class="grid gap-2">
 					<label for="time" class="text-sm font-medium">Time *</label>
-					<Input id="time" type="time" bind:value={newReservation.time} />
+					<Input id="time" type="time" bind:value={newReservation.reservationTime} />
 				</div>
 			</div>
 			<div class="grid grid-cols-2 gap-4">
@@ -461,12 +462,12 @@
 					<label for="table" class="text-sm font-medium">Table</label>
 					<select
 						id="table"
-						bind:value={newReservation.table}
+						bind:value={newReservation.tableId}
 						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
 					>
 						<option value="">Select table</option>
-						{#each availableTables as table}
-							<option value={table}>{table}</option>
+						{#each tables as table}
+							<option value={table.id}>{table.displayName}</option>
 						{/each}
 					</select>
 				</div>
@@ -477,8 +478,13 @@
 			</div>
 		</div>
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (showAddDialog = false)}>Cancel</Button>
-			<Button onclick={addReservation}>Create Reservation</Button>
+			<Button variant="outline" onclick={() => (showAddDialog = false)} disabled={isSubmitting}>Cancel</Button>
+			<Button onclick={addReservation} disabled={isSubmitting}>
+				{#if isSubmitting}
+					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+				{/if}
+				Create Reservation
+			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
@@ -499,17 +505,17 @@
 					</div>
 					<div class="grid gap-2">
 						<label for="edit-phone" class="text-sm font-medium">Phone</label>
-						<Input id="edit-phone" bind:value={editingReservation.phone} />
+						<Input id="edit-phone" bind:value={editingReservation.customerPhone} />
 					</div>
 				</div>
 				<div class="grid grid-cols-2 gap-4">
 					<div class="grid gap-2">
 						<label for="edit-date" class="text-sm font-medium">Date</label>
-						<Input id="edit-date" type="date" bind:value={editingReservation.date} />
+						<Input id="edit-date" type="date" bind:value={editingReservation.reservationDate} />
 					</div>
 					<div class="grid gap-2">
 						<label for="edit-time" class="text-sm font-medium">Time</label>
-						<Input id="edit-time" type="time" bind:value={editingReservation.time} />
+						<Input id="edit-time" type="time" bind:value={editingReservation.reservationTime} />
 					</div>
 				</div>
 				<div class="grid grid-cols-2 gap-4">
@@ -521,11 +527,12 @@
 						<label for="edit-table" class="text-sm font-medium">Table</label>
 						<select
 							id="edit-table"
-							bind:value={editingReservation.table}
+							bind:value={editingReservation.tableId}
 							class="rounded-md border border-input bg-background px-3 py-2 text-sm"
 						>
-							{#each availableTables as table}
-								<option value={table}>{table}</option>
+							<option value="">Select table</option>
+							{#each tables as table}
+								<option value={table.id}>{table.displayName}</option>
 							{/each}
 						</select>
 					</div>
@@ -536,8 +543,13 @@
 				</div>
 			</div>
 			<Dialog.Footer>
-				<Button variant="outline" onclick={() => (editingReservation = null)}>Cancel</Button>
-				<Button onclick={saveReservation}>Save Changes</Button>
+				<Button variant="outline" onclick={() => (editingReservation = null)} disabled={isSubmitting}>Cancel</Button>
+				<Button onclick={saveReservation} disabled={isSubmitting}>
+					{#if isSubmitting}
+						<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+					{/if}
+					Save Changes
+				</Button>
 			</Dialog.Footer>
 		{/if}
 	</Dialog.Content>
