@@ -1,141 +1,91 @@
 <script lang="ts">
+	import type { PageData } from './$types';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
+	import { Loader2 } from '@lucide/svelte';
 	import {
 		IconPlus,
 		IconPencil,
 		IconSearch,
 		IconAlertTriangle,
 		IconPackage,
-		IconTrendingDown,
-		IconTrendingUp
+		IconTrendingUp,
+		IconTrash
 	} from '@tabler/icons-svelte';
 	import { toast } from 'svelte-sonner';
+	import {
+		createInventoryItem,
+		updateInventoryItem,
+		processStockTransaction,
+		deleteInventoryItem,
+		type InventoryItem,
+		type InventoryCategory,
+		type InventoryUnit,
+		type CreateInventoryItemPayload
+	} from '$lib/api';
 
-	// Dummy inventory data
-	let inventory = $state([
-		{
-			id: 1,
-			name: 'Mozzarella Cheese',
-			category: 'Dairy',
-			sku: 'DAI-001',
-			quantity: 15,
-			unit: 'kg',
-			minStock: 20,
-			costPerUnit: 8.5,
-			supplier: 'Fresh Dairy Co.',
-			lastUpdated: '2024-11-06'
-		},
-		{
-			id: 2,
-			name: 'Tomato Sauce',
-			category: 'Sauces',
-			sku: 'SAU-001',
-			quantity: 45,
-			unit: 'liters',
-			minStock: 30,
-			costPerUnit: 3.25,
-			supplier: 'Italian Imports',
-			lastUpdated: '2024-11-05'
-		},
-		{
-			id: 3,
-			name: 'All-Purpose Flour',
-			category: 'Dry Goods',
-			sku: 'DRY-001',
-			quantity: 80,
-			unit: 'kg',
-			minStock: 50,
-			costPerUnit: 1.2,
-			supplier: 'Baker Supplies',
-			lastUpdated: '2024-11-04'
-		},
-		{
-			id: 4,
-			name: 'Olive Oil',
-			category: 'Oils',
-			sku: 'OIL-001',
-			quantity: 8,
-			unit: 'liters',
-			minStock: 15,
-			costPerUnit: 12.0,
-			supplier: 'Italian Imports',
-			lastUpdated: '2024-11-06'
-		},
-		{
-			id: 5,
-			name: 'Fresh Basil',
-			category: 'Herbs',
-			sku: 'HRB-001',
-			quantity: 2,
-			unit: 'kg',
-			minStock: 3,
-			costPerUnit: 15.0,
-			supplier: 'Local Farms',
-			lastUpdated: '2024-11-06'
-		},
-		{
-			id: 6,
-			name: 'Chicken Breast',
-			category: 'Meat',
-			sku: 'MEA-001',
-			quantity: 25,
-			unit: 'kg',
-			minStock: 20,
-			costPerUnit: 9.5,
-			supplier: 'Premium Meats',
-			lastUpdated: '2024-11-06'
-		},
-		{
-			id: 7,
-			name: 'Salmon Fillet',
-			category: 'Seafood',
-			sku: 'SEA-001',
-			quantity: 12,
-			unit: 'kg',
-			minStock: 10,
-			costPerUnit: 22.0,
-			supplier: 'Ocean Fresh',
-			lastUpdated: '2024-11-05'
-		},
-		{
-			id: 8,
-			name: 'Parmesan Cheese',
-			category: 'Dairy',
-			sku: 'DAI-002',
-			quantity: 5,
-			unit: 'kg',
-			minStock: 8,
-			costPerUnit: 25.0,
-			supplier: 'Italian Imports',
-			lastUpdated: '2024-11-04'
-		}
-	]);
+	let { data }: { data: PageData } = $props();
 
+	let inventory = $state<InventoryItem[]>(data.items || []);
 	let searchQuery = $state('');
 	let categoryFilter = $state('all');
 	let stockFilter = $state('all');
 	let showAddDialog = $state(false);
-	let editingItem = $state<(typeof inventory)[0] | null>(null);
-	let adjustingStock = $state<{ item: (typeof inventory)[0]; adjustment: number } | null>(null);
+	let editingItem = $state<InventoryItem | null>(null);
+	let adjustingStock = $state<{ item: InventoryItem; adjustment: number; reason: string } | null>(null);
+	let isSubmitting = $state(false);
 
-	let newItem = $state({
+	let newItem = $state<{
+		name: string;
+		sku: string;
+		category: InventoryCategory;
+		currentStock: number;
+		minimumStock: number;
+		unit: InventoryUnit;
+		costPerUnit: number;
+	}>({
 		name: '',
-		category: '',
 		sku: '',
-		quantity: 0,
+		category: 'raw_materials',
+		currentStock: 0,
+		minimumStock: 10,
 		unit: 'kg',
-		minStock: 10,
-		costPerUnit: 0,
-		supplier: ''
+		costPerUnit: 0
 	});
 
-	const categories = ['Dairy', 'Sauces', 'Dry Goods', 'Oils', 'Herbs', 'Meat', 'Seafood', 'Beverages'];
-	const units = ['kg', 'liters', 'units', 'boxes', 'packs'];
+	const categories: { value: InventoryCategory; label: string }[] = [
+		{ value: 'raw_materials', label: 'Raw Materials' },
+		{ value: 'beverages', label: 'Beverages' },
+		{ value: 'dairy', label: 'Dairy' },
+		{ value: 'meat', label: 'Meat' },
+		{ value: 'seafood', label: 'Seafood' },
+		{ value: 'vegetables', label: 'Vegetables' },
+		{ value: 'fruits', label: 'Fruits' },
+		{ value: 'spices', label: 'Spices' },
+		{ value: 'condiments', label: 'Condiments' },
+		{ value: 'packaging', label: 'Packaging' },
+		{ value: 'cleaning', label: 'Cleaning' },
+		{ value: 'equipment', label: 'Equipment' },
+		{ value: 'other', label: 'Other' }
+	];
+
+	const units: { value: InventoryUnit; label: string }[] = [
+		{ value: 'kg', label: 'Kilograms (kg)' },
+		{ value: 'g', label: 'Grams (g)' },
+		{ value: 'l', label: 'Liters (l)' },
+		{ value: 'ml', label: 'Milliliters (ml)' },
+		{ value: 'piece', label: 'Pieces' },
+		{ value: 'dozen', label: 'Dozen' },
+		{ value: 'box', label: 'Boxes' },
+		{ value: 'pack', label: 'Packs' },
+		{ value: 'bottle', label: 'Bottles' },
+		{ value: 'can', label: 'Cans' },
+		{ value: 'bag', label: 'Bags' }
+	];
 
 	const filteredInventory = $derived(
 		inventory.filter((item) => {
@@ -146,9 +96,9 @@
 
 			let matchesStock = true;
 			if (stockFilter === 'low') {
-				matchesStock = item.quantity < item.minStock;
+				matchesStock = item.currentStock < item.minimumStock;
 			} else if (stockFilter === 'ok') {
-				matchesStock = item.quantity >= item.minStock;
+				matchesStock = item.currentStock >= item.minimumStock;
 			}
 
 			return matchesSearch && matchesCategory && matchesStock;
@@ -157,80 +107,126 @@
 
 	const stats = $derived({
 		totalItems: inventory.length,
-		lowStock: inventory.filter((i) => i.quantity < i.minStock).length,
-		totalValue: inventory.reduce((sum, i) => sum + i.quantity * i.costPerUnit, 0)
+		lowStock: inventory.filter((i) => i.currentStock < i.minimumStock).length,
+		totalValue: inventory.reduce((sum, i) => sum + i.currentStock * i.costPerUnit, 0)
 	});
 
-	function getStockStatus(item: (typeof inventory)[0]) {
-		const ratio = item.quantity / item.minStock;
+	function getCategoryLabel(category: InventoryCategory): string {
+		return categories.find((c) => c.value === category)?.label || category;
+	}
+
+	function getUnitLabel(unit: InventoryUnit): string {
+		return units.find((u) => u.value === unit)?.label || unit;
+	}
+
+	function getStockStatus(item: InventoryItem) {
+		const ratio = item.currentStock / item.minimumStock;
 		if (ratio < 0.5) return { variant: 'destructive' as const, text: 'Critical' };
 		if (ratio < 1) return { variant: 'secondary' as const, text: 'Low' };
 		return { variant: 'default' as const, text: 'OK' };
 	}
 
-	function addItem() {
+	async function addItem() {
 		if (!newItem.name.trim() || !newItem.sku.trim()) {
 			toast.error('Name and SKU are required');
 			return;
 		}
 
-		inventory = [
-			...inventory,
-			{
-				id: Math.max(...inventory.map((i) => i.id)) + 1,
-				...newItem,
-				lastUpdated: new Date().toISOString().split('T')[0]
-			}
-		];
+		isSubmitting = true;
+		try {
+			const payload: CreateInventoryItemPayload = {
+				name: newItem.name,
+				sku: newItem.sku,
+				category: newItem.category,
+				currentStock: newItem.currentStock,
+				minimumStock: newItem.minimumStock,
+				unit: newItem.unit,
+				costPerUnit: newItem.costPerUnit
+			};
 
-		toast.success('Item added successfully');
-		showAddDialog = false;
-		newItem = {
-			name: '',
-			category: '',
-			sku: '',
-			quantity: 0,
-			unit: 'kg',
-			minStock: 10,
-			costPerUnit: 0,
-			supplier: ''
-		};
+			const result = await createInventoryItem(data.businessId, payload);
+			inventory = [...inventory, result.item];
+			toast.success('Item added successfully');
+			showAddDialog = false;
+			newItem = {
+				name: '',
+				sku: '',
+				category: 'raw_materials',
+				currentStock: 0,
+				minimumStock: 10,
+				unit: 'kg',
+				costPerUnit: 0
+			};
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : 'Failed to add item');
+		} finally {
+			isSubmitting = false;
+		}
 	}
 
-	function editItem(item: (typeof inventory)[0]) {
+	function editItem(item: InventoryItem) {
 		editingItem = { ...item };
 	}
 
-	function saveItem() {
+	async function saveItem() {
 		if (!editingItem) return;
 
-		inventory = inventory.map((i) =>
-			i.id === editingItem!.id
-				? { ...editingItem!, lastUpdated: new Date().toISOString().split('T')[0] }
-				: i
-		);
-		toast.success('Item updated successfully');
-		editingItem = null;
+		isSubmitting = true;
+		try {
+			const result = await updateInventoryItem(data.businessId, editingItem.id, {
+				name: editingItem.name,
+				sku: editingItem.sku,
+				category: editingItem.category,
+				minimumStock: editingItem.minimumStock,
+				unit: editingItem.unit,
+				costPerUnit: editingItem.costPerUnit
+			});
+			inventory = inventory.map((i) => (i.id === editingItem!.id ? result.item : i));
+			toast.success('Item updated successfully');
+			editingItem = null;
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : 'Failed to update item');
+		} finally {
+			isSubmitting = false;
+		}
 	}
 
-	function openStockAdjustment(item: (typeof inventory)[0]) {
-		adjustingStock = { item, adjustment: 0 };
+	async function handleDeleteItem(itemId: string) {
+		try {
+			await deleteInventoryItem(data.businessId, itemId);
+			inventory = inventory.filter((i) => i.id !== itemId);
+			toast.success('Item deleted successfully');
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : 'Failed to delete item');
+		}
 	}
 
-	function adjustStock() {
-		if (!adjustingStock) return;
+	function openStockAdjustment(item: InventoryItem) {
+		adjustingStock = { item, adjustment: 0, reason: '' };
+	}
 
-		inventory = inventory.map((i) =>
-			i.id === adjustingStock!.item.id
-				? {
-						...i,
-						quantity: i.quantity + adjustingStock!.adjustment,
-						lastUpdated: new Date().toISOString().split('T')[0]
-					}
-				: i
-		);
-		toast.success('Stock adjusted successfully');
-		adjustingStock = null;
+	async function adjustStock() {
+		if (!adjustingStock || adjustingStock.adjustment === 0) {
+			toast.error('Please enter an adjustment amount');
+			return;
+		}
+
+		isSubmitting = true;
+		try {
+			const type = adjustingStock.adjustment > 0 ? 'add' : 'remove';
+			const result = await processStockTransaction(data.businessId, adjustingStock.item.id, {
+				type,
+				quantity: Math.abs(adjustingStock.adjustment),
+				reason: adjustingStock.reason || undefined
+			});
+			inventory = inventory.map((i) => (i.id === adjustingStock!.item.id ? result.item : i));
+			toast.success('Stock adjusted successfully');
+			adjustingStock = null;
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : 'Failed to adjust stock');
+		} finally {
+			isSubmitting = false;
+		}
 	}
 </script>
 
@@ -298,7 +294,7 @@
 					>
 						<option value="all">All Categories</option>
 						{#each categories as category}
-							<option value={category}>{category}</option>
+							<option value={category.value}>{category.label}</option>
 						{/each}
 					</select>
 
@@ -314,71 +310,81 @@
 			</div>
 
 			<!-- Inventory Table -->
-			<div class="px-6">
-				<div class="rounded-md border">
-					<Table.Root>
-						<Table.Header>
-							<Table.Row>
-								<Table.Head>Item</Table.Head>
-								<Table.Head>SKU</Table.Head>
-								<Table.Head>Category</Table.Head>
-								<Table.Head>Quantity</Table.Head>
-								<Table.Head>Status</Table.Head>
-								<Table.Head>Cost/Unit</Table.Head>
-								<Table.Head>Supplier</Table.Head>
-								<Table.Head class="text-right">Actions</Table.Head>
-							</Table.Row>
-						</Table.Header>
-						<Table.Body>
-							{#each filteredInventory as item (item.id)}
-								<Table.Row class={item.quantity < item.minStock ? 'bg-yellow-50 dark:bg-yellow-950' : ''}>
-									<Table.Cell class="font-medium">{item.name}</Table.Cell>
-									<Table.Cell class="text-muted-foreground">{item.sku}</Table.Cell>
-									<Table.Cell>
-										<Badge variant="outline">{item.category}</Badge>
-									</Table.Cell>
-									<Table.Cell>
-										<div>
-											<span class="font-medium">{item.quantity}</span>
-											<span class="text-muted-foreground"> {item.unit}</span>
-										</div>
-										<div class="text-xs text-muted-foreground">Min: {item.minStock}</div>
-									</Table.Cell>
-									<Table.Cell>
-										<Badge variant={getStockStatus(item).variant}>
-											{getStockStatus(item).text}
-										</Badge>
-									</Table.Cell>
-									<Table.Cell>${item.costPerUnit.toFixed(2)}</Table.Cell>
-									<Table.Cell class="text-sm text-muted-foreground">{item.supplier}</Table.Cell>
-									<Table.Cell class="text-right">
-										<div class="flex justify-end gap-1">
-											<Button
-												variant="ghost"
-												size="sm"
-												class="h-8"
-												onclick={() => openStockAdjustment(item)}
-											>
-												<IconTrendingUp class="mr-1 h-4 w-4" />
-												Adjust
-											</Button>
-											<Button variant="ghost" size="sm" onclick={() => editItem(item)}>
-												<IconPencil class="h-4 w-4" />
-											</Button>
-										</div>
-									</Table.Cell>
+			{#if filteredInventory.length > 0}
+				<div class="px-6">
+					<div class="rounded-md border">
+						<Table.Root>
+							<Table.Header>
+								<Table.Row>
+									<Table.Head>Item</Table.Head>
+									<Table.Head>SKU</Table.Head>
+									<Table.Head>Category</Table.Head>
+									<Table.Head>Quantity</Table.Head>
+									<Table.Head>Status</Table.Head>
+									<Table.Head>Cost/Unit</Table.Head>
+									<Table.Head class="text-right">Actions</Table.Head>
 								</Table.Row>
-							{/each}
-						</Table.Body>
-					</Table.Root>
+							</Table.Header>
+							<Table.Body>
+								{#each filteredInventory as item (item.id)}
+									<Table.Row class={item.currentStock < item.minimumStock ? 'bg-yellow-50 dark:bg-yellow-950' : ''}>
+										<Table.Cell class="font-medium">{item.name}</Table.Cell>
+										<Table.Cell class="text-muted-foreground">{item.sku}</Table.Cell>
+										<Table.Cell>
+											<Badge variant="outline">{getCategoryLabel(item.category)}</Badge>
+										</Table.Cell>
+										<Table.Cell>
+											<div>
+												<span class="font-medium">{item.currentStock}</span>
+												<span class="text-muted-foreground"> {item.unit}</span>
+											</div>
+											<div class="text-xs text-muted-foreground">Min: {item.minimumStock}</div>
+										</Table.Cell>
+										<Table.Cell>
+											<Badge variant={getStockStatus(item).variant}>
+												{getStockStatus(item).text}
+											</Badge>
+										</Table.Cell>
+										<Table.Cell>${item.costPerUnit.toFixed(2)}</Table.Cell>
+										<Table.Cell class="text-right">
+											<div class="flex justify-end gap-1">
+												<Button
+													variant="ghost"
+													size="sm"
+													class="h-8"
+													onclick={() => openStockAdjustment(item)}
+												>
+													<IconTrendingUp class="mr-1 h-4 w-4" />
+													Adjust
+												</Button>
+												<Button variant="ghost" size="sm" onclick={() => editItem(item)}>
+													<IconPencil class="h-4 w-4" />
+												</Button>
+												<Button
+													variant="ghost"
+													size="sm"
+													class="text-destructive hover:text-destructive"
+													onclick={() => handleDeleteItem(item.id)}
+												>
+													<IconTrash class="h-4 w-4" />
+												</Button>
+											</div>
+										</Table.Cell>
+									</Table.Row>
+								{/each}
+							</Table.Body>
+						</Table.Root>
+					</div>
 				</div>
-			</div>
-
-			{#if filteredInventory.length === 0}
+			{:else}
 				<div class="flex flex-col items-center justify-center py-12 text-center">
 					<IconPackage class="h-12 w-12 text-muted-foreground" />
 					<h3 class="mt-4 text-lg font-semibold">No items found</h3>
 					<p class="text-muted-foreground">Try adjusting your search or add a new item.</p>
+					<Button class="mt-4" onclick={() => (showAddDialog = true)}>
+						<IconPlus class="mr-2 h-4 w-4" />
+						Add Item
+					</Button>
 				</div>
 			{/if}
 		</div>
@@ -411,9 +417,8 @@
 						bind:value={newItem.category}
 						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
 					>
-						<option value="">Select category</option>
 						{#each categories as category}
-							<option value={category}>{category}</option>
+							<option value={category.value}>{category.label}</option>
 						{/each}
 					</select>
 				</div>
@@ -425,33 +430,36 @@
 						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
 					>
 						{#each units as unit}
-							<option value={unit}>{unit}</option>
+							<option value={unit.value}>{unit.label}</option>
 						{/each}
 					</select>
 				</div>
 			</div>
 			<div class="grid grid-cols-3 gap-4">
 				<div class="grid gap-2">
-					<label for="quantity" class="text-sm font-medium">Quantity</label>
-					<Input id="quantity" type="number" min="0" bind:value={newItem.quantity} />
+					<label for="currentStock" class="text-sm font-medium">Current Stock</label>
+					<Input id="currentStock" type="number" min="0" bind:value={newItem.currentStock} />
 				</div>
 				<div class="grid gap-2">
-					<label for="minStock" class="text-sm font-medium">Min Stock</label>
-					<Input id="minStock" type="number" min="0" bind:value={newItem.minStock} />
+					<label for="minimumStock" class="text-sm font-medium">Min Stock</label>
+					<Input id="minimumStock" type="number" min="0" bind:value={newItem.minimumStock} />
 				</div>
 				<div class="grid gap-2">
 					<label for="cost" class="text-sm font-medium">Cost/Unit</label>
 					<Input id="cost" type="number" step="0.01" min="0" bind:value={newItem.costPerUnit} />
 				</div>
 			</div>
-			<div class="grid gap-2">
-				<label for="supplier" class="text-sm font-medium">Supplier</label>
-				<Input id="supplier" bind:value={newItem.supplier} placeholder="Supplier name" />
-			</div>
 		</div>
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (showAddDialog = false)}>Cancel</Button>
-			<Button onclick={addItem}>Add Item</Button>
+			<Button variant="outline" onclick={() => (showAddDialog = false)} disabled={isSubmitting}>
+				Cancel
+			</Button>
+			<Button onclick={addItem} disabled={isSubmitting}>
+				{#if isSubmitting}
+					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+				{/if}
+				Add Item
+			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
@@ -484,7 +492,7 @@
 							class="rounded-md border border-input bg-background px-3 py-2 text-sm"
 						>
 							{#each categories as category}
-								<option value={category}>{category}</option>
+								<option value={category.value}>{category.label}</option>
 							{/each}
 						</select>
 					</div>
@@ -496,29 +504,32 @@
 							class="rounded-md border border-input bg-background px-3 py-2 text-sm"
 						>
 							{#each units as unit}
-								<option value={unit}>{unit}</option>
+								<option value={unit.value}>{unit.label}</option>
 							{/each}
 						</select>
 					</div>
 				</div>
 				<div class="grid grid-cols-2 gap-4">
 					<div class="grid gap-2">
-						<label for="edit-minStock" class="text-sm font-medium">Min Stock</label>
-						<Input id="edit-minStock" type="number" min="0" bind:value={editingItem.minStock} />
+						<label for="edit-minimumStock" class="text-sm font-medium">Min Stock</label>
+						<Input id="edit-minimumStock" type="number" min="0" bind:value={editingItem.minimumStock} />
 					</div>
 					<div class="grid gap-2">
 						<label for="edit-cost" class="text-sm font-medium">Cost/Unit</label>
 						<Input id="edit-cost" type="number" step="0.01" min="0" bind:value={editingItem.costPerUnit} />
 					</div>
 				</div>
-				<div class="grid gap-2">
-					<label for="edit-supplier" class="text-sm font-medium">Supplier</label>
-					<Input id="edit-supplier" bind:value={editingItem.supplier} />
-				</div>
 			</div>
 			<Dialog.Footer>
-				<Button variant="outline" onclick={() => (editingItem = null)}>Cancel</Button>
-				<Button onclick={saveItem}>Save Changes</Button>
+				<Button variant="outline" onclick={() => (editingItem = null)} disabled={isSubmitting}>
+					Cancel
+				</Button>
+				<Button onclick={saveItem} disabled={isSubmitting}>
+					{#if isSubmitting}
+						<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+					{/if}
+					Save Changes
+				</Button>
 			</Dialog.Footer>
 		{/if}
 	</Dialog.Content>
@@ -530,7 +541,7 @@
 		<Dialog.Header>
 			<Dialog.Title>Adjust Stock</Dialog.Title>
 			<Dialog.Description>
-				{adjustingStock?.item.name} - Current: {adjustingStock?.item.quantity}
+				{adjustingStock?.item.name} - Current: {adjustingStock?.item.currentStock}
 				{adjustingStock?.item.unit}
 			</Dialog.Description>
 		</Dialog.Header>
@@ -577,18 +588,29 @@
 						</Button>
 					</div>
 				</div>
+				<div class="grid gap-2">
+					<label for="reason" class="text-sm font-medium">Reason (optional)</label>
+					<Input id="reason" bind:value={adjustingStock.reason} placeholder="e.g., Received shipment" />
+				</div>
 				<div class="rounded-lg bg-muted p-3">
 					<p class="text-sm">
 						New quantity: <strong>
-							{adjustingStock.item.quantity + adjustingStock.adjustment}
+							{adjustingStock.item.currentStock + adjustingStock.adjustment}
 							{adjustingStock.item.unit}
 						</strong>
 					</p>
 				</div>
 			</div>
 			<Dialog.Footer>
-				<Button variant="outline" onclick={() => (adjustingStock = null)}>Cancel</Button>
-				<Button onclick={adjustStock}>Confirm Adjustment</Button>
+				<Button variant="outline" onclick={() => (adjustingStock = null)} disabled={isSubmitting}>
+					Cancel
+				</Button>
+				<Button onclick={adjustStock} disabled={isSubmitting}>
+					{#if isSubmitting}
+						<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+					{/if}
+					Confirm Adjustment
+				</Button>
 			</Dialog.Footer>
 		{/if}
 	</Dialog.Content>

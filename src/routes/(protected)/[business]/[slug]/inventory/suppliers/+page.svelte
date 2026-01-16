@@ -1,10 +1,11 @@
 <script lang="ts">
+	import type { PageData } from './$types';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Card from '$lib/components/ui/card';
-	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
+	import { Loader2 } from '@lucide/svelte';
 	import {
 		IconPlus,
 		IconPencil,
@@ -16,108 +17,39 @@
 		IconTruck
 	} from '@tabler/icons-svelte';
 	import { toast } from 'svelte-sonner';
+	import {
+		createSupplier,
+		updateSupplier,
+		deleteSupplier as deleteSupplierApi,
+		type Supplier,
+		type SupplierStatus,
+		type CreateSupplierPayload
+	} from '$lib/api';
 
-	// Dummy suppliers data
-	let suppliers = $state([
-		{
-			id: 1,
-			name: 'Fresh Dairy Co.',
-			contact: 'John Miller',
-			phone: '+1 555-0123',
-			email: 'orders@freshdairy.com',
-			address: '123 Farm Road, Dairy Valley, CA 90210',
-			categories: ['Dairy'],
-			status: 'active',
-			totalOrders: 45,
-			lastOrder: '2024-11-05'
-		},
-		{
-			id: 2,
-			name: 'Italian Imports',
-			contact: 'Maria Romano',
-			phone: '+1 555-0456',
-			email: 'supply@italimports.com',
-			address: '456 Olive Street, Little Italy, NY 10001',
-			categories: ['Sauces', 'Oils', 'Dairy'],
-			status: 'active',
-			totalOrders: 78,
-			lastOrder: '2024-11-06'
-		},
-		{
-			id: 3,
-			name: 'Baker Supplies',
-			contact: 'Tom Baker',
-			phone: '+1 555-0789',
-			email: 'sales@bakersupplies.com',
-			address: '789 Flour Mill Way, Baking Town, TX 75001',
-			categories: ['Dry Goods'],
-			status: 'active',
-			totalOrders: 32,
-			lastOrder: '2024-11-03'
-		},
-		{
-			id: 4,
-			name: 'Local Farms',
-			contact: 'Sarah Green',
-			phone: '+1 555-0111',
-			email: 'produce@localfarms.com',
-			address: '321 Organic Lane, Farmville, OR 97001',
-			categories: ['Herbs', 'Vegetables'],
-			status: 'active',
-			totalOrders: 156,
-			lastOrder: '2024-11-06'
-		},
-		{
-			id: 5,
-			name: 'Premium Meats',
-			contact: 'Bob Butcher',
-			phone: '+1 555-0222',
-			email: 'orders@premiummeats.com',
-			address: '555 Stockyard Blvd, Meat City, NE 68001',
-			categories: ['Meat'],
-			status: 'active',
-			totalOrders: 89,
-			lastOrder: '2024-11-06'
-		},
-		{
-			id: 6,
-			name: 'Ocean Fresh',
-			contact: 'Captain Fish',
-			phone: '+1 555-0333',
-			email: 'catch@oceanfresh.com',
-			address: '777 Harbor Drive, Seafood Bay, WA 98001',
-			categories: ['Seafood'],
-			status: 'active',
-			totalOrders: 67,
-			lastOrder: '2024-11-05'
-		},
-		{
-			id: 7,
-			name: 'Global Beverages',
-			contact: 'Dave Drinks',
-			phone: '+1 555-0444',
-			email: 'wholesale@globalbev.com',
-			address: '999 Bottling Plant Rd, Beverage City, FL 33001',
-			categories: ['Beverages'],
-			status: 'inactive',
-			totalOrders: 23,
-			lastOrder: '2024-10-15'
-		}
-	]);
+	let { data }: { data: PageData } = $props();
 
+	let suppliers = $state<Supplier[]>(data.suppliers || []);
 	let searchQuery = $state('');
-	let statusFilter = $state('all');
+	let statusFilter = $state<'all' | SupplierStatus>('all');
 	let showAddDialog = $state(false);
-	let editingSupplier = $state<(typeof suppliers)[0] | null>(null);
-	let viewingSupplier = $state<(typeof suppliers)[0] | null>(null);
+	let editingSupplier = $state<Supplier | null>(null);
+	let viewingSupplier = $state<Supplier | null>(null);
+	let isSubmitting = $state(false);
 
-	let newSupplier = $state({
+	let newSupplier = $state<{
+		name: string;
+		contactPerson: string;
+		phone: string;
+		email: string;
+		address: string;
+		categories: string[];
+	}>({
 		name: '',
-		contact: '',
+		contactPerson: '',
 		phone: '',
 		email: '',
 		address: '',
-		categories: [] as string[]
+		categories: []
 	});
 
 	const allCategories = ['Dairy', 'Sauces', 'Oils', 'Dry Goods', 'Herbs', 'Vegetables', 'Meat', 'Seafood', 'Beverages'];
@@ -126,7 +58,7 @@
 		suppliers.filter((supplier) => {
 			const matchesSearch =
 				supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				supplier.contact.toLowerCase().includes(searchQuery.toLowerCase());
+				(supplier.contactPerson?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
 			const matchesStatus = statusFilter === 'all' || supplier.status === statusFilter;
 			return matchesSearch && matchesStatus;
 		})
@@ -138,52 +70,83 @@
 		totalOrders: suppliers.reduce((sum, s) => sum + s.totalOrders, 0)
 	});
 
-	function addSupplier() {
+	function formatDate(dateString?: string): string {
+		if (!dateString) return '-';
+		return new Date(dateString).toLocaleDateString('en-US', {
+			month: 'short',
+			day: 'numeric',
+			year: 'numeric'
+		});
+	}
+
+	async function addSupplier() {
 		if (!newSupplier.name.trim()) {
 			toast.error('Supplier name is required');
 			return;
 		}
 
-		suppliers = [
-			...suppliers,
-			{
-				id: Math.max(...suppliers.map((s) => s.id)) + 1,
-				...newSupplier,
-				status: 'active',
-				totalOrders: 0,
-				lastOrder: '-'
-			}
-		];
+		isSubmitting = true;
+		try {
+			const payload: CreateSupplierPayload = {
+				name: newSupplier.name,
+				contactPerson: newSupplier.contactPerson || undefined,
+				phone: newSupplier.phone || undefined,
+				email: newSupplier.email || undefined,
+				address: newSupplier.address || undefined,
+				categories: newSupplier.categories.length > 0 ? newSupplier.categories : undefined
+			};
 
-		toast.success('Supplier added successfully');
-		showAddDialog = false;
-		newSupplier = { name: '', contact: '', phone: '', email: '', address: '', categories: [] };
+			const result = await createSupplier(data.businessId, payload);
+			suppliers = [...suppliers, result.supplier];
+			toast.success('Supplier added successfully');
+			showAddDialog = false;
+			newSupplier = { name: '', contactPerson: '', phone: '', email: '', address: '', categories: [] };
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : 'Failed to add supplier');
+		} finally {
+			isSubmitting = false;
+		}
 	}
 
-	function editSupplier(supplier: (typeof suppliers)[0]) {
+	function editSupplierFn(supplier: Supplier) {
 		editingSupplier = { ...supplier };
 	}
 
-	function saveSupplier() {
+	async function saveSupplier() {
 		if (!editingSupplier) return;
 
-		suppliers = suppliers.map((s) => (s.id === editingSupplier!.id ? editingSupplier! : s));
-		toast.success('Supplier updated successfully');
-		editingSupplier = null;
+		isSubmitting = true;
+		try {
+			const result = await updateSupplier(data.businessId, editingSupplier.id, {
+				name: editingSupplier.name,
+				contactPerson: editingSupplier.contactPerson,
+				phone: editingSupplier.phone,
+				email: editingSupplier.email,
+				address: editingSupplier.address,
+				status: editingSupplier.status
+			});
+			suppliers = suppliers.map((s) => (s.id === editingSupplier!.id ? result.supplier : s));
+			toast.success('Supplier updated successfully');
+			editingSupplier = null;
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : 'Failed to update supplier');
+		} finally {
+			isSubmitting = false;
+		}
 	}
 
-	function deleteSupplier(id: number) {
-		suppliers = suppliers.filter((s) => s.id !== id);
-		toast.success('Supplier deleted successfully');
+	async function handleDelete(id: string) {
+		if (!confirm('Are you sure you want to delete this supplier?')) return;
+		try {
+			await deleteSupplierApi(data.businessId, id);
+			suppliers = suppliers.filter((s) => s.id !== id);
+			toast.success('Supplier deleted successfully');
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : 'Failed to delete supplier');
+		}
 	}
 
-	function toggleSupplierStatus(id: number) {
-		suppliers = suppliers.map((s) =>
-			s.id === id ? { ...s, status: s.status === 'active' ? 'inactive' : 'active' } : s
-		);
-	}
-
-	function viewSupplier(supplier: (typeof suppliers)[0]) {
+	function viewSupplier(supplier: Supplier) {
 		viewingSupplier = supplier;
 	}
 </script>
@@ -249,71 +212,81 @@
 					<option value="all">All Status</option>
 					<option value="active">Active</option>
 					<option value="inactive">Inactive</option>
+					<option value="pending">Pending</option>
+					<option value="blacklisted">Blacklisted</option>
 				</select>
 			</div>
 
 			<!-- Suppliers Grid -->
-			<div class="grid grid-cols-1 gap-4 px-6 md:grid-cols-2 lg:grid-cols-3">
-				{#each filteredSuppliers as supplier (supplier.id)}
-					<Card.Root class={supplier.status === 'inactive' ? 'opacity-60' : ''}>
-						<Card.Header>
-							<div class="flex items-start justify-between">
-								<div>
-									<Card.Title class="text-lg">{supplier.name}</Card.Title>
-									<Card.Description>{supplier.contact}</Card.Description>
+			{#if filteredSuppliers.length > 0}
+				<div class="grid grid-cols-1 gap-4 px-6 md:grid-cols-2 lg:grid-cols-3">
+					{#each filteredSuppliers as supplier (supplier.id)}
+						<Card.Root class={supplier.status !== 'active' ? 'opacity-60' : ''}>
+							<Card.Header>
+								<div class="flex items-start justify-between">
+									<div>
+										<Card.Title class="text-lg">{supplier.name}</Card.Title>
+										<Card.Description>{supplier.contactPerson || 'No contact'}</Card.Description>
+									</div>
+									<Badge variant={supplier.status === 'active' ? 'default' : 'secondary'}>
+										{supplier.status}
+									</Badge>
 								</div>
-								<Badge variant={supplier.status === 'active' ? 'default' : 'secondary'}>
-									{supplier.status}
-								</Badge>
-							</div>
-						</Card.Header>
-						<Card.Content class="space-y-2">
-							<div class="flex items-center gap-2 text-sm">
-								<IconPhone class="h-4 w-4 text-muted-foreground" />
-								{supplier.phone}
-							</div>
-							<div class="flex items-center gap-2 text-sm">
-								<IconMail class="h-4 w-4 text-muted-foreground" />
-								{supplier.email}
-							</div>
-							<div class="flex flex-wrap gap-1 pt-2">
-								{#each supplier.categories as category}
-									<Badge variant="outline" class="text-xs">{category}</Badge>
-								{/each}
-							</div>
-							<div class="pt-2 text-sm text-muted-foreground">
-								<span>{supplier.totalOrders} orders</span>
-								<span class="mx-2">•</span>
-								<span>Last: {supplier.lastOrder}</span>
-							</div>
-						</Card.Content>
-						<Card.Footer class="flex justify-between">
-							<Button variant="outline" size="sm" onclick={() => viewSupplier(supplier)}>
-								View Details
-							</Button>
-							<div class="flex gap-1">
-								<Button variant="ghost" size="sm" onclick={() => editSupplier(supplier)}>
-									<IconPencil class="h-4 w-4" />
+							</Card.Header>
+							<Card.Content class="space-y-2">
+								{#if supplier.phone}
+									<div class="flex items-center gap-2 text-sm">
+										<IconPhone class="h-4 w-4 text-muted-foreground" />
+										{supplier.phone}
+									</div>
+								{/if}
+								{#if supplier.email}
+									<div class="flex items-center gap-2 text-sm">
+										<IconMail class="h-4 w-4 text-muted-foreground" />
+										{supplier.email}
+									</div>
+								{/if}
+								<div class="flex flex-wrap gap-1 pt-2">
+									{#each supplier.categories as category}
+										<Badge variant="outline" class="text-xs">{category}</Badge>
+									{/each}
+								</div>
+								<div class="pt-2 text-sm text-muted-foreground">
+									<span>{supplier.totalOrders} orders</span>
+									<span class="mx-2">•</span>
+									<span>Last: {formatDate(supplier.lastOrderDate)}</span>
+								</div>
+							</Card.Content>
+							<Card.Footer class="flex justify-between">
+								<Button variant="outline" size="sm" onclick={() => viewSupplier(supplier)}>
+									View Details
 								</Button>
-								<Button
-									variant="ghost"
-									size="sm"
-									class="text-destructive hover:text-destructive"
-									onclick={() => deleteSupplier(supplier.id)}
-								>
-									<IconTrash class="h-4 w-4" />
-								</Button>
-							</div>
-						</Card.Footer>
-					</Card.Root>
-				{/each}
-			</div>
-
-			{#if filteredSuppliers.length === 0}
+								<div class="flex gap-1">
+									<Button variant="ghost" size="sm" onclick={() => editSupplierFn(supplier)}>
+										<IconPencil class="h-4 w-4" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="sm"
+										class="text-destructive hover:text-destructive"
+										onclick={() => handleDelete(supplier.id)}
+									>
+										<IconTrash class="h-4 w-4" />
+									</Button>
+								</div>
+							</Card.Footer>
+						</Card.Root>
+					{/each}
+				</div>
+			{:else}
 				<div class="flex flex-col items-center justify-center py-12 text-center">
 					<IconTruck class="h-12 w-12 text-muted-foreground" />
 					<h3 class="mt-4 text-lg font-semibold">No suppliers found</h3>
 					<p class="text-muted-foreground">Try adjusting your search or add a new supplier.</p>
+					<Button class="mt-4" onclick={() => (showAddDialog = true)}>
+						<IconPlus class="mr-2 h-4 w-4" />
+						Add Supplier
+					</Button>
 				</div>
 			{/if}
 		</div>
@@ -335,7 +308,7 @@
 				</div>
 				<div class="grid gap-2">
 					<label for="contact" class="text-sm font-medium">Contact Person</label>
-					<Input id="contact" bind:value={newSupplier.contact} placeholder="Contact name" />
+					<Input id="contact" bind:value={newSupplier.contactPerson} placeholder="Contact name" />
 				</div>
 			</div>
 			<div class="grid grid-cols-2 gap-4">
@@ -376,8 +349,13 @@
 			</div>
 		</div>
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (showAddDialog = false)}>Cancel</Button>
-			<Button onclick={addSupplier}>Add Supplier</Button>
+			<Button variant="outline" onclick={() => (showAddDialog = false)} disabled={isSubmitting}>Cancel</Button>
+			<Button onclick={addSupplier} disabled={isSubmitting}>
+				{#if isSubmitting}
+					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+				{/if}
+				Add Supplier
+			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
@@ -398,7 +376,7 @@
 					</div>
 					<div class="grid gap-2">
 						<label for="edit-contact" class="text-sm font-medium">Contact Person</label>
-						<Input id="edit-contact" bind:value={editingSupplier.contact} />
+						<Input id="edit-contact" bind:value={editingSupplier.contactPerson} />
 					</div>
 				</div>
 				<div class="grid grid-cols-2 gap-4">
@@ -424,12 +402,19 @@
 					>
 						<option value="active">Active</option>
 						<option value="inactive">Inactive</option>
+						<option value="pending">Pending</option>
+						<option value="blacklisted">Blacklisted</option>
 					</select>
 				</div>
 			</div>
 			<Dialog.Footer>
-				<Button variant="outline" onclick={() => (editingSupplier = null)}>Cancel</Button>
-				<Button onclick={saveSupplier}>Save Changes</Button>
+				<Button variant="outline" onclick={() => (editingSupplier = null)} disabled={isSubmitting}>Cancel</Button>
+				<Button onclick={saveSupplier} disabled={isSubmitting}>
+					{#if isSubmitting}
+						<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+					{/if}
+					Save Changes
+				</Button>
 			</Dialog.Footer>
 		{/if}
 	</Dialog.Content>
@@ -447,7 +432,7 @@
 				<div class="grid grid-cols-2 gap-4">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Contact Person</p>
-						<p>{viewingSupplier.contact}</p>
+						<p>{viewingSupplier.contactPerson || '-'}</p>
 					</div>
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Status</p>
@@ -456,33 +441,42 @@
 						</Badge>
 					</div>
 				</div>
-				<div>
-					<p class="text-sm font-medium text-muted-foreground">Phone</p>
-					<p class="flex items-center gap-2">
-						<IconPhone class="h-4 w-4" />
-						{viewingSupplier.phone}
-					</p>
-				</div>
-				<div>
-					<p class="text-sm font-medium text-muted-foreground">Email</p>
-					<p class="flex items-center gap-2">
-						<IconMail class="h-4 w-4" />
-						{viewingSupplier.email}
-					</p>
-				</div>
-				<div>
-					<p class="text-sm font-medium text-muted-foreground">Address</p>
-					<p class="flex items-center gap-2">
-						<IconMapPin class="h-4 w-4" />
-						{viewingSupplier.address}
-					</p>
-				</div>
+				{#if viewingSupplier.phone}
+					<div>
+						<p class="text-sm font-medium text-muted-foreground">Phone</p>
+						<p class="flex items-center gap-2">
+							<IconPhone class="h-4 w-4" />
+							{viewingSupplier.phone}
+						</p>
+					</div>
+				{/if}
+				{#if viewingSupplier.email}
+					<div>
+						<p class="text-sm font-medium text-muted-foreground">Email</p>
+						<p class="flex items-center gap-2">
+							<IconMail class="h-4 w-4" />
+							{viewingSupplier.email}
+						</p>
+					</div>
+				{/if}
+				{#if viewingSupplier.address}
+					<div>
+						<p class="text-sm font-medium text-muted-foreground">Address</p>
+						<p class="flex items-center gap-2">
+							<IconMapPin class="h-4 w-4" />
+							{viewingSupplier.address}
+						</p>
+					</div>
+				{/if}
 				<div>
 					<p class="text-sm font-medium text-muted-foreground">Categories</p>
 					<div class="mt-1 flex flex-wrap gap-1">
 						{#each viewingSupplier.categories as category}
 							<Badge variant="outline">{category}</Badge>
 						{/each}
+						{#if viewingSupplier.categories.length === 0}
+							<span class="text-sm text-muted-foreground">No categories</span>
+						{/if}
 					</div>
 				</div>
 				<div class="grid grid-cols-2 gap-4 rounded-lg bg-muted p-3">
@@ -492,13 +486,13 @@
 					</div>
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Last Order</p>
-						<p class="text-lg font-bold">{viewingSupplier.lastOrder}</p>
+						<p class="text-lg font-bold">{formatDate(viewingSupplier.lastOrderDate)}</p>
 					</div>
 				</div>
 			</div>
 			<Dialog.Footer>
 				<Button variant="outline" onclick={() => (viewingSupplier = null)}>Close</Button>
-				<Button onclick={() => { editSupplier(viewingSupplier!); viewingSupplier = null; }}>
+				<Button onclick={() => { editSupplierFn(viewingSupplier!); viewingSupplier = null; }}>
 					Edit Supplier
 				</Button>
 			</Dialog.Footer>
