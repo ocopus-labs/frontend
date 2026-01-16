@@ -5,7 +5,8 @@
 	import * as Table from '$lib/components/ui/table';
 	import { Badge } from '$lib/components/ui/badge';
 	import { IconSearch, IconFilter, IconEye, IconPrinter, IconRefresh } from '@tabler/icons-svelte';
-	import { invalidate } from '$app/navigation';
+	import { invalidate, goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import type { Order } from '$lib/api/order';
 
 	let { data }: { data: PageData } = $props();
@@ -71,8 +72,7 @@
 	}
 
 	function viewOrder(orderId: string) {
-		// TODO: Navigate to order details
-		console.log('View order:', orderId);
+		goto(`/${$page.params.business}/${$page.params.slug}/orders/${orderId}`);
 	}
 
 	function printOrder(orderId: string) {
@@ -174,7 +174,7 @@
 								</Table.Cell>
 								<Table.Cell class="text-right">
 									<div class="flex justify-end gap-2">
-										<Button variant="ghost" size="sm" onclick={() => viewOrder(order.id)}>
+										<Button variant="ghost" size="sm" onclick={() => viewOrder(order.orderId)}>
 											<IconEye class="h-4 w-4" />
 										</Button>
 										<Button variant="ghost" size="sm" onclick={() => printOrder(order.id)}>

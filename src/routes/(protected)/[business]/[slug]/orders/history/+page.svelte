@@ -87,7 +87,7 @@
 	}
 
 	function viewOrder(orderId: string) {
-		console.log('View order:', orderId);
+		goto(`/${$page.params.business}/${$page.params.slug}/orders/${orderId}`);
 	}
 
 	function exportHistory() {
@@ -245,7 +245,7 @@
 										</div>
 									</Table.Cell>
 									<Table.Cell class="text-right">
-										<Button variant="ghost" size="sm" onclick={() => viewOrder(order.id)}>
+										<Button variant="ghost" size="sm" onclick={() => viewOrder(order.orderId)}>
 											<IconEye class="h-4 w-4" />
 										</Button>
 									</Table.Cell>

@@ -65,7 +65,7 @@
 	const totalRevenue = $derived(filteredOrders.reduce((sum, order) => sum + order.total, 0));
 
 	function viewOrder(orderId: string) {
-		console.log('View order:', orderId);
+		goto(`/${$page.params.business}/${$page.params.slug}/orders/${orderId}`);
 	}
 
 	function printReceipt(orderId: string) {
@@ -187,7 +187,7 @@
 									</Table.Cell>
 									<Table.Cell class="text-right">
 										<div class="flex justify-end gap-2">
-											<Button variant="ghost" size="sm" onclick={() => viewOrder(order.id)}>
+											<Button variant="ghost" size="sm" onclick={() => viewOrder(order.orderId)}>
 												<IconEye class="h-4 w-4" />
 											</Button>
 											<Button variant="ghost" size="sm" onclick={() => printReceipt(order.id)}>
