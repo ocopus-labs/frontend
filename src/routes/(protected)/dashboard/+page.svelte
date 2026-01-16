@@ -70,6 +70,8 @@
 	const activeBusinesses = $derived(
 		data.businesses?.filter((b) => b.status === 'active' || !b.status).length || 0
 	);
+	const currentPlan = $derived(data.subscription?.plan?.displayName || 'Free');
+	const isFreePlan = $derived(data.subscription?.plan?.slug === 'free' || !data.subscription);
 </script>
 
 <svelte:head>
@@ -108,9 +110,13 @@
 				<CreditCard class="size-4 text-muted-foreground" />
 			</Card.Header>
 			<Card.Content>
-				<div class="text-2xl font-bold">Free</div>
+				<div class="text-2xl font-bold">{currentPlan}</div>
 				<p class="text-xs text-muted-foreground">
-					<a href="/dashboard/subscriptions" class="text-primary hover:underline">Upgrade now</a>
+					{#if isFreePlan}
+						<a href="/dashboard/subscriptions" class="text-primary hover:underline">Upgrade now</a>
+					{:else}
+						<a href="/dashboard/subscriptions" class="text-primary hover:underline">Manage plan</a>
+					{/if}
 				</p>
 			</Card.Content>
 		</Card.Root>
