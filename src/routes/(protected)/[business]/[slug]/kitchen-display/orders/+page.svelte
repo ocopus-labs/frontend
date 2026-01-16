@@ -8,16 +8,88 @@
 		IconCheck,
 		IconFlame,
 		IconAlertTriangle,
-		IconRefresh
+		IconRefresh,
+		IconWifi,
+		IconWifiOff
 	} from '@tabler/icons-svelte';
 	import { invalidate } from '$app/navigation';
 	import { updateItemStatus, updateOrderStatus, type Order, type OrderItem } from '$lib/api';
 	import { toast } from 'svelte-sonner';
+	import { onMount, onDestroy } from 'svelte';
+	import {
+		connectSocket,
+		disconnectSocket,
+		joinBusiness,
+		leaveBusiness,
+		onOrderCreated,
+		onOrderUpdated,
+		onOrderCompleted,
+		onItemStatus,
+		getSocket
+	} from '$lib/socket';
 
 	let { data }: { data: PageData } = $props();
 
 	let isRefreshing = $state(false);
 	let processingItems = $state<Set<string>>(new Set());
+	let isConnected = $state(false);
+
+	// WebSocket setup for real-time updates
+	onMount(() => {
+		const socket = connectSocket();
+
+		if (socket) {
+			socket.on('connect', () => {
+				isConnected = true;
+				joinBusiness(data.businessId);
+				toast.success('Real-time updates connected');
+			});
+
+			socket.on('disconnect', () => {
+				isConnected = false;
+			});
+
+			// Listen for new orders
+			const unsubOrderCreated = onOrderCreated((order) => {
+				console.log('[Kitchen] New order received:', order.orderNumber);
+				invalidate('app:orders');
+				toast.info(`New order: ${order.orderNumber}`);
+			});
+
+			// Listen for order updates
+			const unsubOrderUpdated = onOrderUpdated((order) => {
+				console.log('[Kitchen] Order updated:', order.orderNumber);
+				invalidate('app:orders');
+			});
+
+			// Listen for completed orders
+			const unsubOrderCompleted = ({ orderId }: { orderId: string }) => {
+				console.log('[Kitchen] Order completed:', orderId);
+				invalidate('app:orders');
+				toast.success('Order completed');
+			};
+			const sock = getSocket();
+			sock?.on('order:completed', unsubOrderCompleted);
+
+			// Listen for item status changes
+			const unsubItemStatus = onItemStatus(({ orderId, itemId, status }) => {
+				console.log('[Kitchen] Item status changed:', { orderId, itemId, status });
+				invalidate('app:orders');
+			});
+
+			return () => {
+				unsubOrderCreated();
+				unsubOrderUpdated();
+				sock?.off('order:completed', unsubOrderCompleted);
+				unsubItemStatus();
+			};
+		}
+	});
+
+	onDestroy(() => {
+		leaveBusiness(data.businessId);
+		disconnectSocket();
+	});
 
 	// Transform API orders to kitchen display format
 	interface KitchenOrder {
@@ -144,7 +216,20 @@
 			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
 				<div>
 					<h1 class="text-2xl font-bold">Kitchen Display</h1>
-					<p class="text-muted-foreground">Active orders queue for kitchen staff ({orders.length} orders)</p>
+					<div class="flex items-center gap-2">
+						<p class="text-muted-foreground">Active orders queue for kitchen staff ({orders.length} orders)</p>
+						{#if isConnected}
+							<Badge variant="outline" class="border-green-500 text-green-600">
+								<IconWifi class="mr-1 h-3 w-3" />
+								Live
+							</Badge>
+						{:else}
+							<Badge variant="outline" class="border-yellow-500 text-yellow-600">
+								<IconWifiOff class="mr-1 h-3 w-3" />
+								Offline
+							</Badge>
+						{/if}
+					</div>
 				</div>
 				<Button onclick={refreshOrders} variant="outline" disabled={isRefreshing}>
 					<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
