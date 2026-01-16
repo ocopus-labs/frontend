@@ -640,3 +640,11 @@ export function calculateOrderTotal(
 		total: parseFloat(total.toFixed(2))
 	};
 }
+
+/**
+ * Simple currency formatting function using Indian Rupee by default
+ */
+export function formatCurrency(amount: number, currency: CurrencyCode = 'INR'): string {
+	const formatter = new CurrencyFormatter(currency, 'hi-IN');
+	return formatter.format(amount);
+}
