@@ -6,10 +6,11 @@ import { defineConfig } from 'vite';
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit(), devtoolsJson()],
 	server: {
+		allowedHosts: ['frontend.rohitk06.in'],
 		proxy: {
 			'/api': {
 				target: 'http://localhost:3000',
-				changeOrigin: true,
+				changeOrigin: true
 			}
 		}
 	},
@@ -17,7 +18,7 @@ export default defineConfig({
 		proxy: {
 			'/api': {
 				target: 'http://localhost:3000',
-				changeOrigin: true,
+				changeOrigin: true
 			}
 		}
 	}
