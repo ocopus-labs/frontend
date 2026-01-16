@@ -4,7 +4,7 @@ import type {
   UpdateBusinessPayload,
   BusinessTypeConfig
 } from './types';
-import { createApiClient, getApiClient, type ApiClient } from './client';
+import { createApiClient, getApiClient } from './client';
 
 // ==================== BUSINESS API ====================
 

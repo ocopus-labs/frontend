@@ -1,4 +1,5 @@
 export * from './business';
+export * from './subscription';
 export {
   getMenu,
   publishMenu,
@@ -76,3 +77,159 @@ export {
   type PeakHour,
   type RevenueTrend
 } from './dashboard';
+
+// Table API
+export {
+  getTables,
+  getTableStats,
+  getTableById,
+  getTableByNumber,
+  createTable,
+  updateTable,
+  updateTableStatus,
+  deleteTable,
+  startTableSession,
+  endTableSession,
+  addMaintenanceLog,
+  type Table,
+  type TableStatus,
+  type TableShape,
+  type TablePosition,
+  type TableDimensions,
+  type TableSettings,
+  type TableSession,
+  type MaintenanceLog,
+  type TableStats,
+  type CreateTablePayload,
+  type UpdateTablePayload,
+  type UpdateTableStatusPayload,
+  type StartTableSessionPayload,
+  type EndTableSessionPayload,
+  type AddMaintenanceLogPayload
+} from './table';
+
+// Reservation API
+export {
+  getReservations,
+  getReservationStats,
+  getReservationById,
+  createReservation,
+  updateReservation,
+  confirmReservation,
+  cancelReservation,
+  seatReservation,
+  completeReservation,
+  deleteReservation,
+  type Reservation,
+  type ReservationStatus,
+  type ReservationStats,
+  type CreateReservationPayload,
+  type UpdateReservationPayload
+} from './table';
+
+// Inventory API
+export {
+  getInventoryItems,
+  getInventoryStats,
+  getLowStockItems,
+  getExpiringItems,
+  getInventoryItemById,
+  getInventoryItemBySku,
+  createInventoryItem,
+  updateInventoryItem,
+  processStockTransaction,
+  deleteInventoryItem,
+  type InventoryItem,
+  type InventoryCategory,
+  type InventoryUnit,
+  type InventoryStatus,
+  type InventoryStats,
+  type StockTransactionType,
+  type CreateInventoryItemPayload,
+  type UpdateInventoryItemPayload,
+  type StockTransactionPayload
+} from './inventory';
+
+// Expense API
+export {
+  getExpenseCategories,
+  getExpenseCategoryById,
+  createExpenseCategory,
+  updateExpenseCategory,
+  deleteExpenseCategory,
+  getExpenses,
+  getExpenseSummary,
+  getPendingExpenses,
+  getExpenseById,
+  createExpense,
+  updateExpense,
+  deleteExpense,
+  approveExpense,
+  rejectExpense,
+  markExpenseAsPaid,
+  type Expense,
+  type ExpenseCategory,
+  type ExpenseStatus,
+  type ExpenseSummary,
+  type PaymentMethod as ExpensePaymentMethod,
+  type RecurringFrequency,
+  type CreateExpenseCategoryPayload,
+  type UpdateExpenseCategoryPayload,
+  type CreateExpensePayload,
+  type UpdateExpensePayload,
+  type ApproveExpensePayload,
+  type RejectExpensePayload,
+  type MarkAsPaidPayload
+} from './expense';
+
+// Analytics API
+export {
+  getAnalyticsDashboard,
+  getSalesSummary,
+  getPaymentMethodBreakdown,
+  getTopSellingItemsAnalytics,
+  getHourlyBreakdown,
+  getStaffPerformance,
+  getFullReport,
+  getDailyAnalytics,
+  generateDailyAnalytics,
+  type AnalyticsPeriod,
+  type DashboardAnalytics,
+  type SalesSummary,
+  type PaymentMethodBreakdown,
+  type TopSellingItemAnalytics,
+  type HourlyBreakdown,
+  type StaffPerformance,
+  type DailyTrend,
+  type FullReport,
+  type AnalyticsDaily,
+  type AnalyticsPeriodParams
+} from './analytics';
+
+// Team API
+export {
+  getTeamMembers,
+  getTeamStats,
+  getAvailableRoles,
+  getTeamMemberById,
+  inviteTeamMember,
+  addExistingUser,
+  updateTeamMember,
+  updateMemberRole,
+  updateMemberPermissions,
+  suspendTeamMember,
+  reactivateTeamMember,
+  removeTeamMember,
+  type TeamMember,
+  type TeamMemberStatus,
+  type TeamRole,
+  type TeamStats,
+  type RoleInfo,
+  type TeamInvitation,
+  type InviteTeamMemberPayload,
+  type AddExistingUserPayload,
+  type UpdateTeamMemberPayload,
+  type UpdateMemberRolePayload,
+  type UpdateMemberPermissionsPayload,
+  type SuspendMemberPayload
+} from './team';
