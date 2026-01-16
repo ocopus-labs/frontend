@@ -8,13 +8,18 @@
 	import { page } from '$app/stores';
 	import type { ComponentProps } from 'svelte';
 	import type { Business } from '$lib/api/types';
+	import type { Subscription } from '$lib/api/subscription';
 
 	let {
 		ref = $bindable(null),
 		collapsible = 'icon',
 		businesses = [],
+		subscription = null,
 		...restProps
-	}: ComponentProps<typeof Sidebar.Root> & { businesses?: Business[] } = $props();
+	}: ComponentProps<typeof Sidebar.Root> & {
+		businesses?: Business[];
+		subscription?: Subscription | null;
+	} = $props();
 
 	// Get business type and slug from URL
 	const businessType = $derived($page.params.business || 'restaurant');
@@ -58,7 +63,7 @@
 		<BusinessSwitcher {businesses} {currentBusiness} />
 	</Sidebar.Header>
 	<Sidebar.Content>
-		<NavMain items={navMainItems} />
+		<NavMain items={navMainItems} {subscription} />
 		<NavProjects projects={projectItems} />
 	</Sidebar.Content>
 	<Sidebar.Footer>
