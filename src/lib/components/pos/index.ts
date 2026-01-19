@@ -8,6 +8,8 @@ export { default as PaymentDialog } from './PaymentDialog.svelte';
 export { default as TableSelectorDialog } from './TableSelectorDialog.svelte';
 export { default as TableFloorPlan } from './TableFloorPlan.svelte';
 export { default as FloorPlanTable } from './FloorPlanTable.svelte';
+export { default as Receipt } from './Receipt.svelte';
+export { default as ReceiptDialog } from './ReceiptDialog.svelte';
 
 export type { Category } from './MenuCategories.svelte';
 export type { MenuItem } from './MenuItemCard.svelte';
