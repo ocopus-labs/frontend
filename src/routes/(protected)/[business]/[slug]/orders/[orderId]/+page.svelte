@@ -4,7 +4,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
-	import { PaymentDialog } from '$lib/components/pos';
+	import { PaymentDialog, ReceiptDialog } from '$lib/components/pos';
 	import {
 		IconArrowLeft,
 		IconCash,
@@ -25,6 +25,10 @@
 	// Payment dialog state
 	let showPaymentDialog = $state(false);
 	let isProcessingPayment = $state(false);
+
+	// Receipt dialog state
+	let showReceiptDialog = $state(false);
+	let selectedPaymentId = $state('');
 
 	const order = $derived(data.order);
 	const payments = $derived(data.payments as Payment[]);
@@ -135,8 +139,23 @@
 	}
 
 	function printOrder() {
-		// TODO: Implement print functionality
-		toast.info('Print functionality coming soon');
+		// Print the most recent payment if available
+		if (payments.length > 0) {
+			const latestPayment = payments[payments.length - 1];
+			printPaymentReceipt(latestPayment.id);
+		} else {
+			toast.info('No payments to print. Complete a payment first.');
+		}
+	}
+
+	function printPaymentReceipt(paymentId: string) {
+		selectedPaymentId = paymentId;
+		showReceiptDialog = true;
+	}
+
+	function handleReceiptClose() {
+		showReceiptDialog = false;
+		selectedPaymentId = '';
 	}
 </script>
 
@@ -339,6 +358,7 @@
 										<Table.Head>Date</Table.Head>
 										<Table.Head>Status</Table.Head>
 										<Table.Head class="text-right">Amount</Table.Head>
+									<Table.Head class="text-center">Actions</Table.Head>
 									</Table.Row>
 								</Table.Header>
 								<Table.Body>
@@ -357,6 +377,11 @@
 											<Table.Cell class="text-right"
 												>{i18n.formatCurrency(payment.amount)}</Table.Cell
 											>
+									<Table.Cell class="text-center">
+												<Button variant="ghost" size="icon" onclick={() => printPaymentReceipt(payment.id)}>
+													<IconPrinter class="h-4 w-4" />
+												</Button>
+											</Table.Cell>
 										</Table.Row>
 									{/each}
 								</Table.Body>
@@ -382,3 +407,10 @@
 		isProcessing={isProcessingPayment}
 	/>
 {/if}
+
+<!-- Receipt Dialog -->
+<ReceiptDialog
+	open={showReceiptDialog}
+	paymentId={selectedPaymentId}
+	onClose={handleReceiptClose}
+/>
