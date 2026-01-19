@@ -6,6 +6,14 @@
 	import { useSession } from '$lib/auth';
 	import type { PageData } from './$types';
 
+	import {
+		LiveCounter,
+		StatusPill,
+		QuickActionCard,
+		EmptyState,
+		MetricRing
+	} from '$lib/components/data-display';
+
 	import Plus from '@lucide/svelte/icons/plus';
 	import Building2 from '@lucide/svelte/icons/building-2';
 	import MapPin from '@lucide/svelte/icons/map-pin';
@@ -18,9 +26,12 @@
 	import Sparkles from '@lucide/svelte/icons/sparkles';
 	import Dumbbell from '@lucide/svelte/icons/dumbbell';
 	import Stethoscope from '@lucide/svelte/icons/stethoscope';
-	import TrendingUp from '@lucide/svelte/icons/trending-up';
-	import Users from '@lucide/svelte/icons/users';
 	import CreditCard from '@lucide/svelte/icons/credit-card';
+	import Settings from '@lucide/svelte/icons/settings';
+	import BarChart3 from '@lucide/svelte/icons/bar-chart-3';
+	import Users from '@lucide/svelte/icons/users';
+	import Receipt from '@lucide/svelte/icons/receipt';
+	import Zap from '@lucide/svelte/icons/zap';
 
 	let { data }: { data: PageData } = $props();
 
@@ -84,7 +95,7 @@
 		<h1 class="text-3xl font-bold tracking-tight">
 			Welcome back{user?.name ? `, ${user.name.split(' ')[0]}` : ''}!
 		</h1>
-		<p class="mt-2 text-muted-foreground">
+		<p class="mt-1 text-muted-foreground">
 			Here's an overview of your businesses and account.
 		</p>
 	</div>
@@ -94,24 +105,35 @@
 		<Card.Root>
 			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
 				<Card.Title class="text-sm font-medium">Total Businesses</Card.Title>
-				<Building2 class="size-4 text-muted-foreground" />
+				<Building2 class="h-4 w-4 text-muted-foreground" />
 			</Card.Header>
 			<Card.Content>
-				<div class="text-2xl font-bold">{totalBusinesses}</div>
-				<p class="text-xs text-muted-foreground">
-					{activeBusinesses} active
-				</p>
+				<div class="text-2xl font-bold">
+					<LiveCounter value={totalBusinesses} />
+				</div>
+				<div class="mt-1 flex items-center gap-2">
+					<StatusPill
+						label="{activeBusinesses} active"
+						status="success"
+						size="sm"
+					/>
+				</div>
 			</Card.Content>
 		</Card.Root>
 
 		<Card.Root>
 			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
 				<Card.Title class="text-sm font-medium">Subscription</Card.Title>
-				<CreditCard class="size-4 text-muted-foreground" />
+				<CreditCard class="h-4 w-4 text-muted-foreground" />
 			</Card.Header>
 			<Card.Content>
-				<div class="text-2xl font-bold">{currentPlan}</div>
-				<p class="text-xs text-muted-foreground">
+				<div class="flex items-center gap-3">
+					<span class="text-2xl font-bold">{currentPlan}</span>
+					{#if isFreePlan}
+						<StatusPill label="Upgrade available" status="info" size="sm" />
+					{/if}
+				</div>
+				<p class="mt-1 text-xs text-muted-foreground">
 					{#if isFreePlan}
 						<a href="/dashboard/subscriptions" class="text-primary hover:underline">Upgrade now</a>
 					{:else}
@@ -124,16 +146,65 @@
 		<Card.Root>
 			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
 				<Card.Title class="text-sm font-medium">Account Status</Card.Title>
-				<Users class="size-4 text-muted-foreground" />
+				<Users class="h-4 w-4 text-muted-foreground" />
 			</Card.Header>
 			<Card.Content>
-				<div class="text-2xl font-bold text-green-600">Active</div>
-				<p class="text-xs text-muted-foreground">
+				<div class="flex items-center gap-3">
+					<StatusPill label="Active" status="success" pulse size="lg" />
+				</div>
+				<p class="mt-1 text-xs text-muted-foreground">
 					All systems operational
 				</p>
 			</Card.Content>
 		</Card.Root>
 	</div>
+
+	<!-- Quick Actions -->
+	{#if totalBusinesses > 0}
+		<div class="grid gap-4 md:grid-cols-4">
+			<QuickActionCard
+				title="New Order"
+				description="Start a new POS order"
+				icon={Receipt}
+				onclick={() => {
+					const firstBusiness = data.businesses?.[0];
+					if (firstBusiness) goto(`/${firstBusiness.type}/${firstBusiness.slug}/pos/new-order`);
+				}}
+				variant="gradient"
+				size="sm"
+			/>
+			<QuickActionCard
+				title="Analytics"
+				description="View business reports"
+				icon={BarChart3}
+				onclick={() => {
+					const firstBusiness = data.businesses?.[0];
+					if (firstBusiness) goto(`/${firstBusiness.type}/${firstBusiness.slug}/dashboard`);
+				}}
+				variant="default"
+				size="sm"
+			/>
+			<QuickActionCard
+				title="Team"
+				description="Manage your team"
+				icon={Users}
+				onclick={() => {
+					const firstBusiness = data.businesses?.[0];
+					if (firstBusiness) goto(`/${firstBusiness.type}/${firstBusiness.slug}/team`);
+				}}
+				variant="default"
+				size="sm"
+			/>
+			<QuickActionCard
+				title="Settings"
+				description="Account settings"
+				icon={Settings}
+				href="/dashboard/settings"
+				variant="default"
+				size="sm"
+			/>
+		</div>
+	{/if}
 
 	<!-- Recent Businesses -->
 	<div>
@@ -156,14 +227,14 @@
 							<div class="flex items-start justify-between">
 								<div class="flex items-center gap-3">
 									{#if business.logo}
-										<Avatar.Root class="size-10 rounded-lg">
+										<Avatar.Root class="size-12 rounded-xl ring-2 ring-background shadow-sm">
 											<Avatar.Image src={business.logo} alt={business.name} class="object-cover" />
-											<Avatar.Fallback class="rounded-lg bg-muted">
+											<Avatar.Fallback class="rounded-xl bg-muted">
 												<Icon class="size-5 text-muted-foreground" />
 											</Avatar.Fallback>
 										</Avatar.Root>
 									{:else}
-										<div class="flex size-10 items-center justify-center rounded-lg bg-muted">
+										<div class="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-muted to-muted/50 shadow-sm">
 											<Icon class="size-5 text-muted-foreground" />
 										</div>
 									{/if}
@@ -174,7 +245,7 @@
 										</span>
 									</div>
 								</div>
-								<ChevronRight class="size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+								<ChevronRight class="size-4 text-muted-foreground opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5" />
 							</div>
 						</Card.Header>
 						{#if business.address}
@@ -191,37 +262,46 @@
 				{/each}
 
 				<!-- Add New Business Card -->
-				<Card.Root
-					class="group cursor-pointer border-dashed transition-all hover:border-primary hover:bg-muted/50"
+				<QuickActionCard
+					title="Add Business"
+					description="Create a new business"
+					icon={Plus}
 					onclick={() => goto('/business/setup')}
-				>
-					<Card.Content class="flex h-full min-h-[120px] flex-col items-center justify-center gap-3 py-6">
-						<div class="flex size-10 items-center justify-center rounded-full bg-muted transition-colors group-hover:bg-primary/10">
-							<Plus class="size-5 text-muted-foreground transition-colors group-hover:text-primary" />
-						</div>
-						<div class="text-center">
-							<p class="text-sm font-medium">Add Business</p>
-						</div>
-					</Card.Content>
-				</Card.Root>
+					variant="outline"
+				/>
 			</div>
 		{:else}
 			<!-- Empty State -->
-			<Card.Root>
-				<Card.Content class="flex flex-col items-center justify-center py-12 text-center">
-					<div class="mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
-						<Building2 class="size-8 text-muted-foreground" />
-					</div>
-					<Card.Title class="mb-2 text-xl">No businesses yet</Card.Title>
-					<Card.Description class="mb-6">
-						Get started by creating your first business.
-					</Card.Description>
-					<Button onclick={() => goto('/business/setup')} size="lg">
-						<Plus class="mr-2 size-4" />
-						Create Your First Business
-					</Button>
-				</Card.Content>
-			</Card.Root>
+			<EmptyState
+				type="empty"
+				title="No businesses yet"
+				description="Get started by creating your first business."
+				actionLabel="Create Your First Business"
+				onAction={() => goto('/business/setup')}
+				icon={Building2}
+			/>
 		{/if}
 	</div>
+
+	<!-- Upgrade prompt for free users -->
+	{#if isFreePlan && totalBusinesses > 0}
+		<Card.Root>
+			<Card.Content class="flex items-center justify-between p-6">
+				<div class="flex items-center gap-4">
+					<div class="rounded-full bg-primary/10 p-3">
+						<Zap class="size-6 text-primary" />
+					</div>
+					<div>
+						<h3 class="font-semibold">Upgrade to Pro</h3>
+						<p class="text-sm text-muted-foreground">
+							Unlock unlimited businesses, advanced analytics, and priority support.
+						</p>
+					</div>
+				</div>
+				<Button href="/dashboard/subscriptions">
+					Upgrade Now
+				</Button>
+			</Card.Content>
+		</Card.Root>
+	{/if}
 </div>

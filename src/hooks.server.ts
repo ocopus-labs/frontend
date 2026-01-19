@@ -1,20 +1,16 @@
 import { redirect, type Handle } from '@sveltejs/kit';
 import { getSession } from '$lib/auth.server';
 
-// Routes that don't require authentication
-const PUBLIC_ROUTES = ['/login', '/register', '/reset-password', '/forget-password', '/contact'];
-
 export const handle: Handle = async ({ event, resolve }) => {
 	const { pathname } = event.url;
 
-	// Check if it's a public route, static asset, or landing page
-	const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 	const isLandingPage = pathname === '/';
 	const isStaticAsset = pathname.startsWith('/_app') || pathname.startsWith('/favicon');
 	const isApiRoute = pathname.startsWith('/api');
+	const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password') || pathname.startsWith('/reset-password');
 
 	// For public routes, no session check needed
-	if (isPublicRoute || isLandingPage || isStaticAsset || isApiRoute) {
+	if (isLandingPage || isStaticAsset || isApiRoute || isAuthRoute) {
 		return resolve(event);
 	}
 
@@ -22,7 +18,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const sessionData = await getSession(event.request.headers);
 
 	if (sessionData) {
-		// Populate locals with session and user for use in load functions
 		event.locals.session = sessionData.session;
 		event.locals.user = sessionData.user;
 	} else {
