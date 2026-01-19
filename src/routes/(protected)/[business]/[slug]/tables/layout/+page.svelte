@@ -1,24 +1,19 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
-	import { Badge } from '$lib/components/ui/badge';
 	import { Loader2 } from '@lucide/svelte';
-	import {
-		IconPlus,
-		IconPencil,
-		IconTrash,
-		IconUsers,
-		IconClock
-	} from '@tabler/icons-svelte';
+	import { IconPlus, IconUsers } from '@tabler/icons-svelte';
 	import { toast } from 'svelte-sonner';
+	import { TableFloorPlan } from '$lib/components/pos';
 	import {
 		createTable,
 		updateTable,
 		updateTableStatus,
-		deleteTable as deleteTableApi,
 		type Table,
 		type TableStatus,
 		type CreateTablePayload
@@ -30,17 +25,20 @@
 	let showAddDialog = $state(false);
 	let editingTable = $state<Table | null>(null);
 	let isSubmitting = $state(false);
+	let selectedSection = $state('');
 
 	let newTable = $state<{
 		tableNumber: string;
 		displayName: string;
 		capacity: number;
 		section: string;
+		shape: 'square' | 'round' | 'rectangle';
 	}>({
 		tableNumber: '',
 		displayName: '',
 		capacity: 4,
-		section: 'Main Hall'
+		section: 'Main Hall',
+		shape: 'square'
 	});
 
 	const sections = ['Main Hall', 'Patio', 'Bar', 'VIP'];
@@ -52,40 +50,6 @@
 		reserved: tables.filter((t) => t.status === 'reserved').length,
 		maintenance: tables.filter((t) => t.status === 'maintenance').length
 	});
-
-	function getStatusColor(status: TableStatus) {
-		switch (status) {
-			case 'available':
-				return 'bg-green-500';
-			case 'occupied':
-				return 'bg-red-500';
-			case 'reserved':
-				return 'bg-yellow-500';
-			case 'maintenance':
-				return 'bg-orange-500';
-			case 'out_of_service':
-				return 'bg-gray-500';
-			default:
-				return 'bg-gray-500';
-		}
-	}
-
-	function getStatusBadge(status: TableStatus) {
-		switch (status) {
-			case 'available':
-				return { variant: 'default' as const, text: 'Available' };
-			case 'occupied':
-				return { variant: 'destructive' as const, text: 'Occupied' };
-			case 'reserved':
-				return { variant: 'secondary' as const, text: 'Reserved' };
-			case 'maintenance':
-				return { variant: 'outline' as const, text: 'Maintenance' };
-			case 'out_of_service':
-				return { variant: 'outline' as const, text: 'Out of Service' };
-			default:
-				return { variant: 'outline' as const, text: status };
-		}
-	}
 
 	async function addTable() {
 		if (!newTable.tableNumber.trim()) {
@@ -99,13 +63,20 @@
 
 		isSubmitting = true;
 		try {
+			const existingInSection = tables.filter(
+				(t) => t.position?.section === newTable.section
+			).length;
+			const row = Math.floor(existingInSection / 4);
+			const col = existingInSection % 4;
+
 			const payload: CreateTablePayload = {
 				tableNumber: newTable.tableNumber,
 				displayName: newTable.displayName,
 				capacity: newTable.capacity,
+				shape: newTable.shape,
 				position: {
-					x: Math.random() * 300 + 50,
-					y: Math.random() * 300 + 50,
+					x: 100 + col * 120,
+					y: 100 + row * 120,
 					section: newTable.section
 				}
 			};
@@ -114,7 +85,13 @@
 			tables = [...tables, result.table];
 			toast.success('Table added successfully');
 			showAddDialog = false;
-			newTable = { tableNumber: '', displayName: '', capacity: 4, section: 'Main Hall' };
+			newTable = {
+				tableNumber: '',
+				displayName: '',
+				capacity: 4,
+				section: 'Main Hall',
+				shape: 'square'
+			};
 		} catch (error) {
 			toast.error(error instanceof Error ? error.message : 'Failed to add table');
 		} finally {
@@ -122,8 +99,53 @@
 		}
 	}
 
-	function editTable(table: Table) {
+	function handleTableSelect(table: Table) {
 		editingTable = { ...table };
+	}
+
+	async function handlePositionChange(tableId: string, position: { x: number; y: number }) {
+		const table = tables.find((t) => t.id === tableId);
+		if (!table) return;
+
+		try {
+			const result = await updateTable(data.businessId, tableId, {
+				position: { ...table.position, ...position }
+			});
+			tables = tables.map((t) => (t.id === tableId ? result.table : t));
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : 'Failed to update position');
+		}
+	}
+
+	async function handleOpenOrder(table: Table) {
+		const business = $page.params.business;
+		const slug = $page.params.slug;
+
+		if (table.status === 'available') {
+			goto(`/${business}/${slug}/pos?table=${table.id}`);
+		} else if (table.status === 'occupied' && table.currentSession?.orderId) {
+			goto(`/${business}/${slug}/orders/${table.currentSession.orderId}`);
+		} else if (table.status === 'reserved') {
+			try {
+				await updateTableStatus(data.businessId, table.id, { status: 'occupied' });
+				tables = tables.map((t) =>
+					t.id === table.id ? { ...t, status: 'occupied' as TableStatus } : t
+				);
+				goto(`/${business}/${slug}/pos?table=${table.id}`);
+			} catch (error) {
+				toast.error('Failed to seat party');
+			}
+		}
+	}
+
+	async function handleStatusChange(table: Table, status: TableStatus) {
+		try {
+			const result = await updateTableStatus(data.businessId, table.id, { status });
+			tables = tables.map((t) => (t.id === table.id ? result.table : t));
+			toast.success('Table status updated');
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : 'Failed to update status');
+		}
 	}
 
 	async function saveTable() {
@@ -147,199 +169,103 @@
 		}
 	}
 
-	async function handleDeleteTable(tableId: string) {
-		const table = tables.find((t) => t.id === tableId);
-		if (table?.status === 'occupied') {
-			toast.error('Cannot delete occupied table');
-			return;
-		}
-
+	async function handleStatusChangeInDialog(status: TableStatus) {
+		if (!editingTable) return;
 		try {
-			await deleteTableApi(data.businessId, tableId);
-			tables = tables.filter((t) => t.id !== tableId);
-			toast.success('Table deleted successfully');
-		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to delete table');
-		}
-	}
-
-	async function handleStatusChange(tableId: string, status: TableStatus) {
-		try {
-			const result = await updateTableStatus(data.businessId, tableId, { status });
-			tables = tables.map((t) => (t.id === tableId ? result.table : t));
+			const result = await updateTableStatus(data.businessId, editingTable.id, { status });
+			tables = tables.map((t) => (t.id === editingTable!.id ? result.table : t));
+			editingTable = { ...editingTable, status };
 			toast.success('Table status updated');
 		} catch (error) {
 			toast.error(error instanceof Error ? error.message : 'Failed to update status');
 		}
 	}
-
-	function getSection(table: Table): string {
-		return table.position?.section || 'Main Hall';
-	}
-
-	function formatTime(dateString?: string): string {
-		if (!dateString) return '';
-		const date = new Date(dateString);
-		return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-	}
 </script>
 
-<div class="flex flex-1 flex-col">
-	<div class="@container/main flex flex-1 flex-col gap-4">
-		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
-				<div>
-					<h1 class="text-2xl font-bold">Table Layout</h1>
-					<p class="text-muted-foreground">Manage your restaurant floor plan</p>
+<div class="flex h-full flex-1 flex-col">
+	<div class="flex flex-1 flex-col gap-4">
+		<!-- Header -->
+		<div class="flex flex-col gap-4 px-6 pt-4 sm:flex-row sm:items-center sm:justify-between">
+			<div>
+				<h1 class="text-2xl font-bold">Table Layout</h1>
+				<p class="text-muted-foreground">Manage your restaurant floor plan</p>
+			</div>
+			<Button onclick={() => (showAddDialog = true)}>
+				<IconPlus class="mr-2 h-4 w-4" />
+				Add Table
+			</Button>
+		</div>
+
+		<!-- Stats -->
+		<div class="grid grid-cols-2 gap-4 px-6 sm:grid-cols-5">
+			<Card.Root>
+				<Card.Header class="pb-2">
+					<Card.Title class="text-sm font-medium">Total</Card.Title>
+				</Card.Header>
+				<Card.Content>
+					<div class="text-2xl font-bold">{stats.total}</div>
+				</Card.Content>
+			</Card.Root>
+			<Card.Root>
+				<Card.Header class="pb-2">
+					<Card.Title class="text-sm font-medium">Available</Card.Title>
+				</Card.Header>
+				<Card.Content>
+					<div class="text-2xl font-bold text-green-600">{stats.available}</div>
+				</Card.Content>
+			</Card.Root>
+			<Card.Root>
+				<Card.Header class="pb-2">
+					<Card.Title class="text-sm font-medium">Occupied</Card.Title>
+				</Card.Header>
+				<Card.Content>
+					<div class="text-2xl font-bold text-red-600">{stats.occupied}</div>
+				</Card.Content>
+			</Card.Root>
+			<Card.Root>
+				<Card.Header class="pb-2">
+					<Card.Title class="text-sm font-medium">Reserved</Card.Title>
+				</Card.Header>
+				<Card.Content>
+					<div class="text-2xl font-bold text-yellow-600">{stats.reserved}</div>
+				</Card.Content>
+			</Card.Root>
+			<Card.Root>
+				<Card.Header class="pb-2">
+					<Card.Title class="text-sm font-medium">Maintenance</Card.Title>
+				</Card.Header>
+				<Card.Content>
+					<div class="text-2xl font-bold text-orange-600">{stats.maintenance}</div>
+				</Card.Content>
+			</Card.Root>
+		</div>
+
+		<!-- Floor Plan -->
+		{#if tables.length === 0}
+			<div class="flex flex-1 flex-col items-center justify-center gap-4 px-6">
+				<IconUsers class="h-12 w-12 text-muted-foreground" />
+				<div class="text-center">
+					<h3 class="font-semibold">No tables yet</h3>
+					<p class="text-sm text-muted-foreground">Add your first table to get started</p>
 				</div>
 				<Button onclick={() => (showAddDialog = true)}>
 					<IconPlus class="mr-2 h-4 w-4" />
 					Add Table
 				</Button>
 			</div>
-
-			<!-- Stats -->
-			<div class="grid grid-cols-2 gap-4 px-6 sm:grid-cols-4">
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Total Tables</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold">{stats.total}</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Available</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold text-green-600">{stats.available}</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Occupied</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold text-red-600">{stats.occupied}</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Reserved</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold text-yellow-600">{stats.reserved}</div>
-					</Card.Content>
-				</Card.Root>
+		{:else}
+			<div class="flex-1 px-6 pb-6">
+				<TableFloorPlan
+					{tables}
+					{sections}
+					bind:selectedSection
+					onTableSelect={handleTableSelect}
+					onTablePositionChange={handlePositionChange}
+					onOpenOrder={handleOpenOrder}
+					onStatusChange={handleStatusChange}
+				/>
 			</div>
-
-			<!-- Legend -->
-			<div class="flex flex-wrap gap-4 px-6">
-				<div class="flex items-center gap-2">
-					<div class="h-4 w-4 rounded-full bg-green-500"></div>
-					<span class="text-sm">Available</span>
-				</div>
-				<div class="flex items-center gap-2">
-					<div class="h-4 w-4 rounded-full bg-red-500"></div>
-					<span class="text-sm">Occupied</span>
-				</div>
-				<div class="flex items-center gap-2">
-					<div class="h-4 w-4 rounded-full bg-yellow-500"></div>
-					<span class="text-sm">Reserved</span>
-				</div>
-				<div class="flex items-center gap-2">
-					<div class="h-4 w-4 rounded-full bg-orange-500"></div>
-					<span class="text-sm">Maintenance</span>
-				</div>
-			</div>
-
-			<!-- Empty State -->
-			{#if tables.length === 0}
-				<div class="flex flex-col items-center justify-center gap-4 py-12">
-					<IconUsers class="h-12 w-12 text-muted-foreground" />
-					<div class="text-center">
-						<h3 class="font-semibold">No tables yet</h3>
-						<p class="text-sm text-muted-foreground">Add your first table to get started</p>
-					</div>
-					<Button onclick={() => (showAddDialog = true)}>
-						<IconPlus class="mr-2 h-4 w-4" />
-						Add Table
-					</Button>
-				</div>
-			{:else}
-				<!-- Tables by Section -->
-				{#each sections as section}
-					{@const sectionTables = tables.filter((t) => getSection(t) === section)}
-					{#if sectionTables.length > 0}
-						<div class="px-6">
-							<h2 class="mb-3 text-lg font-semibold">{section}</h2>
-							<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-								{#each sectionTables as table (table.id)}
-									<Card.Root
-										class="cursor-pointer transition-shadow hover:shadow-md {table.status ===
-										'occupied'
-											? 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950'
-											: table.status === 'reserved'
-												? 'border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950'
-												: table.status === 'maintenance'
-													? 'border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950'
-													: ''}"
-									>
-										<Card.Content class="p-4">
-											<div class="flex items-center justify-between">
-												<div class="flex items-center gap-2">
-													<div class="h-3 w-3 rounded-full {getStatusColor(table.status)}"></div>
-													<span class="font-bold">{table.displayName}</span>
-												</div>
-												<Badge variant={getStatusBadge(table.status).variant} class="text-xs">
-													{getStatusBadge(table.status).text}
-												</Badge>
-											</div>
-
-											<div class="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
-												<IconUsers class="h-4 w-4" />
-												<span>{table.capacity} seats</span>
-											</div>
-
-											{#if table.status === 'occupied' && table.currentSession}
-												<div class="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-													<IconClock class="h-3 w-3" />
-													<span>Since {formatTime(table.currentSession.startedAt)}</span>
-												</div>
-												<div class="mt-1 text-xs text-muted-foreground">
-													Order: {table.currentSession.orderNumber}
-												</div>
-											{/if}
-
-											<div class="mt-3 flex gap-1">
-												<Button
-													variant="ghost"
-													size="sm"
-													class="h-7 w-7 p-0"
-													onclick={() => editTable(table)}
-												>
-													<IconPencil class="h-3 w-3" />
-												</Button>
-												<Button
-													variant="ghost"
-													size="sm"
-													class="h-7 w-7 p-0 text-destructive hover:text-destructive"
-													onclick={() => handleDeleteTable(table.id)}
-													disabled={table.status === 'occupied'}
-												>
-													<IconTrash class="h-3 w-3" />
-												</Button>
-											</div>
-										</Card.Content>
-									</Card.Root>
-								{/each}
-							</div>
-						</div>
-					{/if}
-				{/each}
-			{/if}
-		</div>
+		{/if}
 	</div>
 </div>
 
@@ -359,9 +285,23 @@
 				<label for="displayName" class="text-sm font-medium">Display Name</label>
 				<Input id="displayName" bind:value={newTable.displayName} placeholder="e.g., Table 16" />
 			</div>
-			<div class="grid gap-2">
-				<label for="capacity" class="text-sm font-medium">Capacity</label>
-				<Input id="capacity" type="number" min="1" max="100" bind:value={newTable.capacity} />
+			<div class="grid grid-cols-2 gap-4">
+				<div class="grid gap-2">
+					<label for="capacity" class="text-sm font-medium">Capacity</label>
+					<Input id="capacity" type="number" min="1" max="20" bind:value={newTable.capacity} />
+				</div>
+				<div class="grid gap-2">
+					<label for="shape" class="text-sm font-medium">Shape</label>
+					<select
+						id="shape"
+						bind:value={newTable.shape}
+						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+					>
+						<option value="square">Square</option>
+						<option value="round">Round</option>
+						<option value="rectangle">Rectangle</option>
+					</select>
+				</div>
 			</div>
 			<div class="grid gap-2">
 				<label for="section" class="text-sm font-medium">Section</label>
@@ -413,7 +353,7 @@
 						id="edit-capacity"
 						type="number"
 						min="1"
-						max="100"
+						max="20"
 						bind:value={editingTable.capacity}
 					/>
 				</div>
@@ -434,7 +374,7 @@
 					<select
 						id="edit-status"
 						value={editingTable.status}
-						onchange={(e) => handleStatusChange(editingTable!.id, e.currentTarget.value as TableStatus)}
+						onchange={(e) => handleStatusChangeInDialog(e.currentTarget.value as TableStatus)}
 						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
 					>
 						<option value="available">Available</option>

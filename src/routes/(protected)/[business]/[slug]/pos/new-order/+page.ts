@@ -1,11 +1,18 @@
 import type { PageLoad } from './$types';
 import { getMenu } from '$lib/api/menu';
+import { getTables } from '$lib/api/table';
+import { BUSINESS_TYPE_CONFIG } from '$lib/types/business';
 import { error } from '@sveltejs/kit';
 
 export const load: PageLoad = async ({ params, parent, fetch }) => {
   const { business } = await parent();
 
+  // Check if this business type supports tables
+  const businessConfig = BUSINESS_TYPE_CONFIG[business.type as keyof typeof BUSINESS_TYPE_CONFIG];
+  const supportsTable = businessConfig?.features?.includes('tables') ?? false;
+
   try {
+    // Load menu data
     const menuData = await getMenu(business.id, { fetch });
 
     // Transform menu data for POS display
@@ -63,10 +70,24 @@ export const load: PageLoad = async ({ params, parent, fetch }) => {
         } : undefined
       }));
 
+    // Load tables if business supports them
+    let tables: any[] = [];
+    if (supportsTable) {
+      try {
+        const tablesData = await getTables(business.id, undefined, { fetch });
+        tables = tablesData.tables || [];
+      } catch (e) {
+        console.warn('Failed to load tables:', e);
+        tables = [];
+      }
+    }
+
     return {
       categories,
       menuItems,
-      menuVersion: menuData.menuVersion
+      menuVersion: menuData.menuVersion,
+      tables,
+      supportsTable
     };
   } catch (e) {
     console.error('Failed to load menu:', e);
@@ -74,7 +95,9 @@ export const load: PageLoad = async ({ params, parent, fetch }) => {
     return {
       categories: [{ id: 'all', name: 'All Items', count: 0 }],
       menuItems: [],
-      menuVersion: 0
+      menuVersion: 0,
+      tables: [],
+      supportsTable
     };
   }
 };

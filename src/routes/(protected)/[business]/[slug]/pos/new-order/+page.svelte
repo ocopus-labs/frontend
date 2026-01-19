@@ -17,8 +17,11 @@
 		OrderSummary,
 		ItemCustomizationDialog,
 		PaymentDialog,
+		TableSelectorDialog,
 		type OrderItemType
 	} from '$lib/components/pos';
+
+	import type { Table } from '$lib/api/table';
 
 	import { createOrder, createPayment, type CreateOrderPayload, type CreateOrderItemPayload, type PaymentMethod } from '$lib/api';
 	import { page } from '$app/stores';
@@ -60,9 +63,10 @@
 	let selectedCategory = $state('All Items');
 	let searchQuery = $state('');
 	let orderType = $state<'dine_in' | 'takeaway' | 'delivery'>('dine_in');
-	let selectedTable = $state(1);
+	let selectedTable = $state<Table | null>(null);
 	let showOrderSummary = $state(false);
 	let isSubmitting = $state(false);
+	let showTableSelector = $state(false);
 
 	// Customization dialog state
 	let showCustomizationDialog = $state(false);
@@ -172,6 +176,7 @@
 			name: selectedItem.name,
 			price: totalPrice,
 			quantity: customizationQuantity,
+			image: selectedItem.image,
 			modifiers: {
 				size: selectedSize,
 				spiceLevel: selectedSpiceLevel,
@@ -228,7 +233,13 @@
 	}
 
 	function handleOrderTypeChange(type: string) {
-		orderType = type as 'dine_in' | 'takeaway' | 'delivery';
+		// Map UI values to API values
+		const typeMap: Record<string, 'dine_in' | 'takeaway' | 'delivery'> = {
+			'Dine-In': 'dine_in',
+			'Takeaway': 'takeaway',
+			'Delivery': 'delivery'
+		};
+		orderType = typeMap[type] || 'dine_in';
 	}
 
 	function toggleTaxes() {
@@ -242,6 +253,13 @@
 	async function submitOrder() {
 		if (orderItems.length === 0) {
 			toast.error('Please add items to the order');
+			return;
+		}
+
+		// Validate table selection for dine-in orders when business supports tables
+		if (orderType === 'dine_in' && data.supportsTable && !selectedTable) {
+			toast.error('Please select a table for dine-in orders');
+			showTableSelector = true;
 			return;
 		}
 
@@ -281,7 +299,7 @@
 
 			const orderPayload: CreateOrderPayload = {
 				orderType,
-				tableNumber: orderType === 'dine_in' ? `T${selectedTable}` : undefined,
+				tableNumber: orderType === 'dine_in' && selectedTable ? selectedTable.tableNumber : undefined,
 				items,
 				taxRate: showTaxes ? taxRate : 0,
 				discount: showDiscount && discountValue > 0 ? {
@@ -310,6 +328,11 @@
 		} finally {
 			isSubmitting = false;
 		}
+	}
+
+	function handleTableSelect(table: Table) {
+		selectedTable = table;
+		showTableSelector = false;
 	}
 
 	async function handlePaymentComplete(result: {
@@ -468,7 +491,8 @@
 					<OrderSummary
 					{orderItems}
 					orderType={orderType === 'dine_in' ? 'Dine-In' : orderType === 'takeaway' ? 'Takeaway' : 'Delivery'}
-					{selectedTable}
+					selectedTableDisplay={selectedTable?.displayName || null}
+					showTableSelection={data.supportsTable}
 					{subtotal}
 					{showTaxes}
 					{taxRate}
@@ -483,6 +507,7 @@
 					onUpdateQuantity={updateQuantity}
 					onToggleTaxes={toggleTaxes}
 					onToggleDiscount={toggleDiscount}
+					onTableSelectClick={() => showTableSelector = true}
 				/>
 				</div>
 				<div class="shrink-0 border-t border-border p-4">
@@ -520,7 +545,8 @@
 						<OrderSummary
 							{orderItems}
 							orderType={orderType === 'dine_in' ? 'Dine-In' : orderType === 'takeaway' ? 'Takeaway' : 'Delivery'}
-							{selectedTable}
+							selectedTableDisplay={selectedTable?.displayName || null}
+							showTableSelection={data.supportsTable}
 							{subtotal}
 							{showTaxes}
 							{taxRate}
@@ -535,6 +561,7 @@
 							onUpdateQuantity={updateQuantity}
 							onToggleTaxes={toggleTaxes}
 							onToggleDiscount={toggleDiscount}
+							onTableSelectClick={() => showTableSelector = true}
 						/>
 					</div>
 					<div class="border-t border-border p-4">
@@ -586,3 +613,14 @@
 	onCancel={handlePaymentCancel}
 	isProcessing={isProcessingPayment}
 />
+
+<!-- Table Selector Dialog -->
+{#if data.supportsTable}
+	<TableSelectorDialog
+		open={showTableSelector}
+		tables={data.tables}
+		selectedTableId={selectedTable?.id || null}
+		onSelect={handleTableSelect}
+		onCancel={() => showTableSelector = false}
+	/>
+{/if}
