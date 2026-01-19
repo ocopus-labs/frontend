@@ -5,6 +5,9 @@ export { default as OrderTotals } from './OrderTotals.svelte';
 export { default as OrderSummary } from './OrderSummary.svelte';
 export { default as ItemCustomizationDialog } from './ItemCustomizationDialog.svelte';
 export { default as PaymentDialog } from './PaymentDialog.svelte';
+export { default as TableSelectorDialog } from './TableSelectorDialog.svelte';
+export { default as TableFloorPlan } from './TableFloorPlan.svelte';
+export { default as FloorPlanTable } from './FloorPlanTable.svelte';
 
 export type { Category } from './MenuCategories.svelte';
 export type { MenuItem } from './MenuItemCard.svelte';
