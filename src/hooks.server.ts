@@ -7,7 +7,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const isLandingPage = pathname === '/';
 	const isStaticAsset = pathname.startsWith('/_app') || pathname.startsWith('/favicon');
 	const isApiRoute = pathname.startsWith('/api');
-	const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password') || pathname.startsWith('/reset-password');
+	const isAuthRoute =
+		pathname.startsWith('/login') ||
+		pathname.startsWith('/register') ||
+		pathname.startsWith('/forgot-password') ||
+		pathname.startsWith('/reset-password');
 
 	// For public routes, no session check needed
 	if (isLandingPage || isStaticAsset || isApiRoute || isAuthRoute) {
