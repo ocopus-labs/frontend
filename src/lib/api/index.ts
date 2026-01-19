@@ -1,5 +1,6 @@
 export * from './business';
 export * from './subscription';
+export * from './admin';
 export {
   getMenu,
   publishMenu,
@@ -147,7 +148,19 @@ export {
   type StockTransactionType,
   type CreateInventoryItemPayload,
   type UpdateInventoryItemPayload,
-  type StockTransactionPayload
+  type StockTransactionPayload,
+  // Supplier API
+  getSuppliers,
+  getSupplierStats,
+  getSupplierById,
+  createSupplier,
+  updateSupplier,
+  deleteSupplier,
+  type Supplier,
+  type SupplierStatus,
+  type SupplierStats,
+  type CreateSupplierPayload,
+  type UpdateSupplierPayload
 } from './inventory';
 
 // Expense API
