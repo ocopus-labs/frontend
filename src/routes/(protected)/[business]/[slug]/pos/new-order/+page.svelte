@@ -18,6 +18,7 @@
 		ItemCustomizationDialog,
 		PaymentDialog,
 		TableSelectorDialog,
+		ReceiptDialog,
 		type OrderItemType
 	} from '$lib/components/pos';
 
@@ -93,6 +94,11 @@
 	let currentOrderTotal = $state(0);
 	let currentBalanceDue = $state(0);
 	let isProcessingPayment = $state(false);
+
+	// Receipt state
+	let showReceiptDialog = $state(false);
+	let currentPaymentId = $state('');
+	let currentPaymentChange = $state<number | undefined>(undefined);
 
 	// Filter menu items by selected category and search
 	const filteredMenuItems = $derived(() => {
@@ -364,11 +370,11 @@
 			}
 
 			if (paymentResult.remainingBalance <= 0) {
-				// Order fully paid - clear and reset
-				orderItems = [];
+				// Order fully paid - show receipt dialog
+				currentPaymentId = paymentResult.payment.id;
+				currentPaymentChange = result.change;
 				showPaymentDialog = false;
-				currentOrderId = '';
-				currentOrderNumber = '';
+				showReceiptDialog = true;
 			} else {
 				// Partial payment - update balance
 				currentBalanceDue = paymentResult.remainingBalance;
@@ -390,6 +396,16 @@
 		orderItems = [];
 		currentOrderId = '';
 		currentOrderNumber = '';
+	}
+
+	function handleReceiptClose() {
+		showReceiptDialog = false;
+		// Clear order state after receipt is closed
+		orderItems = [];
+		currentOrderId = '';
+		currentOrderNumber = '';
+		currentPaymentId = '';
+		currentPaymentChange = undefined;
 	}
 
 	// Transform for legacy MenuItem type expected by components
@@ -624,3 +640,11 @@
 		onCancel={() => showTableSelector = false}
 	/>
 {/if}
+
+<!-- Receipt Dialog -->
+<ReceiptDialog
+	open={showReceiptDialog}
+	paymentId={currentPaymentId}
+	change={currentPaymentChange}
+	onClose={handleReceiptClose}
+/>
