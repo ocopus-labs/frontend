@@ -1,0 +1,367 @@
+<script lang="ts">
+	import * as Card from '$lib/components/ui/card/index.js';
+	import * as Table from '$lib/components/ui/table/index.js';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import { Badge } from '$lib/components/ui/badge/index.js';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
+	import type { PageData } from './$types';
+
+	import {
+		SearchInput,
+		FilterBar,
+		FilterDropdown,
+		type Filter
+	} from '$lib/components/search';
+	import { StatusPill, EmptyState, LiveCounter } from '$lib/components/data-display';
+
+	import Eye from '@lucide/svelte/icons/eye';
+	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import Building2 from '@lucide/svelte/icons/building-2';
+	import Store from '@lucide/svelte/icons/store';
+	import UtensilsCrossed from '@lucide/svelte/icons/utensils-crossed';
+	import Coffee from '@lucide/svelte/icons/coffee';
+	import Scissors from '@lucide/svelte/icons/scissors';
+	import Dumbbell from '@lucide/svelte/icons/dumbbell';
+
+	let { data }: { data: PageData } = $props();
+
+	let searchQuery = $state(data.filters.search || '');
+	let statusFilter = $state(data.filters.status || '');
+	let typeFilter = $state(data.filters.type || '');
+
+	// Debounced search effect
+	let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+	$effect(() => {
+		// Don't run on initial load if search matches URL
+		if (searchQuery === (data.filters.search || '')) return;
+
+		if (searchTimeout) clearTimeout(searchTimeout);
+		searchTimeout = setTimeout(() => {
+			updateFilters({ search: searchQuery || undefined });
+		}, 300);
+	});
+
+	function formatDate(dateString: string): string {
+		return new Date(dateString).toLocaleDateString('en-IN', {
+			day: 'numeric',
+			month: 'short',
+			year: 'numeric'
+		});
+	}
+
+	function updateFilters(updates: Record<string, string | undefined>) {
+		const params = new URLSearchParams($page.url.searchParams);
+		for (const [key, value] of Object.entries(updates)) {
+			if (value) {
+				params.set(key, value);
+			} else {
+				params.delete(key);
+			}
+		}
+		params.set('page', '1');
+		goto(`?${params.toString()}`);
+	}
+
+	function handleSearch(query: string) {
+		searchQuery = query;
+		updateFilters({ search: query || undefined });
+	}
+
+	function handleStatusChange(value: string) {
+		statusFilter = value;
+		updateFilters({ status: value || undefined });
+	}
+
+	function handleTypeChange(value: string) {
+		typeFilter = value;
+		updateFilters({ type: value || undefined });
+	}
+
+	function handleClearFilters() {
+		searchQuery = '';
+		statusFilter = '';
+		typeFilter = '';
+		goto('/admin/businesses');
+	}
+
+	function handleRemoveFilter(id: string) {
+		if (id === 'search') {
+			searchQuery = '';
+			updateFilters({ search: undefined });
+		} else if (id === 'status') {
+			statusFilter = '';
+			updateFilters({ status: undefined });
+		} else if (id === 'type') {
+			typeFilter = '';
+			updateFilters({ type: undefined });
+		}
+	}
+
+	function goToPage(pageNum: number) {
+		const params = new URLSearchParams($page.url.searchParams);
+		params.set('page', String(pageNum));
+		goto(`?${params.toString()}`);
+	}
+
+	// Filter options
+	const statusOptions = [
+		{ value: 'active', label: 'Active' },
+		{ value: 'suspended', label: 'Suspended' },
+		{ value: 'inactive', label: 'Inactive' }
+	];
+
+	const typeOptions = [
+		{ value: 'restaurant', label: 'Restaurant' },
+		{ value: 'salon', label: 'Salon' },
+		{ value: 'gym', label: 'Gym' },
+		{ value: 'cafe', label: 'Cafe' },
+		{ value: 'retail', label: 'Retail' }
+	];
+
+	// Active filters for chips
+	const activeFilters = $derived<Filter[]>([
+		...(searchQuery ? [{ id: 'search', label: 'Search', value: searchQuery }] : []),
+		...(statusFilter ? [{
+			id: 'status',
+			label: 'Status',
+			value: statusOptions.find(s => s.value === statusFilter)?.label || statusFilter,
+			variant: statusFilter === 'active' ? 'primary' : statusFilter === 'suspended' ? 'destructive' : 'secondary' as const
+		}] : []),
+		...(typeFilter ? [{
+			id: 'type',
+			label: 'Type',
+			value: typeOptions.find(t => t.value === typeFilter)?.label || typeFilter
+		}] : [])
+	]);
+
+	// Business type icons
+	const typeIcons: Record<string, typeof Building2> = {
+		restaurant: UtensilsCrossed,
+		cafe: Coffee,
+		salon: Scissors,
+		gym: Dumbbell,
+		retail: Store
+	};
+
+	function getTypeIcon(type: string) {
+		return typeIcons[type] || Building2;
+	}
+
+	function getStatusPillStatus(status: string): 'success' | 'error' | 'warning' {
+		if (status === 'active') return 'success';
+		if (status === 'suspended') return 'error';
+		return 'warning';
+	}
+</script>
+
+<svelte:head>
+	<title>Manage Businesses | Admin</title>
+</svelte:head>
+
+<div class="space-y-6">
+	<!-- Header -->
+	<div class="flex items-center justify-between">
+		<div>
+			<h1 class="text-3xl font-bold tracking-tight">Businesses</h1>
+			<p class="text-muted-foreground">Manage all businesses on the platform</p>
+		</div>
+		<div class="flex items-center gap-3">
+			<div class="flex items-center gap-2 rounded-lg bg-muted px-3 py-2">
+				<Building2 class="h-4 w-4 text-muted-foreground" />
+				<span class="text-sm font-medium">
+					<LiveCounter value={data.total} /> businesses
+				</span>
+			</div>
+		</div>
+	</div>
+
+	<!-- Search and Filters -->
+	<FilterBar
+		filters={activeFilters}
+		showFilterButton={false}
+		onRemoveFilter={handleRemoveFilter}
+		onClearAll={handleClearFilters}
+	>
+		{#snippet leading()}
+			<SearchInput
+				bind:value={searchQuery}
+				placeholder="Search by name or slug..."
+				debounceMs={300}
+				showShortcut
+				shortcut="/"
+				resultCount={searchQuery ? data.total : null}
+				onClear={() => handleSearch('')}
+			/>
+		{/snippet}
+
+		{#snippet trailing()}
+			<div class="flex items-center gap-2">
+				<FilterDropdown
+					options={statusOptions}
+					value={statusFilter}
+					placeholder="Status"
+					allOptionLabel="All Statuses"
+					onValueChange={handleStatusChange}
+				/>
+				<FilterDropdown
+					options={typeOptions}
+					value={typeFilter}
+					placeholder="Type"
+					allOptionLabel="All Types"
+					onValueChange={handleTypeChange}
+				/>
+			</div>
+		{/snippet}
+	</FilterBar>
+
+	<!-- Table -->
+	<Card.Root>
+		<Table.Root>
+			<Table.Header>
+				<Table.Row>
+					<Table.Head>Business</Table.Head>
+					<Table.Head>Type</Table.Head>
+					<Table.Head>Owner</Table.Head>
+					<Table.Head>Status</Table.Head>
+					<Table.Head class="text-right">Orders</Table.Head>
+					<Table.Head class="text-right">Team</Table.Head>
+					<Table.Head>Created</Table.Head>
+					<Table.Head class="w-[80px]">Actions</Table.Head>
+				</Table.Row>
+			</Table.Header>
+			<Table.Body>
+				{#each data.data as business}
+					{@const TypeIcon = getTypeIcon(business.type)}
+					<Table.Row class="group">
+						<Table.Cell>
+							<div class="flex items-center gap-3">
+								<div
+									class="flex h-10 w-10 items-center justify-center rounded-lg bg-muted ring-2 ring-background"
+								>
+									{#if business.logo}
+										<img
+											src={business.logo}
+											alt={business.name}
+											class="h-10 w-10 rounded-lg object-cover"
+										/>
+									{:else}
+										<TypeIcon class="h-5 w-5 text-muted-foreground" />
+									{/if}
+								</div>
+								<div>
+									<a
+										href="/admin/businesses/{business.id}"
+										class="font-medium hover:underline"
+									>
+										{business.name}
+									</a>
+									<p class="text-xs text-muted-foreground">{business.slug}</p>
+								</div>
+							</div>
+						</Table.Cell>
+						<Table.Cell>
+							<Badge variant="outline" class="capitalize gap-1">
+								<TypeIcon class="h-3 w-3" />
+								{business.type}
+							</Badge>
+						</Table.Cell>
+						<Table.Cell>
+							<div>
+								<p class="text-sm">{business.owner.name || 'Unnamed'}</p>
+								<p class="text-xs text-muted-foreground">{business.owner.email}</p>
+							</div>
+						</Table.Cell>
+						<Table.Cell>
+							<StatusPill
+								label={business.status}
+								status={getStatusPillStatus(business.status)}
+								size="sm"
+							/>
+						</Table.Cell>
+						<Table.Cell class="text-right tabular-nums">{business._count.orders}</Table.Cell>
+						<Table.Cell class="text-right tabular-nums">{business._count.businessUsers}</Table.Cell>
+						<Table.Cell class="text-muted-foreground text-sm">
+							{formatDate(business.createdAt)}
+						</Table.Cell>
+						<Table.Cell>
+							<Button
+								variant="ghost"
+								size="sm"
+								href="/admin/businesses/{business.id}"
+								class="opacity-0 group-hover:opacity-100 transition-opacity"
+							>
+								<Eye class="h-4 w-4" />
+							</Button>
+						</Table.Cell>
+					</Table.Row>
+				{:else}
+					<Table.Row>
+						<Table.Cell colspan={8}>
+							<EmptyState
+								type="no-results"
+								title="No businesses found"
+								description={searchQuery || statusFilter || typeFilter
+									? "Try adjusting your search or filters"
+									: "No businesses have been registered yet"}
+								actionLabel={searchQuery || statusFilter || typeFilter ? "Clear filters" : undefined}
+								onAction={searchQuery || statusFilter || typeFilter ? handleClearFilters : undefined}
+								size="sm"
+							/>
+						</Table.Cell>
+					</Table.Row>
+				{/each}
+			</Table.Body>
+		</Table.Root>
+	</Card.Root>
+
+	<!-- Pagination -->
+	{#if data.totalPages > 1}
+		<div class="flex items-center justify-between">
+			<p class="text-sm text-muted-foreground">
+				Showing <span class="font-medium">{(data.page - 1) * data.limit + 1}</span> to
+				<span class="font-medium">{Math.min(data.page * data.limit, data.total)}</span> of
+				<span class="font-medium">{data.total}</span> businesses
+			</p>
+			<div class="flex items-center gap-2">
+				<Button
+					variant="outline"
+					size="sm"
+					disabled={data.page <= 1}
+					onclick={() => goToPage(data.page - 1)}
+				>
+					<ChevronLeft class="h-4 w-4" />
+					Previous
+				</Button>
+
+				<!-- Page numbers -->
+				<div class="flex items-center gap-1">
+					{#each Array.from({ length: Math.min(5, data.totalPages) }, (_, i) => {
+						const start = Math.max(1, Math.min(data.page - 2, data.totalPages - 4));
+						return start + i;
+					}) as pageNum}
+						<Button
+							variant={pageNum === data.page ? "default" : "ghost"}
+							size="sm"
+							class="w-9"
+							onclick={() => goToPage(pageNum)}
+						>
+							{pageNum}
+						</Button>
+					{/each}
+				</div>
+
+				<Button
+					variant="outline"
+					size="sm"
+					disabled={data.page >= data.totalPages}
+					onclick={() => goToPage(data.page + 1)}
+				>
+					Next
+					<ChevronRight class="h-4 w-4" />
+				</Button>
+			</div>
+		</div>
+	{/if}
+</div>
