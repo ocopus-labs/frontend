@@ -183,3 +183,46 @@
 		@apply bg-background text-foreground;
 	}
 }
+
+/* Print styles for receipts */
+@media print {
+	/* Hide everything except the print-only content */
+	body * {
+		visibility: hidden;
+	}
+
+	/* Show only the print-only div and its children */
+	.print-only,
+	.print-only * {
+		visibility: visible;
+	}
+
+	/* Position the print content */
+	.print-only {
+		position: absolute;
+		left: 0;
+		top: 0;
+		width: 80mm;
+		margin: 0;
+		padding: 0;
+	}
+
+	/* Reset page margins for thermal printers */
+	@page {
+		size: 80mm auto;
+		margin: 0;
+	}
+
+	/* Ensure background colors print */
+	* {
+		-webkit-print-color-adjust: exact !important;
+		print-color-adjust: exact !important;
+	}
+
+	/* Hide dialog overlays and backdrops */
+	[data-dialog-overlay],
+	[data-dialog-content],
+	[role="dialog"] {
+		visibility: hidden !important;
+	}
+}
