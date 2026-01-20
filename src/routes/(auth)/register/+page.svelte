@@ -7,6 +7,7 @@
   import { authClient, signUp } from "$lib/auth";
   import { goto } from "$app/navigation";
   import { toast } from "svelte-sonner";
+  import { env } from "$env/dynamic/public";
 
   let { class: className, ...restProps }: HTMLAttributes<HTMLFormElement> = $props();
   
@@ -104,8 +105,10 @@
         Sign up with GitHub
       </Button>
       <Button variant="outline" type="button" onclick={async () => {
+          const frontendUrl = env.PUBLIC_FRONTEND_URL || 'http://localhost:5173';
           await authClient.signIn.social({
             provider: "google",
+            callbackURL: `${frontendUrl}/dashboard`
           });
         }}>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
