@@ -98,10 +98,11 @@
 	// Debounced search
 	let searchTimer: ReturnType<typeof setTimeout> | null = null;
 	$effect(() => {
+		const q = query; // read synchronously so Svelte tracks this dependency
 		if (searchTimer) clearTimeout(searchTimer);
 		searchTimer = setTimeout(() => {
-			if (query) {
-				onSearch?.(query);
+			if (q) {
+				onSearch?.(q);
 			}
 		}, 200);
 	});
@@ -109,12 +110,11 @@
 
 <Command.Dialog
 	bind:open
-	bind:value={query}
 	onOpenChange={onOpenChange}
 	title="Search"
 	description="Search for pages, actions, and more"
 >
-	<Command.Input {placeholder} class="h-12" />
+	<Command.Input {placeholder} class="h-12" bind:value={query} />
 
 	<Command.List class="max-h-[400px]">
 		{#if loading}
