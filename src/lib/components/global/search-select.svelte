@@ -12,12 +12,12 @@
 		options = [],
 		placeholder = '',
 		emptyPlaceholder = 'No options found'
-	} = $props<{
+	}: {
 		value: string;
 		options: { label: string; value: string }[];
 		placeholder?: string;
 		emptyPlaceholder?: string;
-	}>();
+	} = $props();
 
 	let open = $state(false);
 

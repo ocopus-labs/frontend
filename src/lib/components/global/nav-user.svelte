@@ -4,6 +4,8 @@
 	import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down';
 	import CreditCardIcon from '@lucide/svelte/icons/credit-card';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
+	import SunIcon from '@lucide/svelte/icons/sun';
+	import MoonIcon from '@lucide/svelte/icons/moon';
 	import SparklesIcon from '@lucide/svelte/icons/sparkles';
 	import * as Avatar from '$lib/components/ui/avatar/index.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
@@ -14,9 +16,25 @@
 	import { toast } from 'svelte-sonner';
 
 	const session = useSession();
-	const user = $state($session?.data?.user);
-	$inspect('user', user);
+	const user = $derived($session?.data?.user);
 	const sidebar = useSidebar();
+
+	let dark = $state(false);
+
+	function initTheme() {
+		if (typeof window === 'undefined') return;
+		dark =
+			localStorage.getItem('theme') === 'dark' ||
+			(!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+	}
+
+	initTheme();
+
+	function toggleTheme() {
+		dark = !dark;
+		document.documentElement.classList.toggle('dark', dark);
+		localStorage.setItem('theme', dark ? 'dark' : 'light');
+	}
 
 	// Get initials from user name
 	const initials = $derived(() => {
@@ -31,6 +49,7 @@
 
 	async function handleLogout() {
 		try {
+			sessionStorage.removeItem('business-setup-progress');
 			await signOut();
 			toast.success('Logged out successfully');
 			goto('/login');
@@ -49,7 +68,7 @@
 					<Sidebar.MenuButton
 						{...props}
 						size="lg"
-						class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground md:h-8 md:p-0"
+						class="px-2 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground "
 					>
 						<Avatar.Root class="size-8 rounded-lg">
 							<Avatar.Image src={user?.image} alt={user?.name || 'User'} />
@@ -90,17 +109,25 @@
 				</DropdownMenu.Group>
 				<DropdownMenu.Separator />
 				<DropdownMenu.Group>
-					<DropdownMenu.Item>
+					<DropdownMenu.Item onclick={() => goto('/dashboard/security')}>
 						<BadgeCheckIcon />
 						Account
 					</DropdownMenu.Item>
-					<DropdownMenu.Item>
+					<DropdownMenu.Item onclick={() => goto('/dashboard/billing')}>
 						<CreditCardIcon />
 						Billing
 					</DropdownMenu.Item>
-					<DropdownMenu.Item>
+					<DropdownMenu.Item onclick={() => goto('/dashboard/notifications')}>
 						<BellIcon />
 						Notifications
+					</DropdownMenu.Item>
+					<DropdownMenu.Item onclick={toggleTheme}>
+						{#if dark}
+							<SunIcon />
+						{:else}
+							<MoonIcon />
+						{/if}
+						{dark ? 'Light mode' : 'Dark mode'}
 					</DropdownMenu.Item>
 				</DropdownMenu.Group>
 				<DropdownMenu.Separator />

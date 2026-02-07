@@ -53,6 +53,7 @@
 								<img
 									src={currentBusiness.logo}
 									alt={currentBusiness.name}
+									loading="lazy"
 									class="size-4 object-contain"
 								/>
 							{:else}
@@ -88,7 +89,7 @@
 					>
 						<div class="flex size-6 items-center justify-center rounded-md border">
 							{#if business.logo}
-								<img src={business.logo} alt={business.name} class="size-3.5 object-contain" />
+								<img src={business.logo} alt={business.name} loading="lazy" class="size-3.5 object-contain" />
 							{:else}
 								<span class="text-xs font-medium">{getInitial(business.name)}</span>
 							{/if}
