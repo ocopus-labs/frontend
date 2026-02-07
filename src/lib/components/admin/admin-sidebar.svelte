@@ -11,7 +11,11 @@
 	import Users from '@lucide/svelte/icons/users';
 	import BarChart3 from '@lucide/svelte/icons/bar-chart-3';
 	import CreditCard from '@lucide/svelte/icons/credit-card';
+	import PackageIcon from '@lucide/svelte/icons/package';
+	import Megaphone from '@lucide/svelte/icons/megaphone';
 	import ScrollText from '@lucide/svelte/icons/scroll-text';
+	import WebhookIcon from '@lucide/svelte/icons/webhook';
+	import Activity from '@lucide/svelte/icons/activity';
 	import Settings from '@lucide/svelte/icons/settings';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 
@@ -50,6 +54,16 @@
 			url: '/admin/subscriptions',
 			icon: CreditCard,
 			badge: stats?.subscriptionStats?.active
+		},
+		{
+			title: 'Plans',
+			url: '/admin/plans',
+			icon: PackageIcon
+		},
+		{
+			title: 'Announcements',
+			url: '/admin/announcements',
+			icon: Megaphone
 		}
 	];
 
@@ -58,6 +72,16 @@
 			title: 'Audit Logs',
 			url: '/admin/audit-logs',
 			icon: ScrollText
+		},
+		{
+			title: 'Webhooks',
+			url: '/admin/webhooks',
+			icon: WebhookIcon
+		},
+		{
+			title: 'Monitoring',
+			url: '/admin/monitoring',
+			icon: Activity
 		},
 		{
 			title: 'Settings',
