@@ -11,7 +11,9 @@
 		IconSearch,
 		IconGripVertical
 	} from '@tabler/icons-svelte';
+	import { EmptyState } from '$lib/components/data-display';
 	import { toast } from 'svelte-sonner';
+	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 
 	// Dummy categories data
 	let categories = $state([
@@ -92,6 +94,8 @@
 	let searchQuery = $state('');
 	let showAddDialog = $state(false);
 	let editingCategory = $state<(typeof categories)[0] | null>(null);
+	let deleteCategoryDialogOpen = $state(false);
+	let deleteCategoryId = $state<number | null>(null);
 	let newCategory = $state({
 		name: '',
 		description: '',
@@ -143,15 +147,21 @@
 		editingCategory = null;
 	}
 
-	function deleteCategory(categoryId: number) {
+	function triggerDeleteCategory(categoryId: number) {
 		const category = categories.find((c) => c.id === categoryId);
 		if (category && category.itemCount > 0) {
 			toast.error('Cannot delete category with items. Move items first.');
 			return;
 		}
+		deleteCategoryId = categoryId;
+		deleteCategoryDialogOpen = true;
+	}
 
-		categories = categories.filter((cat) => cat.id !== categoryId);
+	function confirmDeleteCategory() {
+		if (deleteCategoryId === null) return;
+		categories = categories.filter((cat) => cat.id !== deleteCategoryId);
 		toast.success('Category deleted successfully');
+		deleteCategoryId = null;
 	}
 
 	function toggleCategory(categoryId: number) {
@@ -213,13 +223,13 @@
 								{category.isActive ? 'Disable' : 'Enable'}
 							</Button>
 							<div class="flex gap-1">
-								<Button variant="ghost" size="sm" onclick={() => editCategory(category)}>
+								<Button variant="ghost" size="icon" onclick={() => editCategory(category)}>
 									<IconPencil class="h-4 w-4" />
 								</Button>
 								<Button
 									variant="ghost"
-									size="sm"
-									onclick={() => deleteCategory(category.id)}
+									size="icon"
+									onclick={() => triggerDeleteCategory(category.id)}
 									class="text-destructive hover:text-destructive"
 								>
 									<IconTrash class="h-4 w-4" />
@@ -231,11 +241,7 @@
 			</div>
 
 			{#if filteredCategories.length === 0}
-				<div class="flex flex-col items-center justify-center py-12 text-center">
-					<IconSearch class="h-12 w-12 text-muted-foreground" />
-					<h3 class="mt-4 text-lg font-semibold">No categories found</h3>
-					<p class="text-muted-foreground">Try adjusting your search or add a new category.</p>
-				</div>
+				<EmptyState type="empty" title="No categories" description="Create your first category to organize menu items." />
 			{/if}
 		</div>
 	</div>
@@ -251,7 +257,7 @@
 		<div class="grid gap-4 py-4">
 			<div class="grid gap-2">
 				<label for="name" class="text-sm font-medium">Name</label>
-				<Input id="name" bind:value={newCategory.name} placeholder="Category name" />
+				<Input id="name" autofocus bind:value={newCategory.name} placeholder="Category name" />
 			</div>
 			<div class="grid gap-2">
 				<label for="description" class="text-sm font-medium">Description</label>
@@ -292,7 +298,7 @@
 			<div class="grid gap-4 py-4">
 				<div class="grid gap-2">
 					<label for="edit-name" class="text-sm font-medium">Name</label>
-					<Input id="edit-name" bind:value={editingCategory.name} placeholder="Category name" />
+					<Input id="edit-name" autofocus bind:value={editingCategory.name} placeholder="Category name" />
 				</div>
 				<div class="grid gap-2">
 					<label for="edit-description" class="text-sm font-medium">Description</label>
@@ -322,3 +328,12 @@
 		{/if}
 	</Dialog.Content>
 </Dialog.Root>
+
+<ConfirmDialog
+	bind:open={deleteCategoryDialogOpen}
+	title="Delete Category"
+	description="Are you sure you want to delete this category? This action cannot be undone."
+	confirmLabel="Delete"
+	variant="destructive"
+	onConfirm={confirmDeleteCategory}
+/>

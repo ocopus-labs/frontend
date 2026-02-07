@@ -1,35 +1,46 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Loader2 } from '@lucide/svelte';
+	import { IconLoader2 } from '@tabler/icons-svelte';
+	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
+	import PermissionEditor from '$lib/components/team/permission-editor.svelte';
+	import PageHeader from '$lib/components/global/page-header.svelte';
 	import {
 		IconPlus,
-		IconSearch,
 		IconUsers,
 		IconUserCheck,
 		IconUserOff,
 		IconMail,
 		IconTrash,
 		IconPlayerPlay,
-		IconPlayerPause
+		IconPlayerPause,
+		IconDownload,
+		IconShield
 	} from '@tabler/icons-svelte';
+	import { SearchInput, FilterDropdown } from '$lib/components/search';
 	import { toast } from 'svelte-sonner';
+	import { EmptyState, StatusPill } from '$lib/components/data-display';
 	import {
 		inviteTeamMember,
 		updateMemberRole,
 		suspendTeamMember,
 		reactivateTeamMember,
 		removeTeamMember,
+		exportTeamMembers,
 		type TeamMember,
 		type TeamMemberStatus,
 		type TeamRole,
-		type RoleInfo
+		type RoleInfo,
+		type PermissionTree
 	} from '$lib/api';
+	import { downloadBlob } from '$lib/utils/export';
+	import { userFriendlyError } from '$lib/utils/error';
 
 	let { data }: { data: PageData } = $props();
 
@@ -41,6 +52,32 @@
 	let showInviteDialog = $state(false);
 	let editingMember = $state<TeamMember | null>(null);
 	let isSubmitting = $state(false);
+
+	// Permission editor state
+	let permEditorOpen = $state(false);
+	let selectedMember = $state<TeamMember | null>(null);
+
+	// Check if user can manage permissions (owner or manager)
+	const canManagePermissions = $derived(
+		data.userRole === 'restaurant_owner' ||
+		data.userRole === 'owner' ||
+		data.userRole === 'manager'
+	);
+
+	function openPermissionEditor(member: TeamMember) {
+		selectedMember = member;
+		permEditorOpen = true;
+	}
+
+	function handlePermissionsSaved() {
+		invalidateAll();
+	}
+
+	// Confirm dialog state
+	let suspendDialogOpen = $state(false);
+	let suspendTargetId = $state('');
+	let removeDialogOpen = $state(false);
+	let removeTargetId = $state('');
 
 	let newInvite = $state<{
 		email: string;
@@ -88,11 +125,11 @@
 	function getStatusBadge(status: TeamMemberStatus) {
 		switch (status) {
 			case 'active':
-				return { variant: 'default' as const, text: 'Active', class: 'bg-green-100 text-green-800' };
+				return { variant: 'default' as const, text: 'Active', class: 'bg-success/10 text-success' };
 			case 'inactive':
 				return { variant: 'secondary' as const, text: 'Inactive', class: 'bg-gray-100 text-gray-800' };
 			case 'suspended':
-				return { variant: 'destructive' as const, text: 'Suspended', class: 'bg-red-100 text-red-800' };
+				return { variant: 'destructive' as const, text: 'Suspended', class: 'bg-destructive/10 text-destructive' };
 			default:
 				return { variant: 'outline' as const, text: status, class: '' };
 		}
@@ -129,7 +166,7 @@
 			showInviteDialog = false;
 			newInvite = { email: '', role: 'staff', message: '' };
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to send invitation');
+			toast.error(userFriendlyError(error, 'Failed to send invitation'));
 		} finally {
 			isSubmitting = false;
 		}
@@ -151,21 +188,24 @@
 			toast.success('Role updated successfully');
 			editingMember = null;
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to update role');
+			toast.error(userFriendlyError(error, 'Failed to update role'));
 		} finally {
 			isSubmitting = false;
 		}
 	}
 
-	async function handleSuspend(memberId: string) {
-		const reason = prompt('Please enter suspension reason (optional):');
+	function handleSuspend(memberId: string) {
+		suspendTargetId = memberId;
+		suspendDialogOpen = true;
+	}
 
+	async function confirmSuspend(reason?: string) {
 		try {
-			const result = await suspendTeamMember(data.businessId, memberId, { reason: reason || undefined });
-			members = members.map((m) => (m.id === memberId ? result.member : m));
+			const result = await suspendTeamMember(data.businessId, suspendTargetId, { reason: reason || undefined });
+			members = members.map((m) => (m.id === suspendTargetId ? result.member : m));
 			toast.success('Member suspended');
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to suspend member');
+			toast.error(userFriendlyError(error, 'Failed to suspend member'));
 		}
 	}
 
@@ -175,19 +215,32 @@
 			members = members.map((m) => (m.id === memberId ? result.member : m));
 			toast.success('Member reactivated');
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to reactivate member');
+			toast.error(userFriendlyError(error, 'Failed to reactivate member'));
 		}
 	}
 
-	async function handleRemove(memberId: string) {
-		if (!confirm('Are you sure you want to remove this team member?')) return;
+	function handleRemove(memberId: string) {
+		removeTargetId = memberId;
+		removeDialogOpen = true;
+	}
 
+	async function confirmRemove() {
 		try {
-			await removeTeamMember(data.businessId, memberId);
-			members = members.filter((m) => m.id !== memberId);
+			await removeTeamMember(data.businessId, removeTargetId);
+			members = members.filter((m) => m.id !== removeTargetId);
 			toast.success('Member removed successfully');
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to remove member');
+			toast.error(userFriendlyError(error, 'Failed to remove member'));
+		}
+	}
+
+	async function handleExportTeam() {
+		try {
+			const blob = await exportTeamMembers(data.businessId);
+			downloadBlob(blob, `team-${new Date().toISOString().split('T')[0]}.csv`);
+			toast.success('Team exported successfully');
+		} catch (err) {
+			toast.error(userFriendlyError(err, 'Failed to export team'));
 		}
 	}
 </script>
@@ -195,16 +248,18 @@
 <div class="flex flex-1 flex-col">
 	<div class="@container/main flex flex-1 flex-col gap-4">
 		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
-				<div>
-					<h1 class="text-2xl font-bold">Team Management</h1>
-					<p class="text-muted-foreground">Manage your team members and roles</p>
-				</div>
-				<Button onclick={() => (showInviteDialog = true)}>
-					<IconPlus class="mr-2 h-4 w-4" />
-					Invite Member
-				</Button>
-			</div>
+			<PageHeader title="Team Management" description="Manage your team members and roles">
+				{#snippet actions()}
+					<Button variant="outline" onclick={handleExportTeam}>
+						<IconDownload class="mr-2 h-4 w-4" />
+						Export
+					</Button>
+					<Button onclick={() => (showInviteDialog = true)}>
+						<IconPlus class="mr-2 h-4 w-4" />
+						Invite Member
+					</Button>
+				{/snippet}
+			</PageHeader>
 
 			<!-- Stats -->
 			<div class="grid grid-cols-2 gap-4 px-6 sm:grid-cols-4">
@@ -225,8 +280,8 @@
 					</Card.Header>
 					<Card.Content>
 						<div class="flex items-center gap-2">
-							<IconUserCheck class="h-5 w-5 text-green-500" />
-							<span class="text-2xl font-bold text-green-600">{stats.active}</span>
+							<IconUserCheck class="h-5 w-5 text-success" />
+							<span class="text-2xl font-bold text-success">{stats.active}</span>
 						</div>
 					</Card.Content>
 				</Card.Root>
@@ -246,46 +301,48 @@
 						<Card.Title class="text-sm font-medium">Suspended</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold text-red-600">{stats.suspended}</div>
+						<div class="text-2xl font-bold text-destructive">{stats.suspended}</div>
 					</Card.Content>
 				</Card.Root>
 			</div>
 
 			<!-- Filters -->
 			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center">
-				<div class="relative max-w-sm flex-1">
-					<IconSearch class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-					<Input placeholder="Search members..." bind:value={searchQuery} class="pl-9" />
-				</div>
-
+				<SearchInput
+					bind:value={searchQuery}
+					placeholder="Search members..."
+					debounceMs={300}
+					class="max-w-sm"
+				/>
 				<div class="flex gap-2">
-					<select
+					<FilterDropdown
 						bind:value={statusFilter}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="all">All Status</option>
-						<option value="active">Active</option>
-						<option value="inactive">Inactive</option>
-						<option value="suspended">Suspended</option>
-					</select>
-
-					<select
+						placeholder="All Status"
+						allOptionLabel="All Status"
+						options={[
+							{ value: 'active', label: 'Active' },
+							{ value: 'inactive', label: 'Inactive' },
+							{ value: 'suspended', label: 'Suspended' }
+						]}
+					/>
+					<FilterDropdown
 						bind:value={roleFilter}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="all">All Roles</option>
-						<option value="manager">Manager</option>
-						<option value="staff">Staff</option>
-						<option value="accountant">Accountant</option>
-						<option value="viewer">Viewer</option>
-					</select>
+						placeholder="All Roles"
+						allOptionLabel="All Roles"
+						options={[
+							{ value: 'manager', label: 'Manager' },
+							{ value: 'staff', label: 'Staff' },
+							{ value: 'accountant', label: 'Accountant' },
+							{ value: 'viewer', label: 'Viewer' }
+						]}
+					/>
 				</div>
 			</div>
 
 			<!-- Team Table -->
 			{#if filteredMembers.length > 0}
 				<div class="px-6">
-					<div class="rounded-md border">
+					<div class="overflow-x-auto rounded-md border">
 						<Table.Root>
 							<Table.Header>
 								<Table.Row>
@@ -299,7 +356,7 @@
 							</Table.Header>
 							<Table.Body>
 								{#each filteredMembers as member (member.id)}
-									<Table.Row class={member.status === 'suspended' ? 'bg-red-50 dark:bg-red-950' : ''}>
+									<Table.Row class={member.status === 'suspended' ? 'bg-destructive/5' : ''}>
 										<Table.Cell>
 											<div class="flex items-center gap-3">
 												<div class="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
@@ -307,6 +364,7 @@
 														<img
 															src={member.user.image}
 															alt={member.user.name}
+															loading="lazy"
 															class="h-10 w-10 rounded-full object-cover"
 														/>
 													{:else}
@@ -327,9 +385,10 @@
 											</Badge>
 										</Table.Cell>
 										<Table.Cell>
-											<span class="rounded-full px-2 py-1 text-xs {getStatusBadge(member.status).class}">
-												{getStatusBadge(member.status).text}
-											</span>
+											<StatusPill
+												label={getStatusBadge(member.status).text}
+												status={member.status === "active" ? "success" : member.status === "suspended" ? "error" : "info"}
+											/>
 										</Table.Cell>
 										<Table.Cell class="text-muted-foreground">
 											{formatDate(member.joinedAt)}
@@ -339,33 +398,46 @@
 										</Table.Cell>
 										<Table.Cell class="text-right">
 											<div class="flex justify-end gap-1">
+												{#if canManagePermissions && member.role !== 'restaurant_owner'}
+													<Button
+														variant="ghost"
+														size="icon"
+														onclick={() => openPermissionEditor(member)}
+														aria-label="Edit permissions"
+													>
+														<IconShield class="h-4 w-4" />
+													</Button>
+												{/if}
 												<Button variant="ghost" size="sm" onclick={() => editMember(member)}>
 													Edit
 												</Button>
 												{#if member.status === 'suspended'}
 													<Button
 														variant="ghost"
-														size="sm"
-														class="text-green-600"
+														size="icon"
+														class="text-success"
 														onclick={() => handleReactivate(member.id)}
+													aria-label="Reactivate member"
 													>
 														<IconPlayerPlay class="h-4 w-4" />
 													</Button>
 												{:else if member.status === 'active'}
 													<Button
 														variant="ghost"
-														size="sm"
-														class="text-yellow-600"
+														size="icon"
+														class="text-warning"
 														onclick={() => handleSuspend(member.id)}
+													aria-label="Suspend member"
 													>
 														<IconPlayerPause class="h-4 w-4" />
 													</Button>
 												{/if}
 												<Button
 													variant="ghost"
-													size="sm"
+													size="icon"
 													class="text-destructive hover:text-destructive"
 													onclick={() => handleRemove(member.id)}
+												aria-label="Remove member"
 												>
 													<IconTrash class="h-4 w-4" />
 												</Button>
@@ -378,16 +450,27 @@
 					</div>
 				</div>
 			{:else}
-				<div class="flex flex-col items-center justify-center py-12 text-center">
-					<IconUsers class="h-12 w-12 text-muted-foreground" />
-					<h3 class="mt-4 text-lg font-semibold">No team members found</h3>
-					<p class="text-muted-foreground">Invite your first team member to get started.</p>
-					<Button class="mt-4" onclick={() => (showInviteDialog = true)}>
-						<IconPlus class="mr-2 h-4 w-4" />
-						Invite Member
-					</Button>
-				</div>
+				<EmptyState
+					type={members.length === 0 ? 'empty' : 'no-results'}
+					title={members.length === 0 ? 'No team members yet' : 'No members found'}
+					description={members.length === 0 ? 'Invite your first team member to get started.' : 'Try adjusting your search or filters.'}
+					actionLabel="Invite Member"
+					onAction={() => (showInviteDialog = true)}
+				/>
 			{/if}
+			<div class="px-6">
+						<div class="flex items-center justify-between border-t pt-4">
+				<p class="text-sm text-muted-foreground">
+					Showing {Math.min((data.page - 1) * data.limit + 1, data.total)} to {Math.min(data.page * data.limit, data.total)} of {data.total} results
+				</p>
+				<div class="flex gap-1">
+					<Button size="sm" variant="outline" disabled={data.page <= 1}
+						onclick={() => goto(`?page=${data.page - 1}&limit=${data.limit}`)}>Previous</Button>
+					<Button size="sm" variant="outline" disabled={data.page >= data.totalPages}
+						onclick={() => goto(`?page=${data.page + 1}&limit=${data.limit}`)}>Next</Button>
+				</div>
+			</div>
+			</div>
 		</div>
 	</div>
 </div>
@@ -406,6 +489,7 @@
 					<IconMail class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 					<Input
 						id="email"
+						autofocus
 						type="email"
 						bind:value={newInvite.email}
 						placeholder="colleague@example.com"
@@ -441,7 +525,7 @@
 			</Button>
 			<Button onclick={sendInvite} disabled={isSubmitting}>
 				{#if isSubmitting}
-					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+					<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
 				{/if}
 				Send Invitation
 			</Button>
@@ -464,6 +548,7 @@
 							<img
 								src={editingMember.user.image}
 								alt={editingMember.user.name}
+								loading="lazy"
 								class="h-12 w-12 rounded-full object-cover"
 							/>
 						{:else}
@@ -509,7 +594,7 @@
 				</Button>
 				<Button onclick={saveRole} disabled={isSubmitting}>
 					{#if isSubmitting}
-						<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+						<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
 					{/if}
 					Save Changes
 				</Button>
@@ -517,3 +602,33 @@
 		{/if}
 	</Dialog.Content>
 </Dialog.Root>
+
+<ConfirmDialog
+	bind:open={suspendDialogOpen}
+	title="Suspend Team Member"
+	description="This will suspend the team member's access. You can optionally provide a reason."
+	confirmLabel="Suspend Member"
+	variant="destructive"
+	showInput={true}
+	inputLabel="Suspension reason"
+	inputPlaceholder="Enter reason (optional)"
+	onConfirm={confirmSuspend}
+/>
+
+<ConfirmDialog
+	bind:open={removeDialogOpen}
+	title="Remove Team Member"
+	description="Are you sure you want to remove this team member? This action cannot be undone."
+	confirmLabel="Remove Member"
+	variant="destructive"
+	onConfirm={confirmRemove}
+/>
+
+<!-- Permission Editor Sheet -->
+<PermissionEditor
+	bind:open={permEditorOpen}
+	member={selectedMember}
+	permissionTree={data.permissionTree ?? null}
+	businessId={data.businessId}
+	onSaved={handlePermissionsSaved}
+/>

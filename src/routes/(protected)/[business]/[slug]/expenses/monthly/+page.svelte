@@ -4,8 +4,8 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
 	import { Badge } from '$lib/components/ui/badge';
-	import BarChart from '$lib/components/chart/bar-chart.svelte';
-	import PieChart from '$lib/components/chart/pie-chart.svelte';
+	import BarChart from '$lib/components/chart/lazy-bar-chart.svelte';
+	import PieChart from '$lib/components/chart/lazy-pie-chart.svelte';
 	import { goto } from '$app/navigation';
 	import {
 		IconChevronLeft,
@@ -14,7 +14,13 @@
 		IconTrendingUp,
 		IconTrendingDown
 	} from '@tabler/icons-svelte';
+	import { toast } from 'svelte-sonner';
 	import type { Expense, ExpenseSummary, ExpenseCategory } from '$lib/api';
+	import { exportExpenses } from '$lib/api/expense';
+	import { downloadBlob } from '$lib/utils/export';
+	import { userFriendlyError } from '$lib/utils/error';
+	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
+	import type { CurrencyCode } from '$lib/utils/i18n';
 
 	let { data }: { data: PageData } = $props();
 
@@ -123,14 +129,30 @@
 		return colors[categoryName] || 'bg-gray-500';
 	}
 
+	async function handleExportExpenses() {
+		try {
+			const [year, month] = selectedMonth.split('-').map(Number);
+			const startDate = `${selectedMonth}-01`;
+			const endOfMonth = new Date(year, month, 0).getDate();
+			const endDate = `${selectedMonth}-${String(endOfMonth).padStart(2, '0')}`;
+			const blob = await exportExpenses(data.businessId, { startDate, endDate });
+			downloadBlob(blob, `expenses-${selectedMonth}.csv`);
+			toast.success('Expenses exported successfully');
+		} catch (err) {
+			toast.error(userFriendlyError(err, 'Failed to export expenses'));
+		}
+	}
+
 	function formatMonth(monthStr: string) {
 		const [year, month] = monthStr.split('-');
 		const date = new Date(parseInt(year), parseInt(month) - 1);
 		return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 	}
 
+	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
+
 	function formatCurrency(amount: number): string {
-		return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+		return i18nFormatCurrency(amount, currency);
 	}
 </script>
 
@@ -152,7 +174,7 @@
 					<Button variant="outline" size="sm" onclick={nextMonth}>
 						<IconChevronRight class="h-4 w-4" />
 					</Button>
-					<Button variant="outline">
+					<Button variant="outline" onclick={handleExportExpenses}>
 						<IconDownload class="mr-2 h-4 w-4" />
 						Export
 					</Button>
@@ -166,14 +188,14 @@
 						<Card.Title class="text-sm font-medium">Total Expenses</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold text-red-600">{formatCurrency(summary.totalAmount)}</div>
+						<div class="text-2xl font-bold text-destructive">{formatCurrency(summary.totalAmount)}</div>
 						<div class="flex items-center gap-1 text-sm">
 							{#if monthChange() > 0}
-								<IconTrendingUp class="h-4 w-4 text-red-500" />
-								<span class="text-red-500">+{monthChange().toFixed(1)}%</span>
+								<IconTrendingUp class="h-4 w-4 text-destructive" />
+								<span class="text-destructive">+{monthChange().toFixed(1)}%</span>
 							{:else}
-								<IconTrendingDown class="h-4 w-4 text-green-500" />
-								<span class="text-green-500">{monthChange().toFixed(1)}%</span>
+								<IconTrendingDown class="h-4 w-4 text-success" />
+								<span class="text-success">{monthChange().toFixed(1)}%</span>
 							{/if}
 							<span class="text-muted-foreground">vs last month</span>
 						</div>
@@ -185,7 +207,7 @@
 						<Card.Title class="text-sm font-medium">Pending Approval</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold text-yellow-600">{formatCurrency(summary.pendingAmount)}</div>
+						<div class="text-2xl font-bold text-warning">{formatCurrency(summary.pendingAmount)}</div>
 						<p class="text-sm text-muted-foreground">awaiting review</p>
 					</Card.Content>
 				</Card.Root>
@@ -195,7 +217,7 @@
 						<Card.Title class="text-sm font-medium">Approved</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold text-blue-600">
+						<div class="text-2xl font-bold text-info">
 							{formatCurrency(summary.approvedAmount)}
 						</div>
 						<p class="text-sm text-muted-foreground">ready for payment</p>
@@ -316,7 +338,7 @@
 												<Badge variant="outline">{expense.category}</Badge>
 											</Table.Cell>
 											<Table.Cell class="text-muted-foreground">{expense.date}</Table.Cell>
-											<Table.Cell class="text-right font-medium text-red-600">
+											<Table.Cell class="text-right font-medium text-destructive">
 												-{formatCurrency(expense.amount)}
 											</Table.Cell>
 										</Table.Row>

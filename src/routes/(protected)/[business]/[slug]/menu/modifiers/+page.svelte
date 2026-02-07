@@ -7,7 +7,19 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Switch } from '$lib/components/ui/switch';
 	import { IconPlus, IconPencil, IconTrash, IconSearch } from '@tabler/icons-svelte';
+	import { EmptyState } from '$lib/components/data-display';
 	import { toast } from 'svelte-sonner';
+	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
+	import { formatCurrency as i18nFormatCurrency, CURRENCY_CONFIG } from '$lib/utils/i18n';
+	import type { CurrencyCode } from '$lib/utils/i18n';
+
+	let { data } = $props();
+
+	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
+
+	function formatCurrency(amount: number): string {
+		return i18nFormatCurrency(amount, currency);
+	}
 
 	// Dummy modifiers data
 	let modifiers = $state([
@@ -92,6 +104,8 @@
 	let searchQuery = $state('');
 	let showAddDialog = $state(false);
 	let editingModifier = $state<(typeof modifiers)[0] | null>(null);
+	let deleteModifierDialogOpen = $state(false);
+	let deleteModifierId = $state<number | null>(null);
 	let newModifier = $state({
 		name: '',
 		required: false,
@@ -173,9 +187,16 @@
 		editingModifier = null;
 	}
 
-	function deleteModifier(modifierId: number) {
-		modifiers = modifiers.filter((mod) => mod.id !== modifierId);
+	function triggerDeleteModifier(modifierId: number) {
+		deleteModifierId = modifierId;
+		deleteModifierDialogOpen = true;
+	}
+
+	function confirmDeleteModifier() {
+		if (deleteModifierId === null) return;
+		modifiers = modifiers.filter((mod) => mod.id !== deleteModifierId);
 		toast.success('Modifier deleted successfully');
+		deleteModifierId = null;
 	}
 </script>
 
@@ -226,13 +247,13 @@
 									</Card.Description>
 								</div>
 								<div class="flex gap-1">
-									<Button variant="ghost" size="sm" onclick={() => editModifier(modifier)}>
+									<Button variant="ghost" size="icon" onclick={() => editModifier(modifier)}>
 										<IconPencil class="h-4 w-4" />
 									</Button>
 									<Button
 										variant="ghost"
-										size="sm"
-										onclick={() => deleteModifier(modifier.id)}
+										size="icon"
+										onclick={() => triggerDeleteModifier(modifier.id)}
 										class="text-destructive hover:text-destructive"
 									>
 										<IconTrash class="h-4 w-4" />
@@ -246,7 +267,7 @@
 									<Badge variant="outline">
 										{option.name}
 										{#if option.price > 0}
-											(+${option.price.toFixed(2)})
+											(+{formatCurrency(option.price)})
 										{/if}
 									</Badge>
 								{/each}
@@ -257,11 +278,7 @@
 			</div>
 
 			{#if filteredModifiers.length === 0}
-				<div class="flex flex-col items-center justify-center py-12 text-center">
-					<IconSearch class="h-12 w-12 text-muted-foreground" />
-					<h3 class="mt-4 text-lg font-semibold">No modifiers found</h3>
-					<p class="text-muted-foreground">Try adjusting your search or add a new modifier.</p>
-				</div>
+				<EmptyState type="empty" title="No modifiers" description="Create modifier groups to customize menu items." />
 			{/if}
 		</div>
 	</div>
@@ -277,7 +294,7 @@
 		<div class="grid gap-4 py-4">
 			<div class="grid gap-2">
 				<label for="name" class="text-sm font-medium">Name</label>
-				<Input id="name" bind:value={newModifier.name} placeholder="e.g., Size, Toppings" />
+				<Input id="name" autofocus bind:value={newModifier.name} placeholder="e.g., Size, Toppings" />
 			</div>
 
 			<div class="flex items-center gap-6">
@@ -301,7 +318,7 @@
 							class="flex-1"
 						/>
 						<div class="relative w-24">
-							<span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+							<span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{CURRENCY_CONFIG[currency]?.symbol || '$'}</span>
 							<Input
 								type="number"
 								step="0.01"
@@ -341,7 +358,7 @@
 			<div class="grid gap-4 py-4">
 				<div class="grid gap-2">
 					<label for="edit-name" class="text-sm font-medium">Name</label>
-					<Input id="edit-name" bind:value={editingModifier.name} placeholder="Modifier name" />
+					<Input id="edit-name" autofocus bind:value={editingModifier.name} placeholder="Modifier name" />
 				</div>
 
 				<div class="flex items-center gap-6">
@@ -365,7 +382,7 @@
 								class="flex-1"
 							/>
 							<div class="relative w-24">
-								<span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+								<span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{CURRENCY_CONFIG[currency]?.symbol || '$'}</span>
 								<Input
 									type="number"
 									step="0.01"
@@ -394,3 +411,12 @@
 		{/if}
 	</Dialog.Content>
 </Dialog.Root>
+
+<ConfirmDialog
+	bind:open={deleteModifierDialogOpen}
+	title="Delete Modifier"
+	description="Are you sure you want to delete this modifier? This action cannot be undone."
+	confirmLabel="Delete"
+	variant="destructive"
+	onConfirm={confirmDeleteModifier}
+/>

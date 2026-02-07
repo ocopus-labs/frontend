@@ -51,20 +51,17 @@
 
 			// Listen for new orders
 			const unsubOrderCreated = onOrderCreated((order) => {
-				console.log('[Kitchen] New order received:', order.orderNumber);
 				invalidate('app:orders');
 				toast.info(`New order: ${order.orderNumber}`);
 			});
 
 			// Listen for order updates
 			const unsubOrderUpdated = onOrderUpdated((order) => {
-				console.log('[Kitchen] Order updated:', order.orderNumber);
 				invalidate('app:orders');
 			});
 
 			// Listen for completed orders
 			const unsubOrderCompleted = ({ orderId }: { orderId: string }) => {
-				console.log('[Kitchen] Order completed:', orderId);
 				invalidate('app:orders');
 				toast.success('Order completed');
 			};
@@ -73,7 +70,6 @@
 
 			// Listen for item status changes
 			const unsubItemStatus = onItemStatus(({ orderId, itemId, status }) => {
-				console.log('[Kitchen] Item status changed:', { orderId, itemId, status });
 				invalidate('app:orders');
 			});
 
@@ -231,10 +227,12 @@
 						{/if}
 					</div>
 				</div>
-				<Button onclick={refreshOrders} variant="outline" disabled={isRefreshing}>
-					<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
-					Refresh
-				</Button>
+				<div aria-live="polite">
+					<Button onclick={refreshOrders} variant="outline" disabled={isRefreshing}>
+						<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
+						{isRefreshing ? 'Refreshing...' : 'Refresh'}
+					</Button>
+				</div>
 			</div>
 
 			<!-- Orders Grid -->
@@ -321,7 +319,7 @@
 								</Button>
 							{:else}
 								<div class="w-full text-center text-sm text-muted-foreground">
-									{order.items.filter((i) => i.status === 'ready').length} / {order.items.length} items
+									{order.items.filter((i) => i.status === 'ready').length} / {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
 									ready
 								</div>
 							{/if}

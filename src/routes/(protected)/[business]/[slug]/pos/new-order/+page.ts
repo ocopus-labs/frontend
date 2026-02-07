@@ -43,7 +43,7 @@ export const load: PageLoad = async ({ params, parent, fetch }) => {
         name: item.name,
         description: item.description,
         price: item.price,
-        image: item.image || 'https://images.unsplash.com/photo-1546833998-877b37c2e5c6?w=400',
+        image: item.image || '',
         available: item.isAvailable,
         isVegetarian: item.isVegetarian,
         isVegan: item.isVegan,

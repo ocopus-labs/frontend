@@ -7,7 +7,8 @@
 	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Loader2 } from '@lucide/svelte';
+	import { IconLoader2 } from '@tabler/icons-svelte';
+	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import {
 		IconPlus,
 		IconPencil,
@@ -20,6 +21,7 @@
 		IconX
 	} from '@tabler/icons-svelte';
 	import { toast } from 'svelte-sonner';
+	import { EmptyState, StatusPill } from '$lib/components/data-display';
 	import {
 		createReservation,
 		updateReservation,
@@ -31,6 +33,7 @@
 		type Table as TableType,
 		type CreateReservationPayload
 	} from '$lib/api';
+	import { userFriendlyError } from '$lib/utils/error';
 
 	let { data }: { data: PageData } = $props();
 
@@ -42,6 +45,12 @@
 	let showAddDialog = $state(false);
 	let editingReservation = $state<Reservation | null>(null);
 	let isSubmitting = $state(false);
+
+	// Confirm dialog state
+	let cancelDialogOpen = $state(false);
+	let cancelTargetId = $state('');
+	let deleteDialogOpen = $state(false);
+	let deleteTargetId = $state('');
 
 	let newReservation = $state<{
 		customerName: string;
@@ -104,7 +113,7 @@
 			case 'pending':
 				return { variant: 'secondary' as const, text: 'Pending' };
 			case 'seated':
-				return { variant: 'default' as const, text: 'Seated', class: 'bg-blue-100 text-blue-800' };
+				return { variant: 'default' as const, text: 'Seated', class: 'bg-info/10 text-info' };
 			case 'completed':
 				return { variant: 'outline' as const, text: 'Completed' };
 			case 'cancelled':
@@ -158,7 +167,7 @@
 				notes: ''
 			};
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to create reservation');
+			toast.error(userFriendlyError(error, 'Failed to create reservation'));
 		} finally {
 			isSubmitting = false;
 		}
@@ -170,29 +179,37 @@
 			reservations = reservations.map((r) => (r.id === id ? result.reservation : r));
 			toast.success('Reservation confirmed');
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to confirm reservation');
+			toast.error(userFriendlyError(error, 'Failed to confirm reservation'));
 		}
 	}
 
-	async function handleCancel(id: string) {
-		const reason = prompt('Please enter cancellation reason (optional):');
+	function handleCancel(id: string) {
+		cancelTargetId = id;
+		cancelDialogOpen = true;
+	}
+
+	async function confirmCancel(reason?: string) {
 		try {
-			const result = await cancelReservationApi(data.businessId, id, reason || undefined);
-			reservations = reservations.map((r) => (r.id === id ? result.reservation : r));
+			const result = await cancelReservationApi(data.businessId, cancelTargetId, reason || undefined);
+			reservations = reservations.map((r) => (r.id === cancelTargetId ? result.reservation : r));
 			toast.success('Reservation cancelled');
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to cancel reservation');
+			toast.error(userFriendlyError(error, 'Failed to cancel reservation'));
 		}
 	}
 
-	async function handleDelete(id: string) {
-		if (!confirm('Are you sure you want to delete this reservation?')) return;
+	function handleDelete(id: string) {
+		deleteTargetId = id;
+		deleteDialogOpen = true;
+	}
+
+	async function confirmDelete() {
 		try {
-			await deleteReservationApi(data.businessId, id);
-			reservations = reservations.filter((r) => r.id !== id);
+			await deleteReservationApi(data.businessId, deleteTargetId);
+			reservations = reservations.filter((r) => r.id !== deleteTargetId);
 			toast.success('Reservation deleted');
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to delete reservation');
+			toast.error(userFriendlyError(error, 'Failed to delete reservation'));
 		}
 	}
 
@@ -219,7 +236,7 @@
 			toast.success('Reservation updated');
 			editingReservation = null;
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to update reservation');
+			toast.error(userFriendlyError(error, 'Failed to update reservation'));
 		} finally {
 			isSubmitting = false;
 		}
@@ -263,7 +280,7 @@
 						<Card.Title class="text-sm font-medium">Pending</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+						<div class="text-2xl font-bold text-warning">{stats.pending}</div>
 					</Card.Content>
 				</Card.Root>
 			</div>
@@ -305,7 +322,7 @@
 			<!-- Reservations Table -->
 			{#if filteredReservations.length > 0}
 				<div class="px-6">
-					<div class="rounded-md border">
+					<div class="overflow-x-auto rounded-md border">
 						<Table.Root>
 							<Table.Header>
 								<Table.Row>
@@ -351,9 +368,10 @@
 											<Badge variant="outline">{getTableName(reservation.tableId)}</Badge>
 										</Table.Cell>
 										<Table.Cell>
-											<Badge variant={getStatusBadge(reservation.status).variant}>
-												{getStatusBadge(reservation.status).text}
-											</Badge>
+											<StatusPill
+												label={getStatusBadge(reservation.status).text}
+												status={({ confirmed: "success", pending: "warning", cancelled: "error", completed: "info", no_show: "neutral", seated: "primary" } as Record<string, "success" | "warning" | "error" | "info" | "neutral" | "primary">)[reservation.status] || 'neutral'}
+											/>
 										</Table.Cell>
 										<Table.Cell>
 											<span class="max-w-[150px] truncate text-sm text-muted-foreground">
@@ -365,36 +383,40 @@
 												{#if reservation.status === 'pending'}
 													<Button
 														variant="ghost"
-														size="sm"
-														class="h-8 w-8 p-0 text-green-600"
+														size="icon"
+														class="h-8 w-8 p-0 text-success"
 														onclick={() => handleConfirm(reservation.id)}
+													aria-label="Confirm reservation"
 													>
 														<IconCheck class="h-4 w-4" />
 													</Button>
 												{/if}
 												<Button
 													variant="ghost"
-													size="sm"
+													size="icon"
 													class="h-8 w-8 p-0"
 													onclick={() => editReservation(reservation)}
+												aria-label="Edit reservation"
 												>
 													<IconPencil class="h-4 w-4" />
 												</Button>
 												{#if reservation.status !== 'cancelled' && reservation.status !== 'completed'}
 													<Button
 														variant="ghost"
-														size="sm"
+														size="icon"
 														class="h-8 w-8 p-0 text-destructive"
 														onclick={() => handleCancel(reservation.id)}
+													aria-label="Cancel reservation"
 													>
 														<IconX class="h-4 w-4" />
 													</Button>
 												{/if}
 												<Button
 													variant="ghost"
-													size="sm"
+													size="icon"
 													class="h-8 w-8 p-0 text-destructive"
 													onclick={() => handleDelete(reservation.id)}
+												aria-label="Delete reservation"
 												>
 													<IconTrash class="h-4 w-4" />
 												</Button>
@@ -407,16 +429,27 @@
 					</div>
 				</div>
 			{:else}
-				<div class="flex flex-col items-center justify-center py-12 text-center">
-					<IconCalendar class="h-12 w-12 text-muted-foreground" />
-					<h3 class="mt-4 text-lg font-semibold">No reservations found</h3>
-					<p class="text-muted-foreground">Try adjusting your filters or create a new reservation.</p>
-					<Button class="mt-4" onclick={() => (showAddDialog = true)}>
-						<IconPlus class="mr-2 h-4 w-4" />
-						New Reservation
-					</Button>
-				</div>
+				<EmptyState
+					type={reservations.length === 0 ? 'empty' : 'no-results'}
+					title={reservations.length === 0 ? 'No reservations yet' : 'No reservations found'}
+					description={reservations.length === 0 ? 'Create your first reservation to get started.' : 'Try adjusting your filters.'}
+					actionLabel="New Reservation"
+					onAction={() => (showAddDialog = true)}
+				/>
 			{/if}
+			<div class="px-6">
+						<div class="flex items-center justify-between border-t pt-4">
+				<p class="text-sm text-muted-foreground">
+					Showing {Math.min((data.page - 1) * data.limit + 1, data.total)} to {Math.min(data.page * data.limit, data.total)} of {data.total} results
+				</p>
+				<div class="flex gap-1">
+					<Button size="sm" variant="outline" disabled={data.page <= 1}
+						onclick={() => goto(`?page=${data.page - 1}&limit=${data.limit}`)}>Previous</Button>
+					<Button size="sm" variant="outline" disabled={data.page >= data.totalPages}
+						onclick={() => goto(`?page=${data.page + 1}&limit=${data.limit}`)}>Next</Button>
+				</div>
+			</div>
+			</div>
 		</div>
 	</div>
 </div>
@@ -432,7 +465,7 @@
 			<div class="grid grid-cols-2 gap-4">
 				<div class="grid gap-2">
 					<label for="name" class="text-sm font-medium">Customer Name *</label>
-					<Input id="name" bind:value={newReservation.customerName} placeholder="Name" />
+					<Input id="name" autofocus bind:value={newReservation.customerName} placeholder="Name" />
 				</div>
 				<div class="grid gap-2">
 					<label for="phone" class="text-sm font-medium">Phone</label>
@@ -481,7 +514,7 @@
 			<Button variant="outline" onclick={() => (showAddDialog = false)} disabled={isSubmitting}>Cancel</Button>
 			<Button onclick={addReservation} disabled={isSubmitting}>
 				{#if isSubmitting}
-					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+					<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
 				{/if}
 				Create Reservation
 			</Button>
@@ -501,7 +534,7 @@
 				<div class="grid grid-cols-2 gap-4">
 					<div class="grid gap-2">
 						<label for="edit-name" class="text-sm font-medium">Customer Name</label>
-						<Input id="edit-name" bind:value={editingReservation.customerName} />
+						<Input id="edit-name" autofocus bind:value={editingReservation.customerName} />
 					</div>
 					<div class="grid gap-2">
 						<label for="edit-phone" class="text-sm font-medium">Phone</label>
@@ -546,7 +579,7 @@
 				<Button variant="outline" onclick={() => (editingReservation = null)} disabled={isSubmitting}>Cancel</Button>
 				<Button onclick={saveReservation} disabled={isSubmitting}>
 					{#if isSubmitting}
-						<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+						<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
 					{/if}
 					Save Changes
 				</Button>
@@ -554,3 +587,24 @@
 		{/if}
 	</Dialog.Content>
 </Dialog.Root>
+
+<ConfirmDialog
+	bind:open={cancelDialogOpen}
+	title="Cancel Reservation"
+	description="Are you sure you want to cancel this reservation? You can optionally provide a reason."
+	confirmLabel="Cancel Reservation"
+	variant="destructive"
+	showInput={true}
+	inputLabel="Cancellation reason"
+	inputPlaceholder="Enter reason (optional)"
+	onConfirm={confirmCancel}
+/>
+
+<ConfirmDialog
+	bind:open={deleteDialogOpen}
+	title="Delete Reservation"
+	description="Are you sure you want to delete this reservation? This action cannot be undone."
+	confirmLabel="Delete Reservation"
+	variant="destructive"
+	onConfirm={confirmDelete}
+/>

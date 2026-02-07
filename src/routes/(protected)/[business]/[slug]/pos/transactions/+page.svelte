@@ -14,29 +14,42 @@
 		IconDeviceMobile,
 		IconRefresh
 	} from '@tabler/icons-svelte';
-	import { formatCurrency } from '$lib/utils/i18n';
+	import { EmptyState } from '$lib/components/data-display';
+	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import { toast } from 'svelte-sonner';
+	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
+	import type { CurrencyCode } from '$lib/utils/i18n';
 	import type { Payment, PaymentMethod, PaymentSummary } from '$lib/api/payment';
+	import { goto, invalidateAll } from '$app/navigation';
+	import { page } from '$app/stores';
 
 	let { data } = $props();
 
+	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
+
+	function formatCurrency(amount: number): string {
+		return i18nFormatCurrency(amount, currency);
+	}
+
 	let searchQuery = $state('');
-	let statusFilter = $state('all');
-	let paymentFilter = $state('all');
 	let isRefreshing = $state(false);
 
 	const payments = $derived(data.payments as Payment[]);
 	const summary = $derived(data.summary as PaymentSummary | null);
 
+	// Client-side search filtering on the current page of results
 	const filteredPayments = $derived(
-		payments.filter((payment) => {
-			const matchesSearch =
-				payment.paymentNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				payment.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				(payment.customerInfo?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
-			const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
-			const matchesPayment = paymentFilter === 'all' || payment.method === paymentFilter;
-			return matchesSearch && matchesStatus && matchesPayment;
-		})
+		searchQuery
+			? payments.filter((payment) => {
+					const q = searchQuery.toLowerCase();
+					return (
+						payment.paymentNumber.toLowerCase().includes(q) ||
+						payment.orderNumber.toLowerCase().includes(q) ||
+						(payment.customerInfo?.name?.toLowerCase().includes(q) ?? false)
+					);
+				})
+			: payments
 	);
 
 	const totalAmount = $derived(
@@ -102,23 +115,34 @@
 		};
 	}
 
-	function viewTransaction(paymentId: string) {
-		console.log('View payment:', paymentId);
+	function viewTransaction(payment: Payment) {
+		if (payment.orderId) {
+			goto(`/${$page.params.business}/${$page.params.slug}/orders/${payment.orderId}`);
+		} else {
+			toast.info('No order linked to this payment');
+		}
+	}
+
+	function escapeCSVField(value: unknown): string {
+		const str = String(value ?? '');
+		if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+			return `"${str.replace(/"/g, '""')}"`;
+		}
+		return str;
 	}
 
 	function exportTransactions() {
-		// Export logic for CSV download
 		const csvContent = [
 			['Payment ID', 'Order Number', 'Customer', 'Method', 'Amount', 'Status', 'Date'].join(','),
 			...filteredPayments.map((p) =>
 				[
-					p.paymentNumber,
-					p.orderNumber,
-					p.customerInfo?.name || 'Guest',
-					p.method,
-					p.amount,
-					p.status,
-					new Date(p.createdAt).toISOString()
+					escapeCSVField(p.paymentNumber),
+					escapeCSVField(p.orderNumber),
+					escapeCSVField(p.customerInfo?.name || 'Guest'),
+					escapeCSVField(p.method),
+					escapeCSVField(p.amount),
+					escapeCSVField(p.status),
+					escapeCSVField(new Date(p.createdAt).toISOString())
 				].join(',')
 			)
 		].join('\n');
@@ -134,7 +158,36 @@
 
 	async function refresh() {
 		isRefreshing = true;
-		window.location.reload();
+		await invalidateAll();
+		isRefreshing = false;
+	}
+
+	function goToPage(pageNum: number) {
+		const params = new URLSearchParams($page.url.searchParams);
+		params.set('page', String(pageNum));
+		goto(`?${params.toString()}`);
+	}
+
+	function applyStatusFilter(status: string) {
+		const params = new URLSearchParams($page.url.searchParams);
+		if (status === 'all') {
+			params.delete('status');
+		} else {
+			params.set('status', status);
+		}
+		params.set('page', '1');
+		goto(`?${params.toString()}`);
+	}
+
+	function applyMethodFilter(method: string) {
+		const params = new URLSearchParams($page.url.searchParams);
+		if (method === 'all') {
+			params.delete('method');
+		} else {
+			params.set('method', method);
+		}
+		params.set('page', '1');
+		goto(`?${params.toString()}`);
 	}
 </script>
 
@@ -165,7 +218,7 @@
 						<Card.Title class="text-sm font-medium">Total Transactions</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold">{filteredPayments.length}</div>
+						<div class="text-2xl font-bold">{data.total}</div>
 					</Card.Content>
 				</Card.Root>
 				<Card.Root>
@@ -211,7 +264,8 @@
 
 				<div class="flex gap-2">
 					<select
-						bind:value={statusFilter}
+						value={data.statusFilter}
+						onchange={(e) => applyStatusFilter(e.currentTarget.value)}
 						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
 					>
 						<option value="all">All Status</option>
@@ -222,7 +276,8 @@
 					</select>
 
 					<select
-						bind:value={paymentFilter}
+						value={data.methodFilter}
+						onchange={(e) => applyMethodFilter(e.currentTarget.value)}
 						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
 					>
 						<option value="all">All Methods</option>
@@ -237,7 +292,7 @@
 
 			<!-- Transactions Table -->
 			<div class="px-6">
-				<div class="rounded-md border">
+				<div class="overflow-x-auto rounded-md border">
 					<Table.Root>
 						<Table.Header>
 							<Table.Row>
@@ -280,7 +335,7 @@
 										</div>
 									</Table.Cell>
 									<Table.Cell class="text-right">
-										<Button variant="ghost" size="sm" onclick={() => viewTransaction(payment.id)}>
+										<Button variant="ghost" size="icon" onclick={() => viewTransaction(payment)} aria-label="View order">
 											<IconEye class="h-4 w-4" />
 										</Button>
 									</Table.Cell>
@@ -292,16 +347,54 @@
 			</div>
 
 			{#if filteredPayments.length === 0}
-				<div class="flex flex-col items-center justify-center py-12 text-center">
-					<IconReceipt class="h-12 w-12 text-muted-foreground" />
-					<h3 class="mt-4 text-lg font-semibold">No transactions found</h3>
-					<p class="text-muted-foreground">
-						{#if payments.length === 0}
-							No payments have been processed yet. Create an order to get started.
-						{:else}
-							Try adjusting your search or filter criteria.
-						{/if}
+				<EmptyState type="no-results" title="No transactions found" description="Transactions will appear here after payments are processed." />
+			{/if}
+
+			<!-- Pagination -->
+			{#if data.totalPages > 1}
+				<div class="flex items-center justify-between px-6">
+					<p class="text-sm text-muted-foreground">
+						Showing <span class="font-medium">{(data.page - 1) * data.limit + 1}</span> to
+						<span class="font-medium">{Math.min(data.page * data.limit, data.total)}</span> of
+						<span class="font-medium">{data.total}</span> transactions
 					</p>
+					<div class="flex items-center gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={data.page <= 1}
+							onclick={() => goToPage(data.page - 1)}
+						>
+							<ChevronLeft class="h-4 w-4" />
+							Previous
+						</Button>
+
+						<div class="flex items-center gap-1">
+							{#each Array.from({ length: Math.min(5, data.totalPages) }, (_, i) => {
+								const start = Math.max(1, Math.min(data.page - 2, data.totalPages - 4));
+								return start + i;
+							}) as pageNum}
+								<Button
+									variant={pageNum === data.page ? "default" : "ghost"}
+									size="sm"
+									class="w-9"
+									onclick={() => goToPage(pageNum)}
+								>
+									{pageNum}
+								</Button>
+							{/each}
+						</div>
+
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={data.page >= data.totalPages}
+							onclick={() => goToPage(data.page + 1)}
+						>
+							Next
+							<ChevronRight class="h-4 w-4" />
+						</Button>
+					</div>
 				</div>
 			{/if}
 		</div>

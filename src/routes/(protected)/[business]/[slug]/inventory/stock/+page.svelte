@@ -6,31 +6,52 @@
 	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Loader2 } from '@lucide/svelte';
+	import PageHeader from '$lib/components/global/page-header.svelte';
 	import {
 		IconPlus,
 		IconPencil,
-		IconSearch,
 		IconAlertTriangle,
 		IconPackage,
 		IconTrendingUp,
-		IconTrash
+		IconTrash,
+		IconHistory,
+		IconChevronLeft,
+		IconChevronRight,
+		IconLoader2,
+		IconDownload
 	} from '@tabler/icons-svelte';
+	import { SearchInput, FilterDropdown } from '$lib/components/search';
+	import { EmptyState, StatusPill } from '$lib/components/data-display';
 	import { toast } from 'svelte-sonner';
+	import { goto, invalidateAll } from '$app/navigation';
+	import { page } from '$app/stores';
 	import {
 		createInventoryItem,
 		updateInventoryItem,
 		processStockTransaction,
 		deleteInventoryItem,
+		exportInventory,
 		type InventoryItem,
+		type InventoryTransaction,
 		type InventoryCategory,
 		type InventoryUnit,
 		type CreateInventoryItemPayload
 	} from '$lib/api';
+	import { downloadBlob } from '$lib/utils/export';
+	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
+	import type { CurrencyCode } from '$lib/utils/i18n';
+	import { userFriendlyError } from '$lib/utils/error';
+	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 
 	let { data }: { data: PageData } = $props();
 
-	let inventory = $state<InventoryItem[]>(data.items || []);
+	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
+
+	function formatCurrency(amount: number): string {
+		return i18nFormatCurrency(amount, currency);
+	}
+
+	let inventory = $derived<InventoryItem[]>(data.items || []);
 	let searchQuery = $state('');
 	let categoryFilter = $state('all');
 	let stockFilter = $state('all');
@@ -38,6 +59,12 @@
 	let editingItem = $state<InventoryItem | null>(null);
 	let adjustingStock = $state<{ item: InventoryItem; adjustment: number; reason: string } | null>(null);
 	let isSubmitting = $state(false);
+	let deleteItemDialogOpen = $state(false);
+	let deleteItemId = $state<string | null>(null);
+	let historyItem = $state<InventoryItem | null>(null);
+
+	// SKU auto-generation tracking
+	let skuManuallyEdited = $state(false);
 
 	let newItem = $state<{
 		name: string;
@@ -47,6 +74,8 @@
 		minimumStock: number;
 		unit: InventoryUnit;
 		costPerUnit: number;
+		trackExpiry: boolean;
+		expiryDate: string;
 	}>({
 		name: '',
 		sku: '',
@@ -54,8 +83,14 @@
 		currentStock: 0,
 		minimumStock: 10,
 		unit: 'kg',
-		costPerUnit: 0
+		costPerUnit: 0,
+		trackExpiry: false,
+		expiryDate: ''
 	});
+
+	// Edit dialog expiry fields
+	let editTrackExpiry = $state(false);
+	let editExpiryDate = $state('');
 
 	const categories: { value: InventoryCategory; label: string }[] = [
 		{ value: 'raw_materials', label: 'Raw Materials' },
@@ -111,6 +146,26 @@
 		totalValue: inventory.reduce((sum, i) => sum + i.currentStock * i.costPerUnit, 0)
 	});
 
+	// Issue 2.4: Negative stock guard
+	const adjustmentWouldGoNegative = $derived(
+		adjustingStock ? (adjustingStock.item.currentStock + adjustingStock.adjustment) < 0 : false
+	);
+
+	// Pagination
+	const paginationLimit = $derived(data.pagination?.limit || 25);
+	const paginationOffset = $derived(data.pagination?.offset || 0);
+	const totalItems = $derived(data.total || 0);
+	const currentPage = $derived(Math.floor(paginationOffset / paginationLimit) + 1);
+	const totalPages = $derived(Math.max(1, Math.ceil(totalItems / paginationLimit)));
+
+	function goToPage(pageNum: number) {
+		const url = new URL($page.url);
+		const newOffset = (pageNum - 1) * paginationLimit;
+		if (newOffset > 0) url.searchParams.set('offset', String(newOffset));
+		else url.searchParams.delete('offset');
+		goto(url.toString(), { replaceState: true });
+	}
+
 	function getCategoryLabel(category: InventoryCategory): string {
 		return categories.find((c) => c.value === category)?.label || category;
 	}
@@ -119,11 +174,48 @@
 		return units.find((u) => u.value === unit)?.label || unit;
 	}
 
-	function getStockStatus(item: InventoryItem) {
+	function getStockStatus(item: InventoryItem): { status: 'success' | 'warning' | 'error'; text: string } {
 		const ratio = item.currentStock / item.minimumStock;
-		if (ratio < 0.5) return { variant: 'destructive' as const, text: 'Critical' };
-		if (ratio < 1) return { variant: 'secondary' as const, text: 'Low' };
-		return { variant: 'default' as const, text: 'OK' };
+		if (ratio < 0.5) return { status: 'error', text: 'Critical' };
+		if (ratio < 1) return { status: 'warning', text: 'Low' };
+		return { status: 'success', text: 'OK' };
+	}
+
+	// Issue 2.6: SKU auto-generation
+	function generateSku(category: string, name: string): string {
+		const catLabel = categories.find((c) => c.value === category)?.label || category;
+		const prefix = catLabel.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase();
+		const initials = name
+			.split(/\s+/)
+			.map((w) => w[0] || '')
+			.join('')
+			.toUpperCase()
+			.substring(0, 3);
+		const num = Math.floor(Math.random() * 900 + 100);
+		return `${prefix}-${initials}${num}`;
+	}
+
+	// Auto-fill SKU when name/category changes in add dialog
+	$effect(() => {
+		if (showAddDialog && !skuManuallyEdited && newItem.name.trim()) {
+			newItem.sku = generateSku(newItem.category, newItem.name);
+		}
+	});
+
+	function openAddDialog() {
+		skuManuallyEdited = false;
+		newItem = {
+			name: '',
+			sku: '',
+			category: 'raw_materials',
+			currentStock: 0,
+			minimumStock: 10,
+			unit: 'kg',
+			costPerUnit: 0,
+			trackExpiry: false,
+			expiryDate: ''
+		};
+		showAddDialog = true;
 	}
 
 	async function addItem() {
@@ -141,24 +233,17 @@
 				currentStock: newItem.currentStock,
 				minimumStock: newItem.minimumStock,
 				unit: newItem.unit,
-				costPerUnit: newItem.costPerUnit
+				costPerUnit: newItem.costPerUnit,
+				trackExpiry: newItem.trackExpiry,
+				expiryDate: newItem.trackExpiry && newItem.expiryDate ? newItem.expiryDate : undefined
 			};
 
-			const result = await createInventoryItem(data.businessId, payload);
-			inventory = [...inventory, result.item];
+			await createInventoryItem(data.businessId, payload);
 			toast.success('Item added successfully');
 			showAddDialog = false;
-			newItem = {
-				name: '',
-				sku: '',
-				category: 'raw_materials',
-				currentStock: 0,
-				minimumStock: 10,
-				unit: 'kg',
-				costPerUnit: 0
-			};
+			await invalidateAll();
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to add item');
+			toast.error(userFriendlyError(error, 'Failed to add item'));
 		} finally {
 			isSubmitting = false;
 		}
@@ -166,6 +251,8 @@
 
 	function editItem(item: InventoryItem) {
 		editingItem = { ...item };
+		editTrackExpiry = item.trackExpiry || false;
+		editExpiryDate = item.expiryDate ? item.expiryDate.substring(0, 10) : '';
 	}
 
 	async function saveItem() {
@@ -173,32 +260,41 @@
 
 		isSubmitting = true;
 		try {
-			const result = await updateInventoryItem(data.businessId, editingItem.id, {
+			await updateInventoryItem(data.businessId, editingItem.id, {
 				name: editingItem.name,
 				sku: editingItem.sku,
 				category: editingItem.category,
 				minimumStock: editingItem.minimumStock,
 				unit: editingItem.unit,
-				costPerUnit: editingItem.costPerUnit
+				costPerUnit: editingItem.costPerUnit,
+				trackExpiry: editTrackExpiry,
+				expiryDate: editTrackExpiry && editExpiryDate ? editExpiryDate : undefined
 			});
-			inventory = inventory.map((i) => (i.id === editingItem!.id ? result.item : i));
 			toast.success('Item updated successfully');
 			editingItem = null;
+			await invalidateAll();
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to update item');
+			toast.error(userFriendlyError(error, 'Failed to update item'));
 		} finally {
 			isSubmitting = false;
 		}
 	}
 
-	async function handleDeleteItem(itemId: string) {
+	function triggerDeleteItem(itemId: string) {
+		deleteItemId = itemId;
+		deleteItemDialogOpen = true;
+	}
+
+	async function confirmDeleteItem() {
+		if (!deleteItemId) return;
 		try {
-			await deleteInventoryItem(data.businessId, itemId);
-			inventory = inventory.filter((i) => i.id !== itemId);
+			await deleteInventoryItem(data.businessId, deleteItemId);
 			toast.success('Item deleted successfully');
+			await invalidateAll();
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to delete item');
+			toast.error(userFriendlyError(error, 'Failed to delete item'));
 		}
+		deleteItemId = null;
 	}
 
 	function openStockAdjustment(item: InventoryItem) {
@@ -211,38 +307,73 @@
 			return;
 		}
 
+		// Issue 2.4: Guard against negative result
+		if (adjustingStock.item.currentStock + adjustingStock.adjustment < 0) {
+			toast.error('Stock cannot go below zero');
+			return;
+		}
+
 		isSubmitting = true;
 		try {
 			const type = adjustingStock.adjustment > 0 ? 'add' : 'remove';
-			const result = await processStockTransaction(data.businessId, adjustingStock.item.id, {
+			await processStockTransaction(data.businessId, adjustingStock.item.id, {
 				type,
 				quantity: Math.abs(adjustingStock.adjustment),
 				reason: adjustingStock.reason || undefined
 			});
-			inventory = inventory.map((i) => (i.id === adjustingStock!.item.id ? result.item : i));
 			toast.success('Stock adjusted successfully');
 			adjustingStock = null;
+			await invalidateAll();
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to adjust stock');
+			toast.error(userFriendlyError(error, 'Failed to adjust stock'));
 		} finally {
 			isSubmitting = false;
 		}
+	}
+
+	function openHistory(item: InventoryItem) {
+		historyItem = item;
+	}
+
+	async function handleExportInventory() {
+		try {
+			const blob = await exportInventory(data.businessId, {
+				category: categoryFilter !== 'all' ? categoryFilter : undefined
+			});
+			downloadBlob(blob, `inventory-${new Date().toISOString().split('T')[0]}.csv`);
+			toast.success('Inventory exported successfully');
+		} catch (err) {
+			toast.error(userFriendlyError(err, 'Failed to export inventory'));
+		}
+	}
+
+	function formatTransactionType(type: string): string {
+		const map: Record<string, string> = {
+			add: 'Added',
+			remove: 'Removed',
+			adjust: 'Adjusted',
+			waste: 'Waste',
+			transfer: 'Transfer'
+		};
+		return map[type] || type;
 	}
 </script>
 
 <div class="flex flex-1 flex-col">
 	<div class="@container/main flex flex-1 flex-col gap-4">
 		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
-				<div>
-					<h1 class="text-2xl font-bold">Inventory Stock</h1>
-					<p class="text-muted-foreground">Track and manage your inventory levels</p>
-				</div>
-				<Button onclick={() => (showAddDialog = true)}>
-					<IconPlus class="mr-2 h-4 w-4" />
-					Add Item
-				</Button>
-			</div>
+			<PageHeader title="Inventory Stock" description="Track and manage your inventory levels">
+				{#snippet actions()}
+					<Button variant="outline" onclick={handleExportInventory}>
+						<IconDownload class="mr-2 h-4 w-4" />
+						Export
+					</Button>
+					<Button onclick={openAddDialog}>
+						<IconPlus class="mr-2 h-4 w-4" />
+						Add Item
+					</Button>
+				{/snippet}
+			</PageHeader>
 
 			<!-- Stats -->
 			<div class="grid grid-cols-1 gap-4 px-6 sm:grid-cols-3">
@@ -263,8 +394,8 @@
 					</Card.Header>
 					<Card.Content>
 						<div class="flex items-center gap-2">
-							<IconAlertTriangle class="h-5 w-5 text-yellow-500" />
-							<span class="text-2xl font-bold text-yellow-600">{stats.lowStock}</span>
+							<IconAlertTriangle class="h-5 w-5 text-warning" />
+							<span class="text-2xl font-bold text-warning">{stats.lowStock}</span>
 						</div>
 					</Card.Content>
 				</Card.Root>
@@ -273,46 +404,42 @@
 						<Card.Title class="text-sm font-medium">Total Value</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold">${stats.totalValue.toFixed(2)}</div>
+						<div class="text-2xl font-bold">{formatCurrency(stats.totalValue)}</div>
 					</Card.Content>
 				</Card.Root>
 			</div>
 
 			<!-- Filters -->
 			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center">
-				<div class="relative max-w-sm flex-1">
-					<IconSearch
-						class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-					/>
-					<Input placeholder="Search inventory..." bind:value={searchQuery} class="pl-9" />
-				</div>
-
+				<SearchInput
+					bind:value={searchQuery}
+					placeholder="Search inventory..."
+					debounceMs={300}
+					class="max-w-sm"
+				/>
 				<div class="flex gap-2">
-					<select
+					<FilterDropdown
 						bind:value={categoryFilter}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="all">All Categories</option>
-						{#each categories as category}
-							<option value={category.value}>{category.label}</option>
-						{/each}
-					</select>
-
-					<select
+						placeholder="All Categories"
+						allOptionLabel="All Categories"
+						options={categories}
+					/>
+					<FilterDropdown
 						bind:value={stockFilter}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="all">All Stock Levels</option>
-						<option value="low">Low Stock</option>
-						<option value="ok">In Stock</option>
-					</select>
+						placeholder="All Stock Levels"
+						allOptionLabel="All Stock Levels"
+						options={[
+							{ value: 'low', label: 'Low Stock' },
+							{ value: 'ok', label: 'In Stock' }
+						]}
+					/>
 				</div>
 			</div>
 
 			<!-- Inventory Table -->
 			{#if filteredInventory.length > 0}
 				<div class="px-6">
-					<div class="rounded-md border">
+					<div class="overflow-x-auto rounded-md border">
 						<Table.Root>
 							<Table.Header>
 								<Table.Row>
@@ -327,7 +454,7 @@
 							</Table.Header>
 							<Table.Body>
 								{#each filteredInventory as item (item.id)}
-									<Table.Row class={item.currentStock < item.minimumStock ? 'bg-yellow-50 dark:bg-yellow-950' : ''}>
+									<Table.Row class={item.currentStock < item.minimumStock ? 'bg-warning/5' : ''}>
 										<Table.Cell class="font-medium">{item.name}</Table.Cell>
 										<Table.Cell class="text-muted-foreground">{item.sku}</Table.Cell>
 										<Table.Cell>
@@ -341,11 +468,12 @@
 											<div class="text-xs text-muted-foreground">Min: {item.minimumStock}</div>
 										</Table.Cell>
 										<Table.Cell>
-											<Badge variant={getStockStatus(item).variant}>
-												{getStockStatus(item).text}
-											</Badge>
+											<StatusPill
+												label={getStockStatus(item).text}
+												status={getStockStatus(item).status}
+											/>
 										</Table.Cell>
-										<Table.Cell>${item.costPerUnit.toFixed(2)}</Table.Cell>
+										<Table.Cell>{formatCurrency(item.costPerUnit)}</Table.Cell>
 										<Table.Cell class="text-right">
 											<div class="flex justify-end gap-1">
 												<Button
@@ -353,18 +481,24 @@
 													size="sm"
 													class="h-8"
 													onclick={() => openStockAdjustment(item)}
+													title="Adjust stock"
 												>
 													<IconTrendingUp class="mr-1 h-4 w-4" />
 													Adjust
 												</Button>
-												<Button variant="ghost" size="sm" onclick={() => editItem(item)}>
+												<Button variant="ghost" size="icon" onclick={() => openHistory(item)} title="Transaction history" aria-label="Transaction history">
+													<IconHistory class="h-4 w-4" />
+												</Button>
+												<Button variant="ghost" size="icon" onclick={() => editItem(item)} title="Edit item" aria-label="Edit item">
 													<IconPencil class="h-4 w-4" />
 												</Button>
 												<Button
 													variant="ghost"
-													size="sm"
+													size="icon"
 													class="text-destructive hover:text-destructive"
-													onclick={() => handleDeleteItem(item.id)}
+													onclick={() => triggerDeleteItem(item.id)}
+													title="Delete item"
+												aria-label="Delete item"
 												>
 													<IconTrash class="h-4 w-4" />
 												</Button>
@@ -377,14 +511,38 @@
 					</div>
 				</div>
 			{:else}
-				<div class="flex flex-col items-center justify-center py-12 text-center">
-					<IconPackage class="h-12 w-12 text-muted-foreground" />
-					<h3 class="mt-4 text-lg font-semibold">No items found</h3>
-					<p class="text-muted-foreground">Try adjusting your search or add a new item.</p>
-					<Button class="mt-4" onclick={() => (showAddDialog = true)}>
-						<IconPlus class="mr-2 h-4 w-4" />
-						Add Item
-					</Button>
+				<EmptyState type="empty" title="No inventory items" description="Add your first inventory item to get started." />
+			{/if}
+
+			<!-- Pagination -->
+			{#if totalPages > 1}
+				<div class="flex items-center justify-between px-6">
+					<p class="text-sm text-muted-foreground">
+						Showing {paginationOffset + 1}–{Math.min(paginationOffset + paginationLimit, totalItems)} of {totalItems} {totalItems === 1 ? 'item' : 'items'}
+					</p>
+					<div class="flex items-center gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={currentPage <= 1}
+							onclick={() => goToPage(currentPage - 1)}
+						>
+							<IconChevronLeft class="mr-1 h-4 w-4" />
+							Previous
+						</Button>
+						<span class="text-sm">
+							Page {currentPage} of {totalPages}
+						</span>
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={currentPage >= totalPages}
+							onclick={() => goToPage(currentPage + 1)}
+						>
+							Next
+							<IconChevronRight class="ml-1 h-4 w-4" />
+						</Button>
+					</div>
 				</div>
 			{/if}
 		</div>
@@ -402,11 +560,19 @@
 			<div class="grid grid-cols-2 gap-4">
 				<div class="grid gap-2">
 					<label for="name" class="text-sm font-medium">Name *</label>
-					<Input id="name" bind:value={newItem.name} placeholder="Item name" />
+					<Input id="name" autofocus bind:value={newItem.name} placeholder="Item name" />
 				</div>
 				<div class="grid gap-2">
 					<label for="sku" class="text-sm font-medium">SKU *</label>
-					<Input id="sku" bind:value={newItem.sku} placeholder="XXX-000" />
+					<Input
+						id="sku"
+						bind:value={newItem.sku}
+						placeholder="Auto-generated"
+						oninput={() => { skuManuallyEdited = true; }}
+					/>
+					{#if !skuManuallyEdited && newItem.name.trim()}
+						<p class="text-xs text-muted-foreground">Auto-generated from name & category</p>
+					{/if}
 				</div>
 			</div>
 			<div class="grid grid-cols-2 gap-4">
@@ -449,6 +615,20 @@
 					<Input id="cost" type="number" step="0.01" min="0" bind:value={newItem.costPerUnit} />
 				</div>
 			</div>
+			<div class="grid gap-2">
+				<div class="flex items-center gap-2">
+					<input type="checkbox" id="trackExpiry" bind:checked={newItem.trackExpiry} />
+					<label for="trackExpiry" class="text-sm font-medium">Track expiry date</label>
+				</div>
+				{#if newItem.trackExpiry}
+					<Input
+						id="expiryDate"
+						type="date"
+						bind:value={newItem.expiryDate}
+						min={new Date().toISOString().substring(0, 10)}
+					/>
+				{/if}
+			</div>
 		</div>
 		<Dialog.Footer>
 			<Button variant="outline" onclick={() => (showAddDialog = false)} disabled={isSubmitting}>
@@ -456,7 +636,7 @@
 			</Button>
 			<Button onclick={addItem} disabled={isSubmitting}>
 				{#if isSubmitting}
-					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+					<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
 				{/if}
 				Add Item
 			</Button>
@@ -476,7 +656,7 @@
 				<div class="grid grid-cols-2 gap-4">
 					<div class="grid gap-2">
 						<label for="edit-name" class="text-sm font-medium">Name</label>
-						<Input id="edit-name" bind:value={editingItem.name} />
+						<Input id="edit-name" autofocus bind:value={editingItem.name} />
 					</div>
 					<div class="grid gap-2">
 						<label for="edit-sku" class="text-sm font-medium">SKU</label>
@@ -519,6 +699,19 @@
 						<Input id="edit-cost" type="number" step="0.01" min="0" bind:value={editingItem.costPerUnit} />
 					</div>
 				</div>
+				<div class="grid gap-2">
+					<div class="flex items-center gap-2">
+						<input type="checkbox" id="edit-trackExpiry" bind:checked={editTrackExpiry} />
+						<label for="edit-trackExpiry" class="text-sm font-medium">Track expiry date</label>
+					</div>
+					{#if editTrackExpiry}
+						<Input
+							id="edit-expiryDate"
+							type="date"
+							bind:value={editExpiryDate}
+						/>
+					{/if}
+				</div>
 			</div>
 			<Dialog.Footer>
 				<Button variant="outline" onclick={() => (editingItem = null)} disabled={isSubmitting}>
@@ -526,7 +719,7 @@
 				</Button>
 				<Button onclick={saveItem} disabled={isSubmitting}>
 					{#if isSubmitting}
-						<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+						<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
 					{/if}
 					Save Changes
 				</Button>
@@ -555,19 +748,26 @@
 						<Button
 							variant="outline"
 							size="sm"
-							onclick={() => (adjustingStock!.adjustment -= 5)}
+							onclick={() => {
+								const minAdj = -adjustingStock!.item.currentStock;
+								adjustingStock!.adjustment = Math.max(adjustingStock!.adjustment - 5, minAdj);
+							}}
 						>
 							-5
 						</Button>
 						<Button
 							variant="outline"
 							size="sm"
-							onclick={() => (adjustingStock!.adjustment -= 1)}
+							onclick={() => {
+								const minAdj = -adjustingStock!.item.currentStock;
+								adjustingStock!.adjustment = Math.max(adjustingStock!.adjustment - 1, minAdj);
+							}}
 						>
 							-1
 						</Button>
 						<Input
 							id="adjustment"
+							autofocus
 							type="number"
 							bind:value={adjustingStock.adjustment}
 							class="text-center"
@@ -592,22 +792,25 @@
 					<label for="reason" class="text-sm font-medium">Reason (optional)</label>
 					<Input id="reason" bind:value={adjustingStock.reason} placeholder="e.g., Received shipment" />
 				</div>
-				<div class="rounded-lg bg-muted p-3">
+				<div class="rounded-lg p-3 {adjustmentWouldGoNegative ? 'bg-destructive/5 border border-destructive/20' : 'bg-muted'}">
 					<p class="text-sm">
-						New quantity: <strong>
+						New quantity: <strong class={adjustmentWouldGoNegative ? 'text-destructive' : ''}>
 							{adjustingStock.item.currentStock + adjustingStock.adjustment}
 							{adjustingStock.item.unit}
 						</strong>
 					</p>
+					{#if adjustmentWouldGoNegative}
+						<p class="mt-1 text-xs text-destructive">Stock cannot go below zero</p>
+					{/if}
 				</div>
 			</div>
 			<Dialog.Footer>
 				<Button variant="outline" onclick={() => (adjustingStock = null)} disabled={isSubmitting}>
 					Cancel
 				</Button>
-				<Button onclick={adjustStock} disabled={isSubmitting}>
+				<Button onclick={adjustStock} disabled={isSubmitting || adjustmentWouldGoNegative}>
 					{#if isSubmitting}
-						<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+						<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
 					{/if}
 					Confirm Adjustment
 				</Button>
@@ -615,3 +818,73 @@
 		{/if}
 	</Dialog.Content>
 </Dialog.Root>
+
+<!-- Transaction History Dialog -->
+<Dialog.Root open={!!historyItem} onOpenChange={(open) => !open && (historyItem = null)}>
+	<Dialog.Content class="sm:max-w-lg">
+		<Dialog.Header>
+			<Dialog.Title>Transaction History</Dialog.Title>
+			<Dialog.Description>
+				{historyItem?.name} ({historyItem?.sku})
+			</Dialog.Description>
+		</Dialog.Header>
+		{#if historyItem}
+			{@const transactions = (historyItem.transactions || []) as InventoryTransaction[]}
+			{#if transactions.length > 0}
+				<div class="max-h-80 overflow-y-auto">
+					<Table.Root>
+						<Table.Header>
+							<Table.Row>
+								<Table.Head>Type</Table.Head>
+								<Table.Head>Qty</Table.Head>
+								<Table.Head>Stock</Table.Head>
+								<Table.Head>Reason</Table.Head>
+								<Table.Head>Date</Table.Head>
+							</Table.Row>
+						</Table.Header>
+						<Table.Body>
+							{#each transactions as txn}
+								<Table.Row>
+									<Table.Cell>
+										<Badge variant={txn.type === 'add' ? 'default' : 'secondary'}>
+											{formatTransactionType(txn.type)}
+										</Badge>
+									</Table.Cell>
+									<Table.Cell class={txn.type === 'add' ? 'text-success' : 'text-destructive'}>
+										{txn.type === 'add' ? '+' : '-'}{txn.quantity}
+									</Table.Cell>
+									<Table.Cell class="text-muted-foreground">
+										{txn.previousStock} → {txn.newStock}
+									</Table.Cell>
+									<Table.Cell class="max-w-[120px] truncate text-sm">
+										{txn.reason || '—'}
+									</Table.Cell>
+									<Table.Cell class="text-xs text-muted-foreground">
+										{new Date(txn.createdAt).toLocaleDateString()}
+									</Table.Cell>
+								</Table.Row>
+							{/each}
+						</Table.Body>
+					</Table.Root>
+				</div>
+			{:else}
+				<div class="py-8 text-center text-muted-foreground">
+					<IconHistory class="mx-auto mb-2 h-8 w-8" />
+					<p>No transactions recorded yet</p>
+				</div>
+			{/if}
+			<Dialog.Footer>
+				<Button variant="outline" onclick={() => (historyItem = null)}>Close</Button>
+			</Dialog.Footer>
+		{/if}
+	</Dialog.Content>
+</Dialog.Root>
+
+<ConfirmDialog
+	bind:open={deleteItemDialogOpen}
+	title="Delete Inventory Item"
+	description="Are you sure you want to delete this item? This action cannot be undone."
+	confirmLabel="Delete"
+	variant="destructive"
+	onConfirm={confirmDeleteItem}
+/>

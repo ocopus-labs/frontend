@@ -5,18 +5,28 @@
 	import * as Table from '$lib/components/ui/table';
 	import { Badge } from '$lib/components/ui/badge';
 	import {
-		IconSearch,
 		IconEye,
 		IconPrinter,
 		IconReceipt,
 		IconCheck,
 		IconRefresh
 	} from '@tabler/icons-svelte';
+	import { SearchInput, FilterDropdown } from '$lib/components/search';
+	import { EmptyState } from '$lib/components/data-display';
+	import PageHeader from '$lib/components/global/page-header.svelte';
 	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import type { Order } from '$lib/api/order';
+	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
+	import type { CurrencyCode } from '$lib/utils/i18n';
 
 	let { data }: { data: PageData } = $props();
+
+	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
+
+	function formatCurrency(amount: number): string {
+		return i18nFormatCurrency(amount, currency);
+	}
 
 	// Transform API orders to display format
 	let orders = $derived(
@@ -69,12 +79,11 @@
 	}
 
 	function printReceipt(orderId: string) {
-		console.log('Print receipt:', orderId);
+		goto(`/${$page.params.business}/${$page.params.slug}/orders/${orderId}?print=true`);
 	}
 
-	function onDateFilterChange(event: Event) {
-		const select = event.target as HTMLSelectElement;
-		dateFilter = select.value;
+	function onDateFilterChange(value: string) {
+		dateFilter = value;
 		const url = new URL($page.url);
 		url.searchParams.set('date', dateFilter);
 		goto(url.toString(), { replaceState: true });
@@ -90,16 +99,16 @@
 <div class="flex flex-1 flex-col">
 	<div class="@container/main flex flex-1 flex-col gap-4">
 		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<div class="flex items-center justify-between px-6">
-				<div class="flex flex-col gap-2">
-					<h1 class="text-2xl font-bold">Completed Orders</h1>
-					<p class="text-muted-foreground">View all successfully completed orders</p>
-				</div>
-				<Button variant="outline" size="sm" onclick={refreshOrders} disabled={isRefreshing}>
-					<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
-					Refresh
-				</Button>
-			</div>
+			<PageHeader title="Completed Orders" description="View all successfully completed orders">
+				{#snippet actions()}
+					<div aria-live="polite">
+						<Button variant="outline" size="sm" onclick={refreshOrders} disabled={isRefreshing}>
+							<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
+							{isRefreshing ? 'Refreshing...' : 'Refresh'}
+						</Button>
+					</div>
+				{/snippet}
+			</PageHeader>
 
 			<!-- Stats -->
 			<div class="flex gap-4 px-6">
@@ -109,47 +118,45 @@
 				</div>
 				<div class="rounded-lg border bg-card p-4">
 					<p class="text-sm text-muted-foreground">Total Revenue</p>
-					<p class="text-2xl font-bold">${totalRevenue.toFixed(2)}</p>
+					<p class="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
 				</div>
 			</div>
 
 			<!-- Filters and Search -->
 			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
-				<div class="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-					<div class="relative max-w-sm flex-1">
-						<IconSearch
-							class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-						/>
-						<Input placeholder="Search orders..." bind:value={searchQuery} class="pl-9" />
-					</div>
-				</div>
-
+				<SearchInput
+					bind:value={searchQuery}
+					placeholder="Search orders..."
+					debounceMs={300}
+					class="max-w-sm"
+				/>
 				<div class="flex gap-2">
-					<select
+					<FilterDropdown
 						value={dateFilter}
-						onchange={onDateFilterChange}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="today">Today</option>
-						<option value="yesterday">Yesterday</option>
-						<option value="all">All Time</option>
-					</select>
-
-					<select
+						placeholder="Date"
+						allOptionLabel="All Time"
+						onValueChange={onDateFilterChange}
+						options={[
+							{ value: 'today', label: 'Today' },
+							{ value: 'yesterday', label: 'Yesterday' }
+						]}
+					/>
+					<FilterDropdown
 						bind:value={typeFilter}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="all">All Types</option>
-						<option value="Dine-In">Dine-In</option>
-						<option value="Takeaway">Takeaway</option>
-						<option value="Delivery">Delivery</option>
-					</select>
+						placeholder="All Types"
+						allOptionLabel="All Types"
+						options={[
+							{ value: 'Dine-In', label: 'Dine-In' },
+							{ value: 'Takeaway', label: 'Takeaway' },
+							{ value: 'Delivery', label: 'Delivery' }
+						]}
+					/>
 				</div>
 			</div>
 
 			<!-- Orders Table -->
 			<div class="px-6">
-				<div class="rounded-md border">
+				<div class="overflow-x-auto rounded-md border">
 					<Table.Root>
 						<Table.Header>
 							<Table.Row>
@@ -168,7 +175,7 @@
 								<Table.Row>
 									<Table.Cell class="font-medium">
 										<div class="flex items-center gap-2">
-											<IconCheck class="h-4 w-4 text-green-500" />
+											<IconCheck class="h-4 w-4 text-success" />
 											{order.id}
 										</div>
 									</Table.Cell>
@@ -176,8 +183,8 @@
 									<Table.Cell>
 										<Badge variant="outline">{order.type}</Badge>
 									</Table.Cell>
-									<Table.Cell>{order.items} items</Table.Cell>
-									<Table.Cell class="font-medium">${order.total.toFixed(2)}</Table.Cell>
+									<Table.Cell>{order.items} {order.items === 1 ? 'item' : 'items'}</Table.Cell>
+									<Table.Cell class="font-medium">{formatCurrency(order.total)}</Table.Cell>
 									<Table.Cell>{order.paymentMethod}</Table.Cell>
 									<Table.Cell>
 										<div class="text-sm">
@@ -187,10 +194,10 @@
 									</Table.Cell>
 									<Table.Cell class="text-right">
 										<div class="flex justify-end gap-2">
-											<Button variant="ghost" size="sm" onclick={() => viewOrder(order.orderId)}>
+											<Button variant="ghost" size="icon" onclick={() => viewOrder(order.orderId)} aria-label="View order">
 												<IconEye class="h-4 w-4" />
 											</Button>
-											<Button variant="ghost" size="sm" onclick={() => printReceipt(order.id)}>
+											<Button variant="ghost" size="icon" onclick={() => printReceipt(order.orderId)} aria-label="Print receipt">
 												<IconPrinter class="h-4 w-4" />
 											</Button>
 										</div>
@@ -203,11 +210,7 @@
 			</div>
 
 			{#if filteredOrders.length === 0}
-				<div class="flex flex-col items-center justify-center py-12 text-center">
-					<IconReceipt class="h-12 w-12 text-muted-foreground" />
-					<h3 class="mt-4 text-lg font-semibold">No completed orders found</h3>
-					<p class="text-muted-foreground">Try adjusting your search or filter criteria.</p>
-				</div>
+				<EmptyState type="no-results" title="No completed orders" description="Completed orders will appear here." />
 			{/if}
 		</div>
 	</div>

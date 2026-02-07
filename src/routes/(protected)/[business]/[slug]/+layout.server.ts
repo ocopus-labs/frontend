@@ -17,7 +17,6 @@ export const load: LayoutServerLoad = async ({ params, locals, fetch }) => {
 	try {
 		// Fetch real business data from API
 		const { business: businessData, userRole } = await getBusinessBySlug(slug, { fetch });
-		console.log('Fetched business data:', businessData);
 
 		return {
 			business: {

@@ -2,9 +2,8 @@
 	import type { PageData } from './$types';
 	import * as Card from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
-	import AreaChartInteractive from '$lib/components/chart/area-chart-interactive.svelte';
-	import BarChart from '$lib/components/chart/bar-chart.svelte';
-	import PieChart from '$lib/components/chart/pie-chart.svelte';
+	import BarChart from '$lib/components/chart/lazy-bar-chart.svelte';
+	import PieChart from '$lib/components/chart/lazy-pie-chart.svelte';
 	import {
 		IconTrendingUp,
 		IconTrendingDown,
@@ -15,22 +14,19 @@
 	} from '@tabler/icons-svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
+	import type { CurrencyCode } from '$lib/utils/i18n';
 
 	let { data }: { data: PageData } = $props();
 
 	let dateRange = $state(data.dateRange || '7d');
 
-	// Helper to format currency
+	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
+
 	function formatCurrency(value: number): string {
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 0
-		}).format(value);
+		return i18nFormatCurrency(value, currency);
 	}
 
-	// Handle date range change
 	function onDateRangeChange(event: Event) {
 		const select = event.target as HTMLSelectElement;
 		dateRange = select.value;
@@ -39,31 +35,32 @@
 		goto(url.toString(), { replaceState: true });
 	}
 
-	// KPI data from API or fallback
+	// KPI data from API — no dummy fallback
 	let kpiData = $derived.by(() => {
+		const comparison = data.analyticsComparison?.comparison;
 		if (data.stats) {
 			const { orders, payments } = data.stats;
 			return [
 				{
 					title: 'Total Revenue',
 					value: formatCurrency(orders.totalRevenue),
-					change: 0,
+					change: comparison?.revenueChange ?? 0,
 					icon: IconCash,
-					trend: 'up' as const
+					trend: (comparison?.revenueChange ?? 0) >= 0 ? 'up' as const : 'down' as const
 				},
 				{
 					title: 'Total Orders',
 					value: orders.totalOrders.toLocaleString(),
-					change: 0,
+					change: comparison?.ordersChange ?? 0,
 					icon: IconShoppingCart,
-					trend: 'up' as const
+					trend: (comparison?.ordersChange ?? 0) >= 0 ? 'up' as const : 'down' as const
 				},
 				{
 					title: 'Average Order Value',
 					value: formatCurrency(orders.averageOrderValue),
-					change: 0,
+					change: comparison?.aovChange ?? 0,
 					icon: IconTrendingUp,
-					trend: 'up' as const
+					trend: (comparison?.aovChange ?? 0) >= 0 ? 'up' as const : 'down' as const
 				},
 				{
 					title: 'Active Orders',
@@ -74,16 +71,15 @@
 				}
 			];
 		}
-		// Fallback dummy data
 		return [
-			{ title: 'Total Revenue', value: '$48,352', change: 12.5, icon: IconCash, trend: 'up' as const },
-			{ title: 'Total Orders', value: '1,847', change: 8.2, icon: IconShoppingCart, trend: 'up' as const },
-			{ title: 'Average Order Value', value: '$26.18', change: 3.4, icon: IconTrendingUp, trend: 'up' as const },
-			{ title: 'New Customers', value: '234', change: -2.1, icon: IconUsers, trend: 'down' as const }
+			{ title: 'Total Revenue', value: formatCurrency(0), change: 0, icon: IconCash, trend: 'up' as const },
+			{ title: 'Total Orders', value: '0', change: 0, icon: IconShoppingCart, trend: 'up' as const },
+			{ title: 'Average Order Value', value: formatCurrency(0), change: 0, icon: IconTrendingUp, trend: 'up' as const },
+			{ title: 'Active Orders', value: '0', change: 0, icon: IconUsers, trend: 'up' as const }
 		];
 	});
 
-	// Top selling items from API or fallback
+	// Top selling items from API — no dummy fallback
 	let topSellingItems = $derived.by(() => {
 		if (data.topItems && data.topItems.length > 0) {
 			return data.topItems.map((item) => ({
@@ -93,17 +89,10 @@
 				revenue: formatCurrency(item.revenue)
 			}));
 		}
-		// Fallback dummy data
-		return [
-			{ name: 'Margherita Pizza', category: 'Pizza', sold: 342, revenue: '$5,130' },
-			{ name: 'Caesar Salad', category: 'Salads', sold: 256, revenue: '$2,816' },
-			{ name: 'Grilled Salmon', category: 'Main Course', sold: 198, revenue: '$4,950' },
-			{ name: 'Tiramisu', category: 'Desserts', sold: 187, revenue: '$1,309' },
-			{ name: 'Chicken Wings', category: 'Appetizers', sold: 176, revenue: '$1,584' }
-		];
+		return [];
 	});
 
-	// Peak hours from API or fallback
+	// Peak hours from API — no dummy fallback
 	let peakHours = $derived.by(() => {
 		if (data.peakHours && data.peakHours.length > 0) {
 			const maxOrders = Math.max(...data.peakHours.map((h) => h.orderCount));
@@ -114,16 +103,27 @@
 				percentage: maxOrders > 0 ? (hour.orderCount / maxOrders) * 100 : 0
 			}));
 		}
-		// Fallback dummy data
-		return [
-			{ hour: '11:00 AM', orders: 45, revenue: '$1,180', percentage: 33.6 },
-			{ hour: '12:00 PM', orders: 89, revenue: '$2,336', percentage: 66.4 },
-			{ hour: '1:00 PM', orders: 112, revenue: '$2,912', percentage: 83.6 },
-			{ hour: '6:00 PM', orders: 78, revenue: '$2,028', percentage: 58.2 },
-			{ hour: '7:00 PM', orders: 134, revenue: '$3,484', percentage: 100 },
-			{ hour: '8:00 PM', orders: 98, revenue: '$2,548', percentage: 73.1 }
-		];
+		return [];
 	});
+
+	// Revenue trends for chart
+	const revenueTrendsData = $derived(data.revenueTrends || []);
+
+	// Hourly breakdown for chart
+	const hourlyChartData = $derived(
+		(data.hourlyBreakdown || []).map((h: any) => ({
+			...h,
+			hour: `${h.hour}:00`
+		}))
+	);
+
+	// Payment breakdown for pie chart
+	const paymentChartData = $derived(
+		(data.paymentBreakdown || []).map((p: any) => ({
+			method: p.method.replace('_', ' '),
+			amount: p.amount
+		}))
+	);
 </script>
 
 <div class="flex flex-1 flex-col">
@@ -163,21 +163,20 @@
 						<Card.Content>
 							<div class="text-2xl font-bold">{kpi.value}</div>
 							<p class="text-xs text-muted-foreground">
-								{#if kpi.trend === 'up'}
-									<span class="text-green-600">+{kpi.change}%</span>
+								{#if kpi.change !== 0}
+									{#if kpi.trend === 'up'}
+										<span class="text-success">+{kpi.change}%</span>
+									{:else}
+										<span class="text-destructive">{kpi.change}%</span>
+									{/if}
+									from last period
 								{:else}
-									<span class="text-red-600">{kpi.change}%</span>
+									<span class="text-muted-foreground">No comparison data</span>
 								{/if}
-								from last period
 							</p>
 						</Card.Content>
 					</Card.Root>
 				{/each}
-			</div>
-
-			<!-- Charts Section -->
-			<div class="px-6">
-				<AreaChartInteractive />
 			</div>
 
 			<div class="grid grid-cols-1 gap-4 px-6 lg:grid-cols-2">
@@ -188,27 +187,31 @@
 						<Card.Description>Best performers this period</Card.Description>
 					</Card.Header>
 					<Card.Content>
-						<div class="space-y-4">
-							{#each topSellingItems as item, i}
-								<div class="flex items-center justify-between">
-									<div class="flex items-center gap-3">
-										<div
-											class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-medium"
-										>
-											{i + 1}
+						{#if topSellingItems.length > 0}
+							<div class="space-y-4">
+								{#each topSellingItems as item, i}
+									<div class="flex items-center justify-between">
+										<div class="flex items-center gap-3">
+											<div
+												class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-medium"
+											>
+												{i + 1}
+											</div>
+											<div>
+												<p class="font-medium">{item.name}</p>
+												<p class="text-sm text-muted-foreground">{item.category}</p>
+											</div>
 										</div>
-										<div>
-											<p class="font-medium">{item.name}</p>
-											<p class="text-sm text-muted-foreground">{item.category}</p>
+										<div class="text-right">
+											<p class="font-medium">{item.revenue}</p>
+											<p class="text-sm text-muted-foreground">{item.sold} sold</p>
 										</div>
 									</div>
-									<div class="text-right">
-										<p class="font-medium">{item.revenue}</p>
-										<p class="text-sm text-muted-foreground">{item.sold} sold</p>
-									</div>
-								</div>
-							{/each}
-						</div>
+								{/each}
+							</div>
+						{:else}
+							<p class="py-8 text-center text-sm text-muted-foreground">No data for this period</p>
+						{/if}
 					</Card.Content>
 				</Card.Root>
 
@@ -219,33 +222,61 @@
 						<Card.Description>Busiest times of the day</Card.Description>
 					</Card.Header>
 					<Card.Content>
-						<div class="space-y-4">
-							{#each peakHours as hour}
-								<div class="flex items-center justify-between">
-									<div class="flex items-center gap-3">
-										<div class="w-20 text-sm font-medium">{hour.hour}</div>
-										<div class="h-2 flex-1 rounded-full bg-muted">
-											<div
-												class="h-full rounded-full bg-primary"
-												style="width: {hour.percentage}%"
-											></div>
+						{#if peakHours.length > 0}
+							<div class="space-y-4">
+								{#each peakHours as hour}
+									<div class="flex items-center justify-between">
+										<div class="flex items-center gap-3">
+											<div class="w-20 text-sm font-medium">{hour.hour}</div>
+											<div class="h-2 flex-1 rounded-full bg-muted">
+												<div
+													class="h-full rounded-full bg-primary"
+													style="width: {hour.percentage}%"
+												></div>
+											</div>
+										</div>
+										<div class="ml-4 text-right">
+											<p class="font-medium">{hour.orders} orders</p>
+											<p class="text-sm text-muted-foreground">{hour.revenue}</p>
 										</div>
 									</div>
-									<div class="ml-4 text-right">
-										<p class="font-medium">{hour.orders} orders</p>
-										<p class="text-sm text-muted-foreground">{hour.revenue}</p>
-									</div>
-								</div>
-							{/each}
-						</div>
+								{/each}
+							</div>
+						{:else}
+							<p class="py-8 text-center text-sm text-muted-foreground">No data for this period</p>
+						{/if}
 					</Card.Content>
 				</Card.Root>
 			</div>
 
 			<div class="grid grid-cols-1 gap-4 px-6 sm:grid-cols-2 lg:grid-cols-3">
-				<BarChart />
-				<BarChart />
-				<PieChart />
+				<BarChart
+					title="Revenue Trends"
+					description="Revenue over time"
+					data={revenueTrendsData}
+					xKey="date"
+					series={[
+						{ key: 'revenue', label: 'Revenue', color: 'var(--chart-1)' },
+						{ key: 'orders', label: 'Orders', color: 'var(--chart-2)' }
+					]}
+				/>
+				<BarChart
+					title="Orders by Hour"
+					description="Hourly distribution"
+					data={hourlyChartData}
+					xKey="hour"
+					series={[
+						{ key: 'orders', label: 'Orders', color: 'var(--chart-3)' },
+						{ key: 'revenue', label: 'Revenue', color: 'var(--chart-4)' }
+					]}
+				/>
+				<PieChart
+					title="Payment Methods"
+					description="Revenue by payment type"
+					data={paymentChartData}
+					labelKey="method"
+					valueKey="amount"
+				/>
 			</div>
 		</div>
 	</div>

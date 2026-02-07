@@ -6,7 +6,9 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/ui/dialog';
-	import { Loader2 } from '@lucide/svelte';
+	import { IconLoader2 } from '@tabler/icons-svelte';
+	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
+	import PageHeader from '$lib/components/global/page-header.svelte';
 	import {
 		IconPlus,
 		IconPencil,
@@ -17,6 +19,7 @@
 		IconX
 	} from '@tabler/icons-svelte';
 	import { toast } from 'svelte-sonner';
+	import { EmptyState, StatusPill } from '$lib/components/data-display';
 	import {
 		createExpense,
 		updateExpense,
@@ -25,11 +28,20 @@
 		rejectExpense,
 		type Expense,
 		type ExpenseCategory,
-		type PaymentMethod as ExpensePaymentMethod,
+		type ExpensePaymentMethod,
 		type CreateExpensePayload
 	} from '$lib/api';
+	import { formatCurrency as i18nFormatCurrency, CURRENCY_CONFIG } from '$lib/utils/i18n';
+	import type { CurrencyCode } from '$lib/utils/i18n';
+	import { userFriendlyError } from '$lib/utils/error';
 
 	let { data }: { data: PageData } = $props();
+
+	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
+
+	function formatCurrency(amount: number): string {
+		return i18nFormatCurrency(amount, currency);
+	}
 
 	let expenses = $state<Expense[]>(data.expenses || []);
 	let categories = $state<ExpenseCategory[]>(data.categories || []);
@@ -37,6 +49,8 @@
 	let showAddDialog = $state(false);
 	let editingExpense = $state<Expense | null>(null);
 	let isSubmitting = $state(false);
+	let rejectDialogOpen = $state(false);
+	let rejectTargetId = $state('');
 
 	let newExpense = $state<{
 		title: string;
@@ -135,7 +149,7 @@
 				notes: ''
 			};
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to add expense');
+			toast.error(userFriendlyError(error, 'Failed to add expense'));
 		} finally {
 			isSubmitting = false;
 		}
@@ -162,7 +176,7 @@
 			toast.success('Expense updated successfully');
 			editingExpense = null;
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to update expense');
+			toast.error(userFriendlyError(error, 'Failed to update expense'));
 		} finally {
 			isSubmitting = false;
 		}
@@ -174,7 +188,7 @@
 			expenses = expenses.filter((e) => e.id !== id);
 			toast.success('Expense deleted successfully');
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to delete expense');
+			toast.error(userFriendlyError(error, 'Failed to delete expense'));
 		}
 	}
 
@@ -184,35 +198,38 @@
 			expenses = expenses.map((e) => (e.id === id ? result.expense : e));
 			toast.success('Expense approved');
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to approve expense');
+			toast.error(userFriendlyError(error, 'Failed to approve expense'));
 		}
 	}
 
-	async function handleReject(id: string) {
-		const reason = prompt('Please enter rejection reason:');
-		if (!reason) return;
+	function handleReject(id: string) {
+		rejectTargetId = id;
+		rejectDialogOpen = true;
+	}
 
+	async function confirmReject(reason?: string) {
+		if (!reason) return;
 		try {
-			const result = await rejectExpense(data.businessId, id, { reason });
-			expenses = expenses.map((e) => (e.id === id ? result.expense : e));
+			const result = await rejectExpense(data.businessId, rejectTargetId, { reason });
+			expenses = expenses.map((e) => (e.id === rejectTargetId ? result.expense : e));
 			toast.success('Expense rejected');
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to reject expense');
+			toast.error(userFriendlyError(error, 'Failed to reject expense'));
 		}
 	}
 
 	function getStatusBadge(status: string) {
 		switch (status) {
 			case 'pending':
-				return { class: 'bg-yellow-100 text-yellow-800', text: 'Pending' };
+				return { class: 'bg-warning/10 text-warning-foreground dark:text-warning', text: 'Pending' };
 			case 'approved':
-				return { class: 'bg-green-100 text-green-800', text: 'Approved' };
+				return { class: 'bg-success/10 text-success', text: 'Approved' };
 			case 'rejected':
-				return { class: 'bg-red-100 text-red-800', text: 'Rejected' };
+				return { class: 'bg-destructive/10 text-destructive', text: 'Rejected' };
 			case 'paid':
-				return { class: 'bg-blue-100 text-blue-800', text: 'Paid' };
+				return { class: 'bg-info/10 text-info', text: 'Paid' };
 			default:
-				return { class: 'bg-gray-100 text-gray-800', text: status };
+				return { class: 'bg-muted text-muted-foreground', text: status };
 		}
 	}
 </script>
@@ -220,12 +237,8 @@
 <div class="flex flex-1 flex-col">
 	<div class="@container/main flex flex-1 flex-col gap-4">
 		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
-				<div>
-					<h1 class="text-2xl font-bold">Daily Expenses</h1>
-					<p class="text-muted-foreground">Track and manage daily business expenses</p>
-				</div>
-				<div class="flex gap-2">
+			<PageHeader title="Daily Expenses" description="Track and manage daily business expenses">
+				{#snippet actions()}
 					<div class="flex items-center gap-2">
 						<IconCalendar class="h-5 w-5 text-muted-foreground" />
 						<Input type="date" value={selectedDate} onchange={handleDateChange} class="w-auto" />
@@ -234,8 +247,8 @@
 						<IconPlus class="mr-2 h-4 w-4" />
 						Add Expense
 					</Button>
-				</div>
-			</div>
+				{/snippet}
+			</PageHeader>
 
 			<!-- Daily Summary -->
 			<div class="grid grid-cols-1 gap-4 px-6 lg:grid-cols-4">
@@ -244,7 +257,7 @@
 						<Card.Title class="text-sm font-medium">Daily Total</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-3xl font-bold text-red-600">${dailyTotal.toFixed(2)}</div>
+						<div class="text-3xl font-bold text-destructive">{formatCurrency(dailyTotal)}</div>
 						<p class="text-sm text-muted-foreground">{expenses.length} transactions</p>
 					</Card.Content>
 				</Card.Root>
@@ -258,7 +271,7 @@
 							{#each categoryTotals as cat}
 								<div class="rounded-lg px-3 py-2" style="background-color: {cat.color}20;">
 									<p class="text-xs text-muted-foreground">{cat.category}</p>
-									<p class="font-semibold">${cat.total.toFixed(2)}</p>
+									<p class="font-semibold">{formatCurrency(cat.total)}</p>
 								</div>
 							{/each}
 							{#if categoryTotals.length === 0}
@@ -272,7 +285,7 @@
 			<!-- Expenses Table -->
 			{#if expenses.length > 0}
 				<div class="px-6">
-					<div class="rounded-md border">
+					<div class="overflow-x-auto rounded-md border">
 						<Table.Root>
 							<Table.Header>
 								<Table.Row>
@@ -315,37 +328,40 @@
 												{getStatusBadge(expense.status).text}
 											</span>
 										</Table.Cell>
-										<Table.Cell class="font-medium text-red-600">
-											-${expense.amount.toFixed(2)}
+										<Table.Cell class="font-medium text-destructive">
+											-{formatCurrency(expense.amount)}
 										</Table.Cell>
 										<Table.Cell class="text-right">
 											<div class="flex justify-end gap-1">
 												{#if expense.status === 'pending'}
 													<Button
 														variant="ghost"
-														size="sm"
-														class="h-8 w-8 p-0 text-green-600"
+														size="icon"
+														class="text-success"
 														onclick={() => handleApprove(expense.id)}
+													aria-label="Approve expense"
 													>
 														<IconCheck class="h-4 w-4" />
 													</Button>
 													<Button
 														variant="ghost"
-														size="sm"
-														class="h-8 w-8 p-0 text-red-600"
+														size="icon"
+														class="text-destructive"
 														onclick={() => handleReject(expense.id)}
+													aria-label="Reject expense"
 													>
 														<IconX class="h-4 w-4" />
 													</Button>
 												{/if}
-												<Button variant="ghost" size="sm" onclick={() => editExpense(expense)}>
+												<Button variant="ghost" size="icon" onclick={() => editExpense(expense)} aria-label="Edit expense">
 													<IconPencil class="h-4 w-4" />
 												</Button>
 												<Button
 													variant="ghost"
-													size="sm"
+													size="icon"
 													class="text-destructive hover:text-destructive"
 													onclick={() => handleDeleteExpense(expense.id)}
+												aria-label="Delete expense"
 												>
 													<IconTrash class="h-4 w-4" />
 												</Button>
@@ -358,16 +374,27 @@
 					</div>
 				</div>
 			{:else}
-				<div class="flex flex-col items-center justify-center py-12 text-center">
-					<IconReceipt class="h-12 w-12 text-muted-foreground" />
-					<h3 class="mt-4 text-lg font-semibold">No expenses for this day</h3>
-					<p class="text-muted-foreground">Add an expense to start tracking.</p>
-					<Button class="mt-4" onclick={() => (showAddDialog = true)}>
-						<IconPlus class="mr-2 h-4 w-4" />
-						Add Expense
-					</Button>
-				</div>
+				<EmptyState
+					type="no-data"
+					title="No expenses for this day"
+					description="Add an expense to start tracking."
+					actionLabel="Add Expense"
+					onAction={() => (showAddDialog = true)}
+				/>
 			{/if}
+			<div class="px-6">
+						<div class="flex items-center justify-between border-t pt-4">
+				<p class="text-sm text-muted-foreground">
+					Showing {Math.min((data.page - 1) * data.limit + 1, data.total)} to {Math.min(data.page * data.limit, data.total)} of {data.total} results
+				</p>
+				<div class="flex gap-1">
+					<Button size="sm" variant="outline" disabled={data.page <= 1}
+						onclick={() => goto(`?page=${data.page - 1}&limit=${data.limit}&date=${{selectedDate}}`)}>Previous</Button>
+					<Button size="sm" variant="outline" disabled={data.page >= data.totalPages}
+						onclick={() => goto(`?page=${data.page + 1}&limit=${data.limit}&date=${{selectedDate}}`)}>Next</Button>
+				</div>
+			</div>
+			</div>
 		</div>
 	</div>
 </div>
@@ -382,7 +409,7 @@
 		<div class="grid gap-4 py-4">
 			<div class="grid gap-2">
 				<label for="title" class="text-sm font-medium">Title *</label>
-				<Input id="title" bind:value={newExpense.title} placeholder="What was this expense for?" />
+				<Input id="title" autofocus bind:value={newExpense.title} placeholder="What was this expense for?" />
 			</div>
 			<div class="grid grid-cols-2 gap-4">
 				<div class="grid gap-2">
@@ -401,7 +428,7 @@
 				<div class="grid gap-2">
 					<label for="amount" class="text-sm font-medium">Amount *</label>
 					<div class="relative">
-						<span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+						<span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{CURRENCY_CONFIG[currency]?.symbol || '$'}</span>
 						<Input
 							id="amount"
 							type="number"
@@ -448,7 +475,7 @@
 			</Button>
 			<Button onclick={addExpense} disabled={isSubmitting}>
 				{#if isSubmitting}
-					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+					<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
 				{/if}
 				Add Expense
 			</Button>
@@ -467,7 +494,7 @@
 			<div class="grid gap-4 py-4">
 				<div class="grid gap-2">
 					<label for="edit-title" class="text-sm font-medium">Title</label>
-					<Input id="edit-title" bind:value={editingExpense.title} />
+					<Input id="edit-title" autofocus bind:value={editingExpense.title} />
 				</div>
 				<div class="grid grid-cols-2 gap-4">
 					<div class="grid gap-2">
@@ -508,7 +535,7 @@
 				</Button>
 				<Button onclick={saveExpense} disabled={isSubmitting}>
 					{#if isSubmitting}
-						<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+						<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
 					{/if}
 					Save Changes
 				</Button>
@@ -516,3 +543,16 @@
 		{/if}
 	</Dialog.Content>
 </Dialog.Root>
+
+<ConfirmDialog
+	bind:open={rejectDialogOpen}
+	title="Reject Expense"
+	description="Please provide a reason for rejecting this expense."
+	confirmLabel="Reject Expense"
+	variant="destructive"
+	showInput={true}
+	inputLabel="Rejection reason"
+	inputPlaceholder="Enter rejection reason"
+	inputRequired={true}
+	onConfirm={confirmReject}
+/>

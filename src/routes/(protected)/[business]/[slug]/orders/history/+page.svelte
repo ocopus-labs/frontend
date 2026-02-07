@@ -6,17 +6,32 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Card from '$lib/components/ui/card';
 	import {
-		IconSearch,
 		IconEye,
 		IconDownload,
-		IconCalendar,
-		IconRefresh
+		IconRefresh,
+		IconChevronLeft,
+		IconChevronRight
 	} from '@tabler/icons-svelte';
+	import { SearchInput, FilterDropdown } from '$lib/components/search';
+	import { EmptyState, StatusPill } from '$lib/components/data-display';
+	import PageHeader from '$lib/components/global/page-header.svelte';
+	import { toast } from 'svelte-sonner';
 	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import type { Order } from '$lib/api/order';
+	import { exportOrders } from '$lib/api/order';
+	import { downloadBlob } from '$lib/utils/export';
+	import { userFriendlyError } from '$lib/utils/error';
+	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
+	import type { CurrencyCode } from '$lib/utils/i18n';
 
 	let { data }: { data: PageData } = $props();
+
+	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
+
+	function formatCurrency(amount: number): string {
+		return i18nFormatCurrency(amount, currency);
+	}
 
 	// Transform API orders to display format
 	let orders = $derived(
@@ -71,18 +86,13 @@
 			.reduce((sum, o) => sum + o.total, 0)
 	});
 
-	function getStatusBadge(status: string) {
+	function getStatusPillStatus(status: string): 'success' | 'warning' | 'error' | 'info' | 'neutral' {
 		switch (status) {
-			case 'completed':
-				return { variant: 'default' as const, text: 'Completed' };
-			case 'cancelled':
-				return { variant: 'destructive' as const, text: 'Cancelled' };
-			case 'refunded':
-				return { variant: 'secondary' as const, text: 'Refunded' };
-			case 'active':
-				return { variant: 'outline' as const, text: 'Active' };
-			default:
-				return { variant: 'outline' as const, text: status };
+			case 'completed': return 'success';
+			case 'cancelled': return 'error';
+			case 'refunded': return 'warning';
+			case 'active': return 'info';
+			default: return 'neutral';
 		}
 	}
 
@@ -90,8 +100,18 @@
 		goto(`/${$page.params.business}/${$page.params.slug}/orders/${orderId}`);
 	}
 
-	function exportHistory() {
-		console.log('Export order history');
+	async function exportHistory() {
+		try {
+			const blob = await exportOrders(data.businessId, {
+				status: statusFilter !== 'all' ? statusFilter : undefined,
+				startDate: startDate || undefined,
+				endDate: endDate || undefined
+			});
+			downloadBlob(blob, `orders-${new Date().toISOString().split('T')[0]}.csv`);
+			toast.success('Orders exported successfully');
+		} catch (err) {
+			toast.error(userFriendlyError(err, 'Failed to export orders'));
+		}
 	}
 
 	async function refreshOrders() {
@@ -100,12 +120,27 @@
 		isRefreshing = false;
 	}
 
+	const paginationLimit = $derived(data.pagination?.limit || 50);
+	const paginationOffset = $derived(data.pagination?.offset || 0);
+	const totalOrders = $derived(data.total || 0);
+	const currentPage = $derived(Math.floor(paginationOffset / paginationLimit) + 1);
+	const totalPages = $derived(Math.max(1, Math.ceil(totalOrders / paginationLimit)));
+
 	function applyDateFilter() {
 		const url = new URL($page.url);
 		if (startDate) url.searchParams.set('from', startDate);
 		else url.searchParams.delete('from');
 		if (endDate) url.searchParams.set('to', endDate);
 		else url.searchParams.delete('to');
+		url.searchParams.delete('offset');
+		goto(url.toString(), { replaceState: true });
+	}
+
+	function goToPage(pageNum: number) {
+		const url = new URL($page.url);
+		const newOffset = (pageNum - 1) * paginationLimit;
+		if (newOffset > 0) url.searchParams.set('offset', String(newOffset));
+		else url.searchParams.delete('offset');
 		goto(url.toString(), { replaceState: true });
 	}
 </script>
@@ -113,12 +148,8 @@
 <div class="flex flex-1 flex-col">
 	<div class="@container/main flex flex-1 flex-col gap-4">
 		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
-				<div>
-					<h1 class="text-2xl font-bold">Order History</h1>
-					<p class="text-muted-foreground">Complete history of all orders</p>
-				</div>
-				<div class="flex gap-2">
+			<PageHeader title="Order History" description="Complete history of all orders">
+				{#snippet actions()}
 					<Button variant="outline" size="sm" onclick={refreshOrders} disabled={isRefreshing}>
 						<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
 						Refresh
@@ -127,8 +158,8 @@
 						<IconDownload class="mr-2 h-4 w-4" />
 						Export History
 					</Button>
-				</div>
-			</div>
+				{/snippet}
+			</PageHeader>
 
 			<!-- Stats Cards -->
 			<div class="grid grid-cols-2 gap-4 px-6 sm:grid-cols-4">
@@ -145,7 +176,7 @@
 						<Card.Title class="text-sm font-medium">Completed</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold text-green-600">{stats.completed}</div>
+						<div class="text-2xl font-bold text-success">{stats.completed}</div>
 					</Card.Content>
 				</Card.Root>
 				<Card.Root>
@@ -153,7 +184,7 @@
 						<Card.Title class="text-sm font-medium">Cancelled/Refunded</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold text-red-600">{stats.cancelled + stats.refunded}</div>
+						<div class="text-2xl font-bold text-destructive">{stats.cancelled + stats.refunded}</div>
 					</Card.Content>
 				</Card.Root>
 				<Card.Root>
@@ -161,7 +192,7 @@
 						<Card.Title class="text-sm font-medium">Revenue</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold">${stats.revenue.toFixed(2)}</div>
+						<div class="text-2xl font-bold">{formatCurrency(stats.revenue)}</div>
 					</Card.Content>
 				</Card.Root>
 			</div>
@@ -169,43 +200,42 @@
 			<!-- Filters -->
 			<div class="flex flex-col gap-4 px-6">
 				<div class="flex flex-col gap-4 sm:flex-row sm:items-center">
-					<div class="relative max-w-sm flex-1">
-						<IconSearch
-							class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-						/>
-						<Input placeholder="Search orders..." bind:value={searchQuery} class="pl-9" />
-					</div>
-
+					<SearchInput
+						bind:value={searchQuery}
+						placeholder="Search orders..."
+						debounceMs={300}
+						class="max-w-sm"
+					/>
 					<div class="flex flex-wrap gap-2">
-						<select
+						<FilterDropdown
 							bind:value={statusFilter}
-							class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-						>
-							<option value="all">All Status</option>
-							<option value="completed">Completed</option>
-							<option value="cancelled">Cancelled</option>
-							<option value="refunded">Refunded</option>
-						</select>
-
-						<select
+							placeholder="All Status"
+							allOptionLabel="All Status"
+							options={[
+								{ value: 'completed', label: 'Completed' },
+								{ value: 'cancelled', label: 'Cancelled' },
+								{ value: 'refunded', label: 'Refunded' }
+							]}
+						/>
+						<FilterDropdown
 							bind:value={typeFilter}
-							class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-						>
-							<option value="all">All Types</option>
-							<option value="Dine-In">Dine-In</option>
-							<option value="Takeaway">Takeaway</option>
-							<option value="Delivery">Delivery</option>
-						</select>
-
-						<Input type="date" bind:value={startDate} class="w-auto" placeholder="Start date" />
-						<Input type="date" bind:value={endDate} class="w-auto" placeholder="End date" />
+							placeholder="All Types"
+							allOptionLabel="All Types"
+							options={[
+								{ value: 'Dine-In', label: 'Dine-In' },
+								{ value: 'Takeaway', label: 'Takeaway' },
+								{ value: 'Delivery', label: 'Delivery' }
+							]}
+						/>
+						<Input type="date" bind:value={startDate} class="w-auto" placeholder="Start date" onchange={applyDateFilter} />
+						<Input type="date" bind:value={endDate} class="w-auto" placeholder="End date" onchange={applyDateFilter} />
 					</div>
 				</div>
 			</div>
 
 			<!-- Orders Table -->
 			<div class="px-6">
-				<div class="rounded-md border">
+				<div class="overflow-x-auto rounded-md border">
 					<Table.Root>
 						<Table.Header>
 							<Table.Row>
@@ -232,11 +262,12 @@
 											{order.items.join(', ')}
 										</div>
 									</Table.Cell>
-									<Table.Cell class="font-medium">${order.total.toFixed(2)}</Table.Cell>
+									<Table.Cell class="font-medium">{formatCurrency(order.total)}</Table.Cell>
 									<Table.Cell>
-										<Badge variant={getStatusBadge(order.status).variant}>
-											{getStatusBadge(order.status).text}
-										</Badge>
+										<StatusPill
+											label={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+											status={getStatusPillStatus(order.status)}
+										/>
 									</Table.Cell>
 									<Table.Cell>
 										<div class="text-sm">
@@ -245,7 +276,7 @@
 										</div>
 									</Table.Cell>
 									<Table.Cell class="text-right">
-										<Button variant="ghost" size="sm" onclick={() => viewOrder(order.orderId)}>
+										<Button variant="ghost" size="icon" onclick={() => viewOrder(order.orderId)} aria-label="View order">
 											<IconEye class="h-4 w-4" />
 										</Button>
 									</Table.Cell>
@@ -257,10 +288,38 @@
 			</div>
 
 			{#if filteredOrders.length === 0}
-				<div class="flex flex-col items-center justify-center py-12 text-center">
-					<IconCalendar class="h-12 w-12 text-muted-foreground" />
-					<h3 class="mt-4 text-lg font-semibold">No orders found</h3>
-					<p class="text-muted-foreground">Try adjusting your search or filter criteria.</p>
+				<EmptyState type="no-results" title="No orders found" description="Try adjusting your filters or date range." />
+			{/if}
+
+			<!-- Pagination -->
+			{#if totalPages > 1}
+				<div class="flex items-center justify-between px-6">
+					<p class="text-sm text-muted-foreground">
+						Showing {paginationOffset + 1}–{Math.min(paginationOffset + paginationLimit, totalOrders)} of {totalOrders} orders
+					</p>
+					<div class="flex items-center gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={currentPage <= 1}
+							onclick={() => goToPage(currentPage - 1)}
+						>
+							<IconChevronLeft class="mr-1 h-4 w-4" />
+							Previous
+						</Button>
+						<span class="text-sm">
+							Page {currentPage} of {totalPages}
+						</span>
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={currentPage >= totalPages}
+							onclick={() => goToPage(currentPage + 1)}
+						>
+							Next
+							<IconChevronRight class="ml-1 h-4 w-4" />
+						</Button>
+					</div>
 				</div>
 			{/if}
 		</div>

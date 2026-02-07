@@ -4,23 +4,35 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
-	import { PaymentDialog, ReceiptDialog } from '$lib/components/pos';
+	import { PaymentDialog, ReceiptDialog, RefundDialog } from '$lib/components/pos';
 	import {
 		IconArrowLeft,
 		IconCash,
 		IconPrinter,
 		IconReceipt,
-		IconClock
+		IconClock,
+		IconReceiptRefund,
+		IconHistory
 	} from '@tabler/icons-svelte';
 	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
-	import { createPayment, type PaymentMethod, type Payment } from '$lib/api';
-	import { createI18nUtils } from '$lib/utils/i18n';
+	import {
+		createPayment,
+		createSplitPayment,
+		processRefund,
+		type PaymentMethod,
+		type Payment
+	} from '$lib/api';
+	import { createI18nUtils, currencyToRegion } from '$lib/utils/i18n';
+	import { userFriendlyError } from '$lib/utils/error';
 
 	let { data }: { data: PageData } = $props();
 
-	const i18n = createI18nUtils('in');
+	const region = $derived(
+		currencyToRegion(($page.data.business as any)?.settings?.currency || 'USD')
+	);
+	const i18n = $derived(createI18nUtils(region));
 
 	// Payment dialog state
 	let showPaymentDialog = $state(false);
@@ -33,6 +45,22 @@
 	const order = $derived(data.order);
 	const payments = $derived(data.payments as Payment[]);
 	const balanceDue = $derived(order ? Number(order.balanceDue) : 0);
+
+	// Auto-print handler (4.1) — checks for ?print=true URL param
+	$effect(() => {
+		const shouldPrint = $page.url.searchParams.get('print');
+		if (shouldPrint === 'true' && payments.length > 0) {
+			// Remove the print param from URL
+			const url = new URL($page.url);
+			url.searchParams.delete('print');
+			history.replaceState({}, '', url.toString());
+
+			// Open receipt for latest payment
+			const latestPayment = payments[payments.length - 1];
+			selectedPaymentId = latestPayment.id;
+			showReceiptDialog = true;
+		}
+	});
 
 	function formatOrderType(type: string): string {
 		switch (type) {
@@ -81,8 +109,13 @@
 		}
 	}
 
+	// Back button with history fallback (3.1)
 	function goBack() {
-		goto(`/${$page.params.business}/${$page.params.slug}/orders/pending`);
+		if (history.length > 1) {
+			history.back();
+		} else {
+			goto(`/${$page.params.business}/${$page.params.slug}/orders/pending`);
+		}
 	}
 
 	function openPaymentDialog() {
@@ -111,7 +144,10 @@
 			});
 
 			if (result.change && result.change > 0) {
-				toast.success(`Payment complete! Change: ${i18n.formatCurrency(result.change)}`);
+				toast.success(`Payment complete! Change: ${i18n.formatCurrency(result.change)}`, {
+					duration: 10000,
+					closeButton: true
+				});
 			} else {
 				toast.success('Payment processed successfully!');
 			}
@@ -129,6 +165,42 @@
 		} catch (error) {
 			console.error('Failed to process payment:', error);
 			toast.error('Failed to process payment. Please try again.');
+		} finally {
+			isProcessingPayment = false;
+		}
+	}
+
+	async function handleSplitPaymentComplete(result: {
+		payments: { method: PaymentMethod; amount: number; cashReceived?: number }[];
+		remainingBalance: number;
+	}) {
+		if (!order) return;
+
+		isProcessingPayment = true;
+
+		try {
+			const businessId = $page.data.business.id;
+
+			const paymentResult = await createSplitPayment(businessId, {
+				orderId: order.id,
+				payments: result.payments.map((p) => ({
+					amount: p.amount,
+					method: p.method,
+					cashReceived: p.cashReceived
+				}))
+			});
+
+			toast.success('Split payment processed successfully!');
+
+			if (paymentResult.remainingBalance <= 0) {
+				showPaymentDialog = false;
+				toast.success('Order fully paid!');
+			}
+
+			await invalidate('app:order');
+			await invalidate((url) => url.pathname.includes('/orders/'));
+		} catch (error: any) {
+			toast.error(userFriendlyError(error, 'Failed to process split payment.'));
 		} finally {
 			isProcessingPayment = false;
 		}
@@ -157,15 +229,107 @@
 		showReceiptDialog = false;
 		selectedPaymentId = '';
 	}
+
+	// Refund state
+	let showRefundDialog = $state(false);
+	let refundPayment = $state<Payment | null>(null);
+	let isProcessingRefund = $state(false);
+
+	function openRefundDialog(payment: Payment) {
+		refundPayment = payment;
+		showRefundDialog = true;
+	}
+
+	async function handleRefundComplete(result: { refundAmount: number }) {
+		if (!refundPayment) return;
+
+		isProcessingRefund = true;
+
+		try {
+			const businessId = $page.data.business.id;
+
+			await processRefund(businessId, refundPayment.id, {
+				amount: result.refundAmount,
+				reason: '',
+				refundMethod: refundPayment.method
+			});
+
+			toast.success(
+				`Refund of ${i18n.formatCurrency(result.refundAmount)} processed successfully!`
+			);
+			showRefundDialog = false;
+			refundPayment = null;
+
+			// Refresh the page data
+			await invalidate('app:order');
+			await invalidate((url) => url.pathname.includes('/orders/'));
+		} catch (error: any) {
+			toast.error(userFriendlyError(error, 'Failed to process refund. Please try again.'));
+		} finally {
+			isProcessingRefund = false;
+		}
+	}
+
+	function handleRefundCancel() {
+		showRefundDialog = false;
+		refundPayment = null;
+	}
+
+	// Format relative time for audit trail
+	function formatRelativeTime(dateStr: string): string {
+		const date = new Date(dateStr);
+		const now = new Date();
+		const diffMs = now.getTime() - date.getTime();
+		const diffMins = Math.floor(diffMs / 60000);
+		if (diffMins < 1) return 'Just now';
+		if (diffMins < 60) return `${diffMins}m ago`;
+		const diffHours = Math.floor(diffMins / 60);
+		if (diffHours < 24) return `${diffHours}h ago`;
+		return date.toLocaleDateString();
+	}
 </script>
 
-<div class="flex flex-1 flex-col">
+<div class="flex flex-1 flex-col p-4 pt-0! md:p-6 lg:p-8">
+	{#if showPaymentDialog}
+		<PaymentDialog
+			open={showPaymentDialog}
+			orderNumber={order?.orderNumber || ''}
+			totalAmount={order ? order.pricing.total : 0}
+			orderId={order?.id || ''}
+			{balanceDue}
+			onPaymentComplete={handlePaymentComplete}
+			onSplitPaymentComplete={handleSplitPaymentComplete}
+			onCancel={handlePaymentCancel}
+			isProcessing={isProcessingPayment}
+		/>
+	{/if}
+
+	{#if showReceiptDialog && selectedPaymentId}
+		<ReceiptDialog
+			open={showReceiptDialog}
+			paymentId={selectedPaymentId}
+			onClose={handleReceiptClose}
+		/>
+	{/if}
+
+	{#if showRefundDialog && refundPayment}
+		<RefundDialog
+			paymentId={refundPayment.id}
+			paymentNumber={refundPayment.paymentNumber}
+			paymentAmount={refundPayment.amount}
+			open={showRefundDialog}
+			paymentMethod={refundPayment.method}
+			onRefundComplete={handleRefundComplete}
+			onCancel={handleRefundCancel}
+			isProcessing={isProcessingRefund}
+		/>
+	{/if}
 	<div class="@container/main flex flex-1 flex-col gap-4">
 		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
 			<!-- Header -->
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-4">
-					<Button variant="ghost" size="icon" onclick={goBack}>
+					<Button variant="ghost" size="icon" onclick={goBack} aria-label="Go back">
 						<IconArrowLeft class="h-5 w-5" />
 					</Button>
 					<div>
@@ -251,7 +415,7 @@
 							</div>
 							<div class="flex justify-between">
 								<span class="text-muted-foreground">Paid</span>
-								<span class="font-medium text-green-600"
+								<span class="font-medium text-success"
 									>{i18n.formatCurrency(data.totalPaid || 0)}</span
 								>
 							</div>
@@ -281,7 +445,7 @@
 								</div>
 							{/if}
 							{#if order.pricing.discountAmount > 0}
-								<div class="flex justify-between text-green-600">
+								<div class="flex justify-between text-success">
 									<span>Discount</span>
 									<span>-{i18n.formatCurrency(order.pricing.discountAmount)}</span>
 								</div>
@@ -330,8 +494,7 @@
 											{/if}
 										</Table.Cell>
 										<Table.Cell class="text-center">{item.quantity}</Table.Cell>
-										<Table.Cell class="text-right"
-											>{i18n.formatCurrency(item.basePrice)}</Table.Cell
+										<Table.Cell class="text-right">{i18n.formatCurrency(item.basePrice)}</Table.Cell
 										>
 										<Table.Cell class="text-right"
 											>{i18n.formatCurrency(item.totalPrice)}</Table.Cell
@@ -358,7 +521,7 @@
 										<Table.Head>Date</Table.Head>
 										<Table.Head>Status</Table.Head>
 										<Table.Head class="text-right">Amount</Table.Head>
-									<Table.Head class="text-center">Actions</Table.Head>
+										<Table.Head class="text-center">Actions</Table.Head>
 									</Table.Row>
 								</Table.Header>
 								<Table.Body>
@@ -368,24 +531,82 @@
 											<Table.Cell class="capitalize">{payment.method.replace('_', ' ')}</Table.Cell>
 											<Table.Cell>{new Date(payment.createdAt).toLocaleString()}</Table.Cell>
 											<Table.Cell>
-												<Badge
-													variant={payment.status === 'completed' ? 'default' : 'secondary'}
-												>
+												<Badge variant={payment.status === 'completed' ? 'default' : 'secondary'}>
 													{payment.status}
 												</Badge>
 											</Table.Cell>
 											<Table.Cell class="text-right"
 												>{i18n.formatCurrency(payment.amount)}</Table.Cell
 											>
-									<Table.Cell class="text-center">
-												<Button variant="ghost" size="icon" onclick={() => printPaymentReceipt(payment.id)}>
-													<IconPrinter class="h-4 w-4" />
-												</Button>
+											<Table.Cell class="text-center">
+												<div class="flex items-center justify-center gap-1">
+													<Button
+														variant="ghost"
+														size="icon"
+														onclick={() => printPaymentReceipt(payment.id)}
+														title="Print receipt"
+														aria-label="Print receipt"
+													>
+														<IconPrinter class="h-4 w-4" />
+													</Button>
+													{#if payment.status === 'completed'}
+														<Button
+															variant="ghost"
+															size="icon"
+															onclick={() => openRefundDialog(payment)}
+															title="Process refund"
+															aria-label="Process refund"
+														>
+															<IconReceiptRefund class="h-4 w-4 text-orange-500" />
+														</Button>
+													{/if}
+												</div>
 											</Table.Cell>
 										</Table.Row>
 									{/each}
 								</Table.Body>
 							</Table.Root>
+						</Card.Content>
+					</Card.Root>
+				{/if}
+
+				<!-- Audit Trail (3.5) -->
+				{#if order.auditTrail && order.auditTrail.length > 0}
+					<Card.Root>
+						<Card.Header>
+							<Card.Title class="flex items-center gap-2 text-lg">
+								<IconHistory class="h-5 w-5" />
+								Activity Log
+							</Card.Title>
+						</Card.Header>
+						<Card.Content>
+							<div class="space-y-0">
+								{#each order.auditTrail as entry, idx}
+									<div class="flex gap-3">
+										<div class="flex flex-col items-center">
+											<div class="mt-1.5 h-2.5 w-2.5 rounded-full bg-primary"></div>
+											{#if idx < order.auditTrail.length - 1}
+												<div class="w-0.5 flex-1 bg-border"></div>
+											{/if}
+										</div>
+										<div class="pb-4">
+											<p class="text-sm font-medium capitalize">
+												{entry.action.replace(/[._]/g, ' ')}
+											</p>
+											<p class="text-xs text-muted-foreground">
+												{entry.performedBy} &middot; {formatRelativeTime(entry.performedAt)}
+											</p>
+											{#if entry.details && Object.keys(entry.details).length > 0}
+												<p class="mt-1 text-xs text-muted-foreground">
+													{Object.entries(entry.details)
+														.map(([k, v]) => `${k}: ${v}`)
+														.join(', ')}
+												</p>
+											{/if}
+										</div>
+									</div>
+								{/each}
+							</div>
 						</Card.Content>
 					</Card.Root>
 				{/if}
@@ -403,8 +624,10 @@
 		totalAmount={order.pricing.total}
 		{balanceDue}
 		onPaymentComplete={handlePaymentComplete}
+		onSplitPaymentComplete={handleSplitPaymentComplete}
 		onCancel={handlePaymentCancel}
 		isProcessing={isProcessingPayment}
+		{region}
 	/>
 {/if}
 
@@ -413,4 +636,20 @@
 	open={showReceiptDialog}
 	paymentId={selectedPaymentId}
 	onClose={handleReceiptClose}
+	{region}
 />
+
+<!-- Refund Dialog -->
+{#if refundPayment}
+	<RefundDialog
+		open={showRefundDialog}
+		paymentId={refundPayment.id}
+		paymentNumber={refundPayment.paymentNumber}
+		paymentAmount={refundPayment.amount}
+		paymentMethod={refundPayment.method}
+		onRefundComplete={handleRefundComplete}
+		onCancel={handleRefundCancel}
+		isProcessing={isProcessingRefund}
+		{region}
+	/>
+{/if}

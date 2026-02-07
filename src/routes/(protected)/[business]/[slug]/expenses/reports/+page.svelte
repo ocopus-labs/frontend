@@ -4,9 +4,8 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
 	import { Badge } from '$lib/components/ui/badge';
-	import AreaChartInteractive from '$lib/components/chart/area-chart-interactive.svelte';
-	import BarChart from '$lib/components/chart/bar-chart.svelte';
-	import PieChart from '$lib/components/chart/pie-chart.svelte';
+	import BarChart from '$lib/components/chart/lazy-bar-chart.svelte';
+	import PieChart from '$lib/components/chart/lazy-pie-chart.svelte';
 	import { goto } from '$app/navigation';
 	import {
 		IconDownload,
@@ -16,7 +15,11 @@
 		IconFileSpreadsheet,
 		IconFileTypePdf
 	} from '@tabler/icons-svelte';
+	import { toast } from 'svelte-sonner';
 	import type { ExpenseSummary, ExpenseCategory } from '$lib/api';
+	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
+	import type { CurrencyCode } from '$lib/utils/i18n';
+	import { downloadCsv, downloadPdf } from '$lib/utils/export';
 
 	let { data }: { data: PageData } = $props();
 
@@ -26,6 +29,8 @@
 	let endDate = $state(data.endDate);
 
 	let dateRange = $state('90d');
+	let reportContentEl = $state<HTMLElement | null>(null);
+	let isExporting = $state(false);
 
 	// Calculate category analysis from summary
 	const categoryAnalysis = $derived(() => {
@@ -110,9 +115,54 @@
 		goto(`?startDate=${startStr}&endDate=${endStr}`);
 	}
 
-	function downloadReport(format: string) {
-		console.log('Download report as', format);
-		// TODO: Implement export functionality
+	async function exportCsv() {
+		try {
+			const headers = ['Section', 'Metric', 'Value'];
+			const rows: (string | number)[][] = [];
+
+			// Summary totals
+			rows.push(['Summary', 'Total Expenses', summary.totalAmount]);
+			rows.push(['Summary', 'Pending Amount', summary.pendingAmount]);
+			rows.push(['Summary', 'Approved Amount', summary.approvedAmount]);
+			rows.push(['Summary', 'Paid Amount', summary.paidAmount]);
+			rows.push(['Summary', 'Monthly Average', avgMonthly()]);
+
+			// Category breakdown
+			const catAnalysis = categoryAnalysis();
+			for (const cat of catAnalysis) {
+				rows.push(['Category Breakdown', cat.category, cat.total]);
+				rows.push(['Category Breakdown', `${cat.category} (%)`, Number(cat.percentage.toFixed(1))]);
+			}
+
+			// Monthly trend
+			const trend = monthlyTrend();
+			for (const entry of trend) {
+				rows.push(['Monthly Trend', entry.month, entry.amount]);
+			}
+
+			const filename = `expense-report-${new Date().toISOString().split('T')[0]}.csv`;
+			downloadCsv(filename, headers, rows);
+			toast.success('CSV expense report downloaded successfully');
+		} catch (err) {
+			toast.error('Failed to export CSV report');
+		}
+	}
+
+	async function exportPdf() {
+		if (!reportContentEl) {
+			toast.error('Report content not found');
+			return;
+		}
+		isExporting = true;
+		try {
+			const filename = `expense-report-${new Date().toISOString().split('T')[0]}.pdf`;
+			await downloadPdf(reportContentEl, filename);
+			toast.success('PDF expense report downloaded successfully');
+		} catch (err) {
+			toast.error('Failed to export PDF report');
+		} finally {
+			isExporting = false;
+		}
 	}
 
 	function getCategoryColor(category: string): string {
@@ -132,8 +182,10 @@
 		return colors[category] || 'bg-gray-500';
 	}
 
+	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
+
 	function formatCurrency(amount: number): string {
-		return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+		return i18nFormatCurrency(amount, currency);
 	}
 
 	function formatMonth(monthStr: string): string {
@@ -162,17 +214,18 @@
 						<option value="90d">Last 90 days</option>
 						<option value="1y">Last year</option>
 					</select>
-					<Button variant="outline" onclick={() => downloadReport('pdf')}>
+					<Button variant="outline" onclick={exportPdf} disabled={isExporting}>
 						<IconFileTypePdf class="mr-2 h-4 w-4" />
-						PDF
+						{isExporting ? 'Exporting...' : 'PDF'}
 					</Button>
-					<Button variant="outline" onclick={() => downloadReport('excel')}>
+					<Button variant="outline" onclick={exportCsv}>
 						<IconFileSpreadsheet class="mr-2 h-4 w-4" />
-						Excel
+						CSV
 					</Button>
 				</div>
 			</div>
 
+			<div bind:this={reportContentEl} class="report-content">
 			<!-- Summary Cards -->
 			<div class="grid grid-cols-1 gap-4 px-6 sm:grid-cols-2 lg:grid-cols-4">
 				<Card.Root>
@@ -183,11 +236,11 @@
 						<div class="text-2xl font-bold">{formatCurrency(summary.totalAmount)}</div>
 						<div class="flex items-center gap-1 text-sm">
 							{#if overallTrend() < 0}
-								<IconTrendingDown class="h-4 w-4 text-green-500" />
-								<span class="text-green-500">{overallTrend().toFixed(1)}%</span>
+								<IconTrendingDown class="h-4 w-4 text-success" />
+								<span class="text-success">{overallTrend().toFixed(1)}%</span>
 							{:else}
-								<IconTrendingUp class="h-4 w-4 text-red-500" />
-								<span class="text-red-500">+{overallTrend().toFixed(1)}%</span>
+								<IconTrendingUp class="h-4 w-4 text-destructive" />
+								<span class="text-destructive">+{overallTrend().toFixed(1)}%</span>
 							{/if}
 							<span class="text-muted-foreground">vs previous period</span>
 						</div>
@@ -209,7 +262,7 @@
 						<Card.Title class="text-sm font-medium">Highest Month</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold text-red-600">
+						<div class="text-2xl font-bold text-destructive">
 							{formatCurrency(highestMonth().amount)}
 						</div>
 						<p class="text-sm text-muted-foreground">{formatMonth(highestMonth().month)}</p>
@@ -221,7 +274,7 @@
 						<Card.Title class="text-sm font-medium">Lowest Month</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold text-green-600">
+						<div class="text-2xl font-bold text-success">
 							{formatCurrency(lowestMonth().amount)}
 						</div>
 						<p class="text-sm text-muted-foreground">{formatMonth(lowestMonth().month)}</p>
@@ -230,20 +283,20 @@
 			</div>
 
 			<!-- Trend Chart -->
-			<div class="px-6">
+			<div class="mt-4 px-6">
 				<Card.Root>
 					<Card.Header>
 						<Card.Title>Expense Trend</Card.Title>
 						<Card.Description>Historical expense data over time</Card.Description>
 					</Card.Header>
 					<Card.Content>
-						<AreaChartInteractive />
+						<p class="py-8 text-center text-sm text-muted-foreground">Chart will be available when analytics data is connected.</p>
 					</Card.Content>
 				</Card.Root>
 			</div>
 
 			<!-- Category Analysis and Pie Chart -->
-			<div class="grid grid-cols-1 gap-4 px-6 lg:grid-cols-2">
+			<div class="mt-4 grid grid-cols-1 gap-4 px-6 lg:grid-cols-2">
 				<Card.Root>
 					<Card.Header>
 						<Card.Title>Category Analysis</Card.Title>
@@ -294,12 +347,12 @@
 											</Table.Cell>
 											<Table.Cell>
 												{#if category.trend > 0}
-													<span class="flex items-center gap-1 text-red-600">
+													<span class="flex items-center gap-1 text-destructive">
 														<IconTrendingUp class="h-4 w-4" />
 														+{category.trend}%
 													</span>
 												{:else if category.trend < 0}
-													<span class="flex items-center gap-1 text-green-600">
+													<span class="flex items-center gap-1 text-success">
 														<IconTrendingDown class="h-4 w-4" />
 														{category.trend}%
 													</span>
@@ -328,7 +381,7 @@
 			</div>
 
 			<!-- Status Breakdown -->
-			<div class="px-6">
+			<div class="mt-4 px-6">
 				<Card.Root>
 					<Card.Header>
 						<Card.Title>Expense Status</Card.Title>
@@ -353,7 +406,7 @@
 									<div class="flex items-start justify-between">
 										<div>
 											<p class="font-medium">Pending</p>
-											<p class="text-2xl font-bold text-yellow-600">{formatCurrency(summary.pendingAmount)}</p>
+											<p class="text-2xl font-bold text-warning">{formatCurrency(summary.pendingAmount)}</p>
 											<p class="text-sm text-muted-foreground">awaiting approval</p>
 										</div>
 										<Badge variant="secondary">Pending</Badge>
@@ -365,7 +418,7 @@
 									<div class="flex items-start justify-between">
 										<div>
 											<p class="font-medium">Approved</p>
-											<p class="text-2xl font-bold text-blue-600">{formatCurrency(summary.approvedAmount)}</p>
+											<p class="text-2xl font-bold text-info">{formatCurrency(summary.approvedAmount)}</p>
 											<p class="text-sm text-muted-foreground">ready to pay</p>
 										</div>
 										<Badge>Approved</Badge>
@@ -377,7 +430,7 @@
 									<div class="flex items-start justify-between">
 										<div>
 											<p class="font-medium">Paid</p>
-											<p class="text-2xl font-bold text-green-600">{formatCurrency(summary.paidAmount)}</p>
+											<p class="text-2xl font-bold text-success">{formatCurrency(summary.paidAmount)}</p>
 											<p class="text-sm text-muted-foreground">completed</p>
 										</div>
 										<Badge variant="outline">Paid</Badge>
@@ -390,7 +443,7 @@
 			</div>
 
 			<!-- Monthly Comparison -->
-			<div class="px-6">
+			<div class="mt-4 px-6">
 				<Card.Root>
 					<Card.Header>
 						<Card.Title>Monthly Comparison</Card.Title>
@@ -399,6 +452,7 @@
 						<BarChart />
 					</Card.Content>
 				</Card.Root>
+			</div>
 			</div>
 		</div>
 	</div>

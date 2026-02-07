@@ -1,11 +1,13 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Card from '$lib/components/ui/card';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Loader2 } from '@lucide/svelte';
+	import { IconLoader2 } from '@tabler/icons-svelte';
+	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import {
 		IconPlus,
 		IconPencil,
@@ -17,6 +19,7 @@
 		IconTruck
 	} from '@tabler/icons-svelte';
 	import { toast } from 'svelte-sonner';
+	import { EmptyState, StatusPill } from '$lib/components/data-display';
 	import {
 		createSupplier,
 		updateSupplier,
@@ -25,6 +28,7 @@
 		type SupplierStatus,
 		type CreateSupplierPayload
 	} from '$lib/api';
+	import { userFriendlyError } from '$lib/utils/error';
 
 	let { data }: { data: PageData } = $props();
 
@@ -35,6 +39,8 @@
 	let editingSupplier = $state<Supplier | null>(null);
 	let viewingSupplier = $state<Supplier | null>(null);
 	let isSubmitting = $state(false);
+	let deleteDialogOpen = $state(false);
+	let deleteTargetId = $state('');
 
 	let newSupplier = $state<{
 		name: string;
@@ -102,7 +108,7 @@
 			showAddDialog = false;
 			newSupplier = { name: '', contactPerson: '', phone: '', email: '', address: '', categories: [] };
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to add supplier');
+			toast.error(userFriendlyError(error, 'Failed to add supplier'));
 		} finally {
 			isSubmitting = false;
 		}
@@ -129,20 +135,24 @@
 			toast.success('Supplier updated successfully');
 			editingSupplier = null;
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to update supplier');
+			toast.error(userFriendlyError(error, 'Failed to update supplier'));
 		} finally {
 			isSubmitting = false;
 		}
 	}
 
-	async function handleDelete(id: string) {
-		if (!confirm('Are you sure you want to delete this supplier?')) return;
+	function handleDelete(id: string) {
+		deleteTargetId = id;
+		deleteDialogOpen = true;
+	}
+
+	async function confirmDeleteSupplier() {
 		try {
-			await deleteSupplierApi(data.businessId, id);
-			suppliers = suppliers.filter((s) => s.id !== id);
+			await deleteSupplierApi(data.businessId, deleteTargetId);
+			suppliers = suppliers.filter((s) => s.id !== deleteTargetId);
 			toast.success('Supplier deleted successfully');
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to delete supplier');
+			toast.error(userFriendlyError(error, 'Failed to delete supplier'));
 		}
 	}
 
@@ -183,7 +193,7 @@
 						<Card.Title class="text-sm font-medium">Active Suppliers</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold text-green-600">{stats.active}</div>
+						<div class="text-2xl font-bold text-success">{stats.active}</div>
 					</Card.Content>
 				</Card.Root>
 				<Card.Root>
@@ -228,9 +238,10 @@
 										<Card.Title class="text-lg">{supplier.name}</Card.Title>
 										<Card.Description>{supplier.contactPerson || 'No contact'}</Card.Description>
 									</div>
-									<Badge variant={supplier.status === 'active' ? 'default' : 'secondary'}>
-										{supplier.status}
-									</Badge>
+									<StatusPill
+										label={supplier.status}
+										status={supplier.status === 'active' ? 'success' : 'neutral'}
+									/>
 								</div>
 							</Card.Header>
 							<Card.Content class="space-y-2">
@@ -262,12 +273,12 @@
 									View Details
 								</Button>
 								<div class="flex gap-1">
-									<Button variant="ghost" size="sm" onclick={() => editSupplierFn(supplier)}>
+									<Button variant="ghost" size="icon" onclick={() => editSupplierFn(supplier)}>
 										<IconPencil class="h-4 w-4" />
 									</Button>
 									<Button
 										variant="ghost"
-										size="sm"
+										size="icon"
 										class="text-destructive hover:text-destructive"
 										onclick={() => handleDelete(supplier.id)}
 									>
@@ -279,16 +290,27 @@
 					{/each}
 				</div>
 			{:else}
-				<div class="flex flex-col items-center justify-center py-12 text-center">
-					<IconTruck class="h-12 w-12 text-muted-foreground" />
-					<h3 class="mt-4 text-lg font-semibold">No suppliers found</h3>
-					<p class="text-muted-foreground">Try adjusting your search or add a new supplier.</p>
-					<Button class="mt-4" onclick={() => (showAddDialog = true)}>
-						<IconPlus class="mr-2 h-4 w-4" />
-						Add Supplier
-					</Button>
-				</div>
+				<EmptyState
+					type={suppliers.length === 0 ? 'empty' : 'no-results'}
+					title={suppliers.length === 0 ? 'No suppliers yet' : 'No suppliers found'}
+					description={suppliers.length === 0 ? 'Add your first supplier to get started.' : 'Try adjusting your search or filters.'}
+					actionLabel="Add Supplier"
+					onAction={() => (showAddDialog = true)}
+				/>
 			{/if}
+			<div class="px-6">
+						<div class="flex items-center justify-between border-t pt-4">
+				<p class="text-sm text-muted-foreground">
+					Showing {Math.min((data.page - 1) * data.limit + 1, data.total)} to {Math.min(data.page * data.limit, data.total)} of {data.total} results
+				</p>
+				<div class="flex gap-1">
+					<Button size="sm" variant="outline" disabled={data.page <= 1}
+						onclick={() => goto(`?page=${data.page - 1}&limit=${data.limit}`)}>Previous</Button>
+					<Button size="sm" variant="outline" disabled={data.page >= data.totalPages}
+						onclick={() => goto(`?page=${data.page + 1}&limit=${data.limit}`)}>Next</Button>
+				</div>
+			</div>
+			</div>
 		</div>
 	</div>
 </div>
@@ -304,7 +326,7 @@
 			<div class="grid grid-cols-2 gap-4">
 				<div class="grid gap-2">
 					<label for="name" class="text-sm font-medium">Company Name *</label>
-					<Input id="name" bind:value={newSupplier.name} placeholder="Supplier name" />
+					<Input id="name" autofocus bind:value={newSupplier.name} placeholder="Supplier name" />
 				</div>
 				<div class="grid gap-2">
 					<label for="contact" class="text-sm font-medium">Contact Person</label>
@@ -352,7 +374,7 @@
 			<Button variant="outline" onclick={() => (showAddDialog = false)} disabled={isSubmitting}>Cancel</Button>
 			<Button onclick={addSupplier} disabled={isSubmitting}>
 				{#if isSubmitting}
-					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+					<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
 				{/if}
 				Add Supplier
 			</Button>
@@ -372,7 +394,7 @@
 				<div class="grid grid-cols-2 gap-4">
 					<div class="grid gap-2">
 						<label for="edit-name" class="text-sm font-medium">Company Name</label>
-						<Input id="edit-name" bind:value={editingSupplier.name} />
+						<Input id="edit-name" autofocus bind:value={editingSupplier.name} />
 					</div>
 					<div class="grid gap-2">
 						<label for="edit-contact" class="text-sm font-medium">Contact Person</label>
@@ -411,7 +433,7 @@
 				<Button variant="outline" onclick={() => (editingSupplier = null)} disabled={isSubmitting}>Cancel</Button>
 				<Button onclick={saveSupplier} disabled={isSubmitting}>
 					{#if isSubmitting}
-						<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+						<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
 					{/if}
 					Save Changes
 				</Button>
@@ -436,9 +458,10 @@
 					</div>
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Status</p>
-						<Badge variant={viewingSupplier.status === 'active' ? 'default' : 'secondary'}>
-							{viewingSupplier.status}
-						</Badge>
+						<StatusPill
+								label={viewingSupplier.status}
+								status={viewingSupplier.status === 'active' ? 'success' : 'neutral'}
+							/>
 					</div>
 				</div>
 				{#if viewingSupplier.phone}
@@ -499,3 +522,12 @@
 		{/if}
 	</Dialog.Content>
 </Dialog.Root>
+
+<ConfirmDialog
+	bind:open={deleteDialogOpen}
+	title="Delete Supplier"
+	description="Are you sure you want to delete this supplier? This action cannot be undone."
+	confirmLabel="Delete Supplier"
+	variant="destructive"
+	onConfirm={confirmDeleteSupplier}
+/>

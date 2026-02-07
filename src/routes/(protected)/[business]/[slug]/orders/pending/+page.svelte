@@ -4,12 +4,23 @@
 	import { Input } from '$lib/components/ui/input';
 	import * as Table from '$lib/components/ui/table';
 	import { Badge } from '$lib/components/ui/badge';
-	import { IconSearch, IconFilter, IconEye, IconPrinter, IconRefresh } from '@tabler/icons-svelte';
+	import { IconEye, IconPrinter, IconRefresh } from '@tabler/icons-svelte';
+	import { SearchInput, FilterDropdown } from '$lib/components/search';
+	import { EmptyState, StatusPill } from '$lib/components/data-display';
+	import PageHeader from '$lib/components/global/page-header.svelte';
 	import { invalidate, goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import type { Order } from '$lib/api/order';
+	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
+	import type { CurrencyCode } from '$lib/utils/i18n';
 
 	let { data }: { data: PageData } = $props();
+
+	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
+
+	function formatCurrency(amount: number): string {
+		return i18nFormatCurrency(amount, currency);
+	}
 
 	// Transform API orders to display format
 	let orders = $derived(
@@ -54,20 +65,14 @@
 		})
 	);
 
-	function getStatusBadge(status: string) {
+	function getStatusPillStatus(status: string): 'success' | 'warning' | 'error' | 'info' | 'neutral' {
 		switch (status) {
-			case 'completed':
-				return { variant: 'default' as const, text: 'Completed' };
-			case 'preparing':
-				return { variant: 'secondary' as const, text: 'Preparing' };
-			case 'active':
-				return { variant: 'outline' as const, text: 'Active' };
-			case 'pending':
-				return { variant: 'outline' as const, text: 'Pending' };
-			case 'cancelled':
-				return { variant: 'destructive' as const, text: 'Cancelled' };
-			default:
-				return { variant: 'outline' as const, text: status };
+			case 'completed': return 'success';
+			case 'preparing': return 'warning';
+			case 'active': return 'info';
+			case 'pending': return 'neutral';
+			case 'cancelled': return 'error';
+			default: return 'neutral';
 		}
 	}
 
@@ -76,8 +81,7 @@
 	}
 
 	function printOrder(orderId: string) {
-		// TODO: Print order
-		console.log('Print order:', orderId);
+		goto(`/${$page.params.business}/${$page.params.slug}/orders/${orderId}?print=true`);
 	}
 
 	async function refreshOrders() {
@@ -90,56 +94,52 @@
 <div class="flex flex-1 flex-col">
 	<div class="@container/main flex flex-1 flex-col gap-4">
 		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<div class="flex flex-col gap-2">
-				<div class="flex items-center justify-between">
-					<div>
-						<h1 class="text-2xl font-bold">Orders</h1>
-						<p class="text-muted-foreground">Manage and track all your restaurant orders</p>
+			<PageHeader title="Orders" description="Manage and track all your restaurant orders">
+				{#snippet actions()}
+					<div aria-live="polite">
+						<Button variant="outline" size="sm" onclick={refreshOrders} disabled={isRefreshing}>
+							<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
+							{isRefreshing ? 'Refreshing...' : 'Refresh'}
+						</Button>
 					</div>
-					<Button variant="outline" size="sm" onclick={refreshOrders} disabled={isRefreshing}>
-						<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
-						Refresh
-					</Button>
-				</div>
-			</div>
+				{/snippet}
+			</PageHeader>
 
 			<!-- Filters and Search -->
-			<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-				<div class="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-					<div class="relative max-w-sm flex-1">
-						<IconSearch
-							class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-						/>
-						<Input placeholder="Search orders..." bind:value={searchQuery} class="pl-9" />
-					</div>
-				</div>
-
+			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
+				<SearchInput
+					bind:value={searchQuery}
+					placeholder="Search orders..."
+					debounceMs={300}
+					class="max-w-sm"
+				/>
 				<div class="flex gap-2">
-					<select
+					<FilterDropdown
 						bind:value={statusFilter}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="all">All Status</option>
-						<option value="pending">Pending</option>
-						<option value="preparing">Preparing</option>
-						<option value="completed">Completed</option>
-						<option value="cancelled">Cancelled</option>
-					</select>
-
-					<select
+						placeholder="All Status"
+						allOptionLabel="All Status"
+						options={[
+							{ value: 'active', label: 'Active' },
+							{ value: 'preparing', label: 'Preparing' },
+							{ value: 'completed', label: 'Completed' },
+							{ value: 'cancelled', label: 'Cancelled' }
+						]}
+					/>
+					<FilterDropdown
 						bind:value={typeFilter}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="all">All Types</option>
-						<option value="Dine-In">Dine-In</option>
-						<option value="Takeaway">Takeaway</option>
-						<option value="Delivery">Delivery</option>
-					</select>
+						placeholder="All Types"
+						allOptionLabel="All Types"
+						options={[
+							{ value: 'Dine-In', label: 'Dine-In' },
+							{ value: 'Takeaway', label: 'Takeaway' },
+							{ value: 'Delivery', label: 'Delivery' }
+						]}
+					/>
 				</div>
 			</div>
 
 			<!-- Orders Table -->
-			<div class="rounded-md border">
+			<div class="overflow-x-auto rounded-md border">
 				<Table.Root>
 					<Table.Header>
 						<Table.Row>
@@ -160,12 +160,13 @@
 								<Table.Cell>{order.customer}</Table.Cell>
 								<Table.Cell>{order.table}</Table.Cell>
 								<Table.Cell>
-									<Badge variant={getStatusBadge(order.status).variant}>
-										{getStatusBadge(order.status).text}
-									</Badge>
+									<StatusPill
+										label={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+										status={getStatusPillStatus(order.status)}
+									/>
 								</Table.Cell>
 								<Table.Cell>{order.items}</Table.Cell>
-								<Table.Cell>${order.total.toFixed(2)}</Table.Cell>
+								<Table.Cell>{formatCurrency(order.total)}</Table.Cell>
 								<Table.Cell>
 									<div class="text-sm">
 										<div>{order.date}</div>
@@ -174,10 +175,10 @@
 								</Table.Cell>
 								<Table.Cell class="text-right">
 									<div class="flex justify-end gap-2">
-										<Button variant="ghost" size="sm" onclick={() => viewOrder(order.orderId)}>
+										<Button variant="ghost" size="icon" onclick={() => viewOrder(order.orderId)} aria-label="View order">
 											<IconEye class="h-4 w-4" />
 										</Button>
-										<Button variant="ghost" size="sm" onclick={() => printOrder(order.id)}>
+										<Button variant="ghost" size="icon" onclick={() => printOrder(order.orderId)} aria-label="Print order">
 											<IconPrinter class="h-4 w-4" />
 										</Button>
 									</div>
@@ -189,11 +190,7 @@
 			</div>
 
 			{#if filteredOrders.length === 0}
-				<div class="flex flex-col items-center justify-center py-12 text-center">
-					<IconSearch class="h-12 w-12 text-muted-foreground" />
-					<h3 class="mt-4 text-lg font-semibold">No orders found</h3>
-					<p class="text-muted-foreground">Try adjusting your search or filter criteria.</p>
-				</div>
+				<EmptyState type="no-results" title="No active orders" description="Orders will appear here when placed." />
 			{/if}
 		</div>
 	</div>

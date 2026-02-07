@@ -14,10 +14,13 @@
 		IconTrendingUp,
 		IconTrendingDown
 	} from '@tabler/icons-svelte';
+	import { toast } from 'svelte-sonner';
 	import type { FullReport, SalesSummary, TopSellingItemAnalytics, PaymentMethodBreakdown } from '$lib/api';
-	import AreaChartInteractive from '$lib/components/chart/area-chart-interactive.svelte';
-	import BarChart from '$lib/components/chart/bar-chart.svelte';
-	import PieChart from '$lib/components/chart/pie-chart.svelte';
+	import BarChart from '$lib/components/chart/lazy-bar-chart.svelte';
+	import PieChart from '$lib/components/chart/lazy-pie-chart.svelte';
+	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
+	import type { CurrencyCode } from '$lib/utils/i18n';
+	import { downloadCsv, downloadPdf } from '$lib/utils/export';
 
 	let { data }: { data: PageData } = $props();
 
@@ -26,18 +29,78 @@
 	let topItems = $state<TopSellingItemAnalytics[]>(data.topItems || []);
 	let paymentBreakdown = $state<PaymentMethodBreakdown[]>(data.paymentBreakdown || []);
 	let period = $state(data.period || 'month');
+	let reportContentEl = $state<HTMLElement | null>(null);
+	let isExporting = $state(false);
 
 	function handlePeriodChange(newPeriod: string) {
 		goto(`?period=${newPeriod}`);
 	}
 
-	function downloadReport(format: string) {
-		console.log('Download report as', format);
-		// TODO: Implement export functionality
+	async function exportCsv() {
+		try {
+			const headers = ['Section', 'Metric', 'Value'];
+			const rows: (string | number)[][] = [];
+
+			// Sales summary
+			rows.push(['Sales Summary', 'Total Revenue', salesSummary.totalRevenue]);
+			rows.push(['Sales Summary', 'Total Orders', salesSummary.totalOrders]);
+			rows.push(['Sales Summary', 'Average Order Value', salesSummary.averageOrderValue]);
+			rows.push(['Sales Summary', 'Net Revenue', salesSummary.netRevenue]);
+			rows.push(['Sales Summary', 'Total Tax', salesSummary.totalTax]);
+			rows.push(['Sales Summary', 'Total Discount', salesSummary.totalDiscount]);
+
+			// Top selling items
+			for (const item of topItems) {
+				rows.push(['Top Items', item.itemName, item.revenue]);
+				rows.push(['Top Items', `${item.itemName} (Qty)`, item.quantitySold]);
+				rows.push(['Top Items', `${item.itemName} (Category)`, item.category]);
+			}
+
+			// Payment breakdown
+			for (const payment of paymentBreakdown) {
+				rows.push(['Payment Methods', payment.method, payment.amount]);
+				rows.push(['Payment Methods', `${payment.method} (Count)`, payment.count]);
+				rows.push(['Payment Methods', `${payment.method} (%)`, payment.percentage]);
+			}
+
+			// Staff performance
+			if (report?.staffPerformance) {
+				for (const staff of report.staffPerformance) {
+					rows.push(['Staff Performance', staff.staffName, staff.revenue]);
+					rows.push(['Staff Performance', `${staff.staffName} (Orders)`, staff.ordersProcessed]);
+					rows.push(['Staff Performance', `${staff.staffName} (Avg Order)`, staff.averageOrderValue]);
+				}
+			}
+
+			const filename = `report-${period}-${new Date().toISOString().split('T')[0]}.csv`;
+			downloadCsv(filename, headers, rows);
+			toast.success('CSV report downloaded successfully');
+		} catch (err) {
+			toast.error('Failed to export CSV report');
+		}
 	}
 
+	async function exportPdf() {
+		if (!reportContentEl) {
+			toast.error('Report content not found');
+			return;
+		}
+		isExporting = true;
+		try {
+			const filename = `report-${period}-${new Date().toISOString().split('T')[0]}.pdf`;
+			await downloadPdf(reportContentEl, filename);
+			toast.success('PDF report downloaded successfully');
+		} catch (err) {
+			toast.error('Failed to export PDF report');
+		} finally {
+			isExporting = false;
+		}
+	}
+
+	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
+
 	function formatCurrency(amount: number): string {
-		return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+		return i18nFormatCurrency(amount, currency);
 	}
 
 	function formatNumber(num: number): string {
@@ -97,17 +160,18 @@
 						<option value="quarter">This Quarter</option>
 						<option value="year">This Year</option>
 					</select>
-					<Button variant="outline" onclick={() => downloadReport('pdf')}>
+					<Button variant="outline" onclick={exportPdf} disabled={isExporting}>
 						<IconFileTypePdf class="mr-2 h-4 w-4" />
-						PDF
+						{isExporting ? 'Exporting...' : 'PDF'}
 					</Button>
-					<Button variant="outline" onclick={() => downloadReport('excel')}>
+					<Button variant="outline" onclick={exportCsv}>
 						<IconFileSpreadsheet class="mr-2 h-4 w-4" />
-						Excel
+						CSV
 					</Button>
 				</div>
 			</div>
 
+			<div bind:this={reportContentEl} class="report-content">
 			<!-- Sales Summary Cards -->
 			<div class="grid grid-cols-1 gap-4 px-6 sm:grid-cols-2 lg:grid-cols-4">
 				<Card.Root>
@@ -115,7 +179,7 @@
 						<Card.Title class="text-sm font-medium">Total Revenue</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold text-green-600">{formatCurrency(salesSummary.totalRevenue)}</div>
+						<div class="text-2xl font-bold text-success">{formatCurrency(salesSummary.totalRevenue)}</div>
 						<p class="text-sm text-muted-foreground">{getPeriodLabel(period)}</p>
 					</Card.Content>
 				</Card.Root>
@@ -145,14 +209,14 @@
 						<Card.Title class="text-sm font-medium">Net Revenue</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold text-blue-600">{formatCurrency(salesSummary.netRevenue)}</div>
+						<div class="text-2xl font-bold text-info">{formatCurrency(salesSummary.netRevenue)}</div>
 						<p class="text-sm text-muted-foreground">after discounts & taxes</p>
 					</Card.Content>
 				</Card.Root>
 			</div>
 
 			<!-- Tax and Discount Summary -->
-			<div class="grid grid-cols-1 gap-4 px-6 sm:grid-cols-2">
+			<div class="mt-4 grid grid-cols-1 gap-4 px-6 sm:grid-cols-2">
 				<Card.Root>
 					<Card.Header class="pb-2">
 						<Card.Title class="text-sm font-medium">Total Tax Collected</Card.Title>
@@ -167,26 +231,39 @@
 						<Card.Title class="text-sm font-medium">Total Discounts Given</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold text-red-600">{formatCurrency(salesSummary.totalDiscount)}</div>
+						<div class="text-2xl font-bold text-destructive">{formatCurrency(salesSummary.totalDiscount)}</div>
 					</Card.Content>
 				</Card.Root>
 			</div>
 
 			<!-- Revenue Trend Chart -->
-			<div class="px-6">
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Revenue Trend</Card.Title>
-						<Card.Description>Sales performance over time</Card.Description>
-					</Card.Header>
-					<Card.Content>
-						<AreaChartInteractive />
-					</Card.Content>
-				</Card.Root>
+			<div class="mt-4 px-6">
+				{#if report?.dailyTrend && report.dailyTrend.length > 0}
+					<BarChart
+						title="Revenue Trend"
+						description="Sales performance over time"
+						data={report.dailyTrend}
+						xKey="date"
+						series={[
+							{ key: 'revenue', label: 'Revenue', color: 'var(--chart-1)' },
+							{ key: 'orders', label: 'Orders', color: 'var(--chart-2)' }
+						]}
+					/>
+				{:else}
+					<Card.Root>
+						<Card.Header>
+							<Card.Title>Revenue Trend</Card.Title>
+							<Card.Description>Sales performance over time</Card.Description>
+						</Card.Header>
+						<Card.Content>
+							<p class="py-8 text-center text-sm text-muted-foreground">No trend data for this period</p>
+						</Card.Content>
+					</Card.Root>
+				{/if}
 			</div>
 
 			<!-- Top Selling Items and Payment Methods -->
-			<div class="grid grid-cols-1 gap-4 px-6 lg:grid-cols-2">
+			<div class="mt-4 grid grid-cols-1 gap-4 px-6 lg:grid-cols-2">
 				<Card.Root>
 					<Card.Header>
 						<Card.Title>Top Selling Items</Card.Title>
@@ -218,7 +295,7 @@
 												<Badge variant="outline">{item.category}</Badge>
 											</Table.Cell>
 											<Table.Cell class="text-right">{formatNumber(item.quantitySold)}</Table.Cell>
-											<Table.Cell class="text-right font-medium text-green-600">
+											<Table.Cell class="text-right font-medium text-success">
 												{formatCurrency(item.revenue)}
 											</Table.Cell>
 										</Table.Row>
@@ -269,29 +346,28 @@
 			</div>
 
 			<!-- Charts Row -->
-			<div class="grid grid-cols-1 gap-4 px-6 lg:grid-cols-2">
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Daily Orders</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<BarChart />
-					</Card.Content>
-				</Card.Root>
-
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Revenue Distribution</Card.Title>
-					</Card.Header>
-					<Card.Content class="flex items-center justify-center">
-						<PieChart />
-					</Card.Content>
-				</Card.Root>
+			<div class="mt-4 grid grid-cols-1 gap-4 px-6 lg:grid-cols-2">
+				<BarChart
+					title="Daily Orders"
+					description="Order count by day"
+					data={report?.dailyTrend || []}
+					xKey="date"
+					series={[
+						{ key: 'orders', label: 'Orders', color: 'var(--chart-3)' }
+					]}
+				/>
+				<PieChart
+					title="Revenue Distribution"
+					description="Payment method breakdown"
+					data={paymentBreakdown.map((p) => ({ method: p.method.replace('_', ' '), amount: p.amount }))}
+					labelKey="method"
+					valueKey="amount"
+				/>
 			</div>
 
 			<!-- Staff Performance (if available in report) -->
 			{#if report?.staffPerformance && report.staffPerformance.length > 0}
-				<div class="px-6">
+				<div class="mt-4 px-6">
 					<Card.Root>
 						<Card.Header>
 							<Card.Title>Staff Performance</Card.Title>
@@ -312,7 +388,7 @@
 										<Table.Row>
 											<Table.Cell class="font-medium">{staff.staffName}</Table.Cell>
 											<Table.Cell class="text-right">{formatNumber(staff.ordersProcessed)}</Table.Cell>
-											<Table.Cell class="text-right text-green-600">{formatCurrency(staff.revenue)}</Table.Cell>
+											<Table.Cell class="text-right text-success">{formatCurrency(staff.revenue)}</Table.Cell>
 											<Table.Cell class="text-right">{formatCurrency(staff.averageOrderValue)}</Table.Cell>
 										</Table.Row>
 									{/each}
@@ -322,6 +398,7 @@
 					</Card.Root>
 				</div>
 			{/if}
+			</div>
 
 			<!-- All Available Report Types -->
 			<div class="px-6">
@@ -332,7 +409,7 @@
 					</Card.Header>
 					<Card.Content>
 						<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-							<Card.Root class="flex flex-col">
+							<Card.Root class="flex flex-col transition-colors hover:border-primary/30">
 								<Card.Header class="pb-2">
 									<div class="flex items-start justify-between">
 										<Card.Title class="text-base">Sales Report</Card.Title>
@@ -350,7 +427,7 @@
 								</Card.Footer>
 							</Card.Root>
 
-							<Card.Root class="flex flex-col">
+							<Card.Root class="flex flex-col transition-colors hover:border-primary/30">
 								<Card.Header class="pb-2">
 									<div class="flex items-start justify-between">
 										<Card.Title class="text-base">Inventory Report</Card.Title>
@@ -368,7 +445,7 @@
 								</Card.Footer>
 							</Card.Root>
 
-							<Card.Root class="flex flex-col">
+							<Card.Root class="flex flex-col transition-colors hover:border-primary/30">
 								<Card.Header class="pb-2">
 									<div class="flex items-start justify-between">
 										<Card.Title class="text-base">Staff Performance</Card.Title>
@@ -386,7 +463,7 @@
 								</Card.Footer>
 							</Card.Root>
 
-							<Card.Root class="flex flex-col">
+							<Card.Root class="flex flex-col transition-colors hover:border-primary/30">
 								<Card.Header class="pb-2">
 									<div class="flex items-start justify-between">
 										<Card.Title class="text-base">Tax Summary</Card.Title>
@@ -404,7 +481,7 @@
 								</Card.Footer>
 							</Card.Root>
 
-							<Card.Root class="flex flex-col">
+							<Card.Root class="flex flex-col transition-colors hover:border-primary/30">
 								<Card.Header class="pb-2">
 									<div class="flex items-start justify-between">
 										<Card.Title class="text-base">Expense Report</Card.Title>
@@ -422,7 +499,7 @@
 								</Card.Footer>
 							</Card.Root>
 
-							<Card.Root class="flex flex-col">
+							<Card.Root class="flex flex-col transition-colors hover:border-primary/30">
 								<Card.Header class="pb-2">
 									<div class="flex items-start justify-between">
 										<Card.Title class="text-base">Customer Insights</Card.Title>

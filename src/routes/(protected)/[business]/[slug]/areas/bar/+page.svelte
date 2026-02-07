@@ -9,6 +9,16 @@
 		IconCash,
 		IconBottle
 	} from '@tabler/icons-svelte';
+	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
+	import type { CurrencyCode } from '$lib/utils/i18n';
+
+	let { data } = $props();
+
+	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
+
+	function formatCurrency(amount: number): string {
+		return i18nFormatCurrency(amount, currency);
+	}
 
 	// Bar area data
 	const barStats = {
@@ -124,7 +134,7 @@
 					<Card.Content>
 						<div class="flex items-center gap-2">
 							<IconCash class="h-5 w-5 text-green-500" />
-							<span class="text-2xl font-bold">${barStats.avgTicket.toFixed(2)}</span>
+							<span class="text-2xl font-bold">{formatCurrency(barStats.avgTicket)}</span>
 						</div>
 					</Card.Content>
 				</Card.Root>
@@ -135,7 +145,7 @@
 					</Card.Header>
 					<Card.Content>
 						<div class="text-2xl font-bold">
-							${openTabs.reduce((sum, t) => sum + t.amount, 0).toFixed(2)}
+							{formatCurrency(openTabs.reduce((sum, t) => sum + t.amount, 0))}
 						</div>
 					</Card.Content>
 				</Card.Root>
@@ -159,7 +169,7 @@
 										<span class="font-bold">#{position.seat}</span>
 									</div>
 									{#if position.tab > 0}
-										<span class="text-xs text-green-600">${position.tab}</span>
+										<span class="text-xs text-green-600">{formatCurrency(position.tab)}</span>
 									{:else if position.status === 'reserved'}
 										<span class="text-xs text-yellow-600">Reserved</span>
 									{:else}
@@ -203,7 +213,7 @@
 										</p>
 									</div>
 									<div class="text-right">
-										<p class="text-lg font-bold">${tab.amount.toFixed(2)}</p>
+										<p class="text-lg font-bold">{formatCurrency(tab.amount)}</p>
 										<Button variant="outline" size="sm">Close Tab</Button>
 									</div>
 								</div>
@@ -229,7 +239,7 @@
 											<p class="text-sm text-muted-foreground">{drink.sold} sold</p>
 										</div>
 									</div>
-									<span class="font-medium text-green-600">${drink.revenue}</span>
+									<span class="font-medium text-green-600">{formatCurrency(drink.revenue)}</span>
 								</div>
 							{/each}
 						</div>

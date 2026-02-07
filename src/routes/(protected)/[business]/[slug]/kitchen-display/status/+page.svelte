@@ -9,6 +9,7 @@
 		IconChefHat,
 		IconRefresh
 	} from '@tabler/icons-svelte';
+	import { toast } from 'svelte-sonner';
 
 	// Status board data
 	let stations = $state([
@@ -122,7 +123,7 @@
 	}
 
 	function refreshStatus() {
-		console.log('Refresh status');
+		toast.info('Coming soon!');
 	}
 </script>
 
@@ -234,7 +235,7 @@
 										<div>
 											<span class="font-medium">{order.orderId}</span>
 											<span class="text-sm text-muted-foreground">
-												• {order.items} items
+												• {order.items} {order.items === 1 ? 'item' : 'items'}
 											</span>
 										</div>
 									</div>
