@@ -21,4 +21,6 @@ declare global {
 	}
 }
 
+declare module 'd3-shape';
+
 export {};
