@@ -30,7 +30,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 		pathname.startsWith('/reset-password') ||
 		pathname.startsWith('/verify-email');
 	const isPublicRoute =
-		pathname.startsWith('/contact') ||
 		pathname.startsWith('/pricing') ||
 		pathname.startsWith('/about');
 
