@@ -1,6 +1,7 @@
 <script lang="ts">
 	import * as Card from '$lib/components/ui/card/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
+	import * as Select from '$lib/components/ui/select';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
@@ -116,9 +117,9 @@
 		goto(`?${params.toString()}`);
 	}
 
-	function handleStatusChange(e: Event) {
-		const target = e.target as HTMLSelectElement;
-		updateFilters({ status: target.value || undefined });
+	function handleStatusChange(value: string) {
+		statusFilter = value;
+		updateFilters({ status: value || undefined });
 	}
 
 	function goToPage(pageNum: number) {
@@ -218,15 +219,16 @@
 	<Card.Root>
 		<Card.Content class="pt-6">
 			<div class="flex flex-wrap gap-4">
-				<select
-					bind:value={statusFilter}
-					onchange={handleStatusChange}
-					class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-				>
-					{#each statusOptions as option}
-						<option value={option.value}>{option.label}</option>
-					{/each}
-				</select>
+				<Select.Root type="single" value={statusFilter} onValueChange={(v) => handleStatusChange(v)}>
+					<Select.Trigger class="w-[180px]">
+						{statusOptions.find(o => o.value === statusFilter)?.label || 'All Statuses'}
+					</Select.Trigger>
+					<Select.Content>
+						{#each statusOptions as option}
+							<Select.Item value={option.value}>{option.label}</Select.Item>
+						{/each}
+					</Select.Content>
+				</Select.Root>
 			</div>
 		</Card.Content>
 	</Card.Root>

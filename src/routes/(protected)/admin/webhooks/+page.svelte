@@ -2,6 +2,7 @@
 	import * as Card from '$lib/components/ui/card/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
 	import * as Sheet from '$lib/components/ui/sheet/index.js';
+	import * as Select from '$lib/components/ui/select';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
@@ -64,14 +65,14 @@
 		goto(`?${params.toString()}`);
 	}
 
-	function handleProviderChange(e: Event) {
-		const target = e.target as HTMLSelectElement;
-		updateFilters({ provider: target.value || undefined });
+	function handleProviderChange(value: string) {
+		providerFilter = value;
+		updateFilters({ provider: value || undefined });
 	}
 
-	function handleStatusChange(e: Event) {
-		const target = e.target as HTMLSelectElement;
-		updateFilters({ status: target.value || undefined });
+	function handleStatusChange(value: string) {
+		statusFilter = value;
+		updateFilters({ status: value || undefined });
 	}
 
 	function handleEventTypeChange(e: Event) {
@@ -183,31 +184,31 @@
 		<Card.Content class="pt-6">
 			<div class="flex flex-wrap gap-4 items-end">
 				<div class="space-y-1">
-					<Label for="providerFilter" class="text-xs">Provider</Label>
-					<select
-						id="providerFilter"
-						bind:value={providerFilter}
-						onchange={handleProviderChange}
-						class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-					>
-						{#each providerOptions as option}
-							<option value={option.value}>{option.label}</option>
-						{/each}
-					</select>
+					<Label class="text-xs">Provider</Label>
+					<Select.Root type="single" value={providerFilter} onValueChange={(v) => handleProviderChange(v)}>
+						<Select.Trigger class="w-[180px]">
+							{providerOptions.find(o => o.value === providerFilter)?.label || 'All Providers'}
+						</Select.Trigger>
+						<Select.Content>
+							{#each providerOptions as option}
+								<Select.Item value={option.value}>{option.label}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
 				</div>
 
 				<div class="space-y-1">
-					<Label for="statusFilter" class="text-xs">Status</Label>
-					<select
-						id="statusFilter"
-						bind:value={statusFilter}
-						onchange={handleStatusChange}
-						class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-					>
-						{#each statusOptions as option}
-							<option value={option.value}>{option.label}</option>
-						{/each}
-					</select>
+					<Label class="text-xs">Status</Label>
+					<Select.Root type="single" value={statusFilter} onValueChange={(v) => handleStatusChange(v)}>
+						<Select.Trigger class="w-[180px]">
+							{statusOptions.find(o => o.value === statusFilter)?.label || 'All Statuses'}
+						</Select.Trigger>
+						<Select.Content>
+							{#each statusOptions as option}
+								<Select.Item value={option.value}>{option.label}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
 				</div>
 
 				<div class="space-y-1">

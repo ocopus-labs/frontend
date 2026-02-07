@@ -7,6 +7,7 @@
 	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
+	import * as Select from '$lib/components/ui/select';
 	import { IconLoader2 } from '@tabler/icons-svelte';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import {
@@ -79,6 +80,22 @@
 		upcoming: reservations.filter((r) => r.reservationDate > today && r.status !== 'cancelled').length,
 		pending: reservations.filter((r) => r.status === 'pending').length
 	});
+
+	// Display labels for filter selects
+	const dateFilterLabel = $derived(
+		({ today: 'Today', upcoming: 'Upcoming', past: 'Past', all: 'All Time' } as Record<string, string>)[dateFilter] || dateFilter
+	);
+
+	const statusFilterLabel = $derived(
+		({ all: 'All Status', confirmed: 'Confirmed', pending: 'Pending', seated: 'Seated', completed: 'Completed', cancelled: 'Cancelled' } as Record<string, string>)[statusFilter] || statusFilter
+	);
+
+	// Display label for table selects
+	const newReservationTableLabel = $derived(
+		newReservation.tableId
+			? (tables.find((t) => t.id === newReservation.tableId)?.displayName || 'Select table')
+			: 'Select table'
+	);
 
 	const filteredReservations = $derived(
 		reservations.filter((res) => {
@@ -295,27 +312,31 @@
 				</div>
 
 				<div class="flex gap-2">
-					<select
-						bind:value={dateFilter}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="today">Today</option>
-						<option value="upcoming">Upcoming</option>
-						<option value="past">Past</option>
-						<option value="all">All Time</option>
-					</select>
+					<Select.Root type="single" bind:value={dateFilter}>
+						<Select.Trigger class="w-[140px]">
+							{dateFilterLabel}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="today">Today</Select.Item>
+							<Select.Item value="upcoming">Upcoming</Select.Item>
+							<Select.Item value="past">Past</Select.Item>
+							<Select.Item value="all">All Time</Select.Item>
+						</Select.Content>
+					</Select.Root>
 
-					<select
-						bind:value={statusFilter}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="all">All Status</option>
-						<option value="confirmed">Confirmed</option>
-						<option value="pending">Pending</option>
-						<option value="seated">Seated</option>
-						<option value="completed">Completed</option>
-						<option value="cancelled">Cancelled</option>
-					</select>
+					<Select.Root type="single" bind:value={statusFilter}>
+						<Select.Trigger class="w-[140px]">
+							{statusFilterLabel}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="all">All Status</Select.Item>
+							<Select.Item value="confirmed">Confirmed</Select.Item>
+							<Select.Item value="pending">Pending</Select.Item>
+							<Select.Item value="seated">Seated</Select.Item>
+							<Select.Item value="completed">Completed</Select.Item>
+							<Select.Item value="cancelled">Cancelled</Select.Item>
+						</Select.Content>
+					</Select.Root>
 				</div>
 			</div>
 
@@ -492,17 +513,19 @@
 					<Input id="party" type="number" min="1" max="20" bind:value={newReservation.partySize} />
 				</div>
 				<div class="grid gap-2">
-					<label for="table" class="text-sm font-medium">Table</label>
-					<select
-						id="table"
-						bind:value={newReservation.tableId}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="">Select table</option>
-						{#each tables as table}
-							<option value={table.id}>{table.displayName}</option>
-						{/each}
-					</select>
+					<!-- svelte-ignore a11y_label_has_associated_control -->
+					<label class="text-sm font-medium">Table</label>
+					<Select.Root type="single" bind:value={newReservation.tableId}>
+						<Select.Trigger class="w-full">
+							{newReservationTableLabel}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="">Select table</Select.Item>
+							{#each tables as table}
+								<Select.Item value={table.id}>{table.displayName}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
 				</div>
 			</div>
 			<div class="grid gap-2">
@@ -557,17 +580,19 @@
 						<Input id="edit-party" type="number" min="1" max="20" bind:value={editingReservation.partySize} />
 					</div>
 					<div class="grid gap-2">
-						<label for="edit-table" class="text-sm font-medium">Table</label>
-						<select
-							id="edit-table"
-							bind:value={editingReservation.tableId}
-							class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-						>
-							<option value="">Select table</option>
-							{#each tables as table}
-								<option value={table.id}>{table.displayName}</option>
-							{/each}
-						</select>
+						<!-- svelte-ignore a11y_label_has_associated_control -->
+						<label class="text-sm font-medium">Table</label>
+						<Select.Root type="single" bind:value={editingReservation.tableId}>
+							<Select.Trigger class="w-full">
+								{editingReservation.tableId ? (tables.find((t) => t.id === editingReservation?.tableId)?.displayName || 'Select table') : 'Select table'}
+							</Select.Trigger>
+							<Select.Content>
+								<Select.Item value="">Select table</Select.Item>
+								{#each tables as table}
+									<Select.Item value={table.id}>{table.displayName}</Select.Item>
+								{/each}
+							</Select.Content>
+						</Select.Root>
 					</div>
 				</div>
 				<div class="grid gap-2">

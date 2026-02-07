@@ -19,6 +19,7 @@
 		IconX
 	} from '@tabler/icons-svelte';
 	import { toast } from 'svelte-sonner';
+	import * as Select from '$lib/components/ui/select';
 	import { EmptyState, StatusPill } from '$lib/components/data-display';
 	import {
 		createExpense,
@@ -414,16 +415,16 @@
 			<div class="grid grid-cols-2 gap-4">
 				<div class="grid gap-2">
 					<label for="category" class="text-sm font-medium">Category *</label>
-					<select
-						id="category"
-						bind:value={newExpense.categoryId}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="">Select category</option>
-						{#each categories as category}
-							<option value={category.id}>{category.name}</option>
-						{/each}
-					</select>
+					<Select.Root type="single" bind:value={newExpense.categoryId}>
+						<Select.Trigger class="w-full">
+							{newExpense.categoryId ? (categories.find(c => c.id === newExpense.categoryId)?.name || 'Select category') : 'Select category'}
+						</Select.Trigger>
+						<Select.Content>
+							{#each categories as category}
+								<Select.Item value={category.id}>{category.name}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
 				</div>
 				<div class="grid gap-2">
 					<label for="amount" class="text-sm font-medium">Amount *</label>
@@ -447,15 +448,16 @@
 				</div>
 				<div class="grid gap-2">
 					<label for="payment" class="text-sm font-medium">Payment Method</label>
-					<select
-						id="payment"
-						bind:value={newExpense.paymentMethod}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						{#each paymentMethods as method}
-							<option value={method.value}>{method.label}</option>
-						{/each}
-					</select>
+					<Select.Root type="single" bind:value={newExpense.paymentMethod}>
+						<Select.Trigger class="w-full">
+							{paymentMethods.find(m => m.value === newExpense.paymentMethod)?.label || 'Select method'}
+						</Select.Trigger>
+						<Select.Content>
+							{#each paymentMethods as method}
+								<Select.Item value={method.value}>{method.label}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
 				</div>
 			</div>
 			<div class="grid grid-cols-2 gap-4">
@@ -509,15 +511,16 @@
 					</div>
 					<div class="grid gap-2">
 						<label for="edit-payment" class="text-sm font-medium">Payment Method</label>
-						<select
-							id="edit-payment"
-							bind:value={editingExpense.paymentMethod}
-							class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-						>
-							{#each paymentMethods as method}
-								<option value={method.value}>{method.label}</option>
-							{/each}
-						</select>
+						<Select.Root type="single" bind:value={editingExpense.paymentMethod}>
+							<Select.Trigger class="w-full">
+								{paymentMethods.find(m => m.value === editingExpense?.paymentMethod)?.label || 'Select method'}
+							</Select.Trigger>
+							<Select.Content>
+								{#each paymentMethods as method}
+									<Select.Item value={method.value}>{method.label}</Select.Item>
+								{/each}
+							</Select.Content>
+						</Select.Root>
 					</div>
 				</div>
 				<div class="grid gap-2">

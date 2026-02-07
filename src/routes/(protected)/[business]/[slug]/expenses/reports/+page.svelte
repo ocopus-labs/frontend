@@ -16,6 +16,7 @@
 		IconFileTypePdf
 	} from '@tabler/icons-svelte';
 	import { toast } from 'svelte-sonner';
+	import * as Select from '$lib/components/ui/select';
 	import type { ExpenseSummary, ExpenseCategory } from '$lib/api';
 	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
 	import type { CurrencyCode } from '$lib/utils/i18n';
@@ -204,16 +205,17 @@
 					<p class="text-muted-foreground">Comprehensive expense analysis and insights</p>
 				</div>
 				<div class="flex gap-2">
-					<select
-						bind:value={dateRange}
-						onchange={handleDateRangeChange}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="7d">Last 7 days</option>
-						<option value="30d">Last 30 days</option>
-						<option value="90d">Last 90 days</option>
-						<option value="1y">Last year</option>
-					</select>
+					<Select.Root type="single" value={dateRange} onValueChange={(v) => { dateRange = v; handleDateRangeChange(); }}>
+						<Select.Trigger class="w-[160px]">
+							{({ '7d': 'Last 7 days', '30d': 'Last 30 days', '90d': 'Last 90 days', '1y': 'Last year' } as Record<string, string>)[dateRange] || 'Last 90 days'}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="7d">Last 7 days</Select.Item>
+							<Select.Item value="30d">Last 30 days</Select.Item>
+							<Select.Item value="90d">Last 90 days</Select.Item>
+							<Select.Item value="1y">Last year</Select.Item>
+						</Select.Content>
+					</Select.Root>
 					<Button variant="outline" onclick={exportPdf} disabled={isExporting}>
 						<IconFileTypePdf class="mr-2 h-4 w-4" />
 						{isExporting ? 'Exporting...' : 'PDF'}

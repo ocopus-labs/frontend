@@ -18,6 +18,7 @@
 		seedDefaultCategories
 	} from '$lib/api';
 	import { IconSearch, IconPlus, IconEdit, IconTrash, IconEye, IconEyeOff, IconCopy } from '@tabler/icons-svelte';
+	import * as Select from '$lib/components/ui/select';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
@@ -64,6 +65,18 @@
 
 	// Form data for add category
 	let newCategoryName = $state('');
+
+	// Display label for category filter
+	const categoryFilterLabel = $derived(
+		categoryFilter === 'all'
+			? 'All Categories'
+			: (categories.find((c) => c.id === categoryFilter)?.name || 'All Categories')
+	);
+
+	// Display label for form category select
+	const formCategoryLabel = $derived(
+		categories.find((c) => c.id === formCategory)?.name || 'Select category'
+	);
 
 	// Filter menu items
 	const filteredItems = $derived(
@@ -284,15 +297,17 @@
 						/>
 					</div>
 
-					<select
-						bind:value={categoryFilter}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="all">All Categories</option>
-						{#each categories as category}
-							<option value={category.id}>{category.name}</option>
-						{/each}
-					</select>
+					<Select.Root type="single" bind:value={categoryFilter}>
+						<Select.Trigger class="w-[180px]">
+							{categoryFilterLabel}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="all">All Categories</Select.Item>
+							{#each categories as category}
+								<Select.Item value={category.id}>{category.name}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
 				</div>
 
 				<div class="flex gap-2">
@@ -452,16 +467,20 @@
 				<Input id="add-price" type="number" step="0.01" bind:value={formPrice} class="col-span-3" />
 			</div>
 			<div class="grid grid-cols-4 items-center gap-4">
-				<label for="add-category" class="text-right">Category *</label>
-				<select
-					bind:value={formCategory}
-					id="add-category"
-					class="col-span-3 rounded border border-input bg-background px-2 py-1"
-				>
-					{#each categories as cat}
-						<option value={cat.id}>{cat.name}</option>
-					{/each}
-				</select>
+				<!-- svelte-ignore a11y_label_has_associated_control -->
+				<label class="text-right">Category *</label>
+				<div class="col-span-3">
+					<Select.Root type="single" bind:value={formCategory}>
+						<Select.Trigger class="w-full">
+							{formCategoryLabel}
+						</Select.Trigger>
+						<Select.Content>
+							{#each categories as cat}
+								<Select.Item value={cat.id}>{cat.name}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
 			</div>
 			<div class="grid grid-cols-4 items-start gap-4">
 				<label class="pt-2 text-right">Image</label>
@@ -563,16 +582,20 @@
 				/>
 			</div>
 			<div class="grid grid-cols-4 items-center gap-4">
-				<label for="edit-category" class="text-right">Category *</label>
-				<select
-					bind:value={formCategory}
-					id="edit-category"
-					class="col-span-3 rounded border border-input bg-background px-2 py-1"
-				>
-					{#each categories as cat}
-						<option value={cat.id}>{cat.name}</option>
-					{/each}
-				</select>
+				<!-- svelte-ignore a11y_label_has_associated_control -->
+				<label class="text-right">Category *</label>
+				<div class="col-span-3">
+					<Select.Root type="single" bind:value={formCategory}>
+						<Select.Trigger class="w-full">
+							{formCategoryLabel}
+						</Select.Trigger>
+						<Select.Content>
+							{#each categories as cat}
+								<Select.Item value={cat.id}>{cat.name}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
 			</div>
 			<div class="grid grid-cols-4 items-start gap-4">
 				<label class="pt-2 text-right">Image</label>

@@ -2,6 +2,7 @@
 	import * as Card from '$lib/components/ui/card/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
+	import * as Select from '$lib/components/ui/select';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
@@ -55,14 +56,14 @@
 		goto(`?${params.toString()}`);
 	}
 
-	function handleResourceChange(e: Event) {
-		const target = e.target as HTMLSelectElement;
-		updateFilters({ resource: target.value || undefined });
+	function handleResourceChange(value: string) {
+		resourceFilter = value;
+		updateFilters({ resource: value || undefined });
 	}
 
-	function handleActionChange(e: Event) {
-		const target = e.target as HTMLSelectElement;
-		updateFilters({ action: target.value || undefined });
+	function handleActionChange(value: string) {
+		actionFilter = value;
+		updateFilters({ action: value || undefined });
 	}
 
 	function applyDateFilter() {
@@ -173,25 +174,27 @@
 	<Card.Root>
 		<Card.Content class="pt-6">
 			<div class="flex flex-wrap gap-4 items-end">
-				<select
-					bind:value={resourceFilter}
-					onchange={handleResourceChange}
-					class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-				>
-					{#each resourceOptions as option}
-						<option value={option.value}>{option.label}</option>
-					{/each}
-				</select>
+				<Select.Root type="single" value={resourceFilter} onValueChange={(v) => handleResourceChange(v)}>
+					<Select.Trigger class="w-[180px]">
+						{resourceOptions.find(o => o.value === resourceFilter)?.label || 'All Resources'}
+					</Select.Trigger>
+					<Select.Content>
+						{#each resourceOptions as option}
+							<Select.Item value={option.value}>{option.label}</Select.Item>
+						{/each}
+					</Select.Content>
+				</Select.Root>
 
-				<select
-					bind:value={actionFilter}
-					onchange={handleActionChange}
-					class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-				>
-					{#each actionOptions as option}
-						<option value={option.value}>{option.label}</option>
-					{/each}
-				</select>
+				<Select.Root type="single" value={actionFilter} onValueChange={(v) => handleActionChange(v)}>
+					<Select.Trigger class="w-[220px]">
+						{actionOptions.find(o => o.value === actionFilter)?.label || 'All Actions'}
+					</Select.Trigger>
+					<Select.Content>
+						{#each actionOptions as option}
+							<Select.Item value={option.value}>{option.label}</Select.Item>
+						{/each}
+					</Select.Content>
+				</Select.Root>
 
 				<div class="space-y-1">
 					<Label for="startDate" class="text-xs">Start Date</Label>

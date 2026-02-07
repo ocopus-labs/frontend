@@ -12,6 +12,7 @@
 	import { EmptyState } from '$lib/components/data-display';
 	import { toast } from 'svelte-sonner';
 	import { TableFloorPlan } from '$lib/components/pos';
+	import * as Select from '$lib/components/ui/select';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import {
 		createTable,
@@ -582,21 +583,22 @@
 					</datalist>
 				</div>
 				<div class="grid gap-2">
-					<label for="edit-status" class="text-sm font-medium">Status</label>
-					<select
-						id="edit-status"
-						value={editingTable.status}
-						onchange={(e) => handleStatusChangeInDialog(e.currentTarget.value as TableStatus)}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="available" disabled={editingTable.status === 'occupied' && !!editingTable.currentSession?.orderId}>
-							Available {editingTable.status === 'occupied' && editingTable.currentSession?.orderId ? '(end session first)' : ''}
-						</option>
-						<option value="occupied">Occupied</option>
-						<option value="reserved">Reserved</option>
-						<option value="maintenance">Maintenance</option>
-						<option value="out_of_service">Out of Service</option>
-					</select>
+					<!-- svelte-ignore a11y_label_has_associated_control -->
+					<label class="text-sm font-medium">Status</label>
+					<Select.Root type="single" value={editingTable.status} onValueChange={(v) => handleStatusChangeInDialog(v as TableStatus)}>
+						<Select.Trigger class="w-full">
+							{({ available: 'Available', occupied: 'Occupied', reserved: 'Reserved', maintenance: 'Maintenance', out_of_service: 'Out of Service' } as Record<string, string>)[editingTable.status] || editingTable.status}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="available" disabled={editingTable.status === 'occupied' && !!editingTable.currentSession?.orderId}>
+								Available {editingTable.status === 'occupied' && editingTable.currentSession?.orderId ? '(end session first)' : ''}
+							</Select.Item>
+							<Select.Item value="occupied">Occupied</Select.Item>
+							<Select.Item value="reserved">Reserved</Select.Item>
+							<Select.Item value="maintenance">Maintenance</Select.Item>
+							<Select.Item value="out_of_service">Out of Service</Select.Item>
+						</Select.Content>
+					</Select.Root>
 				</div>
 			</div>
 			<Dialog.Footer class="flex-col gap-2 sm:flex-row">

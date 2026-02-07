@@ -3,6 +3,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import * as Avatar from '$lib/components/ui/avatar';
+	import * as Select from '$lib/components/ui/select';
 	import { useSession } from '$lib/auth';
 	import type { PageData } from './$types';
 
@@ -200,17 +201,23 @@
 			{#if (data.businesses?.length ?? 0) > 1}
 				<div class="flex items-center gap-2">
 					<span class="text-sm text-muted-foreground">Quick actions for:</span>
-					<select
-						class="rounded-md border border-input bg-background px-3 py-1.5 text-sm"
-						onchange={(e) => {
-							const biz = data.businesses?.find((b) => b.id === (e.target as HTMLSelectElement).value);
+					<Select.Root
+						type="single"
+						value={selectedBusiness?.id}
+						onValueChange={(v) => {
+							const biz = data.businesses?.find((b) => b.id === v);
 							if (biz) selectedBusiness = biz;
 						}}
 					>
-						{#each data.businesses ?? [] as biz (biz.id)}
-							<option value={biz.id} selected={biz.id === selectedBusiness?.id}>{biz.name}</option>
-						{/each}
-					</select>
+						<Select.Trigger class="rounded-md border border-input bg-background px-3 py-1.5 text-sm">
+							{selectedBusiness?.name ?? 'Select business'}
+						</Select.Trigger>
+						<Select.Content>
+							{#each data.businesses ?? [] as biz (biz.id)}
+								<Select.Item value={biz.id}>{biz.name}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
 				</div>
 			{/if}
 			<div class="grid gap-4 md:grid-cols-4">

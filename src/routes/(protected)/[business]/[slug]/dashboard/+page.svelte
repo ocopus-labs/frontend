@@ -10,6 +10,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import * as Alert from '$lib/components/ui/alert';
+	import * as Select from '$lib/components/ui/select';
 	import { Badge } from '$lib/components/ui/badge';
 	import {
 		StatusPill,
@@ -45,9 +46,15 @@
 	let selectedPeriod = $state(data.period || 'month');
 	let isRefreshing = $state(false);
 
-	function onPeriodChange(event: Event) {
-		const select = event.target as HTMLSelectElement;
-		selectedPeriod = select.value;
+	const periodLabels: Record<string, string> = {
+		today: 'Today',
+		yesterday: 'Yesterday',
+		week: 'This Week',
+		month: 'This Month'
+	};
+
+	function onPeriodChange(value: string) {
+		selectedPeriod = value;
 		const url = new URL($page.url);
 		url.searchParams.set('period', selectedPeriod);
 		goto(url.toString(), { replaceState: true });
@@ -196,16 +203,17 @@
 					>
 						<IconRefresh class="h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
 					</Button>
-					<select
-						value={selectedPeriod}
-						onchange={onPeriodChange}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="today">Today</option>
-						<option value="yesterday">Yesterday</option>
-						<option value="week">This Week</option>
-						<option value="month">This Month</option>
-					</select>
+					<Select.Root type="single" value={selectedPeriod} onValueChange={(v) => onPeriodChange(v)}>
+						<Select.Trigger class="w-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm">
+							{periodLabels[selectedPeriod] ?? selectedPeriod}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="today">Today</Select.Item>
+							<Select.Item value="yesterday">Yesterday</Select.Item>
+							<Select.Item value="week">This Week</Select.Item>
+							<Select.Item value="month">This Month</Select.Item>
+						</Select.Content>
+					</Select.Root>
 				{/snippet}
 			</PageHeader>
 

@@ -29,12 +29,16 @@
 		type CreateSupplierPayload
 	} from '$lib/api';
 	import { userFriendlyError } from '$lib/utils/error';
+	import * as Select from '$lib/components/ui/select';
 
 	let { data }: { data: PageData } = $props();
 
 	let suppliers = $state<Supplier[]>(data.suppliers || []);
 	let searchQuery = $state('');
 	let statusFilter = $state<'all' | SupplierStatus>('all');
+	const statusFilterLabel = $derived(
+		({ all: 'All Status', active: 'Active', inactive: 'Inactive', pending: 'Pending', blacklisted: 'Blacklisted' })[statusFilter] || 'All Status'
+	);
 	let showAddDialog = $state(false);
 	let editingSupplier = $state<Supplier | null>(null);
 	let viewingSupplier = $state<Supplier | null>(null);
@@ -215,16 +219,18 @@
 					<Input placeholder="Search suppliers..." bind:value={searchQuery} class="pl-9" />
 				</div>
 
-				<select
-					bind:value={statusFilter}
-					class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-				>
-					<option value="all">All Status</option>
-					<option value="active">Active</option>
-					<option value="inactive">Inactive</option>
-					<option value="pending">Pending</option>
-					<option value="blacklisted">Blacklisted</option>
-				</select>
+				<Select.Root type="single" bind:value={statusFilter}>
+					<Select.Trigger class="w-[150px]">
+						{statusFilterLabel}
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="all">All Status</Select.Item>
+						<Select.Item value="active">Active</Select.Item>
+						<Select.Item value="inactive">Inactive</Select.Item>
+						<Select.Item value="pending">Pending</Select.Item>
+						<Select.Item value="blacklisted">Blacklisted</Select.Item>
+					</Select.Content>
+				</Select.Root>
 			</div>
 
 			<!-- Suppliers Grid -->
@@ -417,16 +423,17 @@
 				</div>
 				<div class="grid gap-2">
 					<label for="edit-status" class="text-sm font-medium">Status</label>
-					<select
-						id="edit-status"
-						bind:value={editingSupplier.status}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="active">Active</option>
-						<option value="inactive">Inactive</option>
-						<option value="pending">Pending</option>
-						<option value="blacklisted">Blacklisted</option>
-					</select>
+					<Select.Root type="single" bind:value={editingSupplier.status}>
+						<Select.Trigger class="w-full">
+							{({ active: 'Active', inactive: 'Inactive', pending: 'Pending', blacklisted: 'Blacklisted' })[editingSupplier.status] || editingSupplier.status}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="active">Active</Select.Item>
+							<Select.Item value="inactive">Inactive</Select.Item>
+							<Select.Item value="pending">Pending</Select.Item>
+							<Select.Item value="blacklisted">Blacklisted</Select.Item>
+						</Select.Content>
+					</Select.Root>
 				</div>
 			</div>
 			<Dialog.Footer>

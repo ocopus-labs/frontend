@@ -15,6 +15,7 @@
 		IconRefresh
 	} from '@tabler/icons-svelte';
 	import { EmptyState } from '$lib/components/data-display';
+	import * as Select from '$lib/components/ui/select';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { toast } from 'svelte-sonner';
@@ -265,30 +266,32 @@
 				</div>
 
 				<div class="flex gap-2">
-					<select
-						value={data.statusFilter}
-						onchange={(e) => applyStatusFilter(e.currentTarget.value)}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="all">All Status</option>
-						<option value="completed">Completed</option>
-						<option value="pending">Pending</option>
-						<option value="refunded">Refunded</option>
-						<option value="failed">Failed</option>
-					</select>
+					<Select.Root type="single" value={data.statusFilter} onValueChange={(v) => applyStatusFilter(v)}>
+						<Select.Trigger class="w-[150px]">
+							{({ all: 'All Status', completed: 'Completed', pending: 'Pending', refunded: 'Refunded', failed: 'Failed' } as Record<string, string>)[data.statusFilter] || 'All Status'}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="all">All Status</Select.Item>
+							<Select.Item value="completed">Completed</Select.Item>
+							<Select.Item value="pending">Pending</Select.Item>
+							<Select.Item value="refunded">Refunded</Select.Item>
+							<Select.Item value="failed">Failed</Select.Item>
+						</Select.Content>
+					</Select.Root>
 
-					<select
-						value={data.methodFilter}
-						onchange={(e) => applyMethodFilter(e.currentTarget.value)}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="all">All Methods</option>
-						<option value="card">Card</option>
-						<option value="cash">Cash</option>
-						<option value="upi">UPI</option>
-						<option value="net_banking">Net Banking</option>
-						<option value="wallet">Wallet</option>
-					</select>
+					<Select.Root type="single" value={data.methodFilter} onValueChange={(v) => applyMethodFilter(v)}>
+						<Select.Trigger class="w-[150px]">
+							{({ all: 'All Methods', card: 'Card', cash: 'Cash', upi: 'UPI', net_banking: 'Net Banking', wallet: 'Wallet' } as Record<string, string>)[data.methodFilter] || 'All Methods'}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="all">All Methods</Select.Item>
+							<Select.Item value="card">Card</Select.Item>
+							<Select.Item value="cash">Cash</Select.Item>
+							<Select.Item value="upi">UPI</Select.Item>
+							<Select.Item value="net_banking">Net Banking</Select.Item>
+							<Select.Item value="wallet">Wallet</Select.Item>
+						</Select.Content>
+					</Select.Root>
 				</div>
 			</div>
 

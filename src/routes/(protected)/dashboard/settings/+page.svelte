@@ -6,6 +6,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
+	import * as Select from '$lib/components/ui/select';
 	import { authClient, useSession } from '$lib/auth';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
@@ -223,12 +224,14 @@
 					<p class="font-medium">Language</p>
 					<p class="text-sm text-muted-foreground">Select your preferred language</p>
 				</div>
-				<select
-					bind:value={language}
-					class="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-				>
-					<option value="en">English</option>
-				</select>
+				<Select.Root type="single" bind:value={language}>
+					<Select.Trigger class="h-9 w-[180px] rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+						{language === 'en' ? 'English' : language}
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="en">English</Select.Item>
+					</Select.Content>
+				</Select.Root>
 			</div>
 			<Separator />
 			<div class="flex items-center justify-between">
@@ -236,14 +239,16 @@
 					<p class="font-medium">Timezone</p>
 					<p class="text-sm text-muted-foreground">Set your local timezone</p>
 				</div>
-				<select
-					bind:value={timezone}
-					class="h-9 max-w-[220px] rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-				>
-					{#each timezoneOptions() as tz}
-						<option value={tz}>{tz.replace(/_/g, ' ')}</option>
-					{/each}
-				</select>
+				<Select.Root type="single" bind:value={timezone}>
+					<Select.Trigger class="h-9 max-w-[220px] rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+						{timezone.replace(/_/g, ' ')}
+					</Select.Trigger>
+					<Select.Content>
+						{#each timezoneOptions() as tz}
+							<Select.Item value={tz}>{tz.replace(/_/g, ' ')}</Select.Item>
+						{/each}
+					</Select.Content>
+				</Select.Root>
 			</div>
 			<Separator />
 			<div class="flex items-center justify-between">
@@ -251,14 +256,16 @@
 					<p class="font-medium">Date Format</p>
 					<p class="text-sm text-muted-foreground">Choose how dates are displayed</p>
 				</div>
-				<select
-					bind:value={dateFormat}
-					class="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-				>
-					<option value="DD/MM/YYYY">DD/MM/YYYY</option>
-					<option value="MM/DD/YYYY">MM/DD/YYYY</option>
-					<option value="YYYY-MM-DD">YYYY-MM-DD</option>
-				</select>
+				<Select.Root type="single" bind:value={dateFormat}>
+					<Select.Trigger class="h-9 w-[180px] rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+						{dateFormat}
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="DD/MM/YYYY">DD/MM/YYYY</Select.Item>
+						<Select.Item value="MM/DD/YYYY">MM/DD/YYYY</Select.Item>
+						<Select.Item value="YYYY-MM-DD">YYYY-MM-DD</Select.Item>
+					</Select.Content>
+				</Select.Root>
 			</div>
 		</Card.Content>
 		<Card.Footer>

@@ -42,6 +42,7 @@
 	import type { CurrencyCode } from '$lib/utils/i18n';
 	import { userFriendlyError } from '$lib/utils/error';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
+	import * as Select from '$lib/components/ui/select';
 
 	let { data }: { data: PageData } = $props();
 
@@ -578,27 +579,29 @@
 			<div class="grid grid-cols-2 gap-4">
 				<div class="grid gap-2">
 					<label for="category" class="text-sm font-medium">Category</label>
-					<select
-						id="category"
-						bind:value={newItem.category}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						{#each categories as category}
-							<option value={category.value}>{category.label}</option>
-						{/each}
-					</select>
+					<Select.Root type="single" bind:value={newItem.category}>
+						<Select.Trigger class="w-full">
+							{categories.find(c => c.value === newItem.category)?.label || 'Select category'}
+						</Select.Trigger>
+						<Select.Content>
+							{#each categories as category}
+								<Select.Item value={category.value}>{category.label}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
 				</div>
 				<div class="grid gap-2">
 					<label for="unit" class="text-sm font-medium">Unit</label>
-					<select
-						id="unit"
-						bind:value={newItem.unit}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						{#each units as unit}
-							<option value={unit.value}>{unit.label}</option>
-						{/each}
-					</select>
+					<Select.Root type="single" bind:value={newItem.unit}>
+						<Select.Trigger class="w-full">
+							{units.find(u => u.value === newItem.unit)?.label || 'Select unit'}
+						</Select.Trigger>
+						<Select.Content>
+							{#each units as unit}
+								<Select.Item value={unit.value}>{unit.label}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
 				</div>
 			</div>
 			<div class="grid grid-cols-3 gap-4">
@@ -666,27 +669,29 @@
 				<div class="grid grid-cols-2 gap-4">
 					<div class="grid gap-2">
 						<label for="edit-category" class="text-sm font-medium">Category</label>
-						<select
-							id="edit-category"
-							bind:value={editingItem.category}
-							class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-						>
-							{#each categories as category}
-								<option value={category.value}>{category.label}</option>
-							{/each}
-						</select>
+						<Select.Root type="single" bind:value={editingItem.category}>
+							<Select.Trigger class="w-full">
+								{categories.find(c => c.value === editingItem?.category)?.label || 'Select category'}
+							</Select.Trigger>
+							<Select.Content>
+								{#each categories as category}
+									<Select.Item value={category.value}>{category.label}</Select.Item>
+								{/each}
+							</Select.Content>
+						</Select.Root>
 					</div>
 					<div class="grid gap-2">
 						<label for="edit-unit" class="text-sm font-medium">Unit</label>
-						<select
-							id="edit-unit"
-							bind:value={editingItem.unit}
-							class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-						>
-							{#each units as unit}
-								<option value={unit.value}>{unit.label}</option>
-							{/each}
-						</select>
+						<Select.Root type="single" bind:value={editingItem.unit}>
+							<Select.Trigger class="w-full">
+								{units.find(u => u.value === editingItem?.unit)?.label || 'Select unit'}
+							</Select.Trigger>
+							<Select.Content>
+								{#each units as unit}
+									<Select.Item value={unit.value}>{unit.label}</Select.Item>
+								{/each}
+							</Select.Content>
+						</Select.Root>
 					</div>
 				</div>
 				<div class="grid grid-cols-2 gap-4">

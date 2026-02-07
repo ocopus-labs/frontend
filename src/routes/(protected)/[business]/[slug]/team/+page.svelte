@@ -41,6 +41,7 @@
 	} from '$lib/api';
 	import { downloadBlob } from '$lib/utils/export';
 	import { userFriendlyError } from '$lib/utils/error';
+	import * as Select from '$lib/components/ui/select';
 
 	let { data }: { data: PageData } = $props();
 
@@ -63,6 +64,8 @@
 		data.userRole === 'owner' ||
 		data.userRole === 'manager'
 	);
+
+	const roleLabelMap: Record<string, string> = { manager: 'Manager', staff: 'Staff', accountant: 'Accountant', viewer: 'Viewer' };
 
 	function openPermissionEditor(member: TeamMember) {
 		selectedMember = member;
@@ -499,16 +502,17 @@
 			</div>
 			<div class="grid gap-2">
 				<label for="role" class="text-sm font-medium">Role</label>
-				<select
-					id="role"
-					bind:value={newInvite.role}
-					class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-				>
-					<option value="manager">Manager</option>
-					<option value="staff">Staff</option>
-					<option value="accountant">Accountant</option>
-					<option value="viewer">Viewer</option>
-				</select>
+				<Select.Root type="single" bind:value={newInvite.role}>
+					<Select.Trigger class="w-full">
+						{roleLabelMap[newInvite.role] || newInvite.role}
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="manager">Manager</Select.Item>
+						<Select.Item value="staff">Staff</Select.Item>
+						<Select.Item value="accountant">Accountant</Select.Item>
+						<Select.Item value="viewer">Viewer</Select.Item>
+					</Select.Content>
+				</Select.Root>
 			</div>
 			<div class="grid gap-2">
 				<label for="message" class="text-sm font-medium">Personal Message (optional)</label>
@@ -564,16 +568,17 @@
 				</div>
 				<div class="grid gap-2">
 					<label for="edit-role" class="text-sm font-medium">Role</label>
-					<select
-						id="edit-role"
-						bind:value={editingMember.role}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="manager">Manager</option>
-						<option value="staff">Staff</option>
-						<option value="accountant">Accountant</option>
-						<option value="viewer">Viewer</option>
-					</select>
+					<Select.Root type="single" bind:value={editingMember.role}>
+						<Select.Trigger class="w-full">
+							{roleLabelMap[editingMember.role] || editingMember.role}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="manager">Manager</Select.Item>
+							<Select.Item value="staff">Staff</Select.Item>
+							<Select.Item value="accountant">Accountant</Select.Item>
+							<Select.Item value="viewer">Viewer</Select.Item>
+						</Select.Content>
+					</Select.Root>
 				</div>
 				<div class="rounded-lg bg-muted p-3">
 					<p class="text-sm font-medium">Current Permissions</p>

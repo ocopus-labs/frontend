@@ -16,6 +16,8 @@
 	import { useSession } from '$lib/auth';
 	import type { Business } from '$lib/api/types';
 	import { CURRENCY_CONFIG } from '$lib/utils/i18n';
+	import type { CurrencyCode } from '$lib/utils/i18n';
+	import * as Select from '$lib/components/ui/select';
 
 	let { data } = $props();
 
@@ -303,15 +305,16 @@
 							<div class="grid grid-cols-2 gap-4">
 								<div class="space-y-2">
 									<label for="currency" class="text-sm font-medium">Currency</label>
-									<select
-										id="currency"
-										bind:value={currency}
-										class="w-full rounded-md border border-input bg-background px-3 py-2"
-									>
-										{#each Object.values(CURRENCY_CONFIG) as curr (curr.code)}
-										<option value={curr.code}>{curr.code} ({curr.symbol}) - {curr.name}</option>
-									{/each}
-									</select>
+									<Select.Root type="single" bind:value={currency}>
+										<Select.Trigger class="w-full">
+											{currency} ({CURRENCY_CONFIG[currency as CurrencyCode]?.symbol || ''}) - {CURRENCY_CONFIG[currency as CurrencyCode]?.name || ''}
+										</Select.Trigger>
+										<Select.Content>
+											{#each Object.values(CURRENCY_CONFIG) as curr (curr.code)}
+												<Select.Item value={curr.code}>{curr.code} ({curr.symbol}) - {curr.name}</Select.Item>
+											{/each}
+										</Select.Content>
+									</Select.Root>
 								</div>
 							</div>
 							<div class="space-y-4">

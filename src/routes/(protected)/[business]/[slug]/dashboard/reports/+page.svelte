@@ -2,6 +2,7 @@
 	import type { PageData } from './$types';
 	import * as Card from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
+	import * as Select from '$lib/components/ui/select';
 	import * as Table from '$lib/components/ui/table';
 	import { Badge } from '$lib/components/ui/badge';
 	import { goto } from '$app/navigation';
@@ -148,18 +149,19 @@
 					<p class="text-muted-foreground">Generate and download business reports</p>
 				</div>
 				<div class="flex gap-2">
-					<select
-						bind:value={period}
-						onchange={() => handlePeriodChange(period)}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="today">Today</option>
-						<option value="yesterday">Yesterday</option>
-						<option value="week">This Week</option>
-						<option value="month">This Month</option>
-						<option value="quarter">This Quarter</option>
-						<option value="year">This Year</option>
-					</select>
+					<Select.Root type="single" value={period} onValueChange={(v) => { period = v; handlePeriodChange(v); }}>
+						<Select.Trigger class="w-[160px] rounded-md border border-input bg-background px-3 py-2 text-sm">
+							{getPeriodLabel(period)}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="today">Today</Select.Item>
+							<Select.Item value="yesterday">Yesterday</Select.Item>
+							<Select.Item value="week">This Week</Select.Item>
+							<Select.Item value="month">This Month</Select.Item>
+							<Select.Item value="quarter">This Quarter</Select.Item>
+							<Select.Item value="year">This Year</Select.Item>
+						</Select.Content>
+					</Select.Root>
 					<Button variant="outline" onclick={exportPdf} disabled={isExporting}>
 						<IconFileTypePdf class="mr-2 h-4 w-4" />
 						{isExporting ? 'Exporting...' : 'PDF'}
