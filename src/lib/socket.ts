@@ -20,17 +20,11 @@ export function getSocket(): Socket | null {
 			autoConnect: false
 		});
 
-		socket.on('connect', () => {
-			console.log('[Socket] Connected to orders namespace');
-		});
+		socket.on('connect', () => {});
 
-		socket.on('disconnect', (reason) => {
-			console.log('[Socket] Disconnected:', reason);
-		});
+		socket.on('disconnect', () => {});
 
-		socket.on('connect_error', (error) => {
-			console.error('[Socket] Connection error:', error.message);
-		});
+		socket.on('connect_error', () => {});
 	}
 
 	return socket;
@@ -54,7 +48,6 @@ export function joinBusiness(businessId: string): void {
 	const sock = getSocket();
 	if (sock?.connected) {
 		sock.emit('join:business', businessId);
-		console.log('[Socket] Joining business room:', businessId);
 	}
 }
 
@@ -62,7 +55,6 @@ export function leaveBusiness(businessId: string): void {
 	const sock = getSocket();
 	if (sock?.connected) {
 		sock.emit('leave:business', businessId);
-		console.log('[Socket] Leaving business room:', businessId);
 	}
 }
 
