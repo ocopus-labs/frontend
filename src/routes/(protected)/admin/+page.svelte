@@ -1,6 +1,8 @@
 <script lang="ts">
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import { toast } from 'svelte-sonner';
 	import type { PageData } from './$types';
 
 	import {
@@ -14,6 +16,8 @@
 		type TimelineItem
 	} from '$lib/components/data-display';
 
+	import ActivityFeed from '$lib/components/admin/activity-feed.svelte';
+
 	import Building2 from '@lucide/svelte/icons/building-2';
 	import Users from '@lucide/svelte/icons/users';
 	import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
@@ -24,17 +28,20 @@
 	import BarChart3 from '@lucide/svelte/icons/bar-chart-3';
 	import UserPlus from '@lucide/svelte/icons/user-plus';
 	import Store from '@lucide/svelte/icons/store';
+	import ScrollText from '@lucide/svelte/icons/scroll-text';
 
 	let { data }: { data: PageData } = $props();
 	const stats = data.stats;
+	const activities = data.activities ?? [];
 
-	function formatCurrency(value: number): string {
-		return new Intl.NumberFormat('en-IN', {
-			style: 'currency',
-			currency: 'INR',
-			maximumFractionDigits: 0
-		}).format(value);
-	}
+	$effect(() => {
+		if ((data as any).statsError) {
+			toast.error('Failed to load platform statistics. Some data may be unavailable.');
+		}
+		if ((data as any).activityFeedError) {
+			toast.error('Failed to load activity feed.');
+		}
+	});
 
 	// Transform recent businesses into timeline items
 	const recentBusinessTimeline = $derived<TimelineItem[]>(
@@ -152,7 +159,7 @@
 				</Card.Header>
 				<Card.Content>
 					<div class="text-2xl font-bold">
-						<LiveCounter value={stats.totalRevenue} format="currency" currency="INR" />
+						<LiveCounter value={stats.totalRevenue} format="currency" currency="USD" />
 					</div>
 					<div class="mt-1 flex items-center gap-2">
 						<TrendBadge
@@ -307,51 +314,75 @@
 			</Card.Root>
 		</div>
 
-		<!-- Recent Activity with Timelines -->
-		<div class="grid gap-4 md:grid-cols-2">
-			<!-- Recent Businesses -->
-			<Card.Root>
-				<Card.Header>
-					<Card.Title class="flex items-center gap-2">
-						<Activity class="h-4 w-4" />
-						Recent Businesses
-					</Card.Title>
-					<Card.Description>Latest businesses registered</Card.Description>
-				</Card.Header>
-				<Card.Content>
-					{#if recentBusinessTimeline.length > 0}
-						<ActivityTimeline items={recentBusinessTimeline} compact />
-					{:else}
-						<EmptyState
-							type="empty"
-							title="No businesses yet"
-							description="New businesses will appear here"
-							size="sm"
-						/>
-					{/if}
-				</Card.Content>
-			</Card.Root>
+		<!-- Recent Activity & Activity Feed -->
+		<div class="grid gap-4 lg:grid-cols-3">
+			<!-- Left column: Recent Businesses & Users -->
+			<div class="space-y-4 lg:col-span-2">
+				<div class="grid gap-4 md:grid-cols-2">
+					<!-- Recent Businesses -->
+					<Card.Root>
+						<Card.Header>
+							<Card.Title class="flex items-center gap-2">
+								<Activity class="h-4 w-4" />
+								Recent Businesses
+							</Card.Title>
+							<Card.Description>Latest businesses registered</Card.Description>
+						</Card.Header>
+						<Card.Content>
+							{#if recentBusinessTimeline.length > 0}
+								<ActivityTimeline items={recentBusinessTimeline} compact />
+							{:else}
+								<EmptyState
+									type="empty"
+									title="No businesses yet"
+									description="New businesses will appear here"
+									size="sm"
+								/>
+							{/if}
+						</Card.Content>
+					</Card.Root>
 
-			<!-- Recent Users -->
-			<Card.Root>
-				<Card.Header>
-					<Card.Title class="flex items-center gap-2">
-						<TrendingUp class="h-4 w-4" />
-						Recent Users
-					</Card.Title>
-					<Card.Description>Latest users registered</Card.Description>
+					<!-- Recent Users -->
+					<Card.Root>
+						<Card.Header>
+							<Card.Title class="flex items-center gap-2">
+								<TrendingUp class="h-4 w-4" />
+								Recent Users
+							</Card.Title>
+							<Card.Description>Latest users registered</Card.Description>
+						</Card.Header>
+						<Card.Content>
+							{#if recentUsersTimeline.length > 0}
+								<ActivityTimeline items={recentUsersTimeline} compact />
+							{:else}
+								<EmptyState
+									type="empty"
+									title="No users yet"
+									description="New users will appear here"
+									size="sm"
+								/>
+							{/if}
+						</Card.Content>
+					</Card.Root>
+				</div>
+			</div>
+
+			<!-- Right column: Activity Feed -->
+			<Card.Root class="lg:col-span-1">
+				<Card.Header class="flex flex-row items-center justify-between space-y-0">
+					<div>
+						<Card.Title class="flex items-center gap-2">
+							<ScrollText class="h-4 w-4" />
+							Recent Activity
+						</Card.Title>
+						<Card.Description>Latest platform-wide actions</Card.Description>
+					</div>
+					<a href="/admin/audit-logs">
+						<Button variant="ghost" size="sm">View All</Button>
+					</a>
 				</Card.Header>
 				<Card.Content>
-					{#if recentUsersTimeline.length > 0}
-						<ActivityTimeline items={recentUsersTimeline} compact />
-					{:else}
-						<EmptyState
-							type="empty"
-							title="No users yet"
-							description="New users will appear here"
-							size="sm"
-						/>
-					{/if}
+					<ActivityFeed {activities} />
 				</Card.Content>
 			</Card.Root>
 		</div>

@@ -3,8 +3,14 @@
 	import * as Table from '$lib/components/ui/table/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
-	import { goto } from '$app/navigation';
+	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
+	import BulkActionBar from '$lib/components/admin/bulk-action-bar.svelte';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { toast } from 'svelte-sonner';
+	import { userFriendlyError } from '$lib/utils/error';
+	import { bulkBusinessAction } from '$lib/api/admin';
 	import type { PageData } from './$types';
 
 	import {
@@ -24,12 +30,63 @@
 	import Coffee from '@lucide/svelte/icons/coffee';
 	import Scissors from '@lucide/svelte/icons/scissors';
 	import Dumbbell from '@lucide/svelte/icons/dumbbell';
+	import Download from '@lucide/svelte/icons/download';
+	import { exportAdminBusinesses } from '$lib/api/admin';
+	import { downloadBlob } from '$lib/utils/export';
 
 	let { data }: { data: PageData } = $props();
 
 	let searchQuery = $state(data.filters.search || '');
 	let statusFilter = $state(data.filters.status || '');
 	let typeFilter = $state(data.filters.type || '');
+
+	// Bulk selection state
+	let selectedIds = $state<Set<string>>(new Set());
+	let bulkDialogOpen = $state(false);
+	let bulkAction = $state('');
+
+	const allSelected = $derived(
+		data.data.length > 0 && data.data.every((b: any) => selectedIds.has(b.id))
+	);
+
+	const someSelected = $derived(
+		data.data.length > 0 && data.data.some((b: any) => selectedIds.has(b.id)) && !allSelected
+	);
+
+	function toggleSelect(id: string) {
+		const next = new Set(selectedIds);
+		if (next.has(id)) next.delete(id);
+		else next.add(id);
+		selectedIds = next;
+	}
+
+	function toggleSelectAll() {
+		if (allSelected) {
+			selectedIds = new Set();
+		} else {
+			selectedIds = new Set(data.data.map((b: any) => b.id));
+		}
+	}
+
+	function handleBulkAction(action: string) {
+		bulkAction = action;
+		bulkDialogOpen = true;
+	}
+
+	async function confirmBulkAction() {
+		try {
+			const result = await bulkBusinessAction({ ids: [...selectedIds], action: bulkAction });
+			toast.success(`${result.processed} business${result.processed !== 1 ? 'es' : ''} ${bulkAction === 'suspend' ? 'suspended' : 'activated'}`);
+			if (result.failed > 0) {
+				toast.warning(`${result.failed} business${result.failed !== 1 ? 'es' : ''} failed to update`);
+			}
+			selectedIds = new Set();
+			bulkDialogOpen = false;
+			await invalidateAll();
+		} catch (err) {
+			toast.error(userFriendlyError(err, 'Bulk action failed'));
+		}
+	}
 
 	// Debounced search effect
 	let searchTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -44,7 +101,7 @@
 	});
 
 	function formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleDateString('en-IN', {
+		return new Date(dateString).toLocaleDateString(undefined, {
 			day: 'numeric',
 			month: 'short',
 			year: 'numeric'
@@ -127,7 +184,7 @@
 			id: 'status',
 			label: 'Status',
 			value: statusOptions.find(s => s.value === statusFilter)?.label || statusFilter,
-			variant: statusFilter === 'active' ? 'primary' : statusFilter === 'suspended' ? 'destructive' : 'secondary' as const
+			variant: (statusFilter === 'active' ? 'primary' : statusFilter === 'suspended' ? 'destructive' : 'default') as Filter['variant']
 		}] : []),
 		...(typeFilter ? [{
 			id: 'type',
@@ -154,6 +211,20 @@
 		if (status === 'suspended') return 'error';
 		return 'warning';
 	}
+
+	async function handleExportBusinesses() {
+		try {
+			const blob = await exportAdminBusinesses({
+				status: statusFilter || undefined,
+				type: typeFilter || undefined,
+				search: searchQuery || undefined
+			});
+			downloadBlob(blob, `businesses-${new Date().toISOString().split('T')[0]}.csv`);
+			toast.success('Businesses exported successfully');
+		} catch {
+			toast.error('Failed to export businesses');
+		}
+	}
 </script>
 
 <svelte:head>
@@ -168,6 +239,10 @@
 			<p class="text-muted-foreground">Manage all businesses on the platform</p>
 		</div>
 		<div class="flex items-center gap-3">
+			<Button variant="outline" size="sm" onclick={handleExportBusinesses}>
+				<Download class="mr-2 h-4 w-4" />
+				Export CSV
+			</Button>
 			<div class="flex items-center gap-2 rounded-lg bg-muted px-3 py-2">
 				<Building2 class="h-4 w-4 text-muted-foreground" />
 				<span class="text-sm font-medium">
@@ -221,6 +296,14 @@
 		<Table.Root>
 			<Table.Header>
 				<Table.Row>
+					<Table.Head class="w-[40px]">
+						<Checkbox
+							checked={allSelected}
+							indeterminate={someSelected}
+							onCheckedChange={toggleSelectAll}
+							aria-label="Select all businesses"
+						/>
+					</Table.Head>
 					<Table.Head>Business</Table.Head>
 					<Table.Head>Type</Table.Head>
 					<Table.Head>Owner</Table.Head>
@@ -236,6 +319,13 @@
 					{@const TypeIcon = getTypeIcon(business.type)}
 					<Table.Row class="group">
 						<Table.Cell>
+							<Checkbox
+								checked={selectedIds.has(business.id)}
+								onCheckedChange={() => toggleSelect(business.id)}
+								aria-label="Select {business.name}"
+							/>
+						</Table.Cell>
+						<Table.Cell>
 							<div class="flex items-center gap-3">
 								<div
 									class="flex h-10 w-10 items-center justify-center rounded-lg bg-muted ring-2 ring-background"
@@ -244,6 +334,7 @@
 										<img
 											src={business.logo}
 											alt={business.name}
+											loading="lazy"
 											class="h-10 w-10 rounded-lg object-cover"
 										/>
 									{:else}
@@ -298,7 +389,7 @@
 					</Table.Row>
 				{:else}
 					<Table.Row>
-						<Table.Cell colspan={8}>
+						<Table.Cell colspan={9}>
 							<EmptyState
 								type="no-results"
 								title="No businesses found"
@@ -365,3 +456,26 @@
 		</div>
 	{/if}
 </div>
+
+<!-- Bulk Action Bar -->
+<BulkActionBar
+	selectedCount={selectedIds.size}
+	actions={[
+		{ label: 'Suspend Selected', value: 'suspend', variant: 'destructive' },
+		{ label: 'Activate Selected', value: 'activate' }
+	]}
+	onAction={handleBulkAction}
+	onClear={() => (selectedIds = new Set())}
+/>
+
+<!-- Bulk Action Confirm Dialog -->
+<ConfirmDialog
+	bind:open={bulkDialogOpen}
+	title={bulkAction === 'suspend' ? 'Suspend Selected Businesses' : 'Activate Selected Businesses'}
+	description={bulkAction === 'suspend'
+		? `Are you sure you want to suspend ${selectedIds.size} business${selectedIds.size !== 1 ? 'es' : ''}? They will be unable to operate until reactivated.`
+		: `Are you sure you want to activate ${selectedIds.size} business${selectedIds.size !== 1 ? 'es' : ''}?`}
+	confirmLabel={bulkAction === 'suspend' ? `Suspend ${selectedIds.size} Businesses` : `Activate ${selectedIds.size} Businesses`}
+	variant={bulkAction === 'suspend' ? 'destructive' : 'default'}
+	onConfirm={confirmBulkAction}
+/>

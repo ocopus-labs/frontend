@@ -4,7 +4,9 @@ import type { LayoutServerLoad } from './$types';
 
 const SUPER_ADMIN_ROLE = 'super_admin';
 
-export const load: LayoutServerLoad = async ({ fetch, locals, url }) => {
+export const load: LayoutServerLoad = async ({ fetch, locals, url, depends }) => {
+	depends('app:auth');
+
 	// Check for session from hooks.server.ts
 	if (!locals.session) {
 		const returnTo = encodeURIComponent(url.pathname);
@@ -26,11 +28,11 @@ export const load: LayoutServerLoad = async ({ fetch, locals, url }) => {
 			stats
 		};
 	} catch (err) {
-		console.error('Failed to fetch admin stats:', err);
 		// Still allow access even if stats fail
 		return {
 			user,
-			stats: null
+			stats: null,
+			statsError: true
 		};
 	}
 };

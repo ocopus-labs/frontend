@@ -1,5 +1,6 @@
 <script lang="ts">
 	import AdminSidebar from '$lib/components/admin/admin-sidebar.svelte';
+	import ImpersonationBanner from '$lib/components/global/impersonation-banner.svelte';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
@@ -24,9 +25,13 @@
 	);
 </script>
 
+<ImpersonationBanner />
+<a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:shadow-lg">
+	Skip to main content
+</a>
 <Sidebar.Provider>
 	<AdminSidebar stats={data.stats} />
-	<Sidebar.Inset>
+	<Sidebar.Inset id="main-content">
 		<header
 			class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12"
 		>
