@@ -3,7 +3,14 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import * as Dialog from '$lib/components/ui/dialog';
-	import { IconCash, IconCreditCard, IconDeviceMobile, IconReceipt, IconPlus, IconTrash } from '@tabler/icons-svelte';
+	import {
+		IconCash,
+		IconCreditCard,
+		IconDeviceMobile,
+		IconReceipt,
+		IconPlus,
+		IconTrash
+	} from '@tabler/icons-svelte';
 	import { createI18nUtils } from '$lib/utils/i18n';
 	import type { PaymentMethod } from '$lib/api';
 
@@ -154,8 +161,9 @@
 
 	const quickAmounts = $derived(() => {
 		const base = Math.ceil(paymentAmount / 100) * 100;
-		const amounts = [base, base + 100, base + 200, base + 500]
-			.filter((a) => a >= paymentAmount && a !== paymentAmount);
+		const amounts = [base, base + 100, base + 200, base + 500].filter(
+			(a) => a >= paymentAmount && a !== paymentAmount
+		);
 		return [...new Set(amounts)];
 	});
 
@@ -181,7 +189,11 @@
 	function updateSplitAmount(id: string, amount: number) {
 		splitEntries = splitEntries.map((e) =>
 			e.id === id
-				? { ...e, amount, cashReceived: e.method === 'cash' ? Math.max(e.cashReceived ?? 0, amount) : undefined }
+				? {
+						...e,
+						amount,
+						cashReceived: e.method === 'cash' ? Math.max(e.cashReceived ?? 0, amount) : undefined
+					}
 				: e
 		);
 	}
@@ -193,7 +205,12 @@
 		splitEntries = splitEntries.map((e, i) => ({
 			...e,
 			amount: i === count - 1 ? Math.round(remainder * 100) / 100 : each,
-			cashReceived: e.method === 'cash' ? (i === count - 1 ? Math.round(remainder * 100) / 100 : each) : undefined
+			cashReceived:
+				e.method === 'cash'
+					? i === count - 1
+						? Math.round(remainder * 100) / 100
+						: each
+					: undefined
 		}));
 	}
 
@@ -217,7 +234,7 @@
 </script>
 
 <Dialog.Root bind:open onOpenChange={(isOpen) => !isOpen && onCancel()}>
-	<Dialog.Content class="max-w-lg max-h-[90vh] overflow-y-auto">
+	<Dialog.Content class="max-h-[90vh] max-w-lg overflow-y-auto">
 		<Dialog.Header>
 			<Dialog.Title>Process Payment</Dialog.Title>
 			<Dialog.Description>
@@ -231,14 +248,20 @@
 				<div class="grid grid-cols-2 gap-2">
 					<button
 						type="button"
-						class="rounded-lg border-2 p-2.5 text-center text-sm font-medium transition-colors {mode === 'single' ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}"
+						class="rounded-lg border-2 p-2.5 text-center text-sm font-medium transition-colors {mode ===
+						'single'
+							? 'border-primary bg-primary/10'
+							: 'border-border hover:border-primary/50'}"
 						onclick={() => (mode = 'single')}
 					>
 						Single Payment
 					</button>
 					<button
 						type="button"
-						class="rounded-lg border-2 p-2.5 text-center text-sm font-medium transition-colors {mode === 'split' ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}"
+						class="rounded-lg border-2 p-2.5 text-center text-sm font-medium transition-colors {mode ===
+						'split'
+							? 'border-primary bg-primary/10'
+							: 'border-border hover:border-primary/50'}"
 						onclick={() => (mode = 'split')}
 					>
 						Split Payment
@@ -252,13 +275,17 @@
 				<div class="space-y-3">
 					<Label class="text-sm font-medium">Payment Method</Label>
 					<div class="grid grid-cols-4 gap-2">
-						{#each (['cash', 'card', 'upi', 'other'] as const) as method}
+						{#each ['cash', 'card', 'upi', 'other'] as const as method}
+							{@const MethodIcons = methodIcons[method]}
 							<button
 								type="button"
-								class="flex flex-col items-center gap-1 rounded-lg border-2 p-3 transition-colors {paymentMethod === method ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}"
+								class="flex flex-col items-center gap-1 rounded-lg border-2 p-3 transition-colors {paymentMethod ===
+								method
+									? 'border-primary bg-primary/10'
+									: 'border-border hover:border-primary/50'}"
 								onclick={() => (paymentMethod = method)}
 							>
-								<svelte:component this={methodIcons[method]} class="h-6 w-6" />
+								<MethodIcons class="h-6 w-6" />
 								<span class="text-xs font-medium">{methodLabels[method]}</span>
 							</button>
 						{/each}
@@ -311,11 +338,7 @@
 								Exact ({i18n.formatCurrency(paymentAmount)})
 							</Button>
 							{#each quickAmounts() as amount}
-								<Button
-									variant="outline"
-									size="sm"
-									onclick={() => handleQuickAmount(amount)}
-								>
+								<Button variant="outline" size="sm" onclick={() => handleQuickAmount(amount)}>
 									{i18n.formatCurrency(amount)}
 								</Button>
 							{/each}
@@ -336,14 +359,18 @@
 				<!-- Card/UPI Transaction Reference -->
 				{#if paymentMethod === 'card' || paymentMethod === 'upi'}
 					<div class="space-y-2">
-						<Label for="transactionRef">Transaction Reference <span class="text-destructive">*</span></Label>
+						<Label for="transactionRef"
+							>Transaction Reference <span class="text-destructive">*</span></Label
+						>
 						<Input
 							id="transactionRef"
 							type="text"
 							bind:value={transactionReference}
 							placeholder="Enter transaction ID or reference"
 							class={transactionRefError ? 'border-destructive' : ''}
-							oninput={() => { transactionRefError = ''; }}
+							oninput={() => {
+								transactionRefError = '';
+							}}
 						/>
 						{#if transactionRefError}
 							<p class="text-xs text-destructive">{transactionRefError}</p>
@@ -382,9 +409,7 @@
 							<span>{i18n.formatCurrency(cashReceived)}</span>
 						</div>
 						{#if change > 0}
-							<div
-								class="flex justify-between text-sm text-green-600 dark:text-green-400"
-							>
+							<div class="flex justify-between text-sm text-green-600 dark:text-green-400">
 								<span>Change:</span>
 								<span>{i18n.formatCurrency(change)}</span>
 							</div>
@@ -392,9 +417,7 @@
 					{/if}
 					{#if paymentAmount < balanceDue}
 						<div class="mt-2 border-t border-border pt-2">
-							<div
-								class="flex justify-between text-sm text-orange-600 dark:text-orange-400"
-							>
+							<div class="flex justify-between text-sm text-orange-600 dark:text-orange-400">
 								<span>Remaining Balance:</span>
 								<span>{i18n.formatCurrency(balanceDue - paymentAmount)}</span>
 							</div>
@@ -407,9 +430,7 @@
 					<div class="flex items-center justify-between">
 						<Label class="text-sm font-medium">Payment Entries</Label>
 						<div class="flex gap-2">
-							<Button variant="outline" size="sm" onclick={autoDistribute}>
-								Split Evenly
-							</Button>
+							<Button variant="outline" size="sm" onclick={autoDistribute}>Split Evenly</Button>
 							<Button variant="outline" size="sm" onclick={addSplitEntry}>
 								<IconPlus class="mr-1 h-3 w-3" />
 								Add
@@ -418,7 +439,7 @@
 					</div>
 
 					{#each splitEntries as entry, idx}
-						<div class="rounded-lg border border-border p-3 space-y-3">
+						<div class="space-y-3 rounded-lg border border-border p-3">
 							<div class="flex items-center justify-between">
 								<span class="text-sm font-medium">Payment {idx + 1}</span>
 								{#if splitEntries.length > 2}
@@ -435,13 +456,17 @@
 
 							<!-- Method selector -->
 							<div class="grid grid-cols-4 gap-1.5">
-								{#each (['cash', 'card', 'upi', 'other'] as const) as method}
+								{#each ['cash', 'card', 'upi', 'other'] as const as method}
+									{@const MethodIcons = methodIcons[method]}
 									<button
 										type="button"
-										class="flex flex-col items-center gap-0.5 rounded-md border-2 p-2 transition-colors text-xs {entry.method === method ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}"
+										class="flex flex-col items-center gap-0.5 rounded-md border-2 p-2 text-xs transition-colors {entry.method ===
+										method
+											? 'border-primary bg-primary/10'
+											: 'border-border hover:border-primary/50'}"
 										onclick={() => updateSplitMethod(entry.id, method)}
 									>
-										<svelte:component this={methodIcons[method]} class="h-4 w-4" />
+										<MethodIcons class="h-4 w-4" />
 										<span class="font-medium">{methodLabels[method]}</span>
 									</button>
 								{/each}
@@ -452,7 +477,8 @@
 								<Input
 									type="number"
 									value={entry.amount}
-									oninput={(e) => updateSplitAmount(entry.id, parseFloat(e.currentTarget.value) || 0)}
+									oninput={(e) =>
+										updateSplitAmount(entry.id, parseFloat(e.currentTarget.value) || 0)}
 									min={0.01}
 									step={0.01}
 									class="font-semibold"
@@ -487,14 +513,14 @@
 					{/each}
 
 					<!-- Split Summary -->
-					<div class="rounded-lg border border-border bg-muted/50 p-4 space-y-2">
+					<div class="space-y-2 rounded-lg border border-border bg-muted/50 p-4">
 						{#each splitEntries as entry, idx}
 							<div class="flex justify-between text-sm">
 								<span class="capitalize">{methodLabels[entry.method]}</span>
 								<span>{i18n.formatCurrency(entry.amount)}</span>
 							</div>
 						{/each}
-						<div class="border-t border-border pt-2 flex justify-between text-sm font-semibold">
+						<div class="flex justify-between border-t border-border pt-2 text-sm font-semibold">
 							<span>Total</span>
 							<span class={Math.abs(splitRemaining) < 0.01 ? '' : 'text-destructive'}>
 								{i18n.formatCurrency(splitTotal)}
@@ -514,10 +540,7 @@
 		<Dialog.Footer>
 			<Button variant="outline" onclick={onCancel} disabled={isProcessing}>Cancel</Button>
 			{#if mode === 'single'}
-				<Button
-					onclick={handleSubmit}
-					disabled={!isValidSinglePayment() || isProcessing}
-				>
+				<Button onclick={handleSubmit} disabled={!isValidSinglePayment() || isProcessing}>
 					{isProcessing ? 'Processing...' : `Pay ${i18n.formatCurrency(paymentAmount)}`}
 				</Button>
 			{:else}
