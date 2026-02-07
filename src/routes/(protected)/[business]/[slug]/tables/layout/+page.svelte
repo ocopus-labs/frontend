@@ -19,6 +19,7 @@
 		updateTable,
 		updateTableStatus,
 		deleteTable,
+		endTableSession,
 		type Table,
 		type TableStatus,
 		type CreateTablePayload
@@ -303,16 +304,17 @@
 		}
 	}
 
-	// Prevent occupied → available when active session exists (Issue 1.5)
+	// Auto-end session when changing occupied table to available
 	async function handleStatusChangeInDialog(status: TableStatus) {
 		if (!editingTable) return;
 
+		// If changing from occupied to available, end the session first
 		if (
 			editingTable.status === 'occupied' &&
 			status === 'available' &&
-			editingTable.currentSession?.orderId
+			editingTable.currentSession
 		) {
-			toast.error('This table has an active order. End the session first.');
+			await handleEndSession();
 			return;
 		}
 
@@ -323,6 +325,18 @@
 			toast.success('Table status updated');
 		} catch (error) {
 			toast.error(userFriendlyError(error, 'Failed to update status'));
+		}
+	}
+
+	async function handleEndSession() {
+		if (!editingTable) return;
+		try {
+			const result = await endTableSession(data.businessId, editingTable.id);
+			tables = tables.map((t) => (t.id === editingTable!.id ? result.table : t));
+			editingTable = { ...editingTable, status: 'available' as TableStatus, currentSession: undefined };
+			toast.success('Table session ended');
+		} catch (error) {
+			toast.error(userFriendlyError(error, 'Failed to end session'));
 		}
 	}
 
@@ -590,9 +604,7 @@
 							{({ available: 'Available', occupied: 'Occupied', reserved: 'Reserved', maintenance: 'Maintenance', out_of_service: 'Out of Service' } as Record<string, string>)[editingTable.status] || editingTable.status}
 						</Select.Trigger>
 						<Select.Content>
-							<Select.Item value="available" disabled={editingTable.status === 'occupied' && !!editingTable.currentSession?.orderId}>
-								Available {editingTable.status === 'occupied' && editingTable.currentSession?.orderId ? '(end session first)' : ''}
-							</Select.Item>
+							<Select.Item value="available">Available</Select.Item>
 							<Select.Item value="occupied">Occupied</Select.Item>
 							<Select.Item value="reserved">Reserved</Select.Item>
 							<Select.Item value="maintenance">Maintenance</Select.Item>
@@ -600,6 +612,13 @@
 						</Select.Content>
 					</Select.Root>
 				</div>
+				{#if editingTable.status === 'occupied' && editingTable.currentSession}
+				<div>
+					<Button variant="outline" size="sm" class="w-full" onclick={handleEndSession}>
+						End Session &amp; Free Table
+					</Button>
+				</div>
+				{/if}
 			</div>
 			<Dialog.Footer class="flex-col gap-2 sm:flex-row">
 				<Button

@@ -479,6 +479,7 @@
 
 			const orderPayload: CreateOrderPayload = {
 				orderType,
+				tableId: orderType === 'dine_in' && selectedTable ? selectedTable.id : undefined,
 				tableNumber: orderType === 'dine_in' && selectedTable ? selectedTable.tableNumber : undefined,
 				items,
 				taxRate: showTaxes ? taxRate : 0,
