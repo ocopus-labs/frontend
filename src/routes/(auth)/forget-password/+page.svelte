@@ -38,7 +38,7 @@
 
 		try {
 			// Use Better Auth client method for forget password
-			const result = await authClient.forgetPassword({
+			const result = await (authClient.forgetPassword as any)({
 				email,
 				redirectTo: `${window.location.origin}/reset-password`
 			});

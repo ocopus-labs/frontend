@@ -22,8 +22,9 @@
   </div>
   <div class="bg-muted relative hidden lg:block">
     <img
-      src="/placeholder.svg"
+      src="https://images.pexels.com/photos/3801439/pexels-photo-3801439.jpeg"
       alt=""
+      loading="lazy"
       class="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
     />
   </div>

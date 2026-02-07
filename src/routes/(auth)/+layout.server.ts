@@ -6,7 +6,7 @@ export const load: LayoutServerLoad = async ({ locals, parent }) => {
 
 	if (user && !user.banned) {
 		if (user.role === 'super_admin') {
-			throw redirect(307, '/admin/dashboard');
+			throw redirect(307, '/admin');
 		} else {
 			throw redirect(307, '/dashboard');
 		}
