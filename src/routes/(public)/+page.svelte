@@ -26,7 +26,12 @@
 	let dashboardUrl = $derived(data.user?.role === 'super_admin' ? '/admin' : '/dashboard');
 	let userInitials = $derived(() => {
 		if (!data.user?.name) return data.user?.email?.charAt(0)?.toUpperCase() || '?';
-		return data.user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
+		return data.user.name
+			.split(' ')
+			.map((n) => n[0])
+			.join('')
+			.toUpperCase()
+			.slice(0, 2);
 	});
 
 	async function handleLogout() {
@@ -59,16 +64,19 @@
 	<!-- Scroll below to see the snippet code  -->
 	{@render header()}
 	<main>
-		<div aria-hidden class="absolute inset-0 isolate z-2 hidden opacity-50 contain-strict lg:block">
+		<div
+			aria-hidden="true"
+			class="absolute inset-0 isolate z-2 hidden opacity-50 contain-strict lg:block"
+		>
 			<div
 				class="absolute top-0 left-0 h-320 w-140 -translate-y-87.5 -rotate-45 rounded-full bg-[radial-gradient(68.54%_68.72%_at_55.02%_31.46%,hsla(0,0%,85%,.08)_0,hsla(0,0%,55%,.02)_50%,hsla(0,0%,45%,0)_80%)]"
-			/>
+			></div>
 			<div
 				class="absolute top-0 left-0 h-320 w-60 [translate:5%_-50%] -rotate-45 rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsla(0,0%,85%,.06)_0,hsla(0,0%,45%,.02)_80%,transparent_100%)]"
-			/>
+			></div>
 			<div
 				class="absolute top-0 left-0 h-320 w-60 -translate-y-87.5 -rotate-45 bg-[radial-gradient(50%_50%_at_50%_50%,hsla(0,0%,85%,.04)_0,hsla(0,0%,45%,.02)_80%,transparent_100%)]"
-			/>
+			></div>
 		</div>
 
 		<section class="overflow-hidden bg-white dark:bg-transparent">
@@ -93,37 +101,40 @@
 					<div class="[transform:rotateX(20deg);]">
 						<div class="relative skew-x-[.36rad] lg:h-176">
 							<div
-								aria-hidden
+								aria-hidden="true"
 								class="absolute -inset-16 z-1 bg-linear-to-b from-background via-transparent to-background sm:-inset-32"
-							/>
+							></div>
 							<div
-								aria-hidden
+								aria-hidden="true"
 								class="absolute -inset-16 z-1 bg-white/50 bg-linear-to-r from-background via-transparent to-background sm:-inset-32 dark:bg-transparent"
-							/>
+							></div>
 
 							<div
-								aria-hidden
-								class="absolute -inset-16 bg-[linear-gradient(to_right,var(--color-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-border)_1px,transparent_1px)] bg-[size:24px_24px] [--color-border:var(--color-zinc-400)] sm:-inset-32 dark:[--color-border:color-mix(in_oklab,var(--color-white)_20%,transparent)]"
-							/>
-							<div aria-hidden class="absolute inset-0 z-11 bg-gradient-to-l from-background" />
+								aria-hidden="true"
+								class="absolute -inset-16 bg-[linear-gradient(to_right,var(--color-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-border)_1px,transparent_1px)] bg-size-[24px_24px] [--color-border:var(--color-zinc-400)] sm:-inset-32 dark:[--color-border:color-mix(in_oklab,var(--color-white)_20%,transparent)]"
+							></div>
 							<div
-								aria-hidden
-								class="absolute inset-0 z-2 size-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,transparent_40%,var(--color-background)_100%)]"
-							/>
+								aria-hidden="true"
+								class="absolute inset-0 z-11 bg-linear-to-l from-background"
+							></div>
 							<div
-								aria-hidden
+								aria-hidden="true"
 								class="absolute inset-0 z-2 size-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,transparent_40%,var(--color-background)_100%)]"
-							/>
+							></div>
+							<div
+								aria-hidden="true"
+								class="absolute inset-0 z-2 size-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,transparent_40%,var(--color-background)_100%)]"
+							></div>
 
 							<img
-								class="relative z-1 rounded-(--radius) border dark:hidden"
+								class="relative z-1 rounded border dark:hidden"
 								src={DashboardImage}
 								alt="Tailark hero section"
 								width={2880}
 								height={2074}
 							/>
 							<img
-								class="relative z-1 hidden rounded-(--radius) border dark:block"
+								class="relative z-1 hidden rounded border dark:block"
 								src="/dark-card.webp"
 								alt="Tailark hero section"
 								width={2880}
@@ -329,7 +340,9 @@
 													<Avatar.Image src={data.user?.image} alt={data.user?.name || 'User'} />
 													<Avatar.Fallback>{userInitials()}</Avatar.Fallback>
 												</Avatar.Root>
-												<span class="text-sm font-medium">{data.user?.name || data.user?.email}</span>
+												<span class="text-sm font-medium"
+													>{data.user?.name || data.user?.email}</span
+												>
 												<ChevronDownIcon class="size-4 text-muted-foreground" />
 											</button>
 										{/snippet}
@@ -343,7 +356,9 @@
 												</Avatar.Root>
 												<div class="grid flex-1 text-left text-sm leading-tight">
 													<span class="truncate font-medium">{data.user?.name || 'User'}</span>
-													<span class="truncate text-xs text-muted-foreground">{data.user?.email || ''}</span>
+													<span class="truncate text-xs text-muted-foreground"
+														>{data.user?.email || ''}</span
+													>
 												</div>
 											</div>
 										</DropdownMenu.Label>

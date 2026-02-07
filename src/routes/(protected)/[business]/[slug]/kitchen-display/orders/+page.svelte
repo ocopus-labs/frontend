@@ -10,12 +10,19 @@
 		IconAlertTriangle,
 		IconRefresh,
 		IconWifi,
-		IconWifiOff
+		IconWifiOff,
+		IconPlayerPlay,
+		IconMaximize,
+		IconMinimize,
+		IconVolume,
+		IconVolumeOff,
+		IconFilter
 	} from '@tabler/icons-svelte';
 	import { invalidate } from '$app/navigation';
 	import { updateItemStatus, updateOrderStatus, type Order, type OrderItem } from '$lib/api';
 	import { toast } from 'svelte-sonner';
 	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 	import {
 		connectSocket,
 		disconnectSocket,
@@ -33,9 +40,73 @@
 	let isRefreshing = $state(false);
 	let processingItems = $state<Set<string>>(new Set());
 	let isConnected = $state(false);
+	let now = $state(Date.now());
+	let isFullscreen = $state(false);
+	let soundEnabled = $state(browser ? localStorage.getItem('kitchen-sound') !== 'false' : true);
+	let filter = $state<'all' | 'pending' | 'preparing' | 'ready'>('all');
+
+	let tickInterval: ReturnType<typeof setInterval> | null = null;
+	let audioCtx: AudioContext | null = null;
+
+	function playBeep() {
+		if (!soundEnabled || !browser) return;
+		try {
+			if (!audioCtx) audioCtx = new AudioContext();
+			const osc = audioCtx.createOscillator();
+			const gain = audioCtx.createGain();
+			osc.connect(gain);
+			gain.connect(audioCtx.destination);
+			osc.frequency.value = 660;
+			osc.type = 'sine';
+			gain.gain.value = 0.3;
+			osc.start();
+			osc.stop(audioCtx.currentTime + 0.15);
+			setTimeout(() => {
+				const osc2 = audioCtx!.createOscillator();
+				const gain2 = audioCtx!.createGain();
+				osc2.connect(gain2);
+				gain2.connect(audioCtx!.destination);
+				osc2.frequency.value = 880;
+				osc2.type = 'sine';
+				gain2.gain.value = 0.3;
+				osc2.start();
+				osc2.stop(audioCtx!.currentTime + 0.15);
+			}, 180);
+		} catch {
+			// AudioContext may not be available
+		}
+	}
+
+	function toggleSound() {
+		soundEnabled = !soundEnabled;
+		if (browser) localStorage.setItem('kitchen-sound', String(soundEnabled));
+	}
+
+	async function toggleFullscreen() {
+		if (!browser) return;
+		try {
+			if (!document.fullscreenElement) {
+				await document.documentElement.requestFullscreen();
+				isFullscreen = true;
+			} else {
+				await document.exitFullscreen();
+				isFullscreen = false;
+			}
+		} catch {
+			// Fullscreen may not be supported
+		}
+	}
 
 	// WebSocket setup for real-time updates
 	onMount(() => {
+		tickInterval = setInterval(() => {
+			now = Date.now();
+		}, 1000);
+
+		document.addEventListener('fullscreenchange', () => {
+			isFullscreen = !!document.fullscreenElement;
+		});
+
 		const socket = connectSocket();
 
 		if (socket) {
@@ -52,31 +123,30 @@
 			// Listen for new orders
 			const unsubOrderCreated = onOrderCreated((order) => {
 				invalidate('app:orders');
+				playBeep();
 				toast.info(`New order: ${order.orderNumber}`);
 			});
 
 			// Listen for order updates
-			const unsubOrderUpdated = onOrderUpdated((order) => {
+			const unsubOrderUpdated = onOrderUpdated(() => {
 				invalidate('app:orders');
 			});
 
 			// Listen for completed orders
-			const unsubOrderCompleted = ({ orderId }: { orderId: string }) => {
+			const unsubOrderCompleted = onOrderCompleted(() => {
 				invalidate('app:orders');
 				toast.success('Order completed');
-			};
-			const sock = getSocket();
-			sock?.on('order:completed', unsubOrderCompleted);
+			});
 
 			// Listen for item status changes
-			const unsubItemStatus = onItemStatus(({ orderId, itemId, status }) => {
+			const unsubItemStatus = onItemStatus(() => {
 				invalidate('app:orders');
 			});
 
 			return () => {
 				unsubOrderCreated();
 				unsubOrderUpdated();
-				sock?.off('order:completed', unsubOrderCompleted);
+				unsubOrderCompleted();
 				unsubItemStatus();
 			};
 		}
@@ -85,6 +155,7 @@
 	onDestroy(() => {
 		leaveBusiness(data.businessId);
 		disconnectSocket();
+		if (tickInterval) clearInterval(tickInterval);
 	});
 
 	// Transform API orders to kitchen display format
@@ -94,8 +165,12 @@
 		table: string;
 		type: string;
 		createdAt: string;
+		rawCreatedAt: number;
 		elapsed: number;
 		priority: string;
+		priorityWeight: number;
+		readyCount: number;
+		totalCount: number;
 		items: Array<{
 			id: string;
 			name: string;
@@ -105,10 +180,26 @@
 		}>;
 	}
 
-	let orders = $derived<KitchenOrder[]>(
+	function getPriorityWeight(priority: string): number {
+		switch (priority) {
+			case 'urgent': return 3;
+			case 'high': return 2;
+			case 'normal': return 1;
+			default: return 0;
+		}
+	}
+
+	let allOrders = $derived<KitchenOrder[]>(
 		(data.orders || []).map((order: Order) => {
 			const createdAt = new Date(order.createdAt);
-			const elapsed = Math.floor((Date.now() - createdAt.getTime()) / 60000);
+			const elapsed = Math.floor((now - createdAt.getTime()) / 60000);
+			const items = order.items.map((item: OrderItem) => ({
+				id: item.id,
+				name: item.name,
+				quantity: item.quantity,
+				notes: item.modifiers?.specialInstructions || null,
+				status: item.status
+			}));
 
 			return {
 				id: order.orderNumber,
@@ -116,26 +207,48 @@
 				table: order.tableNumber || formatOrderType(order.orderType),
 				type: formatOrderType(order.orderType),
 				createdAt: createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+				rawCreatedAt: createdAt.getTime(),
 				elapsed,
 				priority: order.priority,
-				items: order.items.map((item: OrderItem) => ({
-					id: item.id,
-					name: item.name,
-					quantity: item.quantity,
-					notes: item.modifiers?.specialInstructions || null,
-					status: item.status
-				}))
+				priorityWeight: getPriorityWeight(order.priority),
+				readyCount: items.filter((i) => i.status === 'ready' || i.status === 'served').length,
+				totalCount: items.length,
+				items
 			};
+		}).sort((a, b) => {
+			// Sort: urgent first, then by elapsed time (oldest first)
+			if (b.priorityWeight !== a.priorityWeight) return b.priorityWeight - a.priorityWeight;
+			return a.rawCreatedAt - b.rawCreatedAt;
 		})
 	);
 
+	let orders = $derived(
+		filter === 'all'
+			? allOrders
+			: allOrders.filter((order) => {
+					if (filter === 'ready') return order.items.every((i) => i.status === 'ready' || i.status === 'served');
+					if (filter === 'preparing') return order.items.some((i) => i.status === 'preparing');
+					if (filter === 'pending') return order.items.some((i) => i.status === 'pending');
+					return true;
+				})
+	);
+
+	let pendingCount = $derived(allOrders.filter((o) => o.items.some((i) => i.status === 'pending')).length);
+	let preparingCount = $derived(allOrders.filter((o) => o.items.some((i) => i.status === 'preparing')).length);
+	let readyCount = $derived(allOrders.filter((o) => o.items.every((i) => i.status === 'ready' || i.status === 'served')).length);
+
 	function formatOrderType(type: string): string {
 		switch (type) {
-			case 'dine_in': return 'Dine-In';
-			case 'takeaway': return 'Takeaway';
-			case 'delivery': return 'Delivery';
-			case 'online': return 'Online';
-			default: return type;
+			case 'dine_in':
+				return 'Dine-In';
+			case 'takeaway':
+				return 'Takeaway';
+			case 'delivery':
+				return 'Delivery';
+			case 'online':
+				return 'Online';
+			default:
+				return type;
 		}
 	}
 
@@ -145,12 +258,18 @@
 		return 'text-green-500';
 	}
 
+	function getElapsedBg(elapsed: number) {
+		if (elapsed >= 15) return 'bg-red-500/10';
+		if (elapsed >= 10) return 'bg-yellow-500/10';
+		return '';
+	}
+
 	function getPriorityBadge(priority: string) {
 		switch (priority) {
 			case 'urgent':
-				return { variant: 'destructive' as const, text: 'URGENT' };
+				return { variant: 'destructive' as const, text: 'URGENT', icon: IconFlame };
 			case 'high':
-				return { variant: 'secondary' as const, text: 'HIGH' };
+				return { variant: 'secondary' as const, text: 'HIGH', icon: IconAlertTriangle };
 			default:
 				return null;
 		}
@@ -180,11 +299,29 @@
 			await invalidate('app:orders');
 			toast.success(`Item marked as ${status}`);
 		} catch (error) {
-			console.error('Failed to update item status:', error);
 			toast.error('Failed to update item status');
 		} finally {
 			processingItems.delete(key);
 			processingItems = new Set(processingItems);
+		}
+	}
+
+	async function startAllItems(order: KitchenOrder) {
+		const pendingItems = order.items.filter((i) => i.status === 'pending');
+		if (pendingItems.length === 0) return;
+
+		const results = await Promise.allSettled(
+			pendingItems.map((item) =>
+				updateItemStatus(data.businessId, order.orderId, item.id, 'preparing')
+			)
+		);
+		await invalidate('app:orders');
+
+		const failed = results.filter((r) => r.status === 'rejected').length;
+		if (failed > 0) {
+			toast.error(`Failed to start ${failed} item${failed === 1 ? '' : 's'}`);
+		} else {
+			toast.success(`Started all ${pendingItems.length} item${pendingItems.length === 1 ? '' : 's'}`);
 		}
 	}
 
@@ -194,7 +331,6 @@
 			await invalidate('app:orders');
 			toast.success('Order completed!');
 		} catch (error) {
-			console.error('Failed to complete order:', error);
 			toast.error('Failed to complete order');
 		}
 	}
@@ -209,11 +345,15 @@
 <div class="flex flex-1 flex-col bg-muted/30">
 	<div class="@container/main flex flex-1 flex-col gap-4">
 		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+			<!-- Header -->
 			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
 				<div>
 					<h1 class="text-2xl font-bold">Kitchen Display</h1>
 					<div class="flex items-center gap-2">
-						<p class="text-muted-foreground">Active orders queue for kitchen staff ({orders.length} orders)</p>
+						<p class="text-muted-foreground">
+							{orders.length} {orders.length === 1 ? 'order' : 'orders'}
+							{#if filter !== 'all'} ({filter}){/if}
+						</p>
 						{#if isConnected}
 							<Badge variant="outline" class="border-green-500 text-green-600">
 								<IconWifi class="mr-1 h-3 w-3" />
@@ -227,7 +367,33 @@
 						{/if}
 					</div>
 				</div>
-				<div aria-live="polite">
+				<div class="flex items-center gap-2" aria-live="polite">
+					<Button
+						variant="ghost"
+						size="icon"
+						class="h-8 w-8"
+						onclick={toggleSound}
+						aria-label={soundEnabled ? 'Mute notifications' : 'Enable notifications'}
+					>
+						{#if soundEnabled}
+							<IconVolume class="h-4 w-4" />
+						{:else}
+							<IconVolumeOff class="h-4 w-4" />
+						{/if}
+					</Button>
+					<Button
+						variant="ghost"
+						size="icon"
+						class="h-8 w-8"
+						onclick={toggleFullscreen}
+						aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+					>
+						{#if isFullscreen}
+							<IconMinimize class="h-4 w-4" />
+						{:else}
+							<IconMaximize class="h-4 w-4" />
+						{/if}
+					</Button>
 					<Button onclick={refreshOrders} variant="outline" disabled={isRefreshing}>
 						<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
 						{isRefreshing ? 'Refreshing...' : 'Refresh'}
@@ -235,29 +401,77 @@
 				</div>
 			</div>
 
+			<!-- Filter tabs -->
+			<div class="flex gap-2 px-6 overflow-x-auto">
+				<Button
+					variant={filter === 'all' ? 'default' : 'outline'}
+					size="sm"
+					onclick={() => (filter = 'all')}
+				>
+					All ({allOrders.length})
+				</Button>
+				<Button
+					variant={filter === 'pending' ? 'default' : 'outline'}
+					size="sm"
+					onclick={() => (filter = 'pending')}
+					class={pendingCount > 0 ? 'border-gray-400' : ''}
+				>
+					Pending ({pendingCount})
+				</Button>
+				<Button
+					variant={filter === 'preparing' ? 'default' : 'outline'}
+					size="sm"
+					onclick={() => (filter = 'preparing')}
+					class={preparingCount > 0 ? 'border-yellow-400' : ''}
+				>
+					Preparing ({preparingCount})
+				</Button>
+				<Button
+					variant={filter === 'ready' ? 'default' : 'outline'}
+					size="sm"
+					onclick={() => (filter = 'ready')}
+					class={readyCount > 0 ? 'border-green-400' : ''}
+				>
+					Ready ({readyCount})
+				</Button>
+			</div>
+
 			<!-- Orders Grid -->
 			<div class="grid grid-cols-1 gap-4 px-6 md:grid-cols-2 xl:grid-cols-3">
 				{#each orders as order (order.id)}
-					{@const allReady = order.items.every((i) => i.status === 'ready')}
+					{@const allReady = order.items.every((i) => i.status === 'ready' || i.status === 'served')}
+					{@const hasPending = order.items.some((i) => i.status === 'pending')}
+					{@const priorityBadge = getPriorityBadge(order.priority)}
+					{@const progressPct = order.totalCount > 0 ? Math.round((order.readyCount / order.totalCount) * 100) : 0}
 					<Card.Root
-						class="relative overflow-hidden {order.priority === 'urgent'
+						class="relative overflow-hidden transition-all duration-300 {order.priority === 'urgent'
 							? 'ring-2 ring-red-500'
-							: ''}"
+							: order.priority === 'high'
+								? 'ring-1 ring-yellow-400'
+								: ''} {getElapsedBg(order.elapsed)}"
 					>
+						<!-- Priority accent bar -->
 						{#if order.priority === 'urgent'}
 							<div class="absolute top-0 left-0 right-0 h-1 bg-red-500"></div>
 						{:else if order.priority === 'high'}
 							<div class="absolute top-0 left-0 right-0 h-1 bg-yellow-500"></div>
+						{:else if allReady}
+							<div class="absolute top-0 left-0 right-0 h-1 bg-green-500"></div>
 						{/if}
 
 						<Card.Header class="pb-2">
 							<div class="flex items-start justify-between">
 								<div>
 									<Card.Title class="flex items-center gap-2 text-lg">
-										{order.id}
-										{#if getPriorityBadge(order.priority)}
-											<Badge variant={getPriorityBadge(order.priority)!.variant}>
-												{getPriorityBadge(order.priority)!.text}
+										<span class="font-mono font-bold">{order.id}</span>
+										{#if priorityBadge}
+											<Badge variant={priorityBadge.variant}>
+												{#if priorityBadge.text === 'URGENT'}
+													<IconFlame class="mr-1 h-3 w-3" />
+												{:else}
+													<IconAlertTriangle class="mr-1 h-3 w-3" />
+												{/if}
+												{priorityBadge.text}
 											</Badge>
 										{/if}
 									</Card.Title>
@@ -274,12 +488,24 @@
 									<p class="text-xs text-muted-foreground">since {order.createdAt}</p>
 								</div>
 							</div>
+							<!-- Progress bar -->
+							<div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+								<div
+									class="h-full rounded-full transition-all duration-500 {allReady
+										? 'bg-green-500'
+										: progressPct > 0
+											? 'bg-yellow-500'
+											: 'bg-gray-400'}"
+									style="width: {progressPct}%"
+								></div>
+							</div>
 						</Card.Header>
 
 						<Card.Content class="space-y-2">
-							{#each order.items as item, i}
+							{#each order.items as item}
+								{@const isProcessing = processingItems.has(`${order.orderId}-${item.id}`)}
 								<div
-									class="flex items-center justify-between rounded-md p-2 {getItemStatusColor(
+									class="flex items-center justify-between rounded-md p-2 transition-colors {getItemStatusColor(
 										item.status
 									)}"
 								>
@@ -288,20 +514,35 @@
 											<span class="font-medium">
 												{item.quantity}x {item.name}
 											</span>
+											{#if item.status === 'preparing'}
+												<span class="inline-block h-2 w-2 animate-pulse rounded-full bg-yellow-500"></span>
+											{/if}
 										</div>
 										{#if item.notes}
-											<p class="mt-1 text-xs opacity-75">Note: {item.notes}</p>
+											<p class="mt-1 text-xs font-medium opacity-75">
+												<IconAlertTriangle class="mr-1 inline h-3 w-3" />
+												{item.notes}
+											</p>
 										{/if}
 									</div>
 									<div class="ml-2">
 										{#if item.status === 'pending'}
-											<Button size="sm" variant="outline" onclick={() => updateItem(order.orderId, item.id, 'preparing')}>
-												Start
+											<Button
+												size="sm"
+												variant="outline"
+												disabled={isProcessing}
+												onclick={() => updateItem(order.orderId, item.id, 'preparing')}
+											>
+												{isProcessing ? 'Starting...' : 'Start'}
 											</Button>
 										{:else if item.status === 'preparing'}
-											<Button size="sm" onclick={() => updateItem(order.orderId, item.id, 'ready')}>
+											<Button
+												size="sm"
+												disabled={isProcessing}
+												onclick={() => updateItem(order.orderId, item.id, 'ready')}
+											>
 												<IconCheck class="mr-1 h-3 w-3" />
-												Done
+												{isProcessing ? 'Saving...' : 'Done'}
 											</Button>
 										{:else}
 											<IconCheck class="h-5 w-5 text-green-600" />
@@ -311,16 +552,27 @@
 							{/each}
 						</Card.Content>
 
-						<Card.Footer>
+						<Card.Footer class="flex-col gap-2">
 							{#if allReady}
-								<Button class="w-full" onclick={() => completeOrder(order.orderId)}>
+								<Button class="w-full bg-green-600 hover:bg-green-700" onclick={() => completeOrder(order.orderId)}>
 									<IconCheck class="mr-2 h-4 w-4" />
 									Complete Order
 								</Button>
 							{:else}
-								<div class="w-full text-center text-sm text-muted-foreground">
-									{order.items.filter((i) => i.status === 'ready').length} / {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
-									ready
+								<div class="flex w-full items-center justify-between">
+									<span class="text-sm text-muted-foreground">
+										{order.readyCount} / {order.totalCount} {order.totalCount === 1 ? 'item' : 'items'} ready
+									</span>
+									{#if hasPending}
+										<Button
+											size="sm"
+											variant="secondary"
+											onclick={() => startAllItems(order)}
+										>
+											<IconPlayerPlay class="mr-1 h-3 w-3" />
+											Start All
+										</Button>
+									{/if}
 								</div>
 							{/if}
 						</Card.Footer>
@@ -330,9 +582,18 @@
 
 			{#if orders.length === 0}
 				<div class="flex flex-col items-center justify-center py-12 text-center">
-					<IconCheck class="h-12 w-12 text-green-500" />
-					<h3 class="mt-4 text-lg font-semibold">All caught up!</h3>
-					<p class="text-muted-foreground">No pending orders in the queue.</p>
+					{#if filter !== 'all'}
+						<IconFilter class="h-12 w-12 text-muted-foreground" />
+						<h3 class="mt-4 text-lg font-semibold">No {filter} orders</h3>
+						<p class="text-muted-foreground">Try a different filter or wait for new orders.</p>
+						<Button variant="outline" class="mt-4" onclick={() => (filter = 'all')}>
+							Show all orders
+						</Button>
+					{:else}
+						<IconCheck class="h-12 w-12 text-green-500" />
+						<h3 class="mt-4 text-lg font-semibold">All caught up!</h3>
+						<p class="text-muted-foreground">No pending orders in the queue.</p>
+					{/if}
 				</div>
 			{/if}
 		</div>

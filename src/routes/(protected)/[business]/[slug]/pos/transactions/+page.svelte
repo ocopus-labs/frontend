@@ -235,7 +235,9 @@
 					</Card.Header>
 					<Card.Content>
 						<div class="text-2xl font-bold">
-							{formatCurrency(filteredPayments.length > 0 ? totalAmount / filteredPayments.length : 0)}
+							{formatCurrency(
+								filteredPayments.length > 0 ? totalAmount / filteredPayments.length : 0
+							)}
 						</div>
 					</Card.Content>
 				</Card.Root>
@@ -309,16 +311,18 @@
 						<Table.Body>
 							{#each filteredPayments as payment (payment.id)}
 								{@const dateTime = formatDateTime(payment.createdAt)}
+								{@const PaymentIcon = getPaymentIcon(payment.method)}
 								<Table.Row>
-									<Table.Cell class="font-medium font-mono text-sm">{payment.paymentNumber}</Table.Cell>
-									<Table.Cell class="text-muted-foreground font-mono text-sm">{payment.orderNumber}</Table.Cell>
+									<Table.Cell class="font-mono text-sm font-medium"
+										>{payment.paymentNumber}</Table.Cell
+									>
+									<Table.Cell class="font-mono text-sm text-muted-foreground"
+										>{payment.orderNumber}</Table.Cell
+									>
 									<Table.Cell>{payment.customerInfo?.name || 'Guest'}</Table.Cell>
 									<Table.Cell>
 										<div class="flex items-center gap-2">
-											<svelte:component
-												this={getPaymentIcon(payment.method)}
-												class="h-4 w-4"
-											/>
+											<PaymentIcon class="h-4 w-4" />
 											{getPaymentMethodLabel(payment.method)}
 										</div>
 									</Table.Cell>
@@ -335,7 +339,12 @@
 										</div>
 									</Table.Cell>
 									<Table.Cell class="text-right">
-										<Button variant="ghost" size="icon" onclick={() => viewTransaction(payment)} aria-label="View order">
+										<Button
+											variant="ghost"
+											size="icon"
+											onclick={() => viewTransaction(payment)}
+											aria-label="View order"
+										>
 											<IconEye class="h-4 w-4" />
 										</Button>
 									</Table.Cell>
@@ -347,7 +356,11 @@
 			</div>
 
 			{#if filteredPayments.length === 0}
-				<EmptyState type="no-results" title="No transactions found" description="Transactions will appear here after payments are processed." />
+				<EmptyState
+					type="no-results"
+					title="No transactions found"
+					description="Transactions will appear here after payments are processed."
+				/>
 			{/if}
 
 			<!-- Pagination -->
@@ -375,7 +388,7 @@
 								return start + i;
 							}) as pageNum}
 								<Button
-									variant={pageNum === data.page ? "default" : "ghost"}
+									variant={pageNum === data.page ? 'default' : 'ghost'}
 									size="sm"
 									class="w-9"
 									onclick={() => goToPage(pageNum)}
