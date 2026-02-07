@@ -215,7 +215,7 @@ export class CurrencyFormatter {
 	private locale: Locale;
 
 	constructor(currencyCode: CurrencyCode, locale: Locale = 'en-US') {
-		this.config = CURRENCY_CONFIG[currencyCode];
+		this.config = CURRENCY_CONFIG[currencyCode] || CURRENCY_CONFIG.USD;
 		this.locale = locale;
 	}
 
@@ -602,6 +602,20 @@ export class InternationalizationUtils {
 	}
 }
 
+// Build reverse map: currency code -> region code
+const CURRENCY_TO_REGION: Record<string, string> = {};
+for (const [region, config] of Object.entries(REGION_CONFIGS)) {
+	CURRENCY_TO_REGION[config.currency] = region;
+}
+
+/**
+ * Map a currency code (e.g. 'INR', 'USD') to a region code (e.g. 'in', 'us')
+ * Falls back to 'us' if the currency is unknown.
+ */
+export function currencyToRegion(currency: string): string {
+	return CURRENCY_TO_REGION[currency.toUpperCase()] || 'us';
+}
+
 // Default instance
 export const i18n = new InternationalizationUtils();
 
@@ -642,9 +656,12 @@ export function calculateOrderTotal(
 }
 
 /**
- * Simple currency formatting function using Indian Rupee by default
+ * Simple currency formatting function.
+ * Uses the currency's associated locale for proper formatting.
  */
-export function formatCurrency(amount: number, currency: CurrencyCode = 'INR'): string {
-	const formatter = new CurrencyFormatter(currency, 'hi-IN');
+export function formatCurrency(amount: number, currency: CurrencyCode = 'USD'): string {
+	const region = currencyToRegion(currency);
+	const config = REGION_CONFIGS[region] || REGION_CONFIGS.us;
+	const formatter = new CurrencyFormatter(currency, config.locale);
 	return formatter.format(amount);
 }
