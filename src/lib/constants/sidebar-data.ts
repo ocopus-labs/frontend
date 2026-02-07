@@ -1,13 +1,6 @@
 import AudioWaveformIcon from '@lucide/svelte/icons/audio-waveform';
-import BookOpenIcon from '@lucide/svelte/icons/book-open';
-import BotIcon from '@lucide/svelte/icons/bot';
-import ChartPieIcon from '@lucide/svelte/icons/chart-pie';
 import CommandIcon from '@lucide/svelte/icons/command';
-import FrameIcon from '@lucide/svelte/icons/frame';
 import GalleryVerticalEndIcon from '@lucide/svelte/icons/gallery-vertical-end';
-import MapIcon from '@lucide/svelte/icons/map';
-import Settings2Icon from '@lucide/svelte/icons/settings-2';
-import SquareTerminalIcon from '@lucide/svelte/icons/square-terminal';
 import LayoutDashboardIcon from '@lucide/svelte/icons/layout-dashboard';
 import CreditCardIcon from '@lucide/svelte/icons/credit-card';
 import UtensilsIcon from '@lucide/svelte/icons/utensils';
@@ -34,13 +27,6 @@ export interface NavItem {
 	items?: NavSubItem[];
 }
 
-export interface ProjectItem {
-	name: string;
-	url: string;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	icon: any;
-}
-
 export interface SidebarData {
 	user: {
 		name: string;
@@ -53,7 +39,6 @@ export interface SidebarData {
 		plan: string;
 	}[];
 	navMain: NavItem[];
-	projects: ProjectItem[];
 }
 
 export const sidebarData: Record<string, SidebarData> = {
@@ -164,10 +149,6 @@ export const sidebarData: Record<string, SidebarData> = {
 					{
 						title: 'Orders Queue',
 						url: '/[business]/[slug]/kitchen-display/orders'
-					},
-					{
-						title: 'Preparation Status',
-						url: '/[business]/[slug]/kitchen-display/status'
 					}
 				]
 			},
@@ -242,23 +223,6 @@ export const sidebarData: Record<string, SidebarData> = {
 						url: '/[business]/[slug]/team/invitations'
 					}
 				]
-			}
-		],
-		projects: [
-			{
-				name: 'Kitchen',
-				url: '/[business]/[slug]/areas/kitchen',
-				icon: FrameIcon
-			},
-			{
-				name: 'Dining Area',
-				url: '/[business]/[slug]/areas/dining-area',
-				icon: ChartPieIcon
-			},
-			{
-				name: 'Bar',
-				url: '/[business]/[slug]/areas/bar',
-				icon: MapIcon
 			}
 		]
 	}
