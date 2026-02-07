@@ -82,18 +82,36 @@ export interface SuspendMemberPayload {
   reason?: string;
 }
 
+export interface PermissionCategory {
+  category: string;
+  label: string;
+  businessLabel?: string;
+  permissions: { key: string; label: string; description?: string }[];
+}
+
+export interface PermissionTree {
+  categories: PermissionCategory[];
+  roleDefaults: Record<string, string[]>;
+  roles: { role: string; displayName: string }[];
+}
+
 type FetchOption = { fetch?: typeof fetch };
 
 // ==================== TEAM CRUD ====================
 
 export async function getTeamMembers(
   businessId: string,
-  status?: TeamMemberStatus,
+  params?: { status?: TeamMemberStatus; limit?: number; offset?: number },
   options?: FetchOption
-): Promise<{ members: TeamMember[] }> {
+): Promise<{ members: TeamMember[]; total: number }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  const url = status
-    ? `/business/${businessId}/team?status=${status}`
+  const searchParams = new URLSearchParams();
+  if (params?.status) searchParams.set('status', params.status);
+  if (params?.limit !== undefined) searchParams.set('limit', String(params.limit));
+  if (params?.offset !== undefined) searchParams.set('offset', String(params.offset));
+  const query = searchParams.toString();
+  const url = query
+    ? `/business/${businessId}/team?${query}`
     : `/business/${businessId}/team`;
   return api.get(url);
 }
@@ -112,6 +130,14 @@ export async function getAvailableRoles(
 ): Promise<{ roles: RoleInfo[] }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.get(`/business/${businessId}/team/roles`);
+}
+
+export async function getPermissionTree(
+  businessId: string,
+  options?: FetchOption
+): Promise<PermissionTree> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get(`/business/${businessId}/team/permissions`);
 }
 
 export async function getTeamMemberById(
@@ -197,4 +223,15 @@ export async function removeTeamMember(
 ): Promise<{ message: string }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.delete(`/business/${businessId}/team/${memberId}`);
+}
+
+// ==================== EXPORT ====================
+
+export async function exportTeamMembers(
+  businessId: string
+): Promise<Blob> {
+  const url = `/api/business/${businessId}/team/export`;
+  const res = await fetch(url, { credentials: 'include' });
+  if (!res.ok) throw new Error('Export failed');
+  return res.blob();
 }

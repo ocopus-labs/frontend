@@ -36,6 +36,8 @@ export {
   updateItemStatus,
   removeItemFromOrder,
   applyDiscount,
+  deleteOrder,
+  exportOrders,
   type Order,
   type OrderItem,
   type OrderPricing,
@@ -54,12 +56,16 @@ export {
   getPaymentById,
   generateReceipt,
   processRefund,
+  getRefunds,
+  deletePayment,
+  exportPayments,
   type Payment,
   type PaymentMethod,
   type PaymentStatus,
   type PaymentSummary,
   type Receipt,
   type RefundEntry,
+  type Refund,
   type CreatePaymentPayload,
   type CreateSplitPaymentPayload,
   type SplitPaymentItem,
@@ -140,7 +146,10 @@ export {
   updateInventoryItem,
   processStockTransaction,
   deleteInventoryItem,
+  exportInventory,
+  getStockTransactions,
   type InventoryItem,
+  type InventoryTransaction,
   type InventoryCategory,
   type InventoryUnit,
   type InventoryStatus,
@@ -180,6 +189,7 @@ export {
   approveExpense,
   rejectExpense,
   markExpenseAsPaid,
+  exportExpenses,
   type Expense,
   type ExpenseCategory,
   type ExpenseStatus,
@@ -219,11 +229,19 @@ export {
   type AnalyticsPeriodParams
 } from './analytics';
 
+// Search API
+export {
+  globalSearch,
+  type SearchResult,
+  type SearchResponse
+} from './search';
+
 // Team API
 export {
   getTeamMembers,
   getTeamStats,
   getAvailableRoles,
+  getPermissionTree,
   getTeamMemberById,
   inviteTeamMember,
   addExistingUser,
@@ -233,12 +251,15 @@ export {
   suspendTeamMember,
   reactivateTeamMember,
   removeTeamMember,
+  exportTeamMembers,
   type TeamMember,
   type TeamMemberStatus,
   type TeamRole,
   type TeamStats,
   type RoleInfo,
   type TeamInvitation,
+  type PermissionCategory,
+  type PermissionTree,
   type InviteTeamMemberPayload,
   type AddExistingUserPayload,
   type UpdateTeamMemberPayload,

@@ -170,15 +170,19 @@ export async function getExpenses(
     status?: ExpenseStatus;
     startDate?: string;
     endDate?: string;
+    limit?: number;
+    offset?: number;
   },
   options?: FetchOption
-): Promise<{ expenses: Expense[] }> {
+): Promise<{ expenses: Expense[]; total: number }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   const searchParams = new URLSearchParams();
   if (params?.categoryId) searchParams.set('categoryId', params.categoryId);
   if (params?.status) searchParams.set('status', params.status);
   if (params?.startDate) searchParams.set('startDate', params.startDate);
   if (params?.endDate) searchParams.set('endDate', params.endDate);
+  if (params?.limit !== undefined) searchParams.set('limit', String(params.limit));
+  if (params?.offset !== undefined) searchParams.set('offset', String(params.offset));
 
   const query = searchParams.toString();
   const url = query
@@ -282,4 +286,22 @@ export async function markExpenseAsPaid(
 ): Promise<{ message: string; expense: Expense }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.post(`/business/${businessId}/expenses/${expenseId}/mark-paid`, data || {});
+}
+
+// ==================== EXPORT ====================
+
+export async function exportExpenses(
+  businessId: string,
+  params?: { categoryId?: string; status?: string; startDate?: string; endDate?: string }
+): Promise<Blob> {
+  const searchParams = new URLSearchParams();
+  if (params?.categoryId) searchParams.set('categoryId', params.categoryId);
+  if (params?.status) searchParams.set('status', params.status);
+  if (params?.startDate) searchParams.set('startDate', params.startDate);
+  if (params?.endDate) searchParams.set('endDate', params.endDate);
+  const query = searchParams.toString();
+  const url = `/api/business/${businessId}/expenses/export${query ? `?${query}` : ''}`;
+  const res = await fetch(url, { credentials: 'include' });
+  if (!res.ok) throw new Error('Export failed');
+  return res.blob();
 }

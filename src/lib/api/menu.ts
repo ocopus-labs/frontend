@@ -120,12 +120,17 @@ export async function reorderCategories(
 
 export async function getItems(
   businessId: string,
-  categoryId?: string,
+  params?: { categoryId?: string; limit?: number; offset?: number },
   options?: FetchOption
-): Promise<{ items: MenuItem[] }> {
+): Promise<{ items: MenuItem[]; total: number }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  const url = categoryId
-    ? `/business/${businessId}/menu/items?categoryId=${categoryId}`
+  const searchParams = new URLSearchParams();
+  if (params?.categoryId) searchParams.set('categoryId', params.categoryId);
+  if (params?.limit !== undefined) searchParams.set('limit', String(params.limit));
+  if (params?.offset !== undefined) searchParams.set('offset', String(params.offset));
+  const query = searchParams.toString();
+  const url = query
+    ? `/business/${businessId}/menu/items?${query}`
     : `/business/${businessId}/menu/items`;
   return api.get(url);
 }

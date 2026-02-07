@@ -1,5 +1,7 @@
 // Subscription API client
 
+import { formatCurrency as i18nFormatCurrency, type CurrencyCode } from '$lib/utils/i18n';
+
 const API_BASE = '/api/subscription';
 
 // Types
@@ -36,6 +38,7 @@ export interface Subscription {
   currentPeriodStart: string;
   currentPeriodEnd: string;
   cancelAtPeriodEnd: boolean;
+  hasBillingAccount: boolean;
 }
 
 export interface UsageStats {
@@ -155,16 +158,11 @@ export async function getCustomerPortalUrl(
 }
 
 /**
- * Format price in INR
+ * Format price using i18n utility with proper locale lookup
  */
-export function formatPrice(amount: number, currency: string = 'INR'): string {
+export function formatPrice(amount: number, currency: string = 'USD'): string {
   if (amount === 0) return 'Free';
-
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amount);
+  return i18nFormatCurrency(amount, currency.toUpperCase() as CurrencyCode);
 }
 
 /**

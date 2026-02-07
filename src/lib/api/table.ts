@@ -276,15 +276,19 @@ export async function getReservations(
     startDate?: string;
     endDate?: string;
     status?: ReservationStatus;
+    limit?: number;
+    offset?: number;
   },
   options?: FetchOption
-): Promise<{ reservations: Reservation[] }> {
+): Promise<{ reservations: Reservation[]; total?: number }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   const searchParams = new URLSearchParams();
   if (params?.date) searchParams.set('date', params.date);
   if (params?.startDate) searchParams.set('startDate', params.startDate);
   if (params?.endDate) searchParams.set('endDate', params.endDate);
   if (params?.status) searchParams.set('status', params.status);
+  if (params?.limit !== undefined) searchParams.set('limit', String(params.limit));
+  if (params?.offset !== undefined) searchParams.set('offset', String(params.offset));
 
   const query = searchParams.toString();
   const url = query

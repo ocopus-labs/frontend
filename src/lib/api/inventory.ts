@@ -35,6 +35,18 @@ export type InventoryStatus = 'in_stock' | 'low_stock' | 'out_of_stock' | 'disco
 
 export type StockTransactionType = 'add' | 'remove' | 'adjust' | 'waste' | 'transfer';
 
+export interface InventoryTransaction {
+  id: string;
+  type: StockTransactionType;
+  quantity: number;
+  previousStock: number;
+  newStock: number;
+  reason?: string;
+  reference?: string;
+  createdAt: string;
+  userId?: string;
+}
+
 export interface InventoryItem {
   id: string;
   restaurantId: string;
@@ -50,6 +62,7 @@ export interface InventoryItem {
   trackExpiry: boolean;
   expiryDate?: string;
   lastRestocked?: string;
+  transactions?: InventoryTransaction[];
   createdAt: string;
   updatedAt: string;
 }
@@ -97,15 +110,19 @@ export async function getInventoryItems(
     status?: InventoryStatus;
     active?: boolean;
     lowStock?: boolean;
+    limit?: number;
+    offset?: number;
   },
   options?: FetchOption
-): Promise<{ items: InventoryItem[] }> {
+): Promise<{ items: InventoryItem[]; total: number }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   const searchParams = new URLSearchParams();
   if (params?.category) searchParams.set('category', params.category);
   if (params?.status) searchParams.set('status', params.status);
   if (params?.active !== undefined) searchParams.set('active', String(params.active));
   if (params?.lowStock) searchParams.set('lowStock', 'true');
+  if (params?.limit !== undefined) searchParams.set('limit', String(params.limit));
+  if (params?.offset !== undefined) searchParams.set('offset', String(params.offset));
 
   const query = searchParams.toString();
   const url = query
@@ -198,6 +215,20 @@ export async function deleteInventoryItem(
   return api.delete(`/business/${businessId}/inventory/${itemId}`);
 }
 
+export async function getStockTransactions(
+  businessId: string,
+  itemId: string,
+  params?: { limit?: number; offset?: number },
+  options?: FetchOption
+): Promise<{ transactions: InventoryTransaction[]; total: number }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  const searchParams = new URLSearchParams();
+  if (params?.limit !== undefined) searchParams.set('limit', String(params.limit));
+  if (params?.offset !== undefined) searchParams.set('offset', String(params.offset));
+  const query = searchParams.toString();
+  return api.get(`/business/${businessId}/inventory/${itemId}/transactions${query ? `?${query}` : ''}`);
+}
+
 // ==================== SUPPLIER TYPES ====================
 
 export type SupplierStatus = 'active' | 'inactive' | 'pending' | 'blacklisted';
@@ -247,12 +278,17 @@ export interface UpdateSupplierPayload extends Partial<CreateSupplierPayload> {
 
 export async function getSuppliers(
   businessId: string,
-  status?: SupplierStatus,
+  params?: { status?: SupplierStatus; limit?: number; offset?: number },
   options?: FetchOption
-): Promise<{ suppliers: Supplier[] }> {
+): Promise<{ suppliers: Supplier[]; total: number }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  const url = status
-    ? `/business/${businessId}/suppliers?status=${status}`
+  const searchParams = new URLSearchParams();
+  if (params?.status) searchParams.set('status', params.status);
+  if (params?.limit !== undefined) searchParams.set('limit', String(params.limit));
+  if (params?.offset !== undefined) searchParams.set('offset', String(params.offset));
+  const query = searchParams.toString();
+  const url = query
+    ? `/business/${businessId}/suppliers?${query}`
     : `/business/${businessId}/suppliers`;
   return api.get(url);
 }
@@ -300,4 +336,20 @@ export async function deleteSupplier(
 ): Promise<{ message: string }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.delete(`/business/${businessId}/suppliers/${supplierId}`);
+}
+
+// ==================== EXPORT ====================
+
+export async function exportInventory(
+  businessId: string,
+  params?: { category?: string; status?: string }
+): Promise<Blob> {
+  const searchParams = new URLSearchParams();
+  if (params?.category) searchParams.set('category', params.category);
+  if (params?.status) searchParams.set('status', params.status);
+  const query = searchParams.toString();
+  const url = `/api/business/${businessId}/inventory/export${query ? `?${query}` : ''}`;
+  const res = await fetch(url, { credentials: 'include' });
+  if (!res.ok) throw new Error('Export failed');
+  return res.blob();
 }
