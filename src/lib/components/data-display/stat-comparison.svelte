@@ -69,7 +69,7 @@
 			<ArrowRightIcon
 				class={cn(
 					'h-5 w-5 transition-colors',
-					isPositive ? 'text-green-500' : 'text-red-500'
+					isPositive ? 'text-success' : 'text-destructive'
 				)}
 			/>
 		</div>
@@ -78,14 +78,14 @@
 		<div
 			class={cn(
 				'flex-1 rounded-lg p-3',
-				isPositive ? 'bg-green-500/10' : 'bg-red-500/10'
+				isPositive ? 'bg-success/10' : 'bg-destructive/10'
 			)}
 		>
 			<p class="text-muted-foreground mb-1 text-xs">{currentLabel}</p>
 			<p
 				class={cn(
 					'text-lg font-bold tabular-nums',
-					isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+					isPositive ? 'text-success' : 'text-destructive'
 				)}
 			>
 				<LiveCounter value={currentValue} {format} {currency} />

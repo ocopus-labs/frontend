@@ -65,8 +65,8 @@
 	function getIconColorClass(color?: string): string {
 		const colorMap: Record<string, string> = {
 			primary: 'text-primary bg-primary/10',
-			success: 'text-green-600 bg-green-500/10',
-			warning: 'text-yellow-600 bg-yellow-500/10',
+			success: 'text-success bg-success/10',
+			warning: 'text-warning bg-warning/10',
 			destructive: 'text-destructive bg-destructive/10',
 			muted: 'text-muted-foreground bg-muted'
 		};

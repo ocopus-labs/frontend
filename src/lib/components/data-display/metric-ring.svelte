@@ -76,8 +76,8 @@
 
 	const colorClasses = $derived({
 		primary: 'stroke-primary',
-		success: 'stroke-green-500',
-		warning: 'stroke-yellow-500',
+		success: 'stroke-success',
+		warning: 'stroke-warning',
 		destructive: 'stroke-destructive',
 		muted: 'stroke-muted-foreground'
 	}[color]);
