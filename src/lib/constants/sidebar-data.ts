@@ -149,6 +149,10 @@ export const sidebarData: Record<string, SidebarData> = {
 					{
 						title: 'Orders Queue',
 						url: '/[business]/[slug]/kitchen-display/orders'
+					},
+					{
+						title: 'Hall Display',
+						url: '/[business]/[slug]/kitchen-display/status'
 					}
 				]
 			},
