@@ -5,7 +5,7 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { getMySubscription, formatLimit, getPlanFeaturesList } from '$lib/api/subscription';
+	import { getMySubscription, formatLimit, formatPrice, getPlanFeaturesList } from '$lib/api/subscription';
 
 	import Check from '@lucide/svelte/icons/check';
 	import CheckCircle from '@lucide/svelte/icons/check-circle';
@@ -19,6 +19,7 @@
 	import HelpCircle from '@lucide/svelte/icons/help-circle';
 	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 	import CreditCard from '@lucide/svelte/icons/credit-card';
+	import { SUPPORT_EMAIL } from '$lib/constants/config';
 
 	let { data } = $props();
 
@@ -102,7 +103,7 @@
 	}
 
 	function contactSupport() {
-		window.open('mailto:support@example.com?subject=Subscription%20Help', '_blank');
+		window.open(`mailto:${SUPPORT_EMAIL}?subject=Subscription%20Help`, '_blank');
 	}
 </script>
 
@@ -164,7 +165,7 @@
 										<div>
 											<h3 class="font-semibold">{plan.displayName} Plan</h3>
 											<p class="text-sm text-muted-foreground">
-												{plan.priceMonthly === 0 ? 'Free' : `₹${plan.priceMonthly}/month`}
+												{formatPrice(plan.priceMonthly, plan.currency || 'USD')}{plan.priceMonthly > 0 ? '/month' : ''}
 											</p>
 										</div>
 									</div>
@@ -218,7 +219,7 @@
 										<div class="flex justify-between">
 											<span class="text-muted-foreground">Next Billing Date</span>
 											<span class="font-medium">
-												{new Date(subscription.currentPeriodEnd).toLocaleDateString('en-IN', {
+												{new Date(subscription.currentPeriodEnd).toLocaleDateString(undefined, {
 													dateStyle: 'medium'
 												})}
 											</span>

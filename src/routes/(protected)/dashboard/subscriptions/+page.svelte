@@ -15,6 +15,8 @@
 		type SubscriptionPlan
 	} from '$lib/api/subscription';
 
+	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
+
 	import Check from '@lucide/svelte/icons/check';
 	import Zap from '@lucide/svelte/icons/zap';
 	import ArrowDown from '@lucide/svelte/icons/arrow-down';
@@ -33,6 +35,8 @@
 	let downgrading = $state<string | null>(null);
 	let openingPortal = $state(false);
 	let error = $state<string | null>(null);
+	let downgradeDialogOpen = $state(false);
+	let downgradeTargetSlug = $state<string | null>(null);
 
 	const currentPlan = $derived(data.subscription?.plan);
 	const usage = $derived(data.usage);
@@ -103,14 +107,36 @@
 		return plan.sortOrder < currentPlan.sortOrder;
 	}
 
-	async function handleDowngrade(planSlug: string) {
-		if (downgrading) return;
+	function triggerDowngrade(planSlug: string) {
+		downgradeTargetSlug = planSlug;
+		downgradeDialogOpen = true;
+	}
+
+	function getDowngradeDescription(): string {
+		if (!downgradeTargetSlug || !currentPlan) return '';
+		const targetPlan = data.plans.find((p: SubscriptionPlan) => p.slug === downgradeTargetSlug);
+		if (!targetPlan) return '';
+		const changes: string[] = [];
+		if (targetPlan.maxOrdersPerMonth !== currentPlan.maxOrdersPerMonth) {
+			changes.push(`Orders: ${formatLimit(currentPlan.maxOrdersPerMonth)} → ${formatLimit(targetPlan.maxOrdersPerMonth)}/month`);
+		}
+		if (targetPlan.maxLocations !== currentPlan.maxLocations) {
+			changes.push(`Locations: ${formatLimit(currentPlan.maxLocations)} → ${formatLimit(targetPlan.maxLocations)}`);
+		}
+		if (targetPlan.maxTeamMembers !== currentPlan.maxTeamMembers) {
+			changes.push(`Team members: ${formatLimit(currentPlan.maxTeamMembers)} → ${formatLimit(targetPlan.maxTeamMembers)}`);
+		}
+		return `You are downgrading from ${currentPlan.displayName} to ${targetPlan.displayName}. The following limits will change:\n\n${changes.join('\n')}\n\nThis change takes effect at the end of your current billing period.`;
+	}
+
+	async function confirmDowngrade() {
+		if (!downgradeTargetSlug || downgrading) return;
 
 		try {
 			error = null;
-			downgrading = planSlug;
+			downgrading = downgradeTargetSlug;
 
-			const response = await createCheckout(planSlug);
+			const response = await createCheckout(downgradeTargetSlug);
 			if (response.checkoutUrl) {
 				window.location.href = response.checkoutUrl;
 			}
@@ -148,7 +174,7 @@
 				Manage your subscription plan and usage.
 			</p>
 		</div>
-		{#if data.subscription?.dodoCustomerId}
+		{#if data.subscription?.hasBillingAccount}
 			<Button variant="outline" onclick={handleManageBilling} disabled={openingPortal}>
 				{#if openingPortal}
 					<Loader2 class="mr-2 size-4 animate-spin" />
@@ -352,7 +378,7 @@
 							<Button
 								class="w-full"
 								variant="outline"
-								onclick={() => handleDowngrade(plan.slug)}
+								onclick={() => triggerDowngrade(plan.slug)}
 								disabled={upgrading !== null || downgrading !== null}
 							>
 								{#if downgrading === plan.slug}
@@ -401,6 +427,16 @@
 			</div>
 		</div>
 	{/if}
+
+	<ConfirmDialog
+		bind:open={downgradeDialogOpen}
+		title="Confirm Downgrade"
+		description={getDowngradeDescription()}
+		confirmLabel="Downgrade"
+		variant="destructive"
+		onConfirm={confirmDowngrade}
+		onCancel={() => { downgradeTargetSlug = null; }}
+	/>
 
 	<!-- FAQ / Info -->
 	<div class="rounded-lg border bg-muted/50 p-6">

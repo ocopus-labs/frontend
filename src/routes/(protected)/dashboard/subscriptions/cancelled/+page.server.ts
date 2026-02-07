@@ -3,11 +3,11 @@ import type { PageServerLoad } from './$types';
 
 /**
  * This route is deprecated in favor of /dashboard/subscriptions/result,
- * which handles both success and failure states.
+ * which handles success, processing, and cancelled states.
  *
  * We redirect here to preserve backwards compatibility in case any
- * old bookmarks or external links point to /subscriptions/success.
- * All query parameters (subscription_id, session_id, etc.) are preserved.
+ * old bookmarks or external links point to /subscriptions/cancelled.
+ * All query parameters are preserved.
  */
 export const load: PageServerLoad = async ({ url }) => {
 	const queryString = url.searchParams.toString();
