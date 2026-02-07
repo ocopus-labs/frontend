@@ -2,7 +2,8 @@
 	import { Button } from '$lib/components/ui/button';
 	import { cn } from '$lib/utils';
 	import { toast } from 'svelte-sonner';
-	import { createBusiness, type CreateBusinessPayload, type BusinessType } from '$lib/api';
+	import { createBusiness, updateBusinessSettings, type CreateBusinessPayload, type BusinessType } from '$lib/api';
+	import { inviteTeamMember, type TeamRole } from '$lib/api/team';
 
 	import Building2 from '@lucide/svelte/icons/building-2';
 	import MapPin from '@lucide/svelte/icons/map-pin';
@@ -32,6 +33,7 @@
 
 	async function handleLogout() {
 		try {
+			sessionStorage.removeItem('business-setup-progress');
 			await signOut();
 			toast.success('Logged out successfully');
 			goto('/login');
@@ -150,7 +152,7 @@
 
 	// Load saved progress on mount (runs once)
 	if (typeof window !== 'undefined') {
-		const saved = localStorage.getItem('business-setup-progress');
+		const saved = sessionStorage.getItem('business-setup-progress');
 		if (saved) {
 			try {
 				const data = JSON.parse(saved);
@@ -183,7 +185,7 @@
 		isInitialized = true;
 	}
 
-	// Save form data to localStorage (with debounce)
+	// Save form data to sessionStorage (with debounce)
 	let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 	$effect(() => {
 		// Only save after initialization to avoid loops
@@ -221,7 +223,7 @@
 					acceptDigitalWallets,
 					hoursType
 				};
-				localStorage.setItem('business-setup-progress', JSON.stringify(formData));
+				sessionStorage.setItem('business-setup-progress', JSON.stringify(formData));
 			}, 500); // Save after 500ms of no changes
 		}
 	});
@@ -263,6 +265,14 @@
 	function goToNextStep() {
 		// Validate current step before proceeding
 		if (!validateCurrentStep()) {
+			toast.error('Please fix the errors before continuing');
+			// Scroll to first error element
+			if (typeof document !== 'undefined') {
+				const errorEl = document.querySelector('[data-invalid], .text-red-600, .text-destructive');
+				if (errorEl) {
+					errorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				}
+			}
 			return;
 		}
 
@@ -291,8 +301,8 @@
 	}
 
 	function skipStep() {
-		// Only allow skipping optional steps (team and hours)
-		if (currentStep === 2 || currentStep === 4) {
+		// Only allow skipping team step
+		if (currentStep === 2) {
 			if (currentStep < steps.length - 1) {
 				currentStep++;
 				if (currentStep > highestStepReached) {
@@ -335,19 +345,65 @@
 
 			// Create the business
 			const result = await createBusiness(payload);
+			const businessId = result.business.id;
+
+			// Save additional setup data (fire-and-forget, don't block navigation)
+			const followUpTasks: Promise<unknown>[] = [];
+
+			// Send team invites
+			const roleMap: Record<string, TeamRole> = {
+				cashier: 'staff',
+				manager: 'manager',
+				viewer: 'viewer',
+				accountant: 'accountant',
+				staff: 'staff'
+			};
+			for (const member of teamMembers) {
+				if (member.email) {
+					const role = roleMap[member.role] || 'staff';
+					followUpTasks.push(
+						inviteTeamMember(businessId, { email: member.email, role }).catch((err) => {
+							console.error(`Failed to invite ${member.email}:`, err);
+						})
+					);
+				}
+			}
+
+			// Save payment methods and business hours to settings
+			followUpTasks.push(
+				updateBusinessSettings(businessId, {
+					paymentMethods: { cash: acceptCash, cards: acceptCards, digitalWallets: acceptDigitalWallets, cardProviders },
+					businessHours: { type: hoursType }
+				} as any).catch((err) => {
+					console.error('Failed to save payment/hours settings:', err);
+				})
+			);
+
+			// Wait for all follow-up tasks but don't block on failures
+			await Promise.allSettled(followUpTasks);
 
 			// Clear saved progress
 			if (typeof window !== 'undefined') {
-				localStorage.removeItem('business-setup-progress');
+				sessionStorage.removeItem('business-setup-progress');
 			}
 
 			toast.success('Business created successfully!');
 
 			// Navigate to the new business dashboard
 			goto(`/${result.business.type}/${result.business.slug}/dashboard`);
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Setup failed:', error);
-			toast.error(error instanceof Error ? error.message : 'Failed to create business');
+			const message = error?.message || '';
+			if (message.toLowerCase().includes('duplicate') || message.toLowerCase().includes('already exists')) {
+				toast.error('A business with this name already exists. Please choose a different name.');
+			} else if (message.toLowerCase().includes('network') || message.toLowerCase().includes('fetch')) {
+				toast.error('Network error. Please check your connection and try again.');
+			} else if (error?.status === 401 || message.toLowerCase().includes('unauthorized')) {
+				toast.error('Session expired. Please log in again.');
+				goto('/login');
+			} else {
+				toast.error(message || 'Failed to create business. Please try again.');
+			}
 		} finally {
 			isSubmitting = false;
 		}
@@ -444,6 +500,18 @@
 						style="width: {((currentStep + 1) / steps.length) * 100}%"
 					></div>
 				</div>
+				<p class="mt-2 text-sm font-medium">{steps[currentStep].name}</p>
+				<div class="mt-1 flex justify-center gap-1.5">
+					{#each steps as _, i}
+						<div
+							class="size-2 rounded-full transition-colors {i === currentStep
+								? 'bg-primary'
+								: i < currentStep
+									? 'bg-primary/40'
+									: 'bg-muted-foreground/30'}"
+						></div>
+					{/each}
+				</div>
 			</div>
 
 			<!-- Step Content -->
@@ -493,7 +561,9 @@
 				<!-- Navigation Buttons -->
 				<div class="flex items-center justify-between border-t pt-6">
 					<div>
-						{#if currentStep > 0 && currentStep < 5}
+						{#if currentStep === 0}
+							<Button variant="ghost" onclick={() => goto('/dashboard')}>Cancel</Button>
+						{:else if currentStep > 0 && currentStep < 5}
 							<Button variant="ghost" onclick={goToPreviousStep}>
 								<ChevronLeft class="mr-1 size-4" />
 								Back
@@ -502,7 +572,7 @@
 					</div>
 
 					<div class="flex items-center gap-3">
-						{#if currentStep < 5 && currentStep !== 0 && currentStep !== 1}
+						{#if currentStep === 2}
 							<Button variant="outline" onclick={skipStep}>Skip for Now</Button>
 						{/if}
 
