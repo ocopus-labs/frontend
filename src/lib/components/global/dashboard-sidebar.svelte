@@ -1,6 +1,5 @@
 <script lang="ts">
 	import NavMain from './nav-main.svelte';
-	import NavProjects from './nav-projects.svelte';
 	import NavUser from './nav-user.svelte';
 	import BusinessSwitcher from './business-switcher.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
@@ -47,13 +46,6 @@
 		}))
 	);
 
-	const projectItems = $derived(
-		rawData.projects.map((project) => ({
-			...project,
-			url: replaceUrlPlaceholders(project.url)
-		}))
-	);
-
 	// Get current business from the list
 	const currentBusiness = $derived(businesses.find((b) => b.slug === slug));
 </script>
@@ -64,7 +56,6 @@
 	</Sidebar.Header>
 	<Sidebar.Content>
 		<NavMain items={navMainItems} {subscription} />
-		<NavProjects projects={projectItems} />
 	</Sidebar.Content>
 	<Sidebar.Footer>
 		<NavUser />
