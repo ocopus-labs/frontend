@@ -9,6 +9,7 @@
 		isSelected?: boolean;
 		isDragging?: boolean;
 		isEditMode?: boolean;
+		isFocused?: boolean;
 		onSelect?: (table: Table) => void;
 		onDragStart?: (table: Table, e: PointerEvent) => void;
 		onOpenOrder?: (table: Table) => void;
@@ -20,37 +21,46 @@
 		isSelected = false,
 		isDragging = false,
 		isEditMode = false,
+		isFocused = false,
 		onSelect,
 		onDragStart,
 		onOpenOrder,
 		onStatusChange
 	}: Props = $props();
 
+	let buttonRef: HTMLButtonElement | undefined = $state();
+
+	$effect(() => {
+		if (isFocused && buttonRef) {
+			buttonRef.focus();
+		}
+	});
+
 	const statusColors: Record<TableStatus, { bg: string; border: string; text: string }> = {
 		available: {
-			bg: 'bg-green-100 dark:bg-green-950',
-			border: 'border-green-500',
-			text: 'text-green-700 dark:text-green-400'
+			bg: 'bg-success/10',
+			border: 'border-success',
+			text: 'text-success'
 		},
 		occupied: {
-			bg: 'bg-red-100 dark:bg-red-950',
-			border: 'border-red-500',
-			text: 'text-red-700 dark:text-red-400'
+			bg: 'bg-destructive/10',
+			border: 'border-destructive',
+			text: 'text-destructive'
 		},
 		reserved: {
-			bg: 'bg-yellow-100 dark:bg-yellow-950',
-			border: 'border-yellow-500',
-			text: 'text-yellow-700 dark:text-yellow-400'
+			bg: 'bg-warning/10',
+			border: 'border-warning',
+			text: 'text-warning-foreground dark:text-warning'
 		},
 		maintenance: {
-			bg: 'bg-orange-100 dark:bg-orange-950',
-			border: 'border-orange-500',
-			text: 'text-orange-700 dark:text-orange-400'
+			bg: 'bg-info/10',
+			border: 'border-info',
+			text: 'text-info'
 		},
 		out_of_service: {
-			bg: 'bg-gray-100 dark:bg-gray-900',
-			border: 'border-gray-500',
-			text: 'text-gray-700 dark:text-gray-400'
+			bg: 'bg-muted',
+			border: 'border-muted-foreground/50',
+			text: 'text-muted-foreground'
 		}
 	};
 
@@ -103,17 +113,20 @@
 </script>
 
 <Popover.Root>
-	<Popover.Trigger asChild>
+	<Popover.Trigger>
 		{#snippet child({ props })}
 			<button
+				bind:this={buttonRef}
 				{...props}
 				class="absolute flex flex-col items-center justify-center border-2 shadow-md transition-all
 					{shapeClasses()} {sizeClasses()} {colors.bg} {colors.border}
 					{isSelected ? 'ring-2 ring-primary ring-offset-2' : ''}
+					{isFocused ? 'ring-2 ring-primary' : ''}
 					{isDragging ? 'opacity-70 scale-105 cursor-grabbing z-50' : ''}
 					{isEditMode ? 'cursor-grab hover:scale-105' : 'cursor-pointer hover:shadow-lg'}
 					focus:outline-none focus:ring-2 focus:ring-primary"
 				style="left: {table.position.x}px; top: {table.position.y}px; transform: translate(-50%, -50%);"
+				aria-label="{table.displayName}, {table.capacity} seats, {table.status.replace('_', ' ')}"
 				onpointerdown={handlePointerDown}
 				onclick={handleClick}
 			>

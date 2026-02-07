@@ -1,6 +1,12 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { IconArmchair, IconBike, IconShoppingBag, IconMapPin } from '@tabler/icons-svelte';
+	import {
+		IconArmchair,
+		IconBike,
+		IconShoppingBag,
+		IconMapPin,
+		IconChevronRight
+	} from '@tabler/icons-svelte';
 	import OrderItem from './OrderItem.svelte';
 	import OrderTotals from './OrderTotals.svelte';
 	import type { OrderItem as OrderItemType } from './OrderItem.svelte';
@@ -25,6 +31,7 @@
 		onToggleTaxes: () => void;
 		onToggleDiscount: () => void;
 		onTableSelectClick?: () => void;
+		region?: string;
 	}
 
 	let {
@@ -46,7 +53,8 @@
 		onUpdateQuantity,
 		onToggleTaxes,
 		onToggleDiscount,
-		onTableSelectClick
+		onTableSelectClick,
+		region = 'us'
 	}: Props = $props();
 
 	const orderTypes = [
@@ -94,11 +102,7 @@
 						</p>
 					</div>
 				</div>
-				<div class="text-muted-foreground">
-					<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-					</svg>
-				</div>
+				<IconChevronRight class="h-5 w-5 text-muted-foreground" />
 			</button>
 		{/if}
 	</div>
@@ -116,7 +120,7 @@
 		{:else}
 			<div class="space-y-3">
 				{#each orderItems as item}
-					<OrderItem {item} onRemove={onRemoveItem} {onUpdateQuantity} />
+					<OrderItem {item} onRemove={onRemoveItem} {onUpdateQuantity} {region} />
 				{/each}
 			</div>
 		{/if}
@@ -135,5 +139,6 @@
 		{totalPayment}
 		{onToggleTaxes}
 		{onToggleDiscount}
+		{region}
 	/>
 </aside>

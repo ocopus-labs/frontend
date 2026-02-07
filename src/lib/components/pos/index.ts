@@ -10,6 +10,7 @@ export { default as TableFloorPlan } from './TableFloorPlan.svelte';
 export { default as FloorPlanTable } from './FloorPlanTable.svelte';
 export { default as Receipt } from './Receipt.svelte';
 export { default as ReceiptDialog } from './ReceiptDialog.svelte';
+export { default as RefundDialog } from './RefundDialog.svelte';
 
 export type { Category } from './MenuCategories.svelte';
 export type { MenuItem } from './MenuItemCard.svelte';

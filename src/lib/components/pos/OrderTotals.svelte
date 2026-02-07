@@ -14,6 +14,7 @@
 		totalPayment: number;
 		onToggleTaxes: () => void;
 		onToggleDiscount: () => void;
+		region?: string;
 	}
 
 	let {
@@ -27,10 +28,11 @@
 		discount,
 		totalPayment,
 		onToggleTaxes,
-		onToggleDiscount
+		onToggleDiscount,
+		region = 'us'
 	}: Props = $props();
 
-	const i18n = createI18nUtils('in');
+	const i18n = createI18nUtils(region);
 </script>
 
 <div class="border-t border-border bg-muted/30 p-4">

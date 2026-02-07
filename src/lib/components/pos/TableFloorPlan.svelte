@@ -47,17 +47,32 @@
 	let selectedTableId = $state<string | null>(null);
 	let draggingTable = $state<Table | null>(null);
 	let dragOffset = $state({ x: 0, y: 0 });
+	let focusedTableIndex = $state(-1);
 
 	const CANVAS_WIDTH = 1200;
 	const CANVAS_HEIGHT = 800;
 	const GRID_SIZE = 20;
 	const MIN_SCALE = 0.5;
 	const MAX_SCALE = 2;
+	const ROW_BAND = 80;
 
 	const filteredTables = $derived(
-		selectedSection
-			? tables.filter((t) => t.position?.section === selectedSection)
-			: tables
+		selectedSection ? tables.filter((t) => t.position?.section === selectedSection) : tables
+	);
+
+	// Spatial sort: row-major ordering by Y coordinate bands, then X coordinate
+	const sortedTables = $derived(
+		[...filteredTables].sort((a, b) => {
+			const rowA = Math.floor((a.position?.y ?? 0) / ROW_BAND);
+			const rowB = Math.floor((b.position?.y ?? 0) / ROW_BAND);
+			if (rowA !== rowB) return rowA - rowB;
+			return (a.position?.x ?? 0) - (b.position?.x ?? 0);
+		})
+	);
+
+	// Map from table id to its index in sortedTables for quick lookup
+	const sortedTableIndexById = $derived(
+		new Map(sortedTables.map((t, i) => [t.id, i]))
 	);
 
 	const stats = $derived({
@@ -78,6 +93,61 @@
 	function handleResetView() {
 		scale = 1;
 		panOffset = { x: 0, y: 0 };
+	}
+
+	function handleKeyDown(e: KeyboardEvent) {
+		const tableCount = sortedTables.length;
+		if (tableCount === 0) return;
+
+		switch (e.key) {
+			case 'ArrowRight':
+			case 'ArrowDown': {
+				e.preventDefault();
+				if (focusedTableIndex < 0) {
+					focusedTableIndex = 0;
+				} else {
+					focusedTableIndex = (focusedTableIndex + 1) % tableCount;
+				}
+				break;
+			}
+			case 'ArrowLeft':
+			case 'ArrowUp': {
+				e.preventDefault();
+				if (focusedTableIndex < 0) {
+					focusedTableIndex = tableCount - 1;
+				} else {
+					focusedTableIndex = (focusedTableIndex - 1 + tableCount) % tableCount;
+				}
+				break;
+			}
+			case 'Enter':
+			case ' ': {
+				e.preventDefault();
+				if (focusedTableIndex >= 0 && focusedTableIndex < tableCount) {
+					const focusedTable = sortedTables[focusedTableIndex];
+					handleTableSelect(focusedTable);
+				}
+				break;
+			}
+			case '+':
+			case '=': {
+				e.preventDefault();
+				handleZoomIn();
+				break;
+			}
+			case '-': {
+				e.preventDefault();
+				handleZoomOut();
+				break;
+			}
+			case '0': {
+				e.preventDefault();
+				handleResetView();
+				break;
+			}
+			default:
+				break;
+		}
 	}
 
 	function handleWheel(e: WheelEvent) {
@@ -251,12 +321,13 @@
 	<div class="relative flex-1 overflow-hidden bg-muted/30">
 		<div
 			bind:this={canvasRef}
-			class="absolute inset-0 cursor-grab select-none overflow-hidden {isPanning
+			class="absolute inset-0 cursor-grab overflow-hidden select-none {isPanning
 				? 'cursor-grabbing'
 				: ''}"
 			role="application"
-			aria-label="Table floor plan"
+			aria-label="Table floor plan. Use arrow keys to navigate tables."
 			tabindex="0"
+			onkeydown={handleKeyDown}
 			onwheel={handleWheel}
 			onpointerdown={handleCanvasPointerDown}
 			onpointermove={handleCanvasPointerMove}
@@ -266,18 +337,13 @@
 			<!-- Transformed Content -->
 			<div
 				class="relative origin-top-left"
-				style="width: {CANVAS_WIDTH}px; height: {CANVAS_HEIGHT}px; transform: translate({panOffset.x}px, {panOffset.y}px) scale({scale});"
+				style="width: 100%; height: 100%; transform: translate({panOffset.x}px, {panOffset.y}px) scale({scale});"
 			>
 				<!-- Grid Background -->
 				{#if showGrid}
 					<svg class="pointer-events-none absolute inset-0 h-full w-full">
 						<defs>
-							<pattern
-								id="grid"
-								width={GRID_SIZE}
-								height={GRID_SIZE}
-								patternUnits="userSpaceOnUse"
-							>
+							<pattern id="grid" width={GRID_SIZE} height={GRID_SIZE} patternUnits="userSpaceOnUse">
 								<path
 									d="M {GRID_SIZE} 0 L 0 0 0 {GRID_SIZE}"
 									fill="none"
@@ -292,11 +358,7 @@
 								height={GRID_SIZE * 5}
 								patternUnits="userSpaceOnUse"
 							>
-								<rect
-									width={GRID_SIZE * 5}
-									height={GRID_SIZE * 5}
-									fill="url(#grid)"
-								/>
+								<rect width={GRID_SIZE * 5} height={GRID_SIZE * 5} fill="url(#grid)" />
 								<path
 									d="M {GRID_SIZE * 5} 0 L 0 0 0 {GRID_SIZE * 5}"
 									fill="none"
@@ -313,10 +375,12 @@
 				<!-- Tables -->
 				{#each filteredTables as table (table.id)}
 					{@const displayTable = getDisplayTable(table)}
+					{@const sortedIdx = sortedTableIndexById.get(table.id) ?? -1}
 					<FloorPlanTable
 						table={displayTable}
 						isSelected={selectedTableId === table.id}
 						isDragging={draggingTable?.id === table.id}
+						isFocused={focusedTableIndex >= 0 && sortedIdx === focusedTableIndex}
 						{isEditMode}
 						onSelect={handleTableSelect}
 						onDragStart={handleTableDragStart}
@@ -352,7 +416,7 @@
 		<!-- Edit Mode Indicator -->
 		{#if isEditMode}
 			<div
-				class="absolute right-3 top-3 rounded-lg border border-primary bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
+				class="absolute top-3 right-3 rounded-lg border border-primary bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
 			>
 				Drag tables to reposition
 			</div>

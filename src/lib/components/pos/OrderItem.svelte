@@ -22,11 +22,12 @@
 		item: OrderItem;
 		onRemove: (id: string) => void;
 		onUpdateQuantity: (id: string, delta: number) => void;
+		region?: string;
 	}
 
-	let { item, onRemove, onUpdateQuantity }: Props = $props();
+	let { item, onRemove, onUpdateQuantity, region = 'us' }: Props = $props();
 
-	const i18n = createI18nUtils('in');
+	const i18n = createI18nUtils(region);
 
 	// Check if item has any modifiers to show
 	const hasModifiers = $derived(
@@ -42,8 +43,9 @@
 	<div class="flex gap-3">
 		<!-- Item Image -->
 		<img
-			src={item.image || 'https://images.unsplash.com/photo-1546833998-877b37c2e5c6?w=100'}
+			src={item.image || ''}
 			alt={item.name}
+			loading="lazy"
 			class="h-14 w-14 flex-shrink-0 rounded-md object-cover"
 		/>
 

@@ -29,6 +29,7 @@
 		onQuantityChange: (delta: number) => void;
 		onConfirm: () => void;
 		onCancel: () => void;
+		region?: string;
 	}
 
 	let {
@@ -51,11 +52,11 @@
 		onSpecialInstructionsChange,
 		onQuantityChange,
 		onConfirm,
-		onCancel
+		onCancel,
+		region = 'us'
 	}: Props = $props();
 
-	// Initialize i18n for India
-	const i18n = createI18nUtils('in');
+	const i18n = createI18nUtils(region);
 
 	// Calculate total price
 	const totalPrice = $derived.by(() => {
@@ -112,6 +113,7 @@
 					<img
 						src={selectedItem.image}
 						alt={selectedItem.name}
+						loading="lazy"
 						class="h-20 w-20 rounded-lg object-cover sm:h-24 sm:w-24"
 					/>
 					<div class="flex-1">
@@ -124,7 +126,7 @@
 				{#if selectedItem.modifiers?.sizes && selectedItem.modifiers.sizes.length > 0}
 					<div class="space-y-2 sm:space-y-3">
 						<Label class="text-sm font-medium">Size</Label>
-						<RadioGroup bind:value={selectedSize} onchange={onSizeChange}>
+						<RadioGroup bind:value={selectedSize} onValueChange={onSizeChange}>
 							{#each selectedItem.modifiers.sizes as size}
 								<div class="flex items-center space-x-2">
 									<RadioGroupItem value={size.name} id="size-{size.name}" />
@@ -146,7 +148,7 @@
 				{#if selectedItem.modifiers?.spiceLevels && selectedItem.modifiers.spiceLevels.length > 0}
 					<div class="space-y-2 sm:space-y-3">
 						<Label class="text-sm font-medium">Spice Level</Label>
-						<RadioGroup bind:value={selectedSpiceLevel} onchange={onSpiceLevelChange}>
+						<RadioGroup bind:value={selectedSpiceLevel} onValueChange={onSpiceLevelChange}>
 							{#each selectedItem.modifiers.spiceLevels as spice}
 								<div class="flex items-center space-x-2">
 									<RadioGroupItem value={spice.name} id="spice-{spice.name}" />
@@ -171,7 +173,7 @@
 				{#if selectedItem.modifiers?.milkTypes && selectedItem.modifiers.milkTypes.length > 0}
 					<div class="space-y-2 sm:space-y-3">
 						<Label class="text-sm font-medium">Milk Type</Label>
-						<RadioGroup bind:value={selectedMilkType} onchange={onMilkTypeChange}>
+						<RadioGroup bind:value={selectedMilkType} onValueChange={onMilkTypeChange}>
 							{#each selectedItem.modifiers.milkTypes as milk}
 								<div class="flex items-center space-x-2">
 									<RadioGroupItem value={milk.name} id="milk-{milk.name}" />

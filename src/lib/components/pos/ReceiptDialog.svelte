@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
-	import { IconPrinter, IconX, IconCheck } from '@tabler/icons-svelte';
+	import { IconPrinter, IconX, IconCheck, IconDownload } from '@tabler/icons-svelte';
 	import Receipt from './Receipt.svelte';
 	import { generateReceipt, type Receipt as ReceiptType, type PaymentMethod } from '$lib/api';
 	import { page } from '$app/stores';
+	import { toast } from 'svelte-sonner';
 
 	interface Props {
 		open: boolean;
@@ -12,12 +13,14 @@
 		change?: number;
 		onClose: () => void;
 		onPrintComplete?: () => void;
+		region?: string;
 	}
 
-	let { open, paymentId, change, onClose, onPrintComplete }: Props = $props();
+	let { open, paymentId, change, onClose, onPrintComplete, region = 'us' }: Props = $props();
 
 	let isLoading = $state(true);
 	let isPrinting = $state(false);
+	let isDownloading = $state(false);
 	let error = $state<string | null>(null);
 
 	let receiptData = $state<{
@@ -60,6 +63,36 @@
 		}, 100);
 	}
 
+	async function handleDownloadPdf() {
+		if (!receiptData) return;
+		isDownloading = true;
+
+		try {
+			const html2pdf = (await import('html2pdf.js')).default;
+			const receiptEl = document.querySelector('.receipt-preview-content') as HTMLElement | null;
+			if (!receiptEl) throw new Error('Receipt element not found');
+
+			const filename = `receipt-${receiptData.paymentNumber || 'unknown'}.pdf`;
+			await html2pdf()
+				.set({
+					margin: 4,
+					filename,
+					image: { type: 'jpeg', quality: 0.98 },
+					html2canvas: { scale: 2, useCORS: true },
+					jsPDF: { unit: 'mm', format: [80, 200], orientation: 'portrait' }
+				})
+				.from(receiptEl)
+				.save();
+
+			toast.success('Receipt downloaded');
+		} catch (err) {
+			console.error('Failed to download PDF:', err);
+			toast.error('Failed to download receipt');
+		} finally {
+			isDownloading = false;
+		}
+	}
+
 	function handleClose() {
 		receiptData = null;
 		error = null;
@@ -88,13 +121,14 @@
 					<Button variant="outline" onclick={loadReceipt}>Try Again</Button>
 				</div>
 			{:else if receiptData}
-				<div class="rounded-lg border border-border bg-white">
+				<div class="receipt-preview-content rounded-lg border border-border bg-white">
 					<Receipt
 						receipt={receiptData.receipt}
 						business={receiptData.business}
 						orderNumber={receiptData.orderNumber}
 						paymentNumber={receiptData.paymentNumber}
 						{change}
+						{region}
 					/>
 				</div>
 			{/if}
@@ -105,10 +139,16 @@
 				<IconX class="mr-2 h-4 w-4" />
 				Close
 			</Button>
-			<Button onclick={handlePrint} disabled={isLoading || !!error || isPrinting}>
-				<IconPrinter class="mr-2 h-4 w-4" />
-				{isPrinting ? 'Printing...' : 'Print Receipt'}
-			</Button>
+			<div class="flex gap-2">
+				<Button variant="outline" onclick={handleDownloadPdf} disabled={isLoading || !!error || isDownloading}>
+					<IconDownload class="mr-2 h-4 w-4" />
+					{isDownloading ? 'Downloading...' : 'Download PDF'}
+				</Button>
+				<Button onclick={handlePrint} disabled={isLoading || !!error || isPrinting}>
+					<IconPrinter class="mr-2 h-4 w-4" />
+					{isPrinting ? 'Printing...' : 'Print'}
+				</Button>
+			</div>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
@@ -122,6 +162,7 @@
 			orderNumber={receiptData.orderNumber}
 			paymentNumber={receiptData.paymentNumber}
 			{change}
+			{region}
 		/>
 	</div>
 {/if}
