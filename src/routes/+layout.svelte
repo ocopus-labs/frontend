@@ -4,6 +4,7 @@
 	// import { ProgressBar } from '@prgm/sveltekit-progress-bar';
 
 	import { Toaster } from 'svelte-sonner';
+	import ScrollToTop from '$lib/components/global/scroll-to-top.svelte';
 
 	let { children } = $props();
 </script>
@@ -15,3 +16,4 @@
 <Toaster />
 <!-- <ProgressBar class="text-red-500" /> -->
 {@render children()}
+<ScrollToTop />

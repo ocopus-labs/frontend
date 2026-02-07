@@ -1,11 +1,8 @@
 <script>
 	import Button from '$lib/components/ui/button/button.svelte';
+	import * as Avatar from '$lib/components/ui/avatar/index.js';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import DashboardImage from '$lib/assets/dashboard.png';
-
-	// You can store Hero Header Component in seperate file
-	// I have used snippet for better readability
-
-	// Hero Header Component
 
 	import Menu from '@lucide/svelte/icons/menu';
 	import X from '@lucide/svelte/icons/x';
@@ -14,6 +11,34 @@
 	import Activity from '@lucide/svelte/icons/activity';
 	import DraftingCompass from '@lucide/svelte/icons/drafting-compass';
 	import Mail from '@lucide/svelte/icons/mail';
+	import LayoutDashboardIcon from '@lucide/svelte/icons/layout-dashboard';
+	import BadgeCheckIcon from '@lucide/svelte/icons/badge-check';
+	import CreditCardIcon from '@lucide/svelte/icons/credit-card';
+	import BellIcon from '@lucide/svelte/icons/bell';
+	import LogOutIcon from '@lucide/svelte/icons/log-out';
+	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
+	import { signOut } from '$lib/auth';
+	import { goto } from '$app/navigation';
+	import { toast } from 'svelte-sonner';
+
+	let { data } = $props();
+
+	let dashboardUrl = $derived(data.user?.role === 'super_admin' ? '/admin' : '/dashboard');
+	let userInitials = $derived(() => {
+		if (!data.user?.name) return data.user?.email?.charAt(0)?.toUpperCase() || '?';
+		return data.user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
+	});
+
+	async function handleLogout() {
+		try {
+			sessionStorage.removeItem('business-setup-progress');
+			await signOut();
+			toast.success('Logged out successfully');
+			goto('/login');
+		} catch {
+			toast.error('Failed to logout');
+		}
+	}
 
 	let menuItems = [
 		{ name: 'Features', href: '#a' },
@@ -117,6 +142,7 @@
 				>
 					<img
 						class="h-5 w-fit dark:invert"
+						loading="lazy"
 						src="https://html.tailus.io/blocks/customers/nvidia.svg"
 						alt="Nvidia Logo"
 						height="20"
@@ -124,6 +150,7 @@
 					/>
 					<img
 						class="h-4 w-fit dark:invert"
+						loading="lazy"
 						src="https://html.tailus.io/blocks/customers/column.svg"
 						alt="Column Logo"
 						height="16"
@@ -131,6 +158,7 @@
 					/>
 					<img
 						class="h-4 w-fit dark:invert"
+						loading="lazy"
 						src="https://html.tailus.io/blocks/customers/github.svg"
 						alt="GitHub Logo"
 						height="16"
@@ -138,6 +166,7 @@
 					/>
 					<img
 						class="h-5 w-fit dark:invert"
+						loading="lazy"
 						src="https://html.tailus.io/blocks/customers/nike.svg"
 						alt="Nike Logo"
 						height="20"
@@ -145,6 +174,7 @@
 					/>
 					<img
 						class="h-4 w-fit dark:invert"
+						loading="lazy"
 						src="https://html.tailus.io/blocks/customers/laravel.svg"
 						alt="Laravel Logo"
 						height="16"
@@ -152,6 +182,7 @@
 					/>
 					<img
 						class="h-7 w-fit dark:invert"
+						loading="lazy"
 						src="https://html.tailus.io/blocks/customers/lilly.svg"
 						alt="Lilly Logo"
 						height="28"
@@ -159,6 +190,7 @@
 					/>
 					<img
 						class="h-5 w-fit dark:invert"
+						loading="lazy"
 						src="https://html.tailus.io/blocks/customers/lemonsqueezy.svg"
 						alt="Lemon Squeezy Logo"
 						height="20"
@@ -166,6 +198,7 @@
 					/>
 					<img
 						class="h-6 w-fit dark:invert"
+						loading="lazy"
 						src="https://html.tailus.io/blocks/customers/openai.svg"
 						alt="OpenAI Logo"
 						height="24"
@@ -173,6 +206,7 @@
 					/>
 					<img
 						class="h-4 w-fit dark:invert"
+						loading="lazy"
 						src="https://html.tailus.io/blocks/customers/tailwindcss.svg"
 						alt="Tailwind CSS Logo"
 						height="16"
@@ -180,6 +214,7 @@
 					/>
 					<img
 						class="h-5 w-fit dark:invert"
+						loading="lazy"
 						src="https://html.tailus.io/blocks/customers/vercel.svg"
 						alt="Vercel Logo"
 						height="20"
@@ -187,6 +222,7 @@
 					/>
 					<img
 						class="h-5 w-fit dark:invert"
+						loading="lazy"
 						src="https://html.tailus.io/blocks/customers/zapier.svg"
 						alt="Zapier Logo"
 						height="20"
@@ -279,10 +315,68 @@
 						</div>
 
 						<div
-							class="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit lg:border-l lg:pl-6"
+							class="flex w-full flex-col items-center space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit lg:border-l lg:pl-6"
 						>
-							<Button href="/register" variant="outline" size="sm">Sign Up</Button>
-							<Button href="/login" size="sm">Login</Button>
+							{#if data.user}
+								<DropdownMenu.Root>
+									<DropdownMenu.Trigger>
+										{#snippet child({ props })}
+											<button
+												{...props}
+												class="flex items-center gap-2 rounded-full border p-1 pr-3 transition-colors hover:bg-accent"
+											>
+												<Avatar.Root class="size-8">
+													<Avatar.Image src={data.user?.image} alt={data.user?.name || 'User'} />
+													<Avatar.Fallback>{userInitials()}</Avatar.Fallback>
+												</Avatar.Root>
+												<span class="text-sm font-medium">{data.user?.name || data.user?.email}</span>
+												<ChevronDownIcon class="size-4 text-muted-foreground" />
+											</button>
+										{/snippet}
+									</DropdownMenu.Trigger>
+									<DropdownMenu.Content class="w-56 rounded-lg" align="end" sideOffset={8}>
+										<DropdownMenu.Label class="p-0 font-normal">
+											<div class="flex items-center gap-2 px-2 py-1.5 text-left text-sm">
+												<Avatar.Root class="size-8">
+													<Avatar.Image src={data.user?.image} alt={data.user?.name || 'User'} />
+													<Avatar.Fallback>{userInitials()}</Avatar.Fallback>
+												</Avatar.Root>
+												<div class="grid flex-1 text-left text-sm leading-tight">
+													<span class="truncate font-medium">{data.user?.name || 'User'}</span>
+													<span class="truncate text-xs text-muted-foreground">{data.user?.email || ''}</span>
+												</div>
+											</div>
+										</DropdownMenu.Label>
+										<DropdownMenu.Separator />
+										<DropdownMenu.Group>
+											<DropdownMenu.Item onclick={() => goto(dashboardUrl)}>
+												<LayoutDashboardIcon />
+												Dashboard
+											</DropdownMenu.Item>
+											<DropdownMenu.Item onclick={() => goto('/dashboard/security')}>
+												<BadgeCheckIcon />
+												Account
+											</DropdownMenu.Item>
+											<DropdownMenu.Item onclick={() => goto('/dashboard/billing')}>
+												<CreditCardIcon />
+												Billing
+											</DropdownMenu.Item>
+											<DropdownMenu.Item onclick={() => goto('/dashboard/notifications')}>
+												<BellIcon />
+												Notifications
+											</DropdownMenu.Item>
+										</DropdownMenu.Group>
+										<DropdownMenu.Separator />
+										<DropdownMenu.Item onclick={handleLogout}>
+											<LogOutIcon />
+											Log out
+										</DropdownMenu.Item>
+									</DropdownMenu.Content>
+								</DropdownMenu.Root>
+							{:else}
+								<Button href="/register" variant="outline" size="sm">Sign Up</Button>
+								<Button href="/login" size="sm">Login</Button>
+							{/if}
 						</div>
 					</div>
 				</div>
