@@ -1,5 +1,8 @@
 <script lang="ts">
 	import AppSidebar from '$lib/components/global/dashboard-sidebar.svelte';
+	import ImpersonationBanner from '$lib/components/global/impersonation-banner.svelte';
+	import AnnouncementBanner from '$lib/components/global/announcement-banner.svelte';
+	import GlobalSearch from '$lib/components/search/global-search.svelte';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
@@ -7,6 +10,10 @@
 	import type { LayoutData } from './$types';
 
 	let { children, data }: { children: any; data: LayoutData } = $props();
+
+	// Derive businessId from page data (populated by [slug]/+layout.server.ts)
+	const businessId = $derived($page.data.businessId as string | undefined);
+	const basePath = $derived(`/${$page.params.business}/${$page.params.slug}`);
 
 	// Generate breadcrumbs from current path
 	const breadcrumbs = $derived(
@@ -27,13 +34,18 @@
 	const showBreadcrumbs = $derived(!$page.url.pathname.includes('/pos/new-order'));
 </script>
 
+<ImpersonationBanner />
+<a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:shadow-lg">
+	Skip to main content
+</a>
 <Sidebar.Provider>
 	<AppSidebar businesses={data.businesses} subscription={data.subscription} />
-	<Sidebar.Inset>
+	<Sidebar.Inset id="main-content">
+		<AnnouncementBanner />
 		<header
 			class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12"
 		>
-			<div class="flex items-center gap-2 px-4">
+			<div class="flex flex-1 items-center gap-2 px-4">
 				<Sidebar.Trigger class="-ml-1" />
 				<Separator orientation="vertical" class="mr-2 data-[orientation=vertical]:h-4" />
 				{#if showBreadcrumbs}
@@ -53,6 +65,11 @@
 							{/each}
 						</Breadcrumb.List>
 					</Breadcrumb.Root>
+				{/if}
+			</div>
+			<div class="pr-4">
+				{#if businessId}
+					<GlobalSearch {businessId} {basePath} />
 				{/if}
 			</div>
 		</header>
