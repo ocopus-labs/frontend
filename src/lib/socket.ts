@@ -1,7 +1,8 @@
-import { io, Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 import { browser } from '$app/environment';
 
 let socket: Socket | null = null;
+let ioModule: typeof import('socket.io-client') | null = null;
 
 export interface OrderSocketEvents {
 	'order:created': (order: any) => void;
@@ -10,10 +11,18 @@ export interface OrderSocketEvents {
 	'item:status': (data: { orderId: string; itemId: string; status: string; order: any }) => void;
 }
 
-export function getSocket(): Socket | null {
+async function loadSocketIO() {
+	if (!ioModule) {
+		ioModule = await import('socket.io-client');
+	}
+	return ioModule;
+}
+
+export async function getSocket(): Promise<Socket | null> {
 	if (!browser) return null;
 
 	if (!socket) {
+		const { io } = await loadSocketIO();
 		const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 		socket = io(`${backendUrl}/orders`, {
 			withCredentials: true,
@@ -30,8 +39,8 @@ export function getSocket(): Socket | null {
 	return socket;
 }
 
-export function connectSocket(): Socket | null {
-	const sock = getSocket();
+export async function connectSocket(): Promise<Socket | null> {
+	const sock = await getSocket();
 	if (sock && !sock.connected) {
 		sock.connect();
 	}
@@ -44,22 +53,22 @@ export function disconnectSocket(): void {
 	}
 }
 
-export function joinBusiness(businessId: string): void {
-	const sock = getSocket();
+export async function joinBusiness(businessId: string): Promise<void> {
+	const sock = await getSocket();
 	if (sock?.connected) {
 		sock.emit('join:business', businessId);
 	}
 }
 
-export function leaveBusiness(businessId: string): void {
-	const sock = getSocket();
+export async function leaveBusiness(businessId: string): Promise<void> {
+	const sock = await getSocket();
 	if (sock?.connected) {
 		sock.emit('leave:business', businessId);
 	}
 }
 
-export function onOrderCreated(callback: OrderSocketEvents['order:created']): () => void {
-	const sock = getSocket();
+export async function onOrderCreated(callback: OrderSocketEvents['order:created']): Promise<() => void> {
+	const sock = await getSocket();
 	if (sock) {
 		sock.on('order:created', callback);
 		return () => sock.off('order:created', callback);
@@ -67,8 +76,8 @@ export function onOrderCreated(callback: OrderSocketEvents['order:created']): ()
 	return () => {};
 }
 
-export function onOrderUpdated(callback: OrderSocketEvents['order:updated']): () => void {
-	const sock = getSocket();
+export async function onOrderUpdated(callback: OrderSocketEvents['order:updated']): Promise<() => void> {
+	const sock = await getSocket();
 	if (sock) {
 		sock.on('order:updated', callback);
 		return () => sock.off('order:updated', callback);
@@ -76,8 +85,8 @@ export function onOrderUpdated(callback: OrderSocketEvents['order:updated']): ()
 	return () => {};
 }
 
-export function onOrderCompleted(callback: OrderSocketEvents['order:completed']): () => void {
-	const sock = getSocket();
+export async function onOrderCompleted(callback: OrderSocketEvents['order:completed']): Promise<() => void> {
+	const sock = await getSocket();
 	if (sock) {
 		sock.on('order:completed', callback);
 		return () => sock.off('order:completed', callback);
@@ -85,8 +94,8 @@ export function onOrderCompleted(callback: OrderSocketEvents['order:completed'])
 	return () => {};
 }
 
-export function onItemStatus(callback: OrderSocketEvents['item:status']): () => void {
-	const sock = getSocket();
+export async function onItemStatus(callback: OrderSocketEvents['item:status']): Promise<() => void> {
+	const sock = await getSocket();
 	if (sock) {
 		sock.on('item:status', callback);
 		return () => sock.off('item:status', callback);

@@ -38,6 +38,9 @@ export interface MenuItem {
 		addOns?: MenuItemModifier[];
 		removals?: string[]; // Simple string array for removal options
 	};
+	taxCode?: string;
+	taxCategory?: string;
+	customTaxRate?: number;
 	createdAt: string;
 	updatedAt: string;
 }

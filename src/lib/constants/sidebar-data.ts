@@ -251,6 +251,10 @@ export const sidebarData: Record<string, SidebarData> = {
 						url: '/[business]/[slug]/settings'
 					},
 					{
+						title: 'Tax & Invoicing',
+						url: '/[business]/[slug]/settings/tax'
+					},
+					{
 						title: 'Loyalty',
 						url: '/[business]/[slug]/settings/loyalty'
 					},

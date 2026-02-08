@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { createI18nUtils } from '$lib/utils/i18n';
 	import type { Receipt, PaymentMethod } from '$lib/api';
+	import type { TaxBreakdown } from '$lib/api/tax';
 
 	interface BusinessInfo {
 		name: string;
@@ -24,9 +25,28 @@
 		paymentNumber: string;
 		change?: number;
 		region?: string;
+		taxBreakdown?: TaxBreakdown;
+		registrationNumber?: string;
+		registrationLabel?: string;
+		invoiceNumber?: string;
+		customerTaxId?: string;
+		customerTaxIdLabel?: string;
 	}
 
-	let { receipt, business, orderNumber, paymentNumber, change, region = 'us' }: Props = $props();
+	let {
+		receipt,
+		business,
+		orderNumber,
+		paymentNumber,
+		change,
+		region = 'us',
+		taxBreakdown,
+		registrationNumber,
+		registrationLabel,
+		invoiceNumber,
+		customerTaxId,
+		customerTaxIdLabel
+	}: Props = $props();
 
 	const i18n = createI18nUtils(region);
 
@@ -78,12 +98,23 @@
 		{#if business.contact?.email}
 			<p class="my-0.5 text-[10px] text-gray-700">{business.contact.email}</p>
 		{/if}
+		{#if registrationNumber}
+			<p class="my-0.5 text-[10px] text-gray-700">
+				{registrationLabel || 'Tax ID'}: {registrationNumber}
+			</p>
+		{/if}
 	</div>
 
 	<div class="my-2 border-t border-dashed border-gray-700"></div>
 
 	<!-- Order Info -->
 	<div class="my-2">
+		{#if invoiceNumber}
+			<div class="my-0.5 flex justify-between text-[11px] font-bold print:text-[9px]">
+				<span>Invoice #:</span>
+				<span>{invoiceNumber}</span>
+			</div>
+		{/if}
 		<div class="my-0.5 flex justify-between text-[11px] print:text-[9px]">
 			<span>Order #:</span>
 			<span>{orderNumber}</span>
@@ -96,6 +127,12 @@
 			<span>Date:</span>
 			<span>{formatDate(receipt.generatedAt)}</span>
 		</div>
+		{#if customerTaxId}
+			<div class="my-0.5 flex justify-between text-[11px] print:text-[9px]">
+				<span>{customerTaxIdLabel || 'Customer Tax ID'}:</span>
+				<span>{customerTaxId}</span>
+			</div>
+		{/if}
 	</div>
 
 	<div class="my-2 border-t border-dashed border-gray-700"></div>
@@ -128,7 +165,17 @@
 			<span>Subtotal</span>
 			<span>{i18n.formatCurrency(receipt.subtotal)}</span>
 		</div>
-		{#if receipt.tax > 0}
+		{#if taxBreakdown}
+			<!-- Component-wise tax breakdown -->
+			{#each Object.entries(taxBreakdown.componentTotals) as [name, amount]}
+				{#if amount > 0}
+					<div class="my-[3px] flex justify-between text-[11px] print:text-[9px]">
+						<span>{name}</span>
+						<span>{i18n.formatCurrency(amount)}</span>
+					</div>
+				{/if}
+			{/each}
+		{:else if receipt.tax > 0}
 			<div class="my-[3px] flex justify-between text-[11px] print:text-[9px]">
 				<span>Tax</span>
 				<span>{i18n.formatCurrency(receipt.tax)}</span>
@@ -147,6 +194,20 @@
 			<span>{i18n.formatCurrency(receipt.total)}</span>
 		</div>
 	</div>
+
+	<!-- Tax Rate Summary (when multiple rates exist) -->
+	{#if taxBreakdown && taxBreakdown.rateSummary.length > 1}
+		<div class="my-2 border-t border-dashed border-gray-700"></div>
+		<div class="my-2">
+			<p class="mb-1 text-[10px] font-bold">Tax Summary</p>
+			{#each taxBreakdown.rateSummary as rs}
+				<div class="my-[2px] flex justify-between text-[10px] print:text-[8px]">
+					<span>{rs.rate}% on {i18n.formatCurrency(rs.taxableValue)}</span>
+					<span>{i18n.formatCurrency(rs.total)}</span>
+				</div>
+			{/each}
+		</div>
+	{/if}
 
 	<div class="my-2 border-t border-dashed border-gray-700"></div>
 
