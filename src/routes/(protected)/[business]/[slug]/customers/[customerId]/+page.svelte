@@ -50,10 +50,14 @@
 	let adjustReason = $state('');
 	let isAdjusting = $state(false);
 
+	const taxSettings = $derived((data as any).business?.settings?.tax);
+	const taxEnabled = $derived(taxSettings?.enabled === true);
+
 	// Form state
 	let formName = $state('');
 	let formPhone = $state('');
 	let formEmail = $state('');
+	let formTaxId = $state('');
 	let formNotes = $state('');
 	let formTags = $state('');
 	let formStatus = $state('active');
@@ -80,6 +84,7 @@
 		formName = customer.name;
 		formPhone = customer.phone;
 		formEmail = customer.email || '';
+		formTaxId = customer.taxId || '';
 		formNotes = customer.notes || '';
 		formTags = customer.tags?.join(', ') || '';
 		formStatus = customer.status;
@@ -123,6 +128,7 @@
 				address,
 				notes: formNotes.trim() || undefined,
 				tags,
+				taxId: formTaxId.trim() || undefined,
 				status: formStatus as 'active' | 'inactive'
 			};
 			await updateCustomer(businessId, customer.id, payload);
@@ -218,6 +224,12 @@
 							<span class="text-sm font-medium text-right">
 								{[addr.street, addr.city, addr.state, addr.postalCode].filter(Boolean).join(', ') || '-'}
 							</span>
+						</div>
+					{/if}
+					{#if taxEnabled && customer.taxId}
+						<div class="flex justify-between">
+							<span class="text-sm text-muted-foreground">Tax ID</span>
+							<span class="text-sm font-medium">{customer.taxId}</span>
 						</div>
 					{/if}
 					<div class="flex justify-between">
@@ -415,6 +427,13 @@
 					<label for="edit-email" class="text-sm font-medium">Email</label>
 					<Input id="edit-email" type="email" bind:value={formEmail} placeholder="Email address" />
 				</div>
+
+				{#if taxEnabled}
+					<div class="grid gap-2">
+						<label for="edit-taxId" class="text-sm font-medium">Tax ID</label>
+						<Input id="edit-taxId" bind:value={formTaxId} placeholder="GSTIN, VAT Number, etc." />
+					</div>
+				{/if}
 
 				<div class="grid gap-2">
 					<label class="text-sm font-medium">Address</label>

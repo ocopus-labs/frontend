@@ -56,6 +56,7 @@
 	let formNotes = $state('');
 	let formTags = $state('');
 	let formStatus = $state('active');
+	let formTaxId = $state('');
 	let formAddressStreet = $state('');
 	let formAddressCity = $state('');
 	let formAddressState = $state('');
@@ -90,10 +91,14 @@
 		{ value: 'inactive', label: 'Inactive' }
 	];
 
+	const taxSettings = $derived((data as any).business?.settings?.tax);
+	const taxEnabled = $derived(taxSettings?.enabled === true);
+
 	function resetForm() {
 		formName = '';
 		formPhone = '';
 		formEmail = '';
+		formTaxId = '';
 		formNotes = '';
 		formTags = '';
 		formStatus = 'active';
@@ -114,6 +119,7 @@
 		formName = customer.name;
 		formPhone = customer.phone;
 		formEmail = customer.email || '';
+		formTaxId = customer.taxId || '';
 		formNotes = customer.notes || '';
 		formTags = customer.tags?.join(', ') || '';
 		formStatus = customer.status;
@@ -158,6 +164,7 @@
 					address,
 					notes: formNotes.trim() || undefined,
 					tags,
+					taxId: formTaxId.trim() || undefined,
 					status: formStatus as 'active' | 'inactive'
 				};
 				await updateCustomer(businessId, editingCustomer.id, payload);
@@ -169,7 +176,8 @@
 					email: formEmail.trim() || undefined,
 					address,
 					notes: formNotes.trim() || undefined,
-					tags
+					tags,
+					taxId: formTaxId.trim() || undefined
 				};
 				await createCustomer(businessId, payload);
 				toast.success('Customer created');
@@ -468,6 +476,13 @@
 				<label for="email" class="text-sm font-medium">Email</label>
 				<Input id="email" type="email" bind:value={formEmail} placeholder="Email address" />
 			</div>
+
+			{#if taxEnabled}
+				<div class="grid gap-2">
+					<label for="taxId" class="text-sm font-medium">Tax ID</label>
+					<Input id="taxId" bind:value={formTaxId} placeholder="GSTIN, VAT Number, etc." />
+				</div>
+			{/if}
 
 			<div class="grid gap-2">
 				<label class="text-sm font-medium">Address</label>
