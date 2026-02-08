@@ -58,23 +58,25 @@
 	let currentPath = $derived($page.url.pathname);
 </script>
 
-<header>
+<header class="animate-fade-in">
 	<nav
-		class="fixed z-20 w-full border-b bg-background/80 backdrop-blur-md transition-shadow duration-200 {isScrolled
-			? 'shadow-sm'
-			: 'border-dashed'}"
+		class="fixed z-50 w-full transition-all duration-300 {isScrolled
+			? 'border-b bg-background/90 shadow-sm backdrop-blur-xl'
+			: 'bg-transparent'}"
 	>
-		<div class="m-auto max-w-6xl px-6">
-			<div class="flex flex-wrap items-center justify-between gap-6 py-3 lg:gap-0 lg:py-4">
-				<div class="flex w-full justify-between lg:w-auto">
-					<a href="/" aria-label="home" class="flex items-center space-x-2">
+		<div class="mx-auto max-w-7xl px-6 lg:px-8">
+			<div class="flex items-center justify-between py-4">
+				<!-- Logo -->
+				<a href="/" aria-label="home" class="group flex items-center gap-2.5">
+					<div
+						class="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-transform duration-200 group-hover:scale-105"
+					>
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
-							width="22"
-							height="22"
+							width="18"
+							height="18"
 							viewBox="0 0 24 24"
 							fill="none"
-							role="img"
 							color="currentColor"
 						>
 							<path
@@ -93,60 +95,41 @@
 								stroke-width="1.5"
 							></path>
 							<path
-								opacity="0.4"
+								opacity="0.5"
 								d="M10 6C10 7.40013 10 8.1002 9.72752 8.63497C9.48783 9.10538 9.10538 9.48783 8.63498 9.72752C8.1002 10 7.40013 10 6 10C4.59987 10 3.8998 10 3.36502 9.72751C2.89462 9.48783 2.51217 9.10538 2.27248 8.63497C2 8.10019 2 7.40013 2 6C2 4.59987 2 3.8998 2.27248 3.36502C2.51217 2.89462 2.89462 2.51217 3.36502 2.27248C3.8998 2 4.59987 2 6 2C7.40013 2 8.1002 2 8.63498 2.27248C9.10538 2.51217 9.48783 2.89462 9.72752 3.36502C10 3.8998 10 4.59987 10 6Z"
 								stroke="currentColor"
 								stroke-width="1.5"
 							></path>
 						</svg>
-						<span class="text-lg font-semibold">POS Platform</span>
-					</a>
+					</div>
+					<span class="text-lg font-semibold tracking-tight">POS Platform</span>
+				</a>
 
-					<button
-						onclick={() => (menuState = !menuState)}
-						aria-label={menuState == true ? 'Close Menu' : 'Open Menu'}
-						class="relative z-20 -m-2.5 -mr-4 block cursor-pointer p-2.5 lg:hidden"
-					>
-						<Menu
-							class={['m-auto size-6 duration-200', menuState && 'scale-0 rotate-180 opacity-0']}
-						/>
-						<X
-							class={[
-								'absolute inset-0 m-auto size-6 scale-0 -rotate-180 opacity-0 duration-200',
-								menuState && 'scale-100 rotate-0 opacity-100'
-							]}
-						/>
-					</button>
+				<!-- Desktop Nav -->
+				<div class="hidden items-center gap-1 lg:flex">
+					{#each menuItems as item}
+						<a
+							href={item.href}
+							class="relative rounded-md px-4 py-2 text-sm font-medium transition-colors {currentPath ===
+								item.href || (item.href === '/#features' && currentPath === '/')
+								? 'text-foreground'
+								: 'text-muted-foreground hover:text-foreground'}"
+						>
+							{item.name}
+							{#if currentPath === item.href}
+								<span
+									class="absolute bottom-0.5 left-1/2 h-0.5 w-4 -translate-x-1/2 rounded-full bg-primary"
+								></span>
+							{/if}
+						</a>
+					{/each}
 				</div>
 
-				<div
-					class={[
-						'mb-6 w-full flex-wrap items-center justify-end space-y-8 rounded-3xl border bg-background p-6 shadow-2xl shadow-zinc-300/20 md:flex-nowrap lg:m-0 lg:flex lg:w-fit lg:gap-6 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none dark:shadow-none dark:lg:bg-transparent',
-						menuState ? 'block lg:flex' : 'hidden'
-					]}
-				>
-					<div class="lg:pr-4">
-						<ul class="space-y-6 text-base lg:flex lg:gap-8 lg:space-y-0 lg:text-sm">
-							{#each menuItems as item}
-								<li>
-									<a
-										href={item.href}
-										class="block duration-150 hover:text-accent-foreground {currentPath ===
-											item.href || (item.href === '/#features' && currentPath === '/')
-											? 'font-medium text-foreground'
-											: 'text-muted-foreground'}"
-									>
-										<span>{item.name}</span>
-									</a>
-								</li>
-							{/each}
-						</ul>
-					</div>
+				<!-- Right side -->
+				<div class="flex items-center gap-2">
+					<ThemeToggle />
 
-					<div
-						class="flex w-full flex-col items-center space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit lg:border-l lg:pl-6"
-					>
-						<ThemeToggle />
+					<div class="hidden items-center gap-2 lg:flex">
 						{#if user}
 							<DropdownMenu.Root>
 								<DropdownMenu.Trigger>
@@ -206,12 +189,61 @@
 								</DropdownMenu.Content>
 							</DropdownMenu.Root>
 						{:else}
-							<Button href="/register" variant="outline" size="sm">Sign Up</Button>
-							<Button href="/login" size="sm">Login</Button>
+							<Button href="/login" variant="ghost" size="sm">Sign in</Button>
+							<Button href="/register" size="sm">Get Started</Button>
 						{/if}
 					</div>
+
+					<!-- Mobile menu button -->
+					<button
+						onclick={() => (menuState = !menuState)}
+						aria-label={menuState ? 'Close Menu' : 'Open Menu'}
+						class="relative z-20 -m-2 inline-flex size-10 items-center justify-center rounded-md lg:hidden"
+					>
+						<Menu
+							class={[
+								'absolute size-5 transition-all duration-200',
+								menuState && 'scale-0 rotate-90 opacity-0'
+							]}
+						/>
+						<X
+							class={[
+								'absolute size-5 transition-all duration-200',
+								!menuState && 'scale-0 -rotate-90 opacity-0'
+							]}
+						/>
+					</button>
 				</div>
 			</div>
 		</div>
+
+		<!-- Mobile menu panel -->
+		{#if menuState}
+			<div class="animate-fade-in border-t bg-background px-6 pb-6 pt-2 lg:hidden">
+				<nav class="flex flex-col gap-1">
+					{#each menuItems as item}
+						<a
+							href={item.href}
+							onclick={() => (menuState = false)}
+							class="rounded-md px-3 py-2.5 text-sm font-medium transition-colors {currentPath ===
+							item.href
+								? 'bg-accent text-foreground'
+								: 'text-muted-foreground hover:bg-accent hover:text-foreground'}"
+						>
+							{item.name}
+						</a>
+					{/each}
+				</nav>
+				<div class="mt-4 flex flex-col gap-2 border-t pt-4">
+					{#if user}
+						<Button href={dashboardUrl} variant="outline" class="w-full">Dashboard</Button>
+						<Button onclick={handleLogout} variant="ghost" class="w-full">Log out</Button>
+					{:else}
+						<Button href="/login" variant="outline" class="w-full">Sign in</Button>
+						<Button href="/register" class="w-full">Get Started</Button>
+					{/if}
+				</div>
+			</div>
+		{/if}
 	</nav>
 </header>
