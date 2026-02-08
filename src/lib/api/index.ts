@@ -333,3 +333,36 @@ export {
   type CreateApiKeyPayload,
   type CreateApiKeyResponse,
 } from './api-keys';
+
+// QR / UPI API
+export {
+  getUpiSettings,
+  updateUpiSettings,
+  generatePaymentQr,
+  generateTableQr,
+  generateAllTableQrs,
+  getTableQr,
+  type UpiSettings,
+  type QrCodeResult,
+  type TableQrCode
+} from './qr';
+
+// Customer Self-Ordering API
+export {
+  getPublicBusinessInfo,
+  getPublicMenu,
+  placeCustomerOrder,
+  getOrderTracking,
+  createCustomerPayment,
+  generateCustomerPaymentQr,
+  createDodoPaymentCheckout,
+  getOrderingSettings,
+  updateOrderingSettings,
+  type PublicBusiness,
+  type PublicMenuItem,
+  type PublicMenuCategory,
+  type CustomerOrderResult,
+  type OrderTracking,
+  type CustomerPlaceOrderPayload,
+  type OrderingSettings
+} from './customer-order';

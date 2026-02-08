@@ -51,6 +51,7 @@ export interface Table {
   dimensions?: TableDimensions;
   settings?: TableSettings;
   currentSession?: TableSession;
+  qrCode?: { url: string; dataUrl: string; generatedAt: string } | null;
   maintenanceLog?: MaintenanceLog[];
   createdAt: string;
   updatedAt: string;

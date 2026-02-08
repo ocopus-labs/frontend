@@ -56,8 +56,9 @@ export interface Order {
   restaurantId: string;
   tableId?: string;
   tableNumber?: string;
-  staffId: string;
-  staffName: string;
+  staffId?: string;
+  staffName?: string;
+  orderSource?: 'pos' | 'customer_qr';
   orderType: 'dine_in' | 'takeaway' | 'delivery' | 'online';
   customerInfo: {
     name?: string;
