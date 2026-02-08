@@ -11,8 +11,10 @@
 		IconPlus,
 		IconTrash
 	} from '@tabler/icons-svelte';
+	import { IconLoader2 } from '@tabler/icons-svelte';
 	import { createI18nUtils } from '$lib/utils/i18n';
 	import type { PaymentMethod } from '$lib/api';
+	import { generatePaymentQr } from '$lib/api';
 
 	interface SplitEntry {
 		id: string;
@@ -41,6 +43,7 @@
 		onCancel: () => void;
 		isProcessing?: boolean;
 		region?: string;
+		businessId?: string;
 	}
 
 	let {
@@ -53,7 +56,8 @@
 		onSplitPaymentComplete,
 		onCancel,
 		isProcessing = false,
-		region = 'us'
+		region = 'us',
+		businessId
 	}: Props = $props();
 
 	const i18n = createI18nUtils(region);
@@ -84,6 +88,41 @@
 				{ id: crypto.randomUUID(), method: 'cash', amount: Math.floor(balanceDue / 2) },
 				{ id: crypto.randomUUID(), method: 'card', amount: balanceDue - Math.floor(balanceDue / 2) }
 			];
+		}
+	});
+
+	// UPI QR state
+	let upiQrDataUrl = $state<string | null>(null);
+	let isLoadingQr = $state(false);
+	let qrDebounceTimer = $state<ReturnType<typeof setTimeout> | null>(null);
+
+	// Fetch UPI QR when method is UPI and amount changes (debounced)
+	$effect(() => {
+		if (
+			open &&
+			mode === 'single' &&
+			paymentMethod === 'upi' &&
+			businessId &&
+			paymentAmount > 0
+		) {
+			if (qrDebounceTimer) clearTimeout(qrDebounceTimer);
+			qrDebounceTimer = setTimeout(async () => {
+				isLoadingQr = true;
+				try {
+					const result = await generatePaymentQr(
+						businessId!,
+						paymentAmount,
+						`Order #${orderNumber}`
+					);
+					upiQrDataUrl = result.dataUrl;
+				} catch {
+					upiQrDataUrl = null;
+				} finally {
+					isLoadingQr = false;
+				}
+			}, 500);
+		} else {
+			upiQrDataUrl = null;
 		}
 	});
 
@@ -353,6 +392,36 @@
 								</p>
 							</div>
 						{/if}
+					</div>
+				{/if}
+
+				<!-- UPI QR Code -->
+				{#if paymentMethod === 'upi' && businessId}
+					<div class="space-y-3">
+						<Label class="text-sm font-medium">Scan to Pay</Label>
+						<div class="flex flex-col items-center gap-2 rounded-lg border border-border bg-muted/30 p-4">
+							{#if isLoadingQr}
+								<div class="flex h-[200px] w-[200px] items-center justify-center">
+									<IconLoader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+								</div>
+								<p class="text-xs text-muted-foreground">Generating QR code...</p>
+							{:else if upiQrDataUrl}
+								<img
+									src={upiQrDataUrl}
+									alt="UPI Payment QR Code"
+									class="h-[200px] w-[200px]"
+								/>
+								<p class="text-xs text-muted-foreground">
+									Ask customer to scan and pay {i18n.formatCurrency(paymentAmount)}
+								</p>
+							{:else}
+								<div class="flex h-[200px] w-[200px] items-center justify-center rounded-lg border border-dashed border-border">
+									<p class="text-center text-xs text-muted-foreground">
+										UPI QR not available.<br />Configure in Settings &gt; UPI Payments.
+									</p>
+								</div>
+							{/if}
+						</div>
 					</div>
 				{/if}
 

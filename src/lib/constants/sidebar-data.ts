@@ -259,6 +259,10 @@ export const sidebarData: Record<string, SidebarData> = {
 						url: '/[business]/[slug]/settings/loyalty'
 					},
 					{
+						title: 'UPI Payments',
+						url: '/[business]/[slug]/settings/payments'
+					},
+					{
 						title: 'API Keys',
 						url: '/[business]/[slug]/settings/api-keys'
 					}
