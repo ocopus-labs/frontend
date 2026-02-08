@@ -10,6 +10,7 @@ import PackageIcon from '@lucide/svelte/icons/package';
 import DollarSignIcon from '@lucide/svelte/icons/dollar-sign';
 import MonitorIcon from '@lucide/svelte/icons/monitor';
 import UsersIcon from '@lucide/svelte/icons/users';
+import SettingsIcon from '@lucide/svelte/icons/settings';
 import type { FeatureKey } from '$lib/utils/plan-features';
 
 export interface NavSubItem {
@@ -225,6 +226,21 @@ export const sidebarData: Record<string, SidebarData> = {
 					{
 						title: 'Invitations',
 						url: '/[business]/[slug]/team/invitations'
+					}
+				]
+			},
+			{
+				title: 'Settings',
+				url: '/[business]/[slug]/settings',
+				icon: SettingsIcon,
+				items: [
+					{
+						title: 'General',
+						url: '/[business]/[slug]/settings'
+					},
+					{
+						title: 'API Keys',
+						url: '/[business]/[slug]/settings/api-keys'
 					}
 				]
 			}
