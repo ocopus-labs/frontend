@@ -22,214 +22,195 @@
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
 	import Check from '@lucide/svelte/icons/check';
 	import Quote from '@lucide/svelte/icons/quote';
+	import Zap from '@lucide/svelte/icons/zap';
+	import IndianRupee from '@lucide/svelte/icons/indian-rupee';
+	import Shield from '@lucide/svelte/icons/shield';
+	import Clock from '@lucide/svelte/icons/clock';
 
 	const features = [
 		{
 			icon: ShoppingCart,
 			title: 'Point of Sale',
 			description:
-				'Fast, intuitive billing with touch-friendly interface. Process orders, split bills, and handle multiple payment methods effortlessly.'
+				'Fast, intuitive billing with touch-friendly interface. Process orders, split bills, and handle multiple payment methods.'
 		},
 		{
 			icon: Package,
 			title: 'Inventory Management',
 			description:
-				'Track stock in real-time, set low-stock alerts, manage suppliers, and automate reordering. Never run out of essentials again.'
+				'Track stock in real-time, set low-stock alerts, manage suppliers, and automate reordering across locations.'
 		},
 		{
 			icon: Users,
 			title: 'Staff Management',
 			description:
-				'Role-based access control, attendance tracking, and performance analytics. Manage your team with granular permissions.'
+				'Role-based access control, attendance tracking, and performance analytics. Granular permissions per branch.'
 		},
 		{
 			icon: BarChart3,
 			title: 'Analytics & Reports',
 			description:
-				'Real-time dashboards with sales trends, revenue breakdowns, and actionable insights. Make data-driven decisions.'
+				'Real-time dashboards with sales trends, revenue breakdowns, and actionable insights for smarter decisions.'
 		},
 		{
 			icon: Building2,
 			title: 'Multi-Location',
 			description:
-				'Manage multiple branches from a single dashboard. Centralized menu, pricing, and reporting across all locations.'
+				'Manage multiple branches from a single dashboard. Centralized menu, pricing, and reporting across all outlets.'
 		},
 		{
 			icon: CreditCard,
 			title: 'Payments & Billing',
 			description:
-				'Accept UPI, cards, cash, and digital wallets. Automatic GST calculation and invoice generation for every transaction.'
+				'Accept UPI, cards, cash, and digital wallets. Automatic GST calculation and invoice generation.'
 		}
 	];
 
 	const businessTypes = [
-		{
-			icon: UtensilsCrossed,
-			name: 'Restaurant',
-			features: ['Table management', 'KOT printing', 'Menu customization']
-		},
-		{
-			icon: Coffee,
-			name: 'Cafe',
-			features: ['Quick billing', 'Combo offers', 'Loyalty programs']
-		},
-		{
-			icon: Scissors,
-			name: 'Salon',
-			features: ['Appointment booking', 'Stylist tracking', 'Package deals']
-		},
-		{
-			icon: Sparkles,
-			name: 'Spa',
-			features: ['Service scheduling', 'Therapist management', 'Membership plans']
-		},
-		{
-			icon: Dumbbell,
-			name: 'Gym',
-			features: ['Member management', 'Subscription billing', 'Trainer scheduling']
-		},
-		{
-			icon: Stethoscope,
-			name: 'Clinic',
-			features: ['Patient records', 'Appointment slots', 'Prescription tracking']
-		},
-		{
-			icon: Hotel,
-			name: 'Hotel',
-			features: ['Room management', 'Check-in/out', 'Room service integration']
-		}
+		{ icon: UtensilsCrossed, name: 'Restaurant', desc: 'Table management & KOT' },
+		{ icon: Coffee, name: 'Cafe', desc: 'Quick billing & combos' },
+		{ icon: Scissors, name: 'Salon', desc: 'Appointments & packages' },
+		{ icon: Sparkles, name: 'Spa', desc: 'Scheduling & memberships' },
+		{ icon: Dumbbell, name: 'Gym', desc: 'Subscriptions & trainers' },
+		{ icon: Stethoscope, name: 'Clinic', desc: 'Patient records & slots' },
+		{ icon: Hotel, name: 'Hotel', desc: 'Room service & check-in' }
 	];
 
 	const testimonials = [
 		{
 			name: 'Rajesh Kumar',
-			role: 'Owner, Spice Garden Restaurant',
+			role: 'Spice Garden Restaurant, Mumbai',
 			content:
 				'POS Platform transformed how we manage our restaurant. Table management and KOT printing have reduced our order errors by 80%.',
 			rating: 5
 		},
 		{
 			name: 'Priya Sharma',
-			role: 'Manager, GlowUp Salon',
+			role: 'GlowUp Salon, Delhi',
 			content:
 				'The appointment booking and staff management features are fantastic. Our no-show rate dropped significantly since we started using it.',
 			rating: 5
 		},
 		{
 			name: 'Amit Patel',
-			role: 'Owner, FitLife Gym Chain',
+			role: 'FitLife Gym Chain, Bangalore',
 			content:
 				'Managing 3 branches from one dashboard is a game-changer. The multi-location support and subscription billing work seamlessly.',
 			rating: 5
 		}
 	];
 
-	const stats = [
-		{ value: '7+', label: 'Business Types' },
-		{ value: '50+', label: 'Features' },
-		{ value: '99.9%', label: 'Uptime' },
-		{ value: '24/7', label: 'Support' }
+	const highlights = [
+		{ icon: IndianRupee, label: 'UPI & GST Ready' },
+		{ icon: Shield, label: 'Bank-grade Security' },
+		{ icon: Clock, label: '99.9% Uptime' },
+		{ icon: Zap, label: 'Real-time Sync' }
 	];
 </script>
 
 <svelte:head>
-	<title>POS Platform - The All-in-One Point of Sale for Every Business</title>
+	<title>POS Platform — The All-in-One Point of Sale for Every Business</title>
 	<meta
 		name="description"
 		content="Modern POS and business management platform for restaurants, salons, gyms, clinics, and more. Built for Indian businesses with UPI, GST, and multi-location support."
 	/>
 </svelte:head>
 
-<!-- Hero Section -->
-<section class="relative overflow-hidden bg-background pt-24 lg:pt-32">
-	<div
-		aria-hidden="true"
-		class="absolute inset-0 isolate z-0 hidden opacity-50 contain-strict lg:block"
-	>
+<!-- ============ HERO ============ -->
+<section class="relative -z-10 overflow-hidden pt-28 lg:pt-36">
+	<!-- Background decoration -->
+	<div aria-hidden="true" class="absolute inset-0 -z-10">
+		<div class="dot-grid absolute inset-0 opacity-40 dark:opacity-20"></div>
 		<div
-			class="absolute top-0 left-0 h-320 w-140 -translate-y-87.5 -rotate-45 rounded-full bg-[radial-gradient(68.54%_68.72%_at_55.02%_31.46%,hsla(0,0%,85%,.08)_0,hsla(0,0%,55%,.02)_50%,hsla(0,0%,45%,0)_80%)]"
+			class="absolute top-0 left-1/2 h-[600px] w-[800px] -translate-x-1/2 -translate-y-1/4 rounded-full bg-primary/8 blur-3xl dark:bg-primary/5"
 		></div>
-		<div
-			class="absolute top-0 left-0 h-320 w-60 [translate:5%_-50%] -rotate-45 rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsla(0,0%,85%,.06)_0,hsla(0,0%,45%,.02)_80%,transparent_100%)]"
-		></div>
+		<div class="absolute top-1/4 right-0 h-64 w-64 rounded-full bg-primary/5 blur-2xl"></div>
 	</div>
 
-	<div class="relative z-10 mx-auto max-w-6xl px-6 pb-16">
-		<div class="mx-auto max-w-3xl text-center">
-			<Badge variant="secondary" class="mb-6">Now with UPI & GST Support</Badge>
-			<h1 class="text-4xl font-bold tracking-tight text-balance md:text-5xl lg:text-6xl">
-				The All-in-One POS Platform for Every Business
+	<div class="mx-auto max-w-7xl px-6 lg:px-8">
+		<div class="mx-auto max-w-4xl text-center">
+			<!-- Pill -->
+			<div
+				class="animate-fade-up mb-8 inline-flex items-center gap-2 rounded-full border bg-background/80 px-4 py-1.5 text-sm backdrop-blur-sm"
+			>
+				<span class="flex size-2 rounded-full bg-success"></span>
+				<span class="text-muted-foreground">Now with UPI & GST Support</span>
+			</div>
+
+			<!-- Headline -->
+			<h1
+				class="animate-fade-up font-display text-5xl leading-[1.1] font-normal tracking-tight delay-100 md:text-6xl lg:text-7xl"
+			>
+				The POS platform that
+				<span class="text-primary italic">grows</span> with your business
 			</h1>
-			<p class="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-				Streamline billing, inventory, staff management, and analytics — all from one powerful
-				platform. Built for restaurants, salons, gyms, clinics, and more.
+
+			<!-- Subheadline -->
+			<p
+				class="animate-fade-up mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground delay-200 md:text-xl"
+			>
+				Streamline billing, inventory, staff, and analytics from one beautiful dashboard. Built for
+				restaurants, salons, gyms, clinics & more.
 			</p>
-			<div class="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-				<Button href="/register" size="lg">
-					Get Started Free
-					<ArrowRight class="ml-1 size-4" />
+
+			<!-- CTAs -->
+			<div
+				class="animate-fade-up mt-10 flex flex-col items-center justify-center gap-4 delay-300 sm:flex-row"
+			>
+				<Button href="/register" size="lg" class="px-8 text-base">
+					Start for Free
+					<ArrowRight class="ml-1.5 size-4" />
 				</Button>
-				<Button href="/pricing" variant="outline" size="lg">View Pricing</Button>
+				<Button href="/pricing" variant="outline" size="lg" class="px-8 text-base"
+					>View Pricing</Button
+				>
+			</div>
+
+			<!-- Highlight pills -->
+			<div
+				class="animate-fade-up mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground delay-400"
+			>
+				{#each highlights as h}
+					<span class="flex items-center gap-1.5">
+						<h.icon class="size-4 text-primary" />
+						{h.label}
+					</span>
+				{/each}
 			</div>
 		</div>
 	</div>
 
-	<!-- Dashboard Screenshot -->
-	<div class="mx-auto -mt-4 max-w-7xl">
-		<div class="-mr-16 pl-16 perspective-distant lg:-mr-56 lg:pl-56">
-			<div class="[transform:rotateX(20deg);]">
-				<div class="relative skew-x-[.36rad] lg:h-176">
-					<div
-						aria-hidden="true"
-						class="absolute -inset-16 z-1 bg-linear-to-b from-background via-transparent to-background sm:-inset-32"
-					></div>
-					<div
-						aria-hidden="true"
-						class="absolute -inset-16 z-1 bg-background/50 bg-linear-to-r from-background via-transparent to-background sm:-inset-32 dark:bg-transparent"
-					></div>
-					<div
-						aria-hidden="true"
-						class="absolute -inset-16 bg-[linear-gradient(to_right,var(--color-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-border)_1px,transparent_1px)] bg-size-[24px_24px] [--color-border:var(--color-zinc-400)] sm:-inset-32 dark:[--color-border:color-mix(in_oklab,var(--color-white)_20%,transparent)]"
-					></div>
-					<div
-						aria-hidden="true"
-						class="absolute inset-0 z-11 bg-linear-to-l from-background"
-					></div>
-					<div
-						aria-hidden="true"
-						class="absolute inset-0 z-2 size-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,transparent_40%,var(--color-background)_100%)]"
-					></div>
-
-					<img
-						class="relative z-1 rounded border dark:hidden"
-						src={DashboardImage}
-						alt="POS Platform Dashboard"
-						width={2880}
-						height={2074}
-					/>
-					<img
-						class="relative z-1 hidden rounded border dark:block"
-						src={DashboardImage}
-						alt="POS Platform Dashboard"
-						width={2880}
-						height={2074}
-					/>
-				</div>
+	<!-- Dashboard Screenshot with perspective -->
+	<div class="animate-scale-in mx-auto mt-16 max-w-7xl px-6 delay-500 lg:px-8">
+		<div class="relative overflow-hidden rounded-xl border bg-muted/30 p-2 shadow-2xl">
+			<div class="overflow-hidden rounded-lg">
+				<img
+					class="w-full"
+					src={DashboardImage}
+					alt="POS Platform Dashboard showing sales analytics and order management"
+					width={2880}
+					height={2074}
+				/>
 			</div>
+			<!-- Gradient overlay at bottom -->
+			<div
+				aria-hidden="true"
+				class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background/80 to-transparent"
+			></div>
 		</div>
 	</div>
 </section>
 
-<!-- Social Proof Strip -->
-<section class="relative z-10 border-y bg-muted/30 py-12">
-	<div class="mx-auto max-w-6xl px-6">
-		<p class="mb-8 text-center text-sm font-medium text-muted-foreground">
-			Trusted by businesses across India
-		</p>
-		<div class="grid grid-cols-2 gap-8 md:grid-cols-4">
-			{#each stats as stat}
-				<div class="text-center">
-					<p class="text-3xl font-bold text-foreground">{stat.value}</p>
+<!-- ============ SOCIAL PROOF ============ -->
+<section class="relative z-10 py-20">
+	<div class="mx-auto max-w-7xl px-6 lg:px-8">
+		<div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+			{#each [{ value: '7+', label: 'Business Types', suffix: '' }, { value: '50+', label: 'Built-in Features', suffix: '' }, { value: '99.9%', label: 'Platform Uptime', suffix: '' }, { value: '24/7', label: 'Customer Support', suffix: '' }] as stat, i}
+				<div
+					class="animate-fade-up rounded-xl border bg-card p-6 text-center transition-shadow hover:shadow-md"
+					style="animation-delay: {i * 100 + 200}ms"
+				>
+					<p class="font-display text-3xl text-foreground md:text-4xl">{stat.value}</p>
 					<p class="mt-1 text-sm text-muted-foreground">{stat.label}</p>
 				</div>
 			{/each}
@@ -237,137 +218,155 @@
 	</div>
 </section>
 
-<!-- Features Grid -->
+<!-- ============ FEATURES ============ -->
 <section id="features" class="scroll-mt-20 py-20">
-	<div class="mx-auto max-w-6xl px-6">
-		<div class="mx-auto mb-12 max-w-2xl text-center">
-			<Badge variant="outline" class="mb-4">Features</Badge>
-			<h2 class="text-3xl font-bold tracking-tight md:text-4xl">
-				Everything You Need to Run Your Business
+	<div class="mx-auto max-w-7xl px-6 lg:px-8">
+		<!-- Section header -->
+		<div class="mx-auto max-w-2xl text-center">
+			<p class="text-sm font-semibold tracking-wider text-primary uppercase">Features</p>
+			<h2 class="font-display mt-3 text-3xl md:text-4xl lg:text-5xl">
+				Everything you need, <span class="italic">nothing you don't</span>
 			</h2>
 			<p class="mt-4 text-lg text-muted-foreground">
 				Powerful tools designed to simplify your daily operations and boost your bottom line.
 			</p>
 		</div>
 
-		<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-			{#each features as feature}
-				<Card.Root class="transition-shadow hover:shadow-md">
-					<Card.Header>
-						<div
-							class="mb-2 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"
-						>
-							<feature.icon class="size-5" />
-						</div>
-						<Card.Title>{feature.title}</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<p class="text-sm text-muted-foreground">{feature.description}</p>
-					</Card.Content>
-				</Card.Root>
+		<!-- Feature cards -->
+		<div class="mt-16 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+			{#each features as feature, i}
+				<div
+					class="group relative rounded-xl border bg-card p-6 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+				>
+					<!-- Accent line -->
+					<div
+						class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100"
+					></div>
+
+					<div
+						class="mb-4 flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary"
+					>
+						<feature.icon class="size-5" />
+					</div>
+					<h3 class="text-lg font-semibold">{feature.title}</h3>
+					<p class="mt-2 text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
+				</div>
 			{/each}
 		</div>
 	</div>
 </section>
 
-<!-- Business Types -->
-<section class="border-y bg-muted/30 py-20">
-	<div class="mx-auto max-w-6xl px-6">
-		<div class="mx-auto mb-12 max-w-2xl text-center">
-			<Badge variant="outline" class="mb-4">Built for You</Badge>
-			<h2 class="text-3xl font-bold tracking-tight md:text-4xl">One Platform, Every Business</h2>
+<!-- ============ BUSINESS TYPES ============ -->
+<section class="relative overflow-hidden py-24">
+	<!-- Background -->
+	<div aria-hidden="true" class="absolute inset-0 -z-10 bg-muted/30"></div>
+	<div
+		aria-hidden="true"
+		class="absolute top-1/2 left-0 -z-10 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-3xl"
+	></div>
+
+	<div class="mx-auto max-w-7xl px-6 lg:px-8">
+		<div class="mx-auto max-w-2xl text-center">
+			<p class="text-sm font-semibold tracking-wider text-primary uppercase">Built for you</p>
+			<h2 class="font-display mt-3 text-3xl md:text-4xl lg:text-5xl">
+				One platform, <span class="italic">every</span> business
+			</h2>
 			<p class="mt-4 text-lg text-muted-foreground">
 				Whether you run a restaurant, salon, or gym — POS Platform adapts to your workflow.
 			</p>
 		</div>
 
-		<div class="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-			{#each businessTypes as biz}
-				<Card.Root class="text-center transition-shadow hover:shadow-md">
-					<Card.Header class="items-center pb-2">
-						<div
-							class="mb-1 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary"
-						>
-							<biz.icon class="size-6" />
-						</div>
-						<Card.Title class="text-base">{biz.name}</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<ul class="space-y-1 text-sm text-muted-foreground">
-							{#each biz.features as feat}
-								<li class="flex items-center justify-center gap-1.5">
-									<Check class="size-3.5 text-primary" />
-									{feat}
-								</li>
-							{/each}
-						</ul>
-					</Card.Content>
-				</Card.Root>
+		<div class="mt-14 flex flex-wrap items-center justify-center gap-4">
+			{#each businessTypes as biz, i}
+				<div
+					class="group flex items-center gap-3 rounded-full border bg-card px-5 py-3 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+				>
+					<div
+						class="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground"
+					>
+						<biz.icon class="size-4" />
+					</div>
+					<div>
+						<p class="text-sm font-semibold">{biz.name}</p>
+						<p class="text-xs text-muted-foreground">{biz.desc}</p>
+					</div>
+				</div>
 			{/each}
 		</div>
 	</div>
 </section>
 
-<!-- Testimonials -->
-<section class="py-20">
-	<div class="mx-auto max-w-6xl px-6">
-		<div class="mx-auto mb-12 max-w-2xl text-center">
-			<Badge variant="outline" class="mb-4">Testimonials</Badge>
-			<h2 class="text-3xl font-bold tracking-tight md:text-4xl">Loved by Business Owners</h2>
-			<p class="mt-4 text-lg text-muted-foreground">
-				See what our customers have to say about POS Platform.
-			</p>
+<!-- ============ TESTIMONIALS ============ -->
+<section class="py-24">
+	<div class="mx-auto max-w-7xl px-6 lg:px-8">
+		<div class="mx-auto max-w-2xl text-center">
+			<p class="text-sm font-semibold tracking-wider text-primary uppercase">Testimonials</p>
+			<h2 class="font-display mt-3 text-3xl md:text-4xl lg:text-5xl">
+				Loved by <span class="italic">business owners</span>
+			</h2>
 		</div>
 
-		<div class="grid gap-6 md:grid-cols-3">
-			{#each testimonials as testimonial}
-				<Card.Root class="relative">
-					<Card.Header>
-						<Quote class="size-8 text-primary/20" />
-						<div class="mt-2 flex gap-0.5">
-							{#each Array(testimonial.rating) as _}
-								<Star class="size-4 fill-primary text-primary" />
-							{/each}
-						</div>
-					</Card.Header>
-					<Card.Content>
-						<p class="text-sm text-muted-foreground">"{testimonial.content}"</p>
-					</Card.Content>
-					<Card.Footer>
-						<div>
-							<p class="text-sm font-medium">{testimonial.name}</p>
-							<p class="text-xs text-muted-foreground">{testimonial.role}</p>
-						</div>
-					</Card.Footer>
-				</Card.Root>
+		<div class="mt-14 grid gap-6 md:grid-cols-3">
+			{#each testimonials as t, i}
+				<div class="relative rounded-xl border bg-card p-6">
+					<!-- Quote mark -->
+					<Quote class="absolute top-6 right-6 size-8 text-primary/10" />
+
+					<div class="flex gap-0.5">
+						{#each Array(t.rating) as _}
+							<Star class="size-4 fill-primary text-primary" />
+						{/each}
+					</div>
+					<p class="mt-4 text-sm leading-relaxed text-muted-foreground">"{t.content}"</p>
+					<Separator class="my-4" />
+					<div>
+						<p class="text-sm font-semibold">{t.name}</p>
+						<p class="text-xs text-muted-foreground">{t.role}</p>
+					</div>
+				</div>
 			{/each}
 		</div>
 	</div>
 </section>
 
-<!-- CTA Banner -->
-<section class="border-t bg-primary py-20 text-primary-foreground">
-	<div class="mx-auto max-w-6xl px-6 text-center">
-		<h2 class="text-3xl font-bold tracking-tight md:text-4xl">
-			Ready to Transform Your Business?
-		</h2>
-		<p class="mx-auto mt-4 max-w-xl text-lg text-primary-foreground/80">
-			Join thousands of businesses across India that trust POS Platform to power their daily
-			operations.
-		</p>
-		<div class="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-			<Button href="/register" size="lg" variant="secondary">
-				Get Started Free
-				<ArrowRight class="ml-1 size-4" />
-			</Button>
-			<Button
-				href="/contact"
-				size="lg"
-				variant="outline"
-				class="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
-			>
-				Contact Sales
-			</Button>
+<!-- ============ CTA BANNER ============ -->
+<section class="relative overflow-hidden">
+	<div class="mx-auto max-w-7xl px-6 py-4 lg:px-8">
+		<div
+			class="grain-overlay relative overflow-hidden rounded-2xl bg-primary px-8 py-20 text-primary-foreground"
+		>
+			<!-- Decorative circles -->
+			<div
+				aria-hidden="true"
+				class="absolute -top-20 -right-20 size-64 rounded-full border border-primary-foreground/10"
+			></div>
+			<div
+				aria-hidden="true"
+				class="absolute -bottom-10 -left-10 size-40 rounded-full border border-primary-foreground/10"
+			></div>
+
+			<div class="relative z-10 mx-auto max-w-2xl text-center">
+				<h2 class="font-display text-3xl md:text-4xl lg:text-5xl">
+					Ready to transform your business?
+				</h2>
+				<p class="mx-auto mt-4 max-w-lg text-lg text-primary-foreground/80">
+					Join businesses across India that trust POS Platform to power their daily operations.
+				</p>
+				<div class="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+					<Button href="/register" size="lg" variant="secondary" class="px-8 text-base">
+						Get Started Free
+						<ArrowRight class="ml-1.5 size-4" />
+					</Button>
+					<Button
+						href="/contact"
+						size="lg"
+						variant="outline"
+						class="border-primary-foreground/30 px-8 text-base text-primary-foreground hover:bg-primary-foreground/10"
+					>
+						Contact Sales
+					</Button>
+				</div>
+			</div>
 		</div>
 	</div>
 </section>
