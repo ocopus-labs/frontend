@@ -1,401 +1,373 @@
 <script>
 	import Button from '$lib/components/ui/button/button.svelte';
-	import * as Avatar from '$lib/components/ui/avatar/index.js';
-	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
+	import { Badge } from '$lib/components/ui/badge/index.js';
+	import { Separator } from '$lib/components/ui/separator/index.js';
 	import DashboardImage from '$lib/assets/dashboard.png';
 
-	import Menu from '@lucide/svelte/icons/menu';
-	import X from '@lucide/svelte/icons/x';
-	import { scrollY } from 'svelte/reactivity/window';
-	import Zap from '@lucide/svelte/icons/zap';
-	import Activity from '@lucide/svelte/icons/activity';
-	import DraftingCompass from '@lucide/svelte/icons/drafting-compass';
-	import Mail from '@lucide/svelte/icons/mail';
-	import LayoutDashboardIcon from '@lucide/svelte/icons/layout-dashboard';
-	import BadgeCheckIcon from '@lucide/svelte/icons/badge-check';
-	import CreditCardIcon from '@lucide/svelte/icons/credit-card';
-	import BellIcon from '@lucide/svelte/icons/bell';
-	import LogOutIcon from '@lucide/svelte/icons/log-out';
-	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
-	import { signOut } from '$lib/auth';
-	import { goto } from '$app/navigation';
-	import { toast } from 'svelte-sonner';
+	import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
+	import Package from '@lucide/svelte/icons/package';
+	import Users from '@lucide/svelte/icons/users';
+	import BarChart3 from '@lucide/svelte/icons/bar-chart-3';
+	import Building2 from '@lucide/svelte/icons/building-2';
+	import CreditCard from '@lucide/svelte/icons/credit-card';
+	import UtensilsCrossed from '@lucide/svelte/icons/utensils-crossed';
+	import Coffee from '@lucide/svelte/icons/coffee';
+	import Scissors from '@lucide/svelte/icons/scissors';
+	import Sparkles from '@lucide/svelte/icons/sparkles';
+	import Dumbbell from '@lucide/svelte/icons/dumbbell';
+	import Stethoscope from '@lucide/svelte/icons/stethoscope';
+	import Hotel from '@lucide/svelte/icons/hotel';
+	import Star from '@lucide/svelte/icons/star';
+	import ArrowRight from '@lucide/svelte/icons/arrow-right';
+	import Check from '@lucide/svelte/icons/check';
+	import Quote from '@lucide/svelte/icons/quote';
 
-	let { data } = $props();
-
-	let dashboardUrl = $derived(data.user?.role === 'super_admin' ? '/admin' : '/dashboard');
-	let userInitials = $derived(() => {
-		if (!data.user?.name) return data.user?.email?.charAt(0)?.toUpperCase() || '?';
-		return data.user.name
-			.split(' ')
-			.map((n) => n[0])
-			.join('')
-			.toUpperCase()
-			.slice(0, 2);
-	});
-
-	async function handleLogout() {
-		try {
-			sessionStorage.removeItem('business-setup-progress');
-			await signOut();
-			toast.success('Logged out successfully');
-			goto('/login');
-		} catch {
-			toast.error('Failed to logout');
+	const features = [
+		{
+			icon: ShoppingCart,
+			title: 'Point of Sale',
+			description:
+				'Fast, intuitive billing with touch-friendly interface. Process orders, split bills, and handle multiple payment methods effortlessly.'
+		},
+		{
+			icon: Package,
+			title: 'Inventory Management',
+			description:
+				'Track stock in real-time, set low-stock alerts, manage suppliers, and automate reordering. Never run out of essentials again.'
+		},
+		{
+			icon: Users,
+			title: 'Staff Management',
+			description:
+				'Role-based access control, attendance tracking, and performance analytics. Manage your team with granular permissions.'
+		},
+		{
+			icon: BarChart3,
+			title: 'Analytics & Reports',
+			description:
+				'Real-time dashboards with sales trends, revenue breakdowns, and actionable insights. Make data-driven decisions.'
+		},
+		{
+			icon: Building2,
+			title: 'Multi-Location',
+			description:
+				'Manage multiple branches from a single dashboard. Centralized menu, pricing, and reporting across all locations.'
+		},
+		{
+			icon: CreditCard,
+			title: 'Payments & Billing',
+			description:
+				'Accept UPI, cards, cash, and digital wallets. Automatic GST calculation and invoice generation for every transaction.'
 		}
-	}
-
-	let menuItems = [
-		{ name: 'Features', href: '#a' },
-		{ name: 'Solution', href: '#a' },
-		{ name: 'Pricing', href: '#a' },
-		{ name: 'About', href: '#a' }
 	];
-	let menuState = $state(false);
-	let isScrolled = $derived.by(() => {
-		if (scrollY.current !== undefined && scrollY.current > 50) {
-			return true;
+
+	const businessTypes = [
+		{
+			icon: UtensilsCrossed,
+			name: 'Restaurant',
+			features: ['Table management', 'KOT printing', 'Menu customization']
+		},
+		{
+			icon: Coffee,
+			name: 'Cafe',
+			features: ['Quick billing', 'Combo offers', 'Loyalty programs']
+		},
+		{
+			icon: Scissors,
+			name: 'Salon',
+			features: ['Appointment booking', 'Stylist tracking', 'Package deals']
+		},
+		{
+			icon: Sparkles,
+			name: 'Spa',
+			features: ['Service scheduling', 'Therapist management', 'Membership plans']
+		},
+		{
+			icon: Dumbbell,
+			name: 'Gym',
+			features: ['Member management', 'Subscription billing', 'Trainer scheduling']
+		},
+		{
+			icon: Stethoscope,
+			name: 'Clinic',
+			features: ['Patient records', 'Appointment slots', 'Prescription tracking']
+		},
+		{
+			icon: Hotel,
+			name: 'Hotel',
+			features: ['Room management', 'Check-in/out', 'Room service integration']
 		}
-		return false;
-	});
+	];
+
+	const testimonials = [
+		{
+			name: 'Rajesh Kumar',
+			role: 'Owner, Spice Garden Restaurant',
+			content:
+				'POS Platform transformed how we manage our restaurant. Table management and KOT printing have reduced our order errors by 80%.',
+			rating: 5
+		},
+		{
+			name: 'Priya Sharma',
+			role: 'Manager, GlowUp Salon',
+			content:
+				'The appointment booking and staff management features are fantastic. Our no-show rate dropped significantly since we started using it.',
+			rating: 5
+		},
+		{
+			name: 'Amit Patel',
+			role: 'Owner, FitLife Gym Chain',
+			content:
+				'Managing 3 branches from one dashboard is a game-changer. The multi-location support and subscription billing work seamlessly.',
+			rating: 5
+		}
+	];
+
+	const stats = [
+		{ value: '7+', label: 'Business Types' },
+		{ value: '50+', label: 'Features' },
+		{ value: '99.9%', label: 'Uptime' },
+		{ value: '24/7', label: 'Support' }
+	];
 </script>
 
-<div>
-	<!-- Scroll below to see the snippet code  -->
-	{@render header()}
-	<main>
+<svelte:head>
+	<title>POS Platform - The All-in-One Point of Sale for Every Business</title>
+	<meta
+		name="description"
+		content="Modern POS and business management platform for restaurants, salons, gyms, clinics, and more. Built for Indian businesses with UPI, GST, and multi-location support."
+	/>
+</svelte:head>
+
+<!-- Hero Section -->
+<section class="relative overflow-hidden bg-background pt-24 lg:pt-32">
+	<div
+		aria-hidden="true"
+		class="absolute inset-0 isolate z-0 hidden opacity-50 contain-strict lg:block"
+	>
 		<div
-			aria-hidden="true"
-			class="absolute inset-0 isolate z-2 hidden opacity-50 contain-strict lg:block"
-		>
-			<div
-				class="absolute top-0 left-0 h-320 w-140 -translate-y-87.5 -rotate-45 rounded-full bg-[radial-gradient(68.54%_68.72%_at_55.02%_31.46%,hsla(0,0%,85%,.08)_0,hsla(0,0%,55%,.02)_50%,hsla(0,0%,45%,0)_80%)]"
-			></div>
-			<div
-				class="absolute top-0 left-0 h-320 w-60 [translate:5%_-50%] -rotate-45 rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsla(0,0%,85%,.06)_0,hsla(0,0%,45%,.02)_80%,transparent_100%)]"
-			></div>
-			<div
-				class="absolute top-0 left-0 h-320 w-60 -translate-y-87.5 -rotate-45 bg-[radial-gradient(50%_50%_at_50%_50%,hsla(0,0%,85%,.04)_0,hsla(0,0%,45%,.02)_80%,transparent_100%)]"
-			></div>
+			class="absolute top-0 left-0 h-320 w-140 -translate-y-87.5 -rotate-45 rounded-full bg-[radial-gradient(68.54%_68.72%_at_55.02%_31.46%,hsla(0,0%,85%,.08)_0,hsla(0,0%,55%,.02)_50%,hsla(0,0%,45%,0)_80%)]"
+		></div>
+		<div
+			class="absolute top-0 left-0 h-320 w-60 [translate:5%_-50%] -rotate-45 rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsla(0,0%,85%,.06)_0,hsla(0,0%,45%,.02)_80%,transparent_100%)]"
+		></div>
+	</div>
+
+	<div class="relative z-10 mx-auto max-w-6xl px-6 pb-16">
+		<div class="mx-auto max-w-3xl text-center">
+			<Badge variant="secondary" class="mb-6">Now with UPI & GST Support</Badge>
+			<h1 class="text-4xl font-bold tracking-tight text-balance md:text-5xl lg:text-6xl">
+				The All-in-One POS Platform for Every Business
+			</h1>
+			<p class="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
+				Streamline billing, inventory, staff management, and analytics — all from one powerful
+				platform. Built for restaurants, salons, gyms, clinics, and more.
+			</p>
+			<div class="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+				<Button href="/register" size="lg">
+					Get Started Free
+					<ArrowRight class="ml-1 size-4" />
+				</Button>
+				<Button href="/pricing" variant="outline" size="lg">View Pricing</Button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Dashboard Screenshot -->
+	<div class="mx-auto -mt-4 max-w-7xl">
+		<div class="-mr-16 pl-16 perspective-distant lg:-mr-56 lg:pl-56">
+			<div class="[transform:rotateX(20deg);]">
+				<div class="relative skew-x-[.36rad] lg:h-176">
+					<div
+						aria-hidden="true"
+						class="absolute -inset-16 z-1 bg-linear-to-b from-background via-transparent to-background sm:-inset-32"
+					></div>
+					<div
+						aria-hidden="true"
+						class="absolute -inset-16 z-1 bg-background/50 bg-linear-to-r from-background via-transparent to-background sm:-inset-32 dark:bg-transparent"
+					></div>
+					<div
+						aria-hidden="true"
+						class="absolute -inset-16 bg-[linear-gradient(to_right,var(--color-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-border)_1px,transparent_1px)] bg-size-[24px_24px] [--color-border:var(--color-zinc-400)] sm:-inset-32 dark:[--color-border:color-mix(in_oklab,var(--color-white)_20%,transparent)]"
+					></div>
+					<div
+						aria-hidden="true"
+						class="absolute inset-0 z-11 bg-linear-to-l from-background"
+					></div>
+					<div
+						aria-hidden="true"
+						class="absolute inset-0 z-2 size-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,transparent_40%,var(--color-background)_100%)]"
+					></div>
+
+					<img
+						class="relative z-1 rounded border dark:hidden"
+						src={DashboardImage}
+						alt="POS Platform Dashboard"
+						width={2880}
+						height={2074}
+					/>
+					<img
+						class="relative z-1 hidden rounded border dark:block"
+						src={DashboardImage}
+						alt="POS Platform Dashboard"
+						width={2880}
+						height={2074}
+					/>
+				</div>
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- Social Proof Strip -->
+<section class="relative z-10 border-y bg-muted/30 py-12">
+	<div class="mx-auto max-w-6xl px-6">
+		<p class="mb-8 text-center text-sm font-medium text-muted-foreground">
+			Trusted by businesses across India
+		</p>
+		<div class="grid grid-cols-2 gap-8 md:grid-cols-4">
+			{#each stats as stat}
+				<div class="text-center">
+					<p class="text-3xl font-bold text-foreground">{stat.value}</p>
+					<p class="mt-1 text-sm text-muted-foreground">{stat.label}</p>
+				</div>
+			{/each}
+		</div>
+	</div>
+</section>
+
+<!-- Features Grid -->
+<section id="features" class="scroll-mt-20 py-20">
+	<div class="mx-auto max-w-6xl px-6">
+		<div class="mx-auto mb-12 max-w-2xl text-center">
+			<Badge variant="outline" class="mb-4">Features</Badge>
+			<h2 class="text-3xl font-bold tracking-tight md:text-4xl">
+				Everything You Need to Run Your Business
+			</h2>
+			<p class="mt-4 text-lg text-muted-foreground">
+				Powerful tools designed to simplify your daily operations and boost your bottom line.
+			</p>
 		</div>
 
-		<section class="overflow-hidden bg-white dark:bg-transparent">
-			<div class="relative mx-auto max-w-5xl px-6 py-28 lg:py-24">
-				<div class="relative z-10 mx-auto max-w-2xl text-center">
-					<h1 class="text-4xl font-semibold text-balance md:text-5xl lg:text-6xl">
-						Modern Software testing reimagined
-					</h1>
-					<p class="mx-auto my-8 max-w-2xl text-xl">
-						Officiis laudantium excepturi ducimus rerum dignissimos, and tempora nam vitae,
-						excepturi ducimus iste provident dolores.
-					</p>
-
-					<Button href="/dashboard" size="lg">
-						<span class="btn-label">Start Building</span>
-					</Button>
-				</div>
-			</div>
-
-			<div class="mx-auto -mt-16 max-w-7xl">
-				<div class="-mr-16 pl-16 perspective-distant lg:-mr-56 lg:pl-56">
-					<div class="[transform:rotateX(20deg);]">
-						<div class="relative skew-x-[.36rad] lg:h-176">
-							<div
-								aria-hidden="true"
-								class="absolute -inset-16 z-1 bg-linear-to-b from-background via-transparent to-background sm:-inset-32"
-							></div>
-							<div
-								aria-hidden="true"
-								class="absolute -inset-16 z-1 bg-white/50 bg-linear-to-r from-background via-transparent to-background sm:-inset-32 dark:bg-transparent"
-							></div>
-
-							<div
-								aria-hidden="true"
-								class="absolute -inset-16 bg-[linear-gradient(to_right,var(--color-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-border)_1px,transparent_1px)] bg-size-[24px_24px] [--color-border:var(--color-zinc-400)] sm:-inset-32 dark:[--color-border:color-mix(in_oklab,var(--color-white)_20%,transparent)]"
-							></div>
-							<div
-								aria-hidden="true"
-								class="absolute inset-0 z-11 bg-linear-to-l from-background"
-							></div>
-							<div
-								aria-hidden="true"
-								class="absolute inset-0 z-2 size-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,transparent_40%,var(--color-background)_100%)]"
-							></div>
-							<div
-								aria-hidden="true"
-								class="absolute inset-0 z-2 size-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,transparent_40%,var(--color-background)_100%)]"
-							></div>
-
-							<img
-								class="relative z-1 rounded border dark:hidden"
-								src={DashboardImage}
-								alt="Tailark hero section"
-								width={2880}
-								height={2074}
-							/>
-							<img
-								class="relative z-1 hidden rounded border dark:block"
-								src="/dark-card.webp"
-								alt="Tailark hero section"
-								width={2880}
-								height={2074}
-							/>
-						</div>
-					</div>
-				</div>
-			</div>
-		</section>
-		<section class="relative z-10 bg-background py-16">
-			<div class="m-auto max-w-5xl px-6">
-				<h2 class="text-center text-lg font-medium">Your favorite companies are our partners.</h2>
-				<div
-					class="mx-auto mt-20 flex max-w-4xl flex-wrap items-center justify-center gap-x-12 gap-y-8 sm:gap-x-16 sm:gap-y-12"
-				>
-					<img
-						class="h-5 w-fit dark:invert"
-						loading="lazy"
-						src="https://html.tailus.io/blocks/customers/nvidia.svg"
-						alt="Nvidia Logo"
-						height="20"
-						width="auto"
-					/>
-					<img
-						class="h-4 w-fit dark:invert"
-						loading="lazy"
-						src="https://html.tailus.io/blocks/customers/column.svg"
-						alt="Column Logo"
-						height="16"
-						width="auto"
-					/>
-					<img
-						class="h-4 w-fit dark:invert"
-						loading="lazy"
-						src="https://html.tailus.io/blocks/customers/github.svg"
-						alt="GitHub Logo"
-						height="16"
-						width="auto"
-					/>
-					<img
-						class="h-5 w-fit dark:invert"
-						loading="lazy"
-						src="https://html.tailus.io/blocks/customers/nike.svg"
-						alt="Nike Logo"
-						height="20"
-						width="auto"
-					/>
-					<img
-						class="h-4 w-fit dark:invert"
-						loading="lazy"
-						src="https://html.tailus.io/blocks/customers/laravel.svg"
-						alt="Laravel Logo"
-						height="16"
-						width="auto"
-					/>
-					<img
-						class="h-7 w-fit dark:invert"
-						loading="lazy"
-						src="https://html.tailus.io/blocks/customers/lilly.svg"
-						alt="Lilly Logo"
-						height="28"
-						width="auto"
-					/>
-					<img
-						class="h-5 w-fit dark:invert"
-						loading="lazy"
-						src="https://html.tailus.io/blocks/customers/lemonsqueezy.svg"
-						alt="Lemon Squeezy Logo"
-						height="20"
-						width="auto"
-					/>
-					<img
-						class="h-6 w-fit dark:invert"
-						loading="lazy"
-						src="https://html.tailus.io/blocks/customers/openai.svg"
-						alt="OpenAI Logo"
-						height="24"
-						width="auto"
-					/>
-					<img
-						class="h-4 w-fit dark:invert"
-						loading="lazy"
-						src="https://html.tailus.io/blocks/customers/tailwindcss.svg"
-						alt="Tailwind CSS Logo"
-						height="16"
-						width="auto"
-					/>
-					<img
-						class="h-5 w-fit dark:invert"
-						loading="lazy"
-						src="https://html.tailus.io/blocks/customers/vercel.svg"
-						alt="Vercel Logo"
-						height="20"
-						width="auto"
-					/>
-					<img
-						class="h-5 w-fit dark:invert"
-						loading="lazy"
-						src="https://html.tailus.io/blocks/customers/zapier.svg"
-						alt="Zapier Logo"
-						height="20"
-						width="auto"
-					/>
-				</div>
-			</div>
-		</section>
-	</main>
-</div>
-
-{#snippet header()}
-	<header>
-		<nav
-			class="fixed z-20 w-full border-b border-dashed bg-white backdrop-blur md:relative dark:bg-zinc-950/50 lg:dark:bg-transparent"
-		>
-			<div class="m-auto max-w-5xl px-6">
-				<div class="flex flex-wrap items-center justify-between gap-6 py-3 lg:gap-0 lg:py-4">
-					<div class="flex w-full justify-between lg:w-auto">
-						<a href="/" aria-label="home" class="flex items-center space-x-2">
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="22"
-								height="22"
-								viewBox="0 0 24 24"
-								fill="none"
-								role="img"
-								color="currentColor"
-							>
-								<path
-									d="M22 18C22 19.4001 22 20.1002 21.7275 20.635C21.4878 21.1054 21.1054 21.4878 20.635 21.7275C20.1002 22 19.4001 22 18 22C16.5999 22 15.8998 22 15.365 21.7275C14.8946 21.4878 14.5122 21.1054 14.2725 20.635C14 20.1002 14 19.4001 14 18C14 16.5999 14 15.8998 14.2725 15.365C14.5122 14.8946 14.8946 14.5122 15.365 14.2725C15.8998 14 16.5999 14 18 14C19.4001 14 20.1002 14 20.635 14.2725C21.1054 14.5122 21.4878 14.8946 21.7275 15.365C22 15.8998 22 16.5999 22 18Z"
-									stroke="currentColor"
-									stroke-width="1.5"
-								></path>
-								<path
-									d="M22 10C22 11.4001 22 12.1002 21.7275 12.635C21.4878 13.1054 21.1054 13.4878 20.635 13.7275C20.1002 14 19.4001 14 18 14C16.5999 14 15.8998 14 15.365 13.7275C14.8946 13.4878 14.5122 13.1054 14.2725 12.635C14 12.1002 14 11.4001 14 10C14 8.59987 14 7.8998 14.2725 7.36502C14.5122 6.89462 14.8946 6.51217 15.365 6.27248C15.8998 6 16.5999 6 18 6C19.4001 6 20.1002 6 20.635 6.27248C21.1054 6.51217 21.4878 6.89462 21.7275 7.36502C22 7.8998 22 8.59987 22 10Z"
-									stroke="currentColor"
-									stroke-width="1.5"
-								></path>
-								<path
-									d="M14 18C14 19.4001 14 20.1002 13.7275 20.635C13.4878 21.1054 13.1054 21.4878 12.635 21.7275C12.1002 22 11.4001 22 10 22C8.59987 22 7.8998 22 7.36502 21.7275C6.89462 21.4878 6.51217 21.1054 6.27248 20.635C6 20.1002 6 19.4001 6 18C6 16.5999 6 15.8998 6.27248 15.365C6.51217 14.8946 6.89462 14.5122 7.36502 14.2725C7.8998 14 8.59987 14 10 14C11.4001 14 12.1002 14 12.635 14.2725C13.1054 14.5122 13.4878 14.8946 13.7275 15.365C14 15.8998 14 16.5999 14 18Z"
-									stroke="currentColor"
-									stroke-width="1.5"
-								></path>
-								<path
-									opacity="0.4"
-									d="M10 6C10 7.40013 10 8.1002 9.72752 8.63497C9.48783 9.10538 9.10538 9.48783 8.63498 9.72752C8.1002 10 7.40013 10 6 10C4.59987 10 3.8998 10 3.36502 9.72751C2.89462 9.48783 2.51217 9.10538 2.27248 8.63497C2 8.10019 2 7.40013 2 6C2 4.59987 2 3.8998 2.27248 3.36502C2.51217 2.89462 2.89462 2.51217 3.36502 2.27248C3.8998 2 4.59987 2 6 2C7.40013 2 8.1002 2 8.63498 2.27248C9.10538 2.51217 9.48783 2.89462 9.72752 3.36502C10 3.8998 10 4.59987 10 6Z"
-									stroke="currentColor"
-									stroke-width="1.5"
-								></path>
-							</svg>
-						</a>
-
-						<button
-							onclick={() => (menuState = !menuState)}
-							aria-label={menuState == true ? 'Close Menu' : 'Open Menu'}
-							class="relative z-20 -m-2.5 -mr-4 block cursor-pointer p-2.5 lg:hidden"
-						>
-							<Menu
-								class={['m-auto size-6 duration-200', menuState && 'scale-0 rotate-180 opacity-0']}
-							/>
-							<X
-								class={[
-									'absolute inset-0 m-auto size-6 scale-0 -rotate-180 opacity-0 duration-200',
-									menuState && 'scale-100 rotate-0 opacity-100'
-								]}
-							/>
-						</button>
-					</div>
-
-					<div
-						class={[
-							'mb-6  w-full  flex-wrap items-center justify-end space-y-8 rounded-3xl border bg-background p-6 shadow-2xl shadow-zinc-300/20 md:flex-nowrap lg:m-0 lg:flex lg:w-fit lg:gap-6 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none dark:shadow-none dark:lg:bg-transparent',
-							menuState ? 'block lg:flex' : 'hidden'
-						]}
-					>
-						<div class="lg:pr-4">
-							<ul class="space-y-6 text-base lg:flex lg:gap-8 lg:space-y-0 lg:text-sm">
-								{#each menuItems as item, index}
-									<li>
-										<a
-											href={item.href}
-											class="block text-muted-foreground duration-150 hover:text-accent-foreground"
-										>
-											<span>{item.name}</span>
-										</a>
-									</li>
-								{/each}
-							</ul>
-						</div>
-
+		<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+			{#each features as feature}
+				<Card.Root class="transition-shadow hover:shadow-md">
+					<Card.Header>
 						<div
-							class="flex w-full flex-col items-center space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit lg:border-l lg:pl-6"
+							class="mb-2 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"
 						>
-							{#if data.user}
-								<DropdownMenu.Root>
-									<DropdownMenu.Trigger>
-										{#snippet child({ props })}
-											<button
-												{...props}
-												class="flex items-center gap-2 rounded-full border p-1 pr-3 transition-colors hover:bg-accent"
-											>
-												<Avatar.Root class="size-8">
-													<Avatar.Image src={data.user?.image} alt={data.user?.name || 'User'} />
-													<Avatar.Fallback>{userInitials()}</Avatar.Fallback>
-												</Avatar.Root>
-												<span class="text-sm font-medium"
-													>{data.user?.name || data.user?.email}</span
-												>
-												<ChevronDownIcon class="size-4 text-muted-foreground" />
-											</button>
-										{/snippet}
-									</DropdownMenu.Trigger>
-									<DropdownMenu.Content class="w-56 rounded-lg" align="end" sideOffset={8}>
-										<DropdownMenu.Label class="p-0 font-normal">
-											<div class="flex items-center gap-2 px-2 py-1.5 text-left text-sm">
-												<Avatar.Root class="size-8">
-													<Avatar.Image src={data.user?.image} alt={data.user?.name || 'User'} />
-													<Avatar.Fallback>{userInitials()}</Avatar.Fallback>
-												</Avatar.Root>
-												<div class="grid flex-1 text-left text-sm leading-tight">
-													<span class="truncate font-medium">{data.user?.name || 'User'}</span>
-													<span class="truncate text-xs text-muted-foreground"
-														>{data.user?.email || ''}</span
-													>
-												</div>
-											</div>
-										</DropdownMenu.Label>
-										<DropdownMenu.Separator />
-										<DropdownMenu.Group>
-											<DropdownMenu.Item onclick={() => goto(dashboardUrl)}>
-												<LayoutDashboardIcon />
-												Dashboard
-											</DropdownMenu.Item>
-											<DropdownMenu.Item onclick={() => goto('/dashboard/security')}>
-												<BadgeCheckIcon />
-												Account
-											</DropdownMenu.Item>
-											<DropdownMenu.Item onclick={() => goto('/dashboard/billing')}>
-												<CreditCardIcon />
-												Billing
-											</DropdownMenu.Item>
-											<DropdownMenu.Item onclick={() => goto('/dashboard/notifications')}>
-												<BellIcon />
-												Notifications
-											</DropdownMenu.Item>
-										</DropdownMenu.Group>
-										<DropdownMenu.Separator />
-										<DropdownMenu.Item onclick={handleLogout}>
-											<LogOutIcon />
-											Log out
-										</DropdownMenu.Item>
-									</DropdownMenu.Content>
-								</DropdownMenu.Root>
-							{:else}
-								<Button href="/register" variant="outline" size="sm">Sign Up</Button>
-								<Button href="/login" size="sm">Login</Button>
-							{/if}
+							<feature.icon class="size-5" />
 						</div>
-					</div>
-				</div>
-			</div>
-		</nav>
-	</header>
-{/snippet}
+						<Card.Title>{feature.title}</Card.Title>
+					</Card.Header>
+					<Card.Content>
+						<p class="text-sm text-muted-foreground">{feature.description}</p>
+					</Card.Content>
+				</Card.Root>
+			{/each}
+		</div>
+	</div>
+</section>
+
+<!-- Business Types -->
+<section class="border-y bg-muted/30 py-20">
+	<div class="mx-auto max-w-6xl px-6">
+		<div class="mx-auto mb-12 max-w-2xl text-center">
+			<Badge variant="outline" class="mb-4">Built for You</Badge>
+			<h2 class="text-3xl font-bold tracking-tight md:text-4xl">One Platform, Every Business</h2>
+			<p class="mt-4 text-lg text-muted-foreground">
+				Whether you run a restaurant, salon, or gym — POS Platform adapts to your workflow.
+			</p>
+		</div>
+
+		<div class="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+			{#each businessTypes as biz}
+				<Card.Root class="text-center transition-shadow hover:shadow-md">
+					<Card.Header class="items-center pb-2">
+						<div
+							class="mb-1 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary"
+						>
+							<biz.icon class="size-6" />
+						</div>
+						<Card.Title class="text-base">{biz.name}</Card.Title>
+					</Card.Header>
+					<Card.Content>
+						<ul class="space-y-1 text-sm text-muted-foreground">
+							{#each biz.features as feat}
+								<li class="flex items-center justify-center gap-1.5">
+									<Check class="size-3.5 text-primary" />
+									{feat}
+								</li>
+							{/each}
+						</ul>
+					</Card.Content>
+				</Card.Root>
+			{/each}
+		</div>
+	</div>
+</section>
+
+<!-- Testimonials -->
+<section class="py-20">
+	<div class="mx-auto max-w-6xl px-6">
+		<div class="mx-auto mb-12 max-w-2xl text-center">
+			<Badge variant="outline" class="mb-4">Testimonials</Badge>
+			<h2 class="text-3xl font-bold tracking-tight md:text-4xl">Loved by Business Owners</h2>
+			<p class="mt-4 text-lg text-muted-foreground">
+				See what our customers have to say about POS Platform.
+			</p>
+		</div>
+
+		<div class="grid gap-6 md:grid-cols-3">
+			{#each testimonials as testimonial}
+				<Card.Root class="relative">
+					<Card.Header>
+						<Quote class="size-8 text-primary/20" />
+						<div class="mt-2 flex gap-0.5">
+							{#each Array(testimonial.rating) as _}
+								<Star class="size-4 fill-primary text-primary" />
+							{/each}
+						</div>
+					</Card.Header>
+					<Card.Content>
+						<p class="text-sm text-muted-foreground">"{testimonial.content}"</p>
+					</Card.Content>
+					<Card.Footer>
+						<div>
+							<p class="text-sm font-medium">{testimonial.name}</p>
+							<p class="text-xs text-muted-foreground">{testimonial.role}</p>
+						</div>
+					</Card.Footer>
+				</Card.Root>
+			{/each}
+		</div>
+	</div>
+</section>
+
+<!-- CTA Banner -->
+<section class="border-t bg-primary py-20 text-primary-foreground">
+	<div class="mx-auto max-w-6xl px-6 text-center">
+		<h2 class="text-3xl font-bold tracking-tight md:text-4xl">
+			Ready to Transform Your Business?
+		</h2>
+		<p class="mx-auto mt-4 max-w-xl text-lg text-primary-foreground/80">
+			Join thousands of businesses across India that trust POS Platform to power their daily
+			operations.
+		</p>
+		<div class="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+			<Button href="/register" size="lg" variant="secondary">
+				Get Started Free
+				<ArrowRight class="ml-1 size-4" />
+			</Button>
+			<Button
+				href="/contact"
+				size="lg"
+				variant="outline"
+				class="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
+			>
+				Contact Sales
+			</Button>
+		</div>
+	</div>
+</section>
