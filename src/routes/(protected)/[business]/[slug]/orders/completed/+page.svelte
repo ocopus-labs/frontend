@@ -43,7 +43,8 @@
 			paymentMethod: order.paymentStatus === 'paid' ? 'Paid' : order.paymentStatus,
 			completedAt: order.actualCompletionTime
 				? new Date(order.actualCompletionTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-				: new Date(order.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+				: new Date(order.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+			orderSource: order.orderSource
 		}))
 	);
 
@@ -177,6 +178,9 @@
 										<div class="flex items-center gap-2">
 											<IconCheck class="h-4 w-4 text-success" />
 											{order.id}
+											{#if order.orderSource === 'customer_qr'}
+												<span class="inline-flex items-center rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-900 dark:text-violet-200">QR</span>
+											{/if}
 										</div>
 									</Table.Cell>
 									<Table.Cell>{order.customer}</Table.Cell>

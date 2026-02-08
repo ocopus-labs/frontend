@@ -127,7 +127,8 @@
 				const unsubOrderCreated = await onOrderCreated((order) => {
 					invalidate('app:orders');
 					playBeep();
-					toast.info(`New order: ${order.orderNumber}`);
+					const source = order.orderSource === 'customer_qr' ? 'QR Order' : 'New order';
+					toast.info(`${source}: ${order.orderNumber}${order.tableNumber ? ` (Table ${order.tableNumber})` : ''}`);
 				});
 				cleanupFns.push(unsubOrderCreated);
 
@@ -173,6 +174,7 @@
 		priorityWeight: number;
 		readyCount: number;
 		totalCount: number;
+		orderSource?: string;
 		items: Array<{
 			id: string;
 			name: string;
@@ -215,7 +217,8 @@
 				priorityWeight: getPriorityWeight(order.priority),
 				readyCount: items.filter((i) => i.status === 'ready' || i.status === 'served').length,
 				totalCount: items.length,
-				items
+				items,
+				orderSource: order.orderSource
 			};
 		}).sort((a, b) => {
 			// Sort: urgent first, then by elapsed time (oldest first)
@@ -466,6 +469,9 @@
 								<div>
 									<Card.Title class="flex items-center gap-2 text-lg">
 										<span class="font-mono font-bold">{order.id}</span>
+										{#if order.orderSource === 'customer_qr'}
+											<span class="inline-flex items-center rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-900 dark:text-violet-200">QR</span>
+										{/if}
 										{#if priorityBadge}
 											<Badge variant={priorityBadge.variant}>
 												{#if priorityBadge.text === 'URGENT'}

@@ -8,7 +8,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
 	import { IconLoader2 } from '@tabler/icons-svelte';
-	import { IconPlus, IconUsers, IconExternalLink } from '@tabler/icons-svelte';
+	import { IconPlus, IconUsers, IconExternalLink, IconQrcode, IconDownload, IconPrinter } from '@tabler/icons-svelte';
 	import { EmptyState } from '$lib/components/data-display';
 	import { toast } from 'svelte-sonner';
 	import { TableFloorPlan } from '$lib/components/pos';
@@ -22,7 +22,10 @@
 		endTableSession,
 		type Table,
 		type TableStatus,
-		type CreateTablePayload
+		type CreateTablePayload,
+		generateTableQr,
+		generateAllTableQrs,
+		type TableQrCode
 	} from '$lib/api';
 	import { userFriendlyError } from '$lib/utils/error';
 
@@ -59,6 +62,11 @@
 		section: 'Main Hall',
 		shape: 'square'
 	});
+
+	// QR code state
+	let editTableQr = $state<TableQrCode | null>(null);
+	let isGeneratingQr = $state(false);
+	let isGeneratingAllQrs = $state(false);
 
 	// Dynamic sections from existing tables + defaults (Issue 1.2)
 	const sections = $derived([
@@ -187,10 +195,6 @@
 			toast.error(userFriendlyError(error, 'Failed to delete table'));
 		}
 		deleteTargetId = null;
-	}
-
-	function handleTableSelect(table: Table) {
-		editingTable = { ...table };
 	}
 
 	// Batch drag-and-drop saves (Issue 1.4)
@@ -340,6 +344,67 @@
 		}
 	}
 
+	// QR code functions
+	async function handleGenerateTableQr(tableId: string) {
+		isGeneratingQr = true;
+		try {
+			const result = await generateTableQr(data.businessId, tableId);
+			editTableQr = {
+				url: result.url,
+				dataUrl: result.dataUrl,
+				generatedAt: new Date().toISOString()
+			};
+			toast.success('QR code generated');
+		} catch (error) {
+			toast.error(userFriendlyError(error, 'Failed to generate QR'));
+		} finally {
+			isGeneratingQr = false;
+		}
+	}
+
+	async function handleGenerateAllQrs() {
+		isGeneratingAllQrs = true;
+		try {
+			const result = await generateAllTableQrs(data.businessId);
+			toast.success(`Generated QR codes for ${result.count} tables`);
+		} catch (error) {
+			toast.error(userFriendlyError(error, 'Failed to generate QR codes'));
+		} finally {
+			isGeneratingAllQrs = false;
+		}
+	}
+
+	function downloadQr(dataUrl: string, tableName: string) {
+		const link = document.createElement('a');
+		link.href = dataUrl;
+		link.download = `qr-${tableName}.png`;
+		link.click();
+	}
+
+	function printQr(dataUrl: string, tableName: string) {
+		const win = window.open('', '_blank');
+		if (!win) return;
+		win.document.write(`
+			<html>
+				<head><title>QR Code - ${tableName}</title></head>
+				<body style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:sans-serif;">
+					<h2>${tableName}</h2>
+					<img src="${dataUrl}" style="width:300px;height:300px;" />
+					<p style="color:#666;margin-top:16px;">Scan to order</p>
+				</body>
+			</html>
+		`);
+		win.document.close();
+		win.focus();
+		win.print();
+	}
+
+	// Load QR when editing a table
+	function handleTableSelect(table: Table) {
+		editingTable = { ...table };
+		editTableQr = table.qrCode || null;
+	}
+
 	// Format relative time for session display (Issue 1.11)
 	function formatRelativeTime(isoString: string): string {
 		const diff = Date.now() - new Date(isoString).getTime();
@@ -372,6 +437,14 @@
 						Save Layout
 					</Button>
 				{/if}
+				<Button variant="outline" onclick={handleGenerateAllQrs} disabled={isGeneratingAllQrs || tables.length === 0}>
+					{#if isGeneratingAllQrs}
+						<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+					{:else}
+						<IconQrcode class="mr-2 h-4 w-4" />
+					{/if}
+					Generate All QRs
+				</Button>
 				<Button onclick={handleOpenAddDialog}>
 					<IconPlus class="mr-2 h-4 w-4" />
 					Add Table
@@ -533,7 +606,7 @@
 
 <!-- Edit Table Dialog -->
 <Dialog.Root open={!!editingTable} onOpenChange={(open) => !open && (editingTable = null)}>
-	<Dialog.Content class="sm:max-w-md">
+	<Dialog.Content class="max-h-[90vh] overflow-y-auto sm:max-w-md">
 		<Dialog.Header>
 			<Dialog.Title>Edit Table</Dialog.Title>
 			<Dialog.Description>Update table details</Dialog.Description>
@@ -619,6 +692,57 @@
 					</Button>
 				</div>
 				{/if}
+
+				<!-- QR Code Section -->
+				<div class="grid gap-2">
+					<!-- svelte-ignore a11y_label_has_associated_control -->
+					<label class="text-sm font-medium">QR Code</label>
+					{#if editTableQr?.dataUrl}
+						<div class="flex flex-col items-center gap-3 rounded-lg border border-border bg-muted/30 p-4">
+							<img
+								src={editTableQr.dataUrl}
+								alt="Table QR Code"
+								class="h-[160px] w-[160px]"
+							/>
+							<p class="text-xs text-muted-foreground">
+								{editTableQr.url}
+							</p>
+							<div class="flex gap-2">
+								<Button
+									variant="outline"
+									size="sm"
+									onclick={() => downloadQr(editTableQr!.dataUrl, editingTable!.displayName || editingTable!.tableNumber)}
+								>
+									<IconDownload class="mr-1 h-3.5 w-3.5" />
+									Download
+								</Button>
+								<Button
+									variant="outline"
+									size="sm"
+									onclick={() => printQr(editTableQr!.dataUrl, editingTable!.displayName || editingTable!.tableNumber)}
+								>
+									<IconPrinter class="mr-1 h-3.5 w-3.5" />
+									Print
+								</Button>
+							</div>
+						</div>
+					{:else}
+						<p class="text-xs text-muted-foreground">No QR code generated yet.</p>
+					{/if}
+					<Button
+						variant="outline"
+						size="sm"
+						onclick={() => handleGenerateTableQr(editingTable!.id)}
+						disabled={isGeneratingQr}
+					>
+						{#if isGeneratingQr}
+							<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+						{:else}
+							<IconQrcode class="mr-2 h-4 w-4" />
+						{/if}
+						{editTableQr ? 'Regenerate QR' : 'Generate QR'}
+					</Button>
+				</div>
 			</div>
 			<Dialog.Footer class="flex-col gap-2 sm:flex-row">
 				<Button

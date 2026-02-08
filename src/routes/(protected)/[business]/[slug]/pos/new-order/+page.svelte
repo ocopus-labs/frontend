@@ -987,6 +987,7 @@
 	onCancel={handlePaymentCancel}
 	isProcessing={isProcessingPayment}
 	{region}
+	businessId={(data.business as any)?.id}
 />
 
 <!-- Table Selector Dialog -->

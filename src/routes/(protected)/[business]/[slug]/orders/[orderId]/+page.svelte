@@ -328,8 +328,11 @@
 						<IconArrowLeft class="h-5 w-5" />
 					</Button>
 					<div>
-						<h1 class="text-2xl font-bold">
+						<h1 class="text-2xl font-bold flex items-center gap-2">
 							Order #{order?.orderNumber || 'Unknown'}
+							{#if order?.orderSource === 'customer_qr'}
+								<span class="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700 dark:bg-violet-900 dark:text-violet-200">QR Order</span>
+							{/if}
 						</h1>
 						<p class="text-muted-foreground">
 							{order ? new Date(order.createdAt).toLocaleString() : ''}
@@ -629,6 +632,7 @@
 		onCancel={handlePaymentCancel}
 		isProcessing={isProcessingPayment}
 		{region}
+		businessId={$page.data.business.id}
 	/>
 {/if}
 

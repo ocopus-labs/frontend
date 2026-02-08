@@ -38,7 +38,8 @@
 			total: order.pricing.total,
 			date: new Date(order.createdAt).toLocaleDateString(),
 			time: new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-			items: order.items.length
+			items: order.items.length,
+			orderSource: order.orderSource
 		}))
 	);
 
@@ -184,7 +185,14 @@
 					<Table.Body>
 						{#each filteredOrders as order (order.id)}
 							<Table.Row>
-								<Table.Cell class="font-medium">{order.id}</Table.Cell>
+								<Table.Cell class="font-medium">
+									<div class="flex items-center gap-1.5">
+										{order.id}
+										{#if order.orderSource === 'customer_qr'}
+											<span class="inline-flex items-center rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-900 dark:text-violet-200">QR</span>
+										{/if}
+									</div>
+								</Table.Cell>
 								<Table.Cell>{order.customer}</Table.Cell>
 								<Table.Cell>{order.table}</Table.Cell>
 								<Table.Cell>
