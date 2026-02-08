@@ -85,6 +85,25 @@ export {
   type RevenueTrend
 } from './dashboard';
 
+// Customer API
+export {
+  getCustomers,
+  getCustomerStats,
+  getCustomerById,
+  getCustomerWithOrders,
+  findCustomerByPhone,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+  exportCustomers,
+  type Customer,
+  type CustomerAddress,
+  type CustomerStats,
+  type CustomerOrderStats,
+  type CreateCustomerPayload,
+  type UpdateCustomerPayload
+} from './customer';
+
 // Table API
 export {
   getTables,
@@ -267,6 +286,21 @@ export {
   type UpdateMemberPermissionsPayload,
   type SuspendMemberPayload
 } from './team';
+
+// Loyalty API
+export {
+  getLoyaltySettings,
+  updateLoyaltySettings,
+  getLoyaltyAccount,
+  getLoyaltyTransactions,
+  redeemLoyaltyPoints,
+  adjustLoyaltyPoints,
+  getLoyaltyLeaderboard,
+  type LoyaltySettings,
+  type LoyaltyAccount,
+  type LoyaltyTransaction,
+  type LoyaltyLeaderboardEntry
+} from './loyalty';
 
 // API Keys
 export {

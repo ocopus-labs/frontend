@@ -27,6 +27,7 @@ export interface PlanFeatures {
   analytics: 'basic' | 'advanced';
   inventory: boolean;
   expenses: boolean;
+  loyalty: boolean;
   api: boolean;
   whiteLabel: boolean;
 }
@@ -199,6 +200,9 @@ export function getPlanFeaturesList(plan: SubscriptionPlan): string[] {
   }
   if (plan.features.expenses) {
     features.push('Expense tracking');
+  }
+  if (plan.features.loyalty) {
+    features.push('Loyalty & Rewards');
   }
   if (plan.features.api) {
     features.push('API access');

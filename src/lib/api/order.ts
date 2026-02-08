@@ -112,6 +112,7 @@ export interface CreateOrderItemPayload {
 
 export interface CreateOrderPayload {
   orderType: 'dine_in' | 'takeaway' | 'delivery' | 'online';
+  customerId?: string;
   tableId?: string;
   tableNumber?: string;
   customerInfo?: {
