@@ -90,7 +90,9 @@
 	const savedPaymentMethods = settings.paymentMethods as string[] | undefined;
 	let paymentMethodCash = $state(savedPaymentMethods ? savedPaymentMethods.includes('cash') : true);
 	let paymentMethodCard = $state(savedPaymentMethods ? savedPaymentMethods.includes('card') : true);
-	let paymentMethodDigital = $state(savedPaymentMethods ? savedPaymentMethods.includes('digital') : false);
+	let paymentMethodDigital = $state(
+		savedPaymentMethods ? savedPaymentMethods.includes('digital') : false
+	);
 
 	let saving = $state(false);
 
@@ -144,8 +146,7 @@
 			toast.success('Settings saved successfully.');
 		} catch (err: unknown) {
 			console.error('Failed to save settings:', err);
-			const message =
-				err instanceof Error ? err.message : 'An unexpected error occurred.';
+			const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
 			toast.error(`Failed to save settings: ${message}`);
 		} finally {
 			saving = false;
@@ -157,7 +158,7 @@
 	}
 </script>
 
-<div class="flex flex-1 flex-col">
+<div class="flex flex-1 flex-col p-2 sm:p-6 md:p-4">
 	<div class="@container/main flex flex-1 flex-col gap-4">
 		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
 			<div class="flex flex-col gap-2">
@@ -267,7 +268,12 @@
 												type="checkbox"
 												id="closed-{index}"
 												bind:checked={hour.closed}
-												onchange={(e) => updateBusinessHour(index, 'closed', (e.target as HTMLInputElement).checked)}
+												onchange={(e) =>
+													updateBusinessHour(
+														index,
+														'closed',
+														(e.target as HTMLInputElement).checked
+													)}
 											/>
 											<label for="closed-{index}" class="text-sm">Closed</label>
 										</div>
@@ -276,14 +282,20 @@
 												<Input
 													type="time"
 													value={hour.open}
-													onchange={(e) => updateBusinessHour(index, 'open', (e.target as HTMLInputElement).value)}
+													onchange={(e) =>
+														updateBusinessHour(index, 'open', (e.target as HTMLInputElement).value)}
 													class="w-32"
 												/>
 												<span class="text-sm">to</span>
 												<Input
 													type="time"
 													value={hour.close}
-													onchange={(e) => updateBusinessHour(index, 'close', (e.target as HTMLInputElement).value)}
+													onchange={(e) =>
+														updateBusinessHour(
+															index,
+															'close',
+															(e.target as HTMLInputElement).value
+														)}
 													class="w-32"
 												/>
 											</div>
@@ -307,11 +319,15 @@
 									<label for="currency" class="text-sm font-medium">Currency</label>
 									<Select.Root type="single" bind:value={currency}>
 										<Select.Trigger class="w-full">
-											{currency} ({CURRENCY_CONFIG[currency as CurrencyCode]?.symbol || ''}) - {CURRENCY_CONFIG[currency as CurrencyCode]?.name || ''}
+											{currency} ({CURRENCY_CONFIG[currency as CurrencyCode]?.symbol || ''}) - {CURRENCY_CONFIG[
+												currency as CurrencyCode
+											]?.name || ''}
 										</Select.Trigger>
 										<Select.Content>
 											{#each Object.values(CURRENCY_CONFIG) as curr (curr.code)}
-												<Select.Item value={curr.code}>{curr.code} ({curr.symbol}) - {curr.name}</Select.Item>
+												<Select.Item value={curr.code}
+													>{curr.code} ({curr.symbol}) - {curr.name}</Select.Item
+												>
 											{/each}
 										</Select.Content>
 									</Select.Root>

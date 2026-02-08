@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
+	import { Badge } from '$lib/components/ui/badge';
+	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Drawer from '$lib/components/ui/drawer';
 	import {
 		IconSearch,
@@ -8,7 +10,8 @@
 		IconEdit,
 		IconCalendar,
 		IconClock,
-		IconUser
+		IconUser,
+		IconLoader2
 	} from '@tabler/icons-svelte';
 
 	import {
@@ -19,6 +22,7 @@
 		PaymentDialog,
 		TableSelectorDialog,
 		ReceiptDialog,
+		CustomerPicker,
 		type OrderItemType
 	} from '$lib/components/pos';
 
@@ -26,7 +30,7 @@
 	import { EmptyState } from '$lib/components/data-display';
 	import type { Table } from '$lib/api/table';
 
-	import { createOrder, createPayment, createSplitPayment, startTableSession, type CreateOrderPayload, type CreateOrderItemPayload, type PaymentMethod } from '$lib/api';
+	import { createOrder, createPayment, createSplitPayment, startTableSession, getLoyaltyAccount, getLoyaltySettings, redeemLoyaltyPoints, type CreateOrderPayload, type CreateOrderItemPayload, type PaymentMethod, type Customer, type LoyaltyAccount, type LoyaltySettings } from '$lib/api';
 	import { currencyToRegion, createI18nUtils } from '$lib/utils/i18n';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
@@ -81,6 +85,43 @@
 	let showOrderSummary = $state(false);
 	let isSubmitting = $state(false);
 	let showTableSelector = $state(false);
+	let selectedCustomer = $state<Customer | null>(null);
+
+	// Loyalty state
+	let customerLoyalty = $state<LoyaltyAccount | null>(null);
+	let loyaltySettings = $state<LoyaltySettings | null>(null);
+	let showRedeemDialog = $state(false);
+	let redeemAmount = $state(0);
+	let isRedeeming = $state(false);
+	let loyaltyDiscount = $state(0);
+
+	// Load loyalty settings on mount
+	$effect(() => {
+		const businessId = (data.business as any)?.id;
+		if (businessId) {
+			getLoyaltySettings(businessId).then((r) => {
+				loyaltySettings = r.settings;
+			}).catch(() => {
+				// Loyalty settings not available, ignore
+			});
+		}
+	});
+
+	// Fetch loyalty account when customer is selected
+	$effect(() => {
+		const customer = selectedCustomer;
+		const businessId = (data.business as any)?.id;
+		if (customer && businessId && loyaltySettings?.enabled) {
+			getLoyaltyAccount(businessId, customer.id).then((r) => {
+				customerLoyalty = r.account;
+			}).catch(() => {
+				customerLoyalty = null;
+			});
+		} else {
+			customerLoyalty = null;
+			loyaltyDiscount = 0;
+		}
+	});
 
 	// Order confirmation dialog state (1.6)
 	let showOrderConfirmation = $state(false);
@@ -413,6 +454,50 @@
 		showDiscount = !showDiscount;
 	}
 
+	function openRedeemDialog() {
+		redeemAmount = 0;
+		showRedeemDialog = true;
+	}
+
+	async function handleRedeemPoints() {
+		if (!selectedCustomer || !loyaltySettings || redeemAmount <= 0) return;
+
+		if (redeemAmount < loyaltySettings.minimumRedemption) {
+			toast.error(`Minimum redemption is ${loyaltySettings.minimumRedemption} points`);
+			return;
+		}
+
+		if (customerLoyalty && redeemAmount > customerLoyalty.points) {
+			toast.error(`Customer only has ${customerLoyalty.points} points`);
+			return;
+		}
+
+		isRedeeming = true;
+		const businessId = (data.business as any)?.id;
+
+		try {
+			const result = await redeemLoyaltyPoints(businessId, selectedCustomer.id, redeemAmount);
+			loyaltyDiscount = result.discountAmount;
+
+			// Apply as fixed discount
+			showDiscount = true;
+			discountType = 'fixed';
+			discountValue = result.discountAmount;
+
+			// Update local loyalty balance
+			if (customerLoyalty) {
+				customerLoyalty = { ...customerLoyalty, points: result.newBalance };
+			}
+
+			toast.success(`Redeemed ${redeemAmount} points for ${i18n.formatCurrency(result.discountAmount)} discount`);
+			showRedeemDialog = false;
+		} catch (error: any) {
+			toast.error(error?.message || 'Failed to redeem points');
+		} finally {
+			isRedeeming = false;
+		}
+	}
+
 	// Order confirmation dialog handler (1.6)
 	function handlePlaceOrder() {
 		if (orderItems.length === 0) {
@@ -479,8 +564,16 @@
 
 			const orderPayload: CreateOrderPayload = {
 				orderType,
+				customerId: selectedCustomer?.id,
 				tableId: orderType === 'dine_in' && selectedTable ? selectedTable.id : undefined,
 				tableNumber: orderType === 'dine_in' && selectedTable ? selectedTable.tableNumber : undefined,
+				customerInfo: selectedCustomer
+					? {
+							name: selectedCustomer.name,
+							phone: selectedCustomer.phone,
+							email: selectedCustomer.email || undefined
+						}
+					: undefined,
 				items,
 				taxRate: showTaxes ? taxRate : 0,
 				discount: showDiscount && discountValue > 0 ? {
@@ -617,6 +710,9 @@
 		toast.info(`Order ${currentOrderNumber} saved. You can pay later from the orders list.`);
 		orderItems = [];
 		clearCartStorage();
+		selectedCustomer = null;
+		customerLoyalty = null;
+		loyaltyDiscount = 0;
 		currentOrderId = '';
 		currentOrderNumber = '';
 	}
@@ -626,6 +722,9 @@
 		// Clear order state after receipt is closed
 		orderItems = [];
 		clearCartStorage();
+		selectedCustomer = null;
+		customerLoyalty = null;
+		loyaltyDiscount = 0;
 		currentOrderId = '';
 		currentOrderNumber = '';
 		currentPaymentId = '';
@@ -731,6 +830,22 @@
 			<div
 				class="hidden lg:flex lg:w-[380px] lg:shrink-0 lg:flex-col lg:border-l lg:border-border xl:w-[420px]"
 			>
+				<div class="border-b border-border p-4">
+					<CustomerPicker businessId={(data.business as any)?.id} bind:selectedCustomer />
+					{#if selectedCustomer && customerLoyalty && loyaltySettings?.enabled}
+						<div class="mt-2 flex items-center justify-between rounded-md bg-muted/50 px-3 py-2">
+							<div class="flex items-center gap-2 text-sm">
+								<span class="font-medium">{customerLoyalty.points} pts</span>
+								<Badge variant="secondary" class="text-xs capitalize">{customerLoyalty.tier}</Badge>
+							</div>
+							{#if customerLoyalty.points >= loyaltySettings.minimumRedemption}
+								<Button variant="outline" size="sm" class="h-7 text-xs" onclick={openRedeemDialog}>
+									Redeem Points
+								</Button>
+							{/if}
+						</div>
+					{/if}
+				</div>
 				<div class="min-h-0 flex-1 overflow-hidden">
 					<OrderSummary
 					{orderItems}
@@ -884,6 +999,52 @@
 		onCancel={() => showTableSelector = false}
 	/>
 {/if}
+
+<!-- Redeem Points Dialog -->
+<Dialog.Root bind:open={showRedeemDialog}>
+	<Dialog.Content class="max-w-sm">
+		<Dialog.Header>
+			<Dialog.Title>Redeem Loyalty Points</Dialog.Title>
+			<Dialog.Description>
+				{#if customerLoyalty}
+					{customerLoyalty.points} points available.
+					{#if loyaltySettings}
+						Min: {loyaltySettings.minimumRedemption} pts.
+						Rate: {loyaltySettings.redemptionRate} per point.
+					{/if}
+				{/if}
+			</Dialog.Description>
+		</Dialog.Header>
+
+		<div class="grid gap-4 py-4">
+			<div class="grid gap-2">
+				<label for="redeem-points" class="text-sm font-medium">Points to redeem</label>
+				<Input
+					id="redeem-points"
+					type="number"
+					min={loyaltySettings?.minimumRedemption || 1}
+					max={customerLoyalty?.points || 0}
+					bind:value={redeemAmount}
+				/>
+			</div>
+			{#if redeemAmount > 0 && loyaltySettings}
+				<p class="text-sm text-muted-foreground">
+					Discount: <span class="font-medium">{i18n.formatCurrency(redeemAmount * loyaltySettings.redemptionRate)}</span>
+				</p>
+			{/if}
+		</div>
+
+		<Dialog.Footer>
+			<Button variant="outline" onclick={() => (showRedeemDialog = false)}>Cancel</Button>
+			<Button onclick={handleRedeemPoints} disabled={isRedeeming || redeemAmount <= 0}>
+				{#if isRedeeming}
+					<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+				{/if}
+				Redeem
+			</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>
 
 <!-- Receipt Dialog -->
 <ReceiptDialog
