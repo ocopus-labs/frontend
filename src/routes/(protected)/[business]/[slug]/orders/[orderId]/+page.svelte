@@ -5,9 +5,11 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
 	import { PaymentDialog, ReceiptDialog, RefundDialog } from '$lib/components/pos';
+	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import {
 		IconArrowLeft,
 		IconCash,
+		IconCheck,
 		IconPrinter,
 		IconReceipt,
 		IconClock,
@@ -21,6 +23,7 @@
 		createPayment,
 		createSplitPayment,
 		processRefund,
+		updateOrderStatus,
 		type PaymentMethod,
 		type Payment
 	} from '$lib/api';
@@ -275,6 +278,32 @@
 		refundPayment = null;
 	}
 
+	// Mark Complete state
+	let showCompleteDialog = $state(false);
+	let isCompletingOrder = $state(false);
+
+	function triggerCompleteOrder() {
+		showCompleteDialog = true;
+	}
+
+	async function confirmCompleteOrder() {
+		if (!order || isCompletingOrder) return;
+		isCompletingOrder = true;
+
+		try {
+			const businessId = $page.data.business.id;
+			await updateOrderStatus(businessId, order.id, 'completed');
+			toast.success('Order marked as completed!');
+			showCompleteDialog = false;
+			await invalidate('app:order');
+			await invalidate((url) => url.pathname.includes('/orders/'));
+		} catch (error: any) {
+			toast.error(userFriendlyError(error, 'Failed to complete order.'));
+		} finally {
+			isCompletingOrder = false;
+		}
+	}
+
 	// Format relative time for audit trail
 	function formatRelativeTime(dateStr: string): string {
 		const date = new Date(dateStr);
@@ -290,40 +319,6 @@
 </script>
 
 <div class="flex flex-1 flex-col p-4 pt-0! md:p-6 lg:p-8">
-	{#if showPaymentDialog}
-		<PaymentDialog
-			open={showPaymentDialog}
-			orderNumber={order?.orderNumber || ''}
-			totalAmount={order ? order.pricing.total : 0}
-			orderId={order?.id || ''}
-			{balanceDue}
-			onPaymentComplete={handlePaymentComplete}
-			onSplitPaymentComplete={handleSplitPaymentComplete}
-			onCancel={handlePaymentCancel}
-			isProcessing={isProcessingPayment}
-		/>
-	{/if}
-
-	{#if showReceiptDialog && selectedPaymentId}
-		<ReceiptDialog
-			open={showReceiptDialog}
-			paymentId={selectedPaymentId}
-			onClose={handleReceiptClose}
-		/>
-	{/if}
-
-	{#if showRefundDialog && refundPayment}
-		<RefundDialog
-			paymentId={refundPayment.id}
-			paymentNumber={refundPayment.paymentNumber}
-			paymentAmount={refundPayment.amount}
-			open={showRefundDialog}
-			paymentMethod={refundPayment.method}
-			onRefundComplete={handleRefundComplete}
-			onCancel={handleRefundCancel}
-			isProcessing={isProcessingRefund}
-		/>
-	{/if}
 	<div class="@container/main flex flex-1 flex-col gap-4">
 		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
 			<!-- Header -->
@@ -346,7 +341,13 @@
 						<IconPrinter class="mr-2 h-4 w-4" />
 						Print
 					</Button>
-					{#if balanceDue > 0}
+					{#if order?.status === 'active'}
+						<Button variant="outline" onclick={triggerCompleteOrder}>
+							<IconCheck class="mr-2 h-4 w-4" />
+							Mark Complete
+						</Button>
+					{/if}
+					{#if balanceDue > 0 && order?.status !== 'cancelled'}
 						<Button onclick={openPaymentDialog}>
 							<IconCash class="mr-2 h-4 w-4" />
 							Add Payment
@@ -653,3 +654,13 @@
 		{region}
 	/>
 {/if}
+
+<!-- Mark Complete Confirm Dialog -->
+<ConfirmDialog
+	open={showCompleteDialog}
+	title="Mark Order as Complete"
+	description="Are you sure you want to mark this order as completed? This action cannot be undone."
+	confirmLabel="Complete Order"
+	onConfirm={confirmCompleteOrder}
+	onCancel={() => (showCompleteDialog = false)}
+/>

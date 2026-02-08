@@ -4,12 +4,16 @@
 	import { Input } from '$lib/components/ui/input';
 	import * as Table from '$lib/components/ui/table';
 	import { Badge } from '$lib/components/ui/badge';
-	import { IconEye, IconPrinter, IconRefresh } from '@tabler/icons-svelte';
+	import { IconCheck, IconEye, IconPrinter, IconRefresh } from '@tabler/icons-svelte';
 	import { SearchInput, FilterDropdown } from '$lib/components/search';
 	import { EmptyState, StatusPill } from '$lib/components/data-display';
 	import PageHeader from '$lib/components/global/page-header.svelte';
+	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import { invalidate, goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { toast } from 'svelte-sonner';
+	import { updateOrderStatus } from '$lib/api';
+	import { userFriendlyError } from '$lib/utils/error';
 	import type { Order } from '$lib/api/order';
 	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
 	import type { CurrencyCode } from '$lib/utils/i18n';
@@ -88,6 +92,30 @@
 		isRefreshing = true;
 		await invalidate('app:orders');
 		isRefreshing = false;
+	}
+
+	// Mark Complete state
+	let completeDialogOpen = $state(false);
+	let completeTargetId = $state('');
+
+	function triggerCompleteOrder(orderId: string) {
+		completeTargetId = orderId;
+		completeDialogOpen = true;
+	}
+
+	async function confirmCompleteOrder() {
+		if (!completeTargetId) return;
+
+		try {
+			const businessId = ($page.data.business as any).id;
+			await updateOrderStatus(businessId, completeTargetId, 'completed');
+			toast.success('Order marked as completed!');
+			completeDialogOpen = false;
+			completeTargetId = '';
+			await invalidate('app:orders');
+		} catch (error: any) {
+			toast.error(userFriendlyError(error, 'Failed to complete order.'));
+		}
 	}
 </script>
 
@@ -175,6 +203,11 @@
 								</Table.Cell>
 								<Table.Cell class="text-right">
 									<div class="flex justify-end gap-2">
+										{#if order.status === 'active'}
+											<Button variant="ghost" size="icon" onclick={() => triggerCompleteOrder(order.orderId)} aria-label="Mark order complete" title="Mark Complete">
+												<IconCheck class="h-4 w-4 text-green-600" />
+											</Button>
+										{/if}
 										<Button variant="ghost" size="icon" onclick={() => viewOrder(order.orderId)} aria-label="View order">
 											<IconEye class="h-4 w-4" />
 										</Button>
@@ -195,3 +228,12 @@
 		</div>
 	</div>
 </div>
+
+<ConfirmDialog
+	open={completeDialogOpen}
+	title="Mark Order as Complete"
+	description="Are you sure you want to mark this order as completed? This action cannot be undone."
+	confirmLabel="Complete Order"
+	onConfirm={confirmCompleteOrder}
+	onCancel={() => { completeDialogOpen = false; completeTargetId = ''; }}
+/>
