@@ -3,12 +3,15 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Field from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
+	import * as InputGroup from '$lib/components/ui/input-group/index.js';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { signIn, emailOtp, authClient } from '$lib/auth';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
 	import { env } from '$env/dynamic/public';
+	import Eye from '@lucide/svelte/icons/eye';
+	import EyeOff from '@lucide/svelte/icons/eye-off';
 
 	let { class: className, ...restProps }: HTMLAttributes<HTMLFormElement> = $props();
 
@@ -16,6 +19,7 @@
 
 	let email = $state('');
 	let password = $state('');
+	let showPassword = $state(false);
 	let otp = $state('');
 	let isLoading = $state(false);
 	let showVerification = $state(false);
@@ -155,7 +159,27 @@
 		{#if !showVerification}
 			<Field.Field>
 				<Field.Label for="password">Password</Field.Label>
-				<Input id="password" type="password" bind:value={password} required disabled={isLoading} />
+				<InputGroup.Root>
+					<InputGroup.Input
+						id="password"
+						type={showPassword ? 'text' : 'password'}
+						bind:value={password}
+						required
+						disabled={isLoading}
+					/>
+					<InputGroup.Button
+						size="icon-sm"
+						ontouchstart={(e) => e.preventDefault()}
+						onclick={() => (showPassword = !showPassword)}
+						aria-label={showPassword ? 'Hide password' : 'Show password'}
+					>
+						{#if showPassword}
+							<EyeOff class="size-4" />
+						{:else}
+							<Eye class="size-4" />
+						{/if}
+					</InputGroup.Button>
+				</InputGroup.Root>
 			</Field.Field>
 			<Field.Field>
 				<Field.Description class="text-right">

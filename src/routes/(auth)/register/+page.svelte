@@ -3,12 +3,15 @@
   import { Button } from "$lib/components/ui/button/index.js";
   import * as Field from "$lib/components/ui/field/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
+  import * as InputGroup from "$lib/components/ui/input-group/index.js";
   import type { HTMLAttributes } from "svelte/elements";
   import { authClient, signUp } from "$lib/auth";
   import { goto } from "$app/navigation";
   import { toast } from "svelte-sonner";
   import { env } from "$env/dynamic/public";
   import PasswordStrength from "$lib/components/ui/password-strength.svelte";
+  import Eye from "@lucide/svelte/icons/eye";
+  import EyeOff from "@lucide/svelte/icons/eye-off";
 
   let { class: className, ...restProps }: HTMLAttributes<HTMLFormElement> = $props();
   
@@ -16,6 +19,8 @@
   let email = $state("");
   let password = $state("");
   let confirmPassword = $state("");
+  let showPassword = $state(false);
+  let showConfirmPassword = $state(false);
   let isLoading = $state(false);
 
   async function handleSubmit(e: Event) {
@@ -80,13 +85,57 @@
     </Field.Field>
     <Field.Field>
       <Field.Label for="password">Password</Field.Label>
-      <Input id="password" type="password" bind:value={password} required />
+      <InputGroup.Root>
+        <InputGroup.Input
+          id="password"
+          type={showPassword ? 'text' : 'password'}
+          bind:value={password}
+          required
+        />
+        <InputGroup.Button
+          size="icon-sm"
+          ontouchstart={(e) => e.preventDefault()}
+          onclick={() => (showPassword = !showPassword)}
+          aria-label={showPassword ? 'Hide password' : 'Show password'}
+        >
+          {#if showPassword}
+            <EyeOff class="size-4" />
+          {:else}
+            <Eye class="size-4" />
+          {/if}
+        </InputGroup.Button>
+      </InputGroup.Root>
       <PasswordStrength {password} />
     </Field.Field>
     <Field.Field>
       <Field.Label for="confirm-password">Confirm Password</Field.Label>
-      <Input id="confirm-password" type="password" bind:value={confirmPassword} required />
-      <Field.Description>Please confirm your password.</Field.Description>
+      <InputGroup.Root>
+        <InputGroup.Input
+          id="confirm-password"
+          type={showConfirmPassword ? 'text' : 'password'}
+          bind:value={confirmPassword}
+          required
+        />
+        <InputGroup.Button
+          size="icon-sm"
+          ontouchstart={(e) => e.preventDefault()}
+          onclick={() => (showConfirmPassword = !showConfirmPassword)}
+          aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+        >
+          {#if showConfirmPassword}
+            <EyeOff class="size-4" />
+          {:else}
+            <Eye class="size-4" />
+          {/if}
+        </InputGroup.Button>
+      </InputGroup.Root>
+      {#if confirmPassword && password !== confirmPassword}
+        <Field.Description class="text-destructive">Passwords do not match</Field.Description>
+      {:else if confirmPassword && password === confirmPassword}
+        <Field.Description class="text-green-600 dark:text-green-400">Passwords match</Field.Description>
+      {:else}
+        <Field.Description>Please confirm your password.</Field.Description>
+      {/if}
     </Field.Field>
     <Field.Field>
       <Button type="submit" disabled={isLoading}>
