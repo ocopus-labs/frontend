@@ -2,6 +2,25 @@ export * from './business';
 export * from './subscription';
 export * from './admin';
 export {
+  createFranchise,
+  getUserFranchises,
+  getFranchiseById,
+  getFranchiseBySlug,
+  updateFranchise,
+  deleteFranchise,
+  getFranchiseBusinesses,
+  addBusinessToFranchise,
+  createBusinessUnderFranchise,
+  removeBusinessFromFranchise,
+  getFranchiseStaff,
+  inviteFranchiseStaff,
+  updateFranchiseStaff,
+  removeFranchiseStaff,
+  getFranchiseAnalytics,
+  updateFranchiseSettings,
+  syncFranchiseSettings,
+} from './franchise';
+export {
   getMenu,
   publishMenu,
   getCategories,
