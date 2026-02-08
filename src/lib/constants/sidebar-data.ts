@@ -6,6 +6,7 @@ import CreditCardIcon from '@lucide/svelte/icons/credit-card';
 import UtensilsIcon from '@lucide/svelte/icons/utensils';
 import ClipboardListIcon from '@lucide/svelte/icons/clipboard-list';
 import TableIcon from '@lucide/svelte/icons/table';
+import ContactIcon from '@lucide/svelte/icons/contact';
 import PackageIcon from '@lucide/svelte/icons/package';
 import DollarSignIcon from '@lucide/svelte/icons/dollar-sign';
 import MonitorIcon from '@lucide/svelte/icons/monitor';
@@ -173,6 +174,17 @@ export const sidebarData: Record<string, SidebarData> = {
 				]
 			},
 			{
+				title: 'Customers',
+				url: '/[business]/[slug]/customers',
+				icon: ContactIcon,
+				items: [
+					{
+						title: 'All Customers',
+						url: '/[business]/[slug]/customers'
+					}
+				]
+			},
+			{
 				title: 'Inventory',
 				url: '/[business]/[slug]/inventory',
 				icon: PackageIcon,
@@ -237,6 +249,10 @@ export const sidebarData: Record<string, SidebarData> = {
 					{
 						title: 'General',
 						url: '/[business]/[slug]/settings'
+					},
+					{
+						title: 'Loyalty',
+						url: '/[business]/[slug]/settings/loyalty'
 					},
 					{
 						title: 'API Keys',

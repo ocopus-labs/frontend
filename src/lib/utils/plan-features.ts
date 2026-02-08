@@ -11,13 +11,14 @@ export type FeatureKey = keyof PlanFeatures | 'analytics_advanced';
 export const FEATURE_REQUIREMENTS: Record<string, FeatureKey> = {
 	'Kitchen Display': 'kitchenDisplay',
 	Inventory: 'inventory',
-	Expenses: 'expenses'
+	Expenses: 'expenses',
+	Loyalty: 'loyalty'
 };
 
 /**
  * Features that require PRO or higher plan
  */
-export const PRO_FEATURES: FeatureKey[] = ['kitchenDisplay', 'inventory', 'expenses'];
+export const PRO_FEATURES: FeatureKey[] = ['kitchenDisplay', 'inventory', 'expenses', 'loyalty'];
 
 /**
  * Features that require ENTERPRISE plan
