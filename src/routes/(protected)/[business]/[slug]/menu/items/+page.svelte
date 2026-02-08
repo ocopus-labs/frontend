@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { goto } from '$app/navigation';
 	import type { MenuItem, MenuCategory } from '$lib/types/menu';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -16,10 +17,23 @@
 		createCategory,
 		seedDefaultCategories
 	} from '$lib/api';
-	import { IconSearch, IconPlus, IconEdit, IconTrash, IconEye } from '@tabler/icons-svelte';
+	import { IconSearch, IconPlus, IconEdit, IconTrash, IconEye, IconEyeOff, IconCopy } from '@tabler/icons-svelte';
+	import * as Select from '$lib/components/ui/select';
+	import { Textarea } from '$lib/components/ui/textarea';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
+	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
+	import { EmptyState, StatusPill } from '$lib/components/data-display';
+	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
+	import type { CurrencyCode } from '$lib/utils/i18n';
+	import { userFriendlyError } from '$lib/utils/error';
 
 	let { data }: { data: PageData } = $props();
+
+	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
+
+	function formatCurrency(amount: number): string {
+		return i18nFormatCurrency(amount, currency);
+	}
 
 	const businessId = data.businessId;
 	const businessType = data.businessType;
@@ -36,6 +50,8 @@
 	let showAddCategoryDialog = $state(false);
 	let editingItem = $state<MenuItem | null>(null);
 	let isSubmitting = $state(false);
+	let deleteDialogOpen = $state(false);
+	let deleteTargetId = $state('');
 
 	// Form data for add/edit item
 	let formName = $state('');
@@ -49,6 +65,18 @@
 
 	// Form data for add category
 	let newCategoryName = $state('');
+
+	// Display label for category filter
+	const categoryFilterLabel = $derived(
+		categoryFilter === 'all'
+			? 'All Categories'
+			: (categories.find((c) => c.id === categoryFilter)?.name || 'All Categories')
+	);
+
+	// Display label for form category select
+	const formCategoryLabel = $derived(
+		categories.find((c) => c.id === formCategory)?.name || 'Select category'
+	);
 
 	// Filter menu items
 	const filteredItems = $derived(
@@ -112,7 +140,7 @@
 			showAddDialog = false;
 			toast.success('Item added successfully');
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to add item');
+			toast.error(userFriendlyError(error, 'Failed to add item'));
 		} finally {
 			isSubmitting = false;
 		}
@@ -142,21 +170,24 @@
 			editingItem = null;
 			toast.success('Item updated successfully');
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to update item');
+			toast.error(userFriendlyError(error, 'Failed to update item'));
 		} finally {
 			isSubmitting = false;
 		}
 	}
 
-	async function deleteItem(id: string) {
-		if (!confirm('Are you sure you want to delete this item?')) return;
+	function deleteItem(id: string) {
+		deleteTargetId = id;
+		deleteDialogOpen = true;
+	}
 
+	async function confirmDeleteItem() {
 		try {
-			await deleteMenuItemApi(businessId, id);
-			menuItems = menuItems.filter((item) => item.id !== id);
+			await deleteMenuItemApi(businessId, deleteTargetId);
+			menuItems = menuItems.filter((item) => item.id !== deleteTargetId);
 			toast.success('Item deleted successfully');
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to delete item');
+			toast.error(userFriendlyError(error, 'Failed to delete item'));
 		}
 	}
 
@@ -170,8 +201,20 @@
 			}
 			toast.success(result.message);
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to toggle availability');
+			toast.error(userFriendlyError(error, 'Failed to toggle availability'));
 		}
+	}
+
+	function duplicateItem(item: MenuItem) {
+		formName = item.name + ' (Copy)';
+		formDescription = item.description || '';
+		formPrice = item.price.toString();
+		formCategory = item.categoryId;
+		formAvailable = item.isAvailable;
+		formImage = item.image || '';
+		formIsVegetarian = item.isVegetarian || false;
+		useImageUrl = item.image ? !item.image.startsWith('data:') : false;
+		showAddDialog = true;
 	}
 
 	async function addCategory() {
@@ -191,7 +234,7 @@
 			newCategoryName = '';
 			toast.success('Category added successfully');
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to add category');
+			toast.error(userFriendlyError(error, 'Failed to add category'));
 		} finally {
 			isSubmitting = false;
 		}
@@ -204,7 +247,7 @@
 			categories = result.categories;
 			toast.success('Default categories created successfully');
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to seed categories');
+			toast.error(userFriendlyError(error, 'Failed to seed categories'));
 		} finally {
 			isSubmitting = false;
 		}
@@ -254,15 +297,17 @@
 						/>
 					</div>
 
-					<select
-						bind:value={categoryFilter}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="all">All Categories</option>
-						{#each categories as category}
-							<option value={category.id}>{category.name}</option>
-						{/each}
-					</select>
+					<Select.Root type="single" bind:value={categoryFilter}>
+						<Select.Trigger class="w-[180px]">
+							{categoryFilterLabel}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="all">All Categories</Select.Item>
+							{#each categories as category}
+								<Select.Item value={category.id}>{category.name}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
 				</div>
 
 				<div class="flex gap-2">
@@ -278,7 +323,7 @@
 			</div>
 
 			<!-- Items Table -->
-			<div class="rounded-md border">
+			<div class="overflow-x-auto rounded-md border">
 				<Table.Root>
 					<Table.Header>
 						<Table.Row>
@@ -295,7 +340,7 @@
 							<Table.Row>
 								<Table.Cell>
 									{#if item.image}
-										<img src={item.image} alt={item.name} class="h-10 w-10 rounded object-cover" />
+										<img src={item.image} alt={item.name} loading="lazy" class="h-10 w-10 rounded object-cover" />
 									{:else}
 										<div
 											class="flex h-10 w-10 items-center justify-center rounded bg-muted text-xs"
@@ -313,21 +358,29 @@
 									</div>
 								</Table.Cell>
 								<Table.Cell>{getCategoryName(item.categoryId)}</Table.Cell>
-								<Table.Cell>${item.price.toFixed(2)}</Table.Cell>
+								<Table.Cell>{formatCurrency(item.price)}</Table.Cell>
 								<Table.Cell>
-									<Badge variant={item.isAvailable ? 'default' : 'secondary'}>
-										{item.isAvailable ? 'Available' : 'Unavailable'}
-									</Badge>
+									<StatusPill
+										label={item.isAvailable ? 'Available' : 'Unavailable'}
+										status={item.isAvailable ? 'success' : 'error'}
+									/>
 								</Table.Cell>
 								<Table.Cell class="text-right">
 									<div class="flex justify-end gap-2">
-										<Button variant="ghost" size="sm" onclick={() => toggleAvailability(item.id)}>
-											<IconEye class="h-4 w-4" />
+										<Button variant="ghost" size="icon" onclick={() => toggleAvailability(item.id)} title={item.isAvailable ? 'Hide item' : 'Show item'}>
+											{#if item.isAvailable}
+												<IconEyeOff class="h-4 w-4" />
+											{:else}
+												<IconEye class="h-4 w-4" />
+											{/if}
 										</Button>
-										<Button variant="ghost" size="sm" onclick={() => openEditDialog(item)}>
+										<Button variant="ghost" size="icon" onclick={() => duplicateItem(item)} title="Duplicate item">
+											<IconCopy class="h-4 w-4" />
+										</Button>
+										<Button variant="ghost" size="icon" onclick={() => openEditDialog(item)} title="Edit item">
 											<IconEdit class="h-4 w-4" />
 										</Button>
-										<Button variant="ghost" size="sm" onclick={() => deleteItem(item.id)}>
+										<Button variant="ghost" size="icon" onclick={() => deleteItem(item.id)} title="Delete item">
 											<IconTrash class="h-4 w-4" />
 										</Button>
 									</div>
@@ -339,35 +392,53 @@
 			</div>
 
 			{#if filteredItems.length === 0}
-				<div class="flex flex-col items-center justify-center py-12 text-center">
-					<IconSearch class="h-12 w-12 text-muted-foreground" />
-					<h3 class="mt-4 text-lg font-semibold">No items found</h3>
-					<p class="text-muted-foreground">
-						{#if categories.length === 0}
-							Create categories first before adding items.
-						{:else if menuItems.length === 0}
-							Get started by adding your first {businessType === 'retail'
-								? 'product'
-								: 'menu item'}.
-						{:else}
-							Try adjusting your search or filter.
-						{/if}
-					</p>
-					{#if categories.length === 0}
-						<div class="mt-4 flex gap-2">
-							<Button variant="outline" onclick={() => (showAddCategoryDialog = true)}>
-								Add Category Manually
-							</Button>
-							<Button onclick={seedCategories} disabled={isSubmitting}>
-								{#if isSubmitting}
-									<Loader2 class="mr-2 h-4 w-4 animate-spin" />
-								{/if}
-								Use Default Categories
-							</Button>
-						</div>
-					{/if}
-				</div>
+				{#if categories.length === 0}
+					<EmptyState
+						type="empty"
+						title="No categories yet"
+						description="Create categories first before adding items."
+					>
+						{#snippet children()}
+							<div class="flex gap-2">
+								<Button variant="outline" onclick={() => (showAddCategoryDialog = true)}>
+									Add Category Manually
+								</Button>
+								<Button onclick={seedCategories} disabled={isSubmitting}>
+									{#if isSubmitting}
+										<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+									{/if}
+									Use Default Categories
+								</Button>
+							</div>
+						{/snippet}
+					</EmptyState>
+				{:else if menuItems.length === 0}
+					<EmptyState
+						type="empty"
+						title="No {businessType === 'retail' ? 'products' : 'menu items'} yet"
+						description="Get started by adding your first {businessType === 'retail' ? 'product' : 'menu item'}."
+						actionLabel="Add {businessType === 'retail' ? 'Product' : 'Item'}"
+						onAction={openAddDialog}
+					/>
+				{:else}
+					<EmptyState
+						type="no-results"
+						title="No items found"
+						description="Try adjusting your search or filter."
+					/>
+				{/if}
 			{/if}
+						<div class="flex items-center justify-between border-t pt-4">
+				<p class="text-sm text-muted-foreground">
+					Showing {Math.min((data.page - 1) * data.limit + 1, data.total)} to {Math.min(data.page * data.limit, data.total)} of {data.total} results
+				</p>
+				<div class="flex gap-1">
+					<Button size="sm" variant="outline" disabled={data.page <= 1}
+						onclick={() => goto(`?page=${data.page - 1}&limit=${data.limit}`)}>Previous</Button>
+					<Button size="sm" variant="outline" disabled={data.page >= data.totalPages}
+						onclick={() => goto(`?page=${data.page + 1}&limit=${data.limit}`)}>Next</Button>
+				</div>
+			</div>
 		</div>
 	</div>
 </div>
@@ -385,27 +456,31 @@
 		<div class="grid gap-4 py-4">
 			<div class="grid grid-cols-4 items-center gap-4">
 				<label for="add-name" class="text-right">Name *</label>
-				<Input id="add-name" bind:value={formName} class="col-span-3" />
+				<Input id="add-name" autofocus bind:value={formName} class="col-span-3" />
 			</div>
-			<div class="grid grid-cols-4 items-center gap-4">
-				<label for="add-description" class="text-right">Description</label>
-				<Input id="add-description" bind:value={formDescription} class="col-span-3" />
+			<div class="grid grid-cols-4 items-start gap-4">
+				<label for="add-description" class="pt-2 text-right">Description</label>
+				<Textarea id="add-description" bind:value={formDescription} rows={3} class="col-span-3" />
 			</div>
 			<div class="grid grid-cols-4 items-center gap-4">
 				<label for="add-price" class="text-right">Price *</label>
 				<Input id="add-price" type="number" step="0.01" bind:value={formPrice} class="col-span-3" />
 			</div>
 			<div class="grid grid-cols-4 items-center gap-4">
-				<label for="add-category" class="text-right">Category *</label>
-				<select
-					bind:value={formCategory}
-					id="add-category"
-					class="col-span-3 rounded border border-input bg-background px-2 py-1"
-				>
-					{#each categories as cat}
-						<option value={cat.id}>{cat.name}</option>
-					{/each}
-				</select>
+				<!-- svelte-ignore a11y_label_has_associated_control -->
+				<label class="text-right">Category *</label>
+				<div class="col-span-3">
+					<Select.Root type="single" bind:value={formCategory}>
+						<Select.Trigger class="w-full">
+							{formCategoryLabel}
+						</Select.Trigger>
+						<Select.Content>
+							{#each categories as cat}
+								<Select.Item value={cat.id}>{cat.name}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
 			</div>
 			<div class="grid grid-cols-4 items-start gap-4">
 				<label class="pt-2 text-right">Image</label>
@@ -434,6 +509,9 @@
 					</div>
 					{#if useImageUrl}
 						<Input placeholder="https://example.com/image.jpg" bind:value={formImage} />
+						{#if formImage && !formImage.startsWith('data:')}
+							<img src={formImage} alt="Preview" class="h-24 w-24 rounded-md object-cover" onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} onload={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'block'; }} />
+						{/if}
 					{:else}
 						<ImageCropper.Root
 							bind:src={formImage}
@@ -487,11 +565,11 @@
 		<div class="grid gap-4 py-4">
 			<div class="grid grid-cols-4 items-center gap-4">
 				<label for="edit-name" class="text-right">Name *</label>
-				<Input id="edit-name" bind:value={formName} class="col-span-3" />
+				<Input id="edit-name" autofocus bind:value={formName} class="col-span-3" />
 			</div>
-			<div class="grid grid-cols-4 items-center gap-4">
-				<label for="edit-description" class="text-right">Description</label>
-				<Input id="edit-description" bind:value={formDescription} class="col-span-3" />
+			<div class="grid grid-cols-4 items-start gap-4">
+				<label for="edit-description" class="pt-2 text-right">Description</label>
+				<Textarea id="edit-description" bind:value={formDescription} rows={3} class="col-span-3" />
 			</div>
 			<div class="grid grid-cols-4 items-center gap-4">
 				<label for="edit-price" class="text-right">Price *</label>
@@ -504,16 +582,20 @@
 				/>
 			</div>
 			<div class="grid grid-cols-4 items-center gap-4">
-				<label for="edit-category" class="text-right">Category *</label>
-				<select
-					bind:value={formCategory}
-					id="edit-category"
-					class="col-span-3 rounded border border-input bg-background px-2 py-1"
-				>
-					{#each categories as cat}
-						<option value={cat.id}>{cat.name}</option>
-					{/each}
-				</select>
+				<!-- svelte-ignore a11y_label_has_associated_control -->
+				<label class="text-right">Category *</label>
+				<div class="col-span-3">
+					<Select.Root type="single" bind:value={formCategory}>
+						<Select.Trigger class="w-full">
+							{formCategoryLabel}
+						</Select.Trigger>
+						<Select.Content>
+							{#each categories as cat}
+								<Select.Item value={cat.id}>{cat.name}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
 			</div>
 			<div class="grid grid-cols-4 items-start gap-4">
 				<label class="pt-2 text-right">Image</label>
@@ -542,6 +624,9 @@
 					</div>
 					{#if useImageUrl}
 						<Input placeholder="https://example.com/image.jpg" bind:value={formImage} />
+						{#if formImage && !formImage.startsWith('data:')}
+							<img src={formImage} alt="Preview" class="h-24 w-24 rounded-md object-cover" onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} onload={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'block'; }} />
+						{/if}
 					{:else}
 						<ImageCropper.Root
 							bind:src={formImage}
@@ -593,7 +678,7 @@
 		<div class="grid gap-4 py-4">
 			<div class="grid grid-cols-4 items-center gap-4">
 				<label for="category-name" class="text-right">Name *</label>
-				<Input id="category-name" bind:value={newCategoryName} class="col-span-3" />
+				<Input id="category-name" autofocus bind:value={newCategoryName} class="col-span-3" />
 			</div>
 		</div>
 
@@ -608,3 +693,12 @@
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
+
+<ConfirmDialog
+	bind:open={deleteDialogOpen}
+	title="Delete Menu Item"
+	description="Are you sure you want to delete this menu item? This action cannot be undone."
+	confirmLabel="Delete Item"
+	variant="destructive"
+	onConfirm={confirmDeleteItem}
+/>

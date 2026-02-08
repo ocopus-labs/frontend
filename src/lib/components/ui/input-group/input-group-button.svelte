@@ -21,8 +21,9 @@
 
 <script lang="ts">
 	import { cn } from "$lib/utils.js";
-	import type { ComponentProps } from "svelte";
-	import { Button } from "$lib/components/ui/button/index.js";
+	import type { Snippet } from "svelte";
+	import { Button, type ButtonProps } from "$lib/components/ui/button/index.js";
+	import type { HTMLButtonAttributes } from "svelte/elements";
 
 	let {
 		ref = $bindable(null),
@@ -32,9 +33,13 @@
 		variant = "ghost",
 		size = "xs",
 		...restProps
-	}: Omit<ComponentProps<typeof Button>, "href" | "size"> & {
+	}: HTMLButtonAttributes & {
+		ref?: HTMLElement | null;
+		children?: Snippet;
+		variant?: ButtonProps["variant"];
 		size?: InputGroupButtonSize;
 	} = $props();
+	const btnProps = restProps as Record<string, unknown>;
 </script>
 
 <Button
@@ -43,7 +48,7 @@
 	data-size={size}
 	{variant}
 	class={cn(inputGroupButtonVariants({ size }), className)}
-	{...restProps}
+	{...btnProps}
 >
 	{@render children?.()}
 </Button>

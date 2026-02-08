@@ -87,6 +87,7 @@ export interface CreatePaymentPayload {
   orderId: string;
   amount: number;
   method: PaymentMethod;
+  idempotencyKey?: string;
   customerInfo?: {
     name?: string;
     phone?: string;
@@ -143,7 +144,11 @@ export async function createPayment(
   remainingBalance: number;
 }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.post(`/business/${businessId}/payments`, data);
+  const payload = {
+    ...data,
+    idempotencyKey: data.idempotencyKey || crypto.randomUUID(),
+  };
+  return api.post(`/business/${businessId}/payments`, payload);
 }
 
 export async function createSplitPayment(
@@ -238,4 +243,57 @@ export async function processRefund(
 }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.post(`/business/${businessId}/payments/${paymentId}/refund`, data);
+}
+
+export interface Refund {
+  id: string;
+  paymentId: string;
+  restaurantId: string;
+  amount: number;
+  reason: string;
+  method: string;
+  refundedBy: string;
+  refundedAt: string;
+  createdAt: string;
+}
+
+export async function getRefunds(
+  businessId: string,
+  paymentId: string,
+  params?: { limit?: number; offset?: number },
+  options?: FetchOption
+): Promise<{ refunds: Refund[]; total: number }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  const searchParams = new URLSearchParams();
+  if (params?.limit !== undefined) searchParams.set('limit', String(params.limit));
+  if (params?.offset !== undefined) searchParams.set('offset', String(params.offset));
+  const query = searchParams.toString();
+  return api.get(`/business/${businessId}/payments/${paymentId}/refunds${query ? `?${query}` : ''}`);
+}
+
+export async function deletePayment(
+  businessId: string,
+  paymentId: string,
+  options?: FetchOption
+): Promise<{ message: string; payment: Payment }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.delete(`/business/${businessId}/payments/${paymentId}`);
+}
+
+// ==================== EXPORT ====================
+
+export async function exportPayments(
+  businessId: string,
+  params?: { status?: string; method?: string; startDate?: string; endDate?: string }
+): Promise<Blob> {
+  const searchParams = new URLSearchParams();
+  if (params?.status) searchParams.set('status', params.status);
+  if (params?.method) searchParams.set('method', params.method);
+  if (params?.startDate) searchParams.set('startDate', params.startDate);
+  if (params?.endDate) searchParams.set('endDate', params.endDate);
+  const query = searchParams.toString();
+  const url = `/api/business/${businessId}/payments/export${query ? `?${query}` : ''}`;
+  const res = await fetch(url, { credentials: 'include' });
+  if (!res.ok) throw new Error('Export failed');
+  return res.blob();
 }

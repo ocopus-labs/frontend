@@ -1,10 +1,12 @@
 <script lang="ts">
+	import type { PageData } from './$types';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
 	import { Badge } from '$lib/components/ui/badge';
-	import BarChart from '$lib/components/chart/bar-chart.svelte';
-	import PieChart from '$lib/components/chart/pie-chart.svelte';
+	import BarChart from '$lib/components/chart/lazy-bar-chart.svelte';
+	import PieChart from '$lib/components/chart/lazy-pie-chart.svelte';
+	import { goto } from '$app/navigation';
 	import {
 		IconChevronLeft,
 		IconChevronRight,
@@ -12,56 +14,108 @@
 		IconTrendingUp,
 		IconTrendingDown
 	} from '@tabler/icons-svelte';
+	import { toast } from 'svelte-sonner';
+	import type { Expense, ExpenseSummary, ExpenseCategory } from '$lib/api';
+	import { exportExpenses } from '$lib/api/expense';
+	import { downloadBlob } from '$lib/utils/export';
+	import { userFriendlyError } from '$lib/utils/error';
+	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
+	import type { CurrencyCode } from '$lib/utils/i18n';
 
-	// Dummy monthly data
-	let selectedMonth = $state('2024-11');
+	let { data }: { data: PageData } = $props();
 
-	const monthlyData = {
-		'2024-11': {
-			total: 12450.75,
-			budget: 15000,
-			previousMonth: 11890.25,
-			categories: [
-				{ name: 'Inventory', amount: 5200.5, budget: 6000, percentage: 41.8 },
-				{ name: 'Utilities', amount: 1850.0, budget: 2000, percentage: 14.9 },
-				{ name: 'Staff', amount: 2100.0, budget: 2500, percentage: 16.9 },
-				{ name: 'Maintenance', amount: 890.25, budget: 1000, percentage: 7.1 },
-				{ name: 'Supplies', amount: 650.0, budget: 800, percentage: 5.2 },
-				{ name: 'Marketing', amount: 450.0, budget: 500, percentage: 3.6 },
-				{ name: 'Rent', amount: 1200.0, budget: 1200, percentage: 9.6 },
-				{ name: 'Other', amount: 110.0, budget: 200, percentage: 0.9 }
-			],
-			weeklyBreakdown: [
-				{ week: 'Week 1', amount: 3250.5 },
-				{ week: 'Week 2', amount: 2890.25 },
-				{ week: 'Week 3', amount: 3450.0 },
-				{ week: 'Week 4', amount: 2860.0 }
-			],
-			topExpenses: [
-				{ description: 'Weekly produce order', category: 'Inventory', amount: 1250.0, date: 'Nov 4' },
-				{ description: 'Monthly rent', category: 'Rent', amount: 1200.0, date: 'Nov 1' },
-				{ description: 'Staff salaries', category: 'Staff', amount: 1100.0, date: 'Nov 15' },
-				{ description: 'Electricity bill', category: 'Utilities', amount: 890.0, date: 'Nov 5' },
-				{ description: 'Meat supplier payment', category: 'Inventory', amount: 750.0, date: 'Nov 8' }
-			]
+	let expenses = $state<Expense[]>(data.expenses || []);
+	let summary = $state<ExpenseSummary>(data.summary);
+	let categories = $state<ExpenseCategory[]>(data.categories || []);
+	let selectedMonth = $state(data.selectedMonth);
+
+	// Calculate category breakdown from expenses
+	const categoryBreakdown = $derived(() => {
+		const breakdown: { name: string; amount: number; color: string; percentage: number }[] = [];
+		const categoryMap = new Map<string, { amount: number; color: string }>();
+
+		// Build a lookup for category names
+		const categoryLookup = new Map(categories.map((c) => [c.id, c]));
+
+		// Sum expenses by category
+		for (const expense of expenses) {
+			const cat = categoryLookup.get(expense.categoryId);
+			const key = cat?.name || 'Other';
+			const color = cat?.color || '#6b7280';
+			const existing = categoryMap.get(key);
+			if (existing) {
+				existing.amount += expense.amount;
+			} else {
+				categoryMap.set(key, { amount: expense.amount, color });
+			}
 		}
-	};
 
-	const currentData = $derived(monthlyData['2024-11']);
-	const budgetUsed = $derived((currentData.total / currentData.budget) * 100);
-	const monthChange = $derived(
-		((currentData.total - currentData.previousMonth) / currentData.previousMonth) * 100
-	);
+		// Convert to array with percentages
+		const total = summary.totalAmount || 1;
+		for (const [name, { amount, color }] of categoryMap) {
+			breakdown.push({
+				name,
+				amount,
+				color,
+				percentage: (amount / total) * 100
+			});
+		}
+
+		// Sort by amount descending
+		return breakdown.sort((a, b) => b.amount - a.amount);
+	});
+
+	// Get top expenses sorted by amount
+	const topExpenses = $derived(() => {
+		const categoryLookup = new Map(categories.map((c) => [c.id, c]));
+		return [...expenses]
+			.sort((a, b) => b.amount - a.amount)
+			.slice(0, 5)
+			.map((e) => ({
+				description: e.title,
+				category: categoryLookup.get(e.categoryId)?.name || 'Other',
+				amount: e.amount,
+				date: new Date(e.expenseDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+			}));
+	});
+
+	// Calculate month-over-month change using monthlyTrend
+	const monthChange = $derived(() => {
+		if (summary.monthlyTrend && summary.monthlyTrend.length >= 2) {
+			const current = summary.monthlyTrend[summary.monthlyTrend.length - 1]?.amount || 0;
+			const previous = summary.monthlyTrend[summary.monthlyTrend.length - 2]?.amount || 1;
+			return ((current - previous) / previous) * 100;
+		}
+		return 0;
+	});
+
+	// Days in the selected month
+	const daysInMonth = $derived(() => {
+		const [year, month] = selectedMonth.split('-').map(Number);
+		return new Date(year, month, 0).getDate();
+	});
+
+	// Daily average
+	const dailyAverage = $derived(summary.totalAmount / daysInMonth());
 
 	function previousMonth() {
-		selectedMonth = '2024-10';
+		const [year, month] = selectedMonth.split('-').map(Number);
+		const date = new Date(year, month - 2, 1);
+		const newMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+		goto(`?month=${newMonth}`);
 	}
 
 	function nextMonth() {
-		selectedMonth = '2024-11';
+		const [year, month] = selectedMonth.split('-').map(Number);
+		const date = new Date(year, month, 1);
+		const newMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+		goto(`?month=${newMonth}`);
 	}
 
-	function getCategoryColor(category: string) {
+	function getCategoryColor(categoryName: string): string {
+		const cat = categories.find((c) => c.name === categoryName);
+		if (cat?.color) return cat.color;
+		// Fallback colors
 		const colors: Record<string, string> = {
 			Inventory: 'bg-blue-500',
 			Utilities: 'bg-yellow-500',
@@ -72,13 +126,33 @@
 			Rent: 'bg-red-500',
 			Other: 'bg-gray-500'
 		};
-		return colors[category] || 'bg-gray-500';
+		return colors[categoryName] || 'bg-gray-500';
+	}
+
+	async function handleExportExpenses() {
+		try {
+			const [year, month] = selectedMonth.split('-').map(Number);
+			const startDate = `${selectedMonth}-01`;
+			const endOfMonth = new Date(year, month, 0).getDate();
+			const endDate = `${selectedMonth}-${String(endOfMonth).padStart(2, '0')}`;
+			const blob = await exportExpenses(data.businessId, { startDate, endDate });
+			downloadBlob(blob, `expenses-${selectedMonth}.csv`);
+			toast.success('Expenses exported successfully');
+		} catch (err) {
+			toast.error(userFriendlyError(err, 'Failed to export expenses'));
+		}
 	}
 
 	function formatMonth(monthStr: string) {
 		const [year, month] = monthStr.split('-');
 		const date = new Date(parseInt(year), parseInt(month) - 1);
 		return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+	}
+
+	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
+
+	function formatCurrency(amount: number): string {
+		return i18nFormatCurrency(amount, currency);
 	}
 </script>
 
@@ -100,7 +174,7 @@
 					<Button variant="outline" size="sm" onclick={nextMonth}>
 						<IconChevronRight class="h-4 w-4" />
 					</Button>
-					<Button variant="outline">
+					<Button variant="outline" onclick={handleExportExpenses}>
 						<IconDownload class="mr-2 h-4 w-4" />
 						Export
 					</Button>
@@ -114,14 +188,14 @@
 						<Card.Title class="text-sm font-medium">Total Expenses</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold text-red-600">${currentData.total.toFixed(2)}</div>
+						<div class="text-2xl font-bold text-destructive">{formatCurrency(summary.totalAmount)}</div>
 						<div class="flex items-center gap-1 text-sm">
-							{#if monthChange > 0}
-								<IconTrendingUp class="h-4 w-4 text-red-500" />
-								<span class="text-red-500">+{monthChange.toFixed(1)}%</span>
+							{#if monthChange() > 0}
+								<IconTrendingUp class="h-4 w-4 text-destructive" />
+								<span class="text-destructive">+{monthChange().toFixed(1)}%</span>
 							{:else}
-								<IconTrendingDown class="h-4 w-4 text-green-500" />
-								<span class="text-green-500">{monthChange.toFixed(1)}%</span>
+								<IconTrendingDown class="h-4 w-4 text-success" />
+								<span class="text-success">{monthChange().toFixed(1)}%</span>
 							{/if}
 							<span class="text-muted-foreground">vs last month</span>
 						</div>
@@ -130,31 +204,23 @@
 
 				<Card.Root>
 					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Monthly Budget</Card.Title>
+						<Card.Title class="text-sm font-medium">Pending Approval</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold">${currentData.budget.toFixed(2)}</div>
-						<div class="mt-2 h-2 w-full rounded-full bg-muted">
-							<div
-								class="h-full rounded-full {budgetUsed > 90 ? 'bg-red-500' : budgetUsed > 75 ? 'bg-yellow-500' : 'bg-green-500'}"
-								style="width: {Math.min(budgetUsed, 100)}%"
-							></div>
-						</div>
-						<p class="mt-1 text-sm text-muted-foreground">{budgetUsed.toFixed(1)}% used</p>
+						<div class="text-2xl font-bold text-warning">{formatCurrency(summary.pendingAmount)}</div>
+						<p class="text-sm text-muted-foreground">awaiting review</p>
 					</Card.Content>
 				</Card.Root>
 
 				<Card.Root>
 					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Remaining Budget</Card.Title>
+						<Card.Title class="text-sm font-medium">Approved</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold text-green-600">
-							${(currentData.budget - currentData.total).toFixed(2)}
+						<div class="text-2xl font-bold text-info">
+							{formatCurrency(summary.approvedAmount)}
 						</div>
-						<p class="text-sm text-muted-foreground">
-							${((currentData.budget - currentData.total) / 30).toFixed(2)}/day remaining
-						</p>
+						<p class="text-sm text-muted-foreground">ready for payment</p>
 					</Card.Content>
 				</Card.Root>
 
@@ -163,7 +229,7 @@
 						<Card.Title class="text-sm font-medium">Daily Average</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold">${(currentData.total / 30).toFixed(2)}</div>
+						<div class="text-2xl font-bold">{formatCurrency(dailyAverage)}</div>
 						<p class="text-sm text-muted-foreground">per day this month</p>
 					</Card.Content>
 				</Card.Root>
@@ -173,7 +239,7 @@
 			<div class="grid grid-cols-1 gap-4 px-6 lg:grid-cols-2">
 				<Card.Root>
 					<Card.Header>
-						<Card.Title>Weekly Breakdown</Card.Title>
+						<Card.Title>Monthly Trend</Card.Title>
 					</Card.Header>
 					<Card.Content>
 						<BarChart />
@@ -195,32 +261,46 @@
 				<Card.Root>
 					<Card.Header>
 						<Card.Title>Category Breakdown</Card.Title>
-						<Card.Description>Expenses compared to budget by category</Card.Description>
+						<Card.Description>Expenses by category for this month</Card.Description>
 					</Card.Header>
 					<Card.Content>
-						<div class="space-y-4">
-							{#each currentData.categories as category}
-								{@const budgetUsedCat = (category.amount / category.budget) * 100}
-								<div class="space-y-2">
-									<div class="flex items-center justify-between text-sm">
-										<div class="flex items-center gap-2">
-											<div class="h-3 w-3 rounded-full {getCategoryColor(category.name)}"></div>
-											<span class="font-medium">{category.name}</span>
+						{#if categoryBreakdown().length > 0}
+							<div class="space-y-4">
+								{#each categoryBreakdown() as category}
+									<div class="space-y-2">
+										<div class="flex items-center justify-between text-sm">
+											<div class="flex items-center gap-2">
+												<div
+													class="h-3 w-3 rounded-full"
+													style="background-color: {category.color.startsWith('#') ? category.color : ''}"
+													class:bg-blue-500={category.color === 'bg-blue-500'}
+													class:bg-yellow-500={category.color === 'bg-yellow-500'}
+													class:bg-green-500={category.color === 'bg-green-500'}
+													class:bg-orange-500={category.color === 'bg-orange-500'}
+													class:bg-purple-500={category.color === 'bg-purple-500'}
+													class:bg-pink-500={category.color === 'bg-pink-500'}
+													class:bg-red-500={category.color === 'bg-red-500'}
+													class:bg-gray-500={category.color === 'bg-gray-500'}
+												></div>
+												<span class="font-medium">{category.name}</span>
+											</div>
+											<div class="text-right">
+												<span class="font-medium">{formatCurrency(category.amount)}</span>
+												<span class="text-muted-foreground"> ({category.percentage.toFixed(1)}%)</span>
+											</div>
 										</div>
-										<div class="text-right">
-											<span class="font-medium">${category.amount.toFixed(2)}</span>
-											<span class="text-muted-foreground"> / ${category.budget.toFixed(2)}</span>
+										<div class="h-2 w-full rounded-full bg-muted">
+											<div
+												class="h-full rounded-full bg-primary"
+												style="width: {Math.min(category.percentage, 100)}%; background-color: {category.color.startsWith('#') ? category.color : ''}"
+											></div>
 										</div>
 									</div>
-									<div class="h-2 w-full rounded-full bg-muted">
-										<div
-											class="h-full rounded-full {budgetUsedCat > 100 ? 'bg-red-500' : budgetUsedCat > 80 ? 'bg-yellow-500' : 'bg-green-500'}"
-											style="width: {Math.min(budgetUsedCat, 100)}%"
-										></div>
-									</div>
-								</div>
-							{/each}
-						</div>
+								{/each}
+							</div>
+						{:else}
+							<p class="py-8 text-center text-muted-foreground">No expenses recorded this month</p>
+						{/if}
 					</Card.Content>
 				</Card.Root>
 			</div>
@@ -233,37 +313,41 @@
 						<Card.Description>Largest expenses this month</Card.Description>
 					</Card.Header>
 					<Card.Content>
-						<Table.Root>
-							<Table.Header>
-								<Table.Row>
-									<Table.Head>Description</Table.Head>
-									<Table.Head>Category</Table.Head>
-									<Table.Head>Date</Table.Head>
-									<Table.Head class="text-right">Amount</Table.Head>
-								</Table.Row>
-							</Table.Header>
-							<Table.Body>
-								{#each currentData.topExpenses as expense, i}
+						{#if topExpenses().length > 0}
+							<Table.Root>
+								<Table.Header>
 									<Table.Row>
-										<Table.Cell>
-											<div class="flex items-center gap-2">
-												<span class="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-medium">
-													{i + 1}
-												</span>
-												{expense.description}
-											</div>
-										</Table.Cell>
-										<Table.Cell>
-											<Badge variant="outline">{expense.category}</Badge>
-										</Table.Cell>
-										<Table.Cell class="text-muted-foreground">{expense.date}</Table.Cell>
-										<Table.Cell class="text-right font-medium text-red-600">
-											-${expense.amount.toFixed(2)}
-										</Table.Cell>
+										<Table.Head>Description</Table.Head>
+										<Table.Head>Category</Table.Head>
+										<Table.Head>Date</Table.Head>
+										<Table.Head class="text-right">Amount</Table.Head>
 									</Table.Row>
-								{/each}
-							</Table.Body>
-						</Table.Root>
+								</Table.Header>
+								<Table.Body>
+									{#each topExpenses() as expense, i}
+										<Table.Row>
+											<Table.Cell>
+												<div class="flex items-center gap-2">
+													<span class="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-medium">
+														{i + 1}
+													</span>
+													{expense.description}
+												</div>
+											</Table.Cell>
+											<Table.Cell>
+												<Badge variant="outline">{expense.category}</Badge>
+											</Table.Cell>
+											<Table.Cell class="text-muted-foreground">{expense.date}</Table.Cell>
+											<Table.Cell class="text-right font-medium text-destructive">
+												-{formatCurrency(expense.amount)}
+											</Table.Cell>
+										</Table.Row>
+									{/each}
+								</Table.Body>
+							</Table.Root>
+						{:else}
+							<p class="py-8 text-center text-muted-foreground">No expenses recorded this month</p>
+						{/if}
 					</Card.Content>
 				</Card.Root>
 			</div>

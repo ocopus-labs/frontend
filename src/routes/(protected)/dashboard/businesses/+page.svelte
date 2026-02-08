@@ -131,7 +131,7 @@
 							<Table.Cell class="text-right">
 								<DropdownMenu.Root>
 									<DropdownMenu.Trigger>
-										<Button variant="ghost" size="icon" class="size-8" onclick={(e: MouseEvent) => e.stopPropagation()}>
+										<Button variant="ghost" size="icon" class="size-8" onclick={(e: MouseEvent) => e.stopPropagation()} aria-label="Business options">
 											<MoreHorizontal class="size-4" />
 										</Button>
 									</DropdownMenu.Trigger>

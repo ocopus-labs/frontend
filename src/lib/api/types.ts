@@ -30,6 +30,7 @@ export interface BusinessSettings {
   currency: string;
   taxRate?: string;
   businessHours?: Record<string, { open: string; close: string; isClosed?: boolean }>;
+  paymentMethods?: string[];
 }
 
 export interface Business {

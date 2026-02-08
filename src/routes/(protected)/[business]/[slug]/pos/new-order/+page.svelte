@@ -17,10 +17,17 @@
 		OrderSummary,
 		ItemCustomizationDialog,
 		PaymentDialog,
+		TableSelectorDialog,
+		ReceiptDialog,
 		type OrderItemType
 	} from '$lib/components/pos';
 
-	import { createOrder, createPayment, type CreateOrderPayload, type CreateOrderItemPayload, type PaymentMethod } from '$lib/api';
+	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
+	import { EmptyState } from '$lib/components/data-display';
+	import type { Table } from '$lib/api/table';
+
+	import { createOrder, createPayment, createSplitPayment, startTableSession, type CreateOrderPayload, type CreateOrderItemPayload, type PaymentMethod } from '$lib/api';
+	import { currencyToRegion, createI18nUtils } from '$lib/utils/i18n';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
@@ -28,10 +35,19 @@
 	// Get data from load function
 	let { data } = $props();
 
+	// Derive region from business currency settings
+	const region = $derived(currencyToRegion((data.business as any)?.settings?.currency || 'USD'));
+	const i18n = $derived(createI18nUtils(region));
+
 	// Extended order item type with API fields
 	interface ExtendedOrderItem extends OrderItemType {
 		menuItemId: string;
 		basePrice: number;
+		_modifierPrices?: {
+			sizePrice?: number;
+			spiceLevelPrice?: number;
+			addOnPrices?: Record<string, number>;
+		};
 	}
 
 	interface POSMenuItem {
@@ -59,10 +75,87 @@
 	// State variables
 	let selectedCategory = $state('All Items');
 	let searchQuery = $state('');
+	let debouncedSearchQuery = $state('');
 	let orderType = $state<'dine_in' | 'takeaway' | 'delivery'>('dine_in');
-	let selectedTable = $state(1);
+	let selectedTable = $state<Table | null>(null);
 	let showOrderSummary = $state(false);
 	let isSubmitting = $state(false);
+	let showTableSelector = $state(false);
+
+	// Order confirmation dialog state (1.6)
+	let showOrderConfirmation = $state(false);
+
+	// Search debounce (1.14)
+	let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+	$effect(() => {
+		const q = searchQuery;
+		clearTimeout(searchDebounceTimer);
+		searchDebounceTimer = setTimeout(() => {
+			debouncedSearchQuery = q;
+		}, 300);
+		return () => clearTimeout(searchDebounceTimer);
+	});
+
+	// Auto-select table from URL param (Issue 3.1)
+	$effect(() => {
+		const tableId = $page.url.searchParams.get('table');
+		if (tableId && data.tables && !selectedTable) {
+			const match = data.tables.find((t: Table) => t.id === tableId);
+			if (match) {
+				selectedTable = match;
+				orderType = 'dine_in';
+			}
+		}
+	});
+
+	// Cart persistence to sessionStorage (1.11)
+	let isCartInitialized = $state(false);
+	let cartSaveTimer: ReturnType<typeof setTimeout> | undefined;
+
+	$effect(() => {
+		if (isCartInitialized) return;
+		const businessId = (data.business as any)?.id;
+		if (!businessId) return;
+		try {
+			const saved = sessionStorage.getItem(`pos-cart-${businessId}`);
+			if (saved) {
+				const parsed = JSON.parse(saved);
+				if (Array.isArray(parsed) && parsed.length > 0) {
+					orderItems = parsed;
+				}
+			}
+		} catch {
+			// ignore parse errors
+		}
+		isCartInitialized = true;
+	});
+
+	$effect(() => {
+		if (!isCartInitialized) return;
+		const businessId = (data.business as any)?.id;
+		if (!businessId) return;
+		const items = orderItems;
+		clearTimeout(cartSaveTimer);
+		cartSaveTimer = setTimeout(() => {
+			try {
+				if (items.length > 0) {
+					sessionStorage.setItem(`pos-cart-${businessId}`, JSON.stringify(items));
+				} else {
+					sessionStorage.removeItem(`pos-cart-${businessId}`);
+				}
+			} catch {
+				// ignore storage errors
+			}
+		}, 500);
+		return () => clearTimeout(cartSaveTimer);
+	});
+
+	function clearCartStorage() {
+		const businessId = (data.business as any)?.id;
+		if (businessId) {
+			try { sessionStorage.removeItem(`pos-cart-${businessId}`); } catch {}
+		}
+	}
 
 	// Customization dialog state
 	let showCustomizationDialog = $state(false);
@@ -77,7 +170,7 @@
 
 	// Optional fields
 	let showTaxes = $state(true);
-	let taxRate = $state(10);
+	let taxRate = $state(parseFloat((data.business as any)?.settings?.taxRate) || 0);
 	let showDiscount = $state(false);
 	let discountType = $state<'percentage' | 'fixed'>('percentage');
 	let discountValue = $state(0);
@@ -90,7 +183,12 @@
 	let currentBalanceDue = $state(0);
 	let isProcessingPayment = $state(false);
 
-	// Filter menu items by selected category and search
+	// Receipt state
+	let showReceiptDialog = $state(false);
+	let currentPaymentId = $state('');
+	let currentPaymentChange = $state<number | undefined>(undefined);
+
+	// Filter menu items by selected category and search (uses debounced search)
 	const filteredMenuItems = $derived(() => {
 		let items = data.menuItems as POSMenuItem[];
 
@@ -102,9 +200,9 @@
 			}
 		}
 
-		// Filter by search
-		if (searchQuery) {
-			const query = searchQuery.toLowerCase();
+		// Filter by debounced search (1.14)
+		if (debouncedSearchQuery) {
+			const query = debouncedSearchQuery.toLowerCase();
 			items = items.filter((item) =>
 				item.name.toLowerCase().includes(query) ||
 				item.description?.toLowerCase().includes(query)
@@ -115,6 +213,14 @@
 	});
 
 	let orderItems = $state<ExtendedOrderItem[]>([]);
+
+	// Cart quantity map for MenuItemCard badges (1.19)
+	const cartQuantityMap = $derived(
+		orderItems.reduce<Record<string, number>>((map, item) => {
+			map[item.menuItemId] = (map[item.menuItemId] || 0) + item.quantity;
+			return map;
+		}, {})
+	);
 
 	const subtotal = $derived(orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0));
 	const taxes = $derived(showTaxes ? (subtotal * taxRate) / 100 : 0);
@@ -131,7 +237,37 @@
 		selectedCategory = categoryName;
 	}
 
+	// Check if item has any modifiers (1.15)
+	function itemHasModifiers(item: POSMenuItem): boolean {
+		if (!item.modifiers) return false;
+		const m = item.modifiers;
+		return !!(
+			(m.sizes && m.sizes.length > 0) ||
+			(m.spiceLevels && m.spiceLevels.length > 0) ||
+			(m.preparation && m.preparation.length > 0) ||
+			(m.addOns && m.addOns.length > 0) ||
+			(m.removals && m.removals.length > 0)
+		);
+	}
+
 	function addToOrder(item: POSMenuItem) {
+		// Quick-add for items without modifiers (1.15)
+		if (!itemHasModifiers(item)) {
+			const newOrderItem: ExtendedOrderItem = {
+				id: crypto.randomUUID(),
+				name: item.name,
+				price: item.price,
+				quantity: 1,
+				image: item.image,
+				modifiers: {},
+				menuItemId: item.menuItemId,
+				basePrice: item.price
+			};
+			orderItems = [...orderItems, newOrderItem];
+			toast.success(`${item.name} added to cart`);
+			return;
+		}
+
 		selectedItem = item;
 		customizationQuantity = 1;
 		selectedSize = item.modifiers?.sizes?.[0]?.name || '';
@@ -147,23 +283,35 @@
 		if (!selectedItem) return;
 
 		let totalPrice = selectedItem.price;
+		let sizePrice = 0;
+		let spiceLevelPrice = 0;
+		const addOnPrices: Record<string, number> = {};
 
 		if (selectedSize && selectedItem.modifiers?.sizes) {
 			const sizeOption = selectedItem.modifiers.sizes.find((s) => s.name === selectedSize);
-			if (sizeOption) totalPrice += sizeOption.price;
+			if (sizeOption) {
+				sizePrice = sizeOption.price;
+				totalPrice += sizePrice;
+			}
 		}
 
 		if (selectedSpiceLevel && selectedItem.modifiers?.spiceLevels) {
 			const spiceOption = selectedItem.modifiers.spiceLevels.find(
 				(s) => s.name === selectedSpiceLevel
 			);
-			if (spiceOption) totalPrice += spiceOption.price;
+			if (spiceOption) {
+				spiceLevelPrice = spiceOption.price;
+				totalPrice += spiceLevelPrice;
+			}
 		}
 
 		if (selectedItem.modifiers?.addOns) {
 			selectedAddOns.forEach((addOn) => {
 				const addOnOption = selectedItem?.modifiers!.addOns!.find((a) => a.name === addOn);
-				if (addOnOption) totalPrice += addOnOption.price;
+				if (addOnOption) {
+					addOnPrices[addOn] = addOnOption.price;
+					totalPrice += addOnOption.price;
+				}
 			});
 		}
 
@@ -172,6 +320,7 @@
 			name: selectedItem.name,
 			price: totalPrice,
 			quantity: customizationQuantity,
+			image: selectedItem.image,
 			modifiers: {
 				size: selectedSize,
 				spiceLevel: selectedSpiceLevel,
@@ -182,7 +331,12 @@
 			},
 			// Store menu item ID for API submission
 			menuItemId: selectedItem.menuItemId,
-			basePrice: selectedItem.price
+			basePrice: selectedItem.price,
+			_modifierPrices: {
+				sizePrice: sizePrice || undefined,
+				spiceLevelPrice: spiceLevelPrice || undefined,
+				addOnPrices: Object.keys(addOnPrices).length > 0 ? addOnPrices : undefined
+			}
 		};
 
 		orderItems = [...orderItems, newOrderItem];
@@ -190,8 +344,22 @@
 		selectedItem = null;
 	}
 
+	// Undo for removed items (1.9)
 	function removeFromOrder(id: string) {
+		const removedItem = orderItems.find((item) => item.id === id);
+		if (!removedItem) return;
+
 		orderItems = orderItems.filter((item) => item.id !== id);
+
+		toast(`${removedItem.name} removed`, {
+			duration: 5000,
+			action: {
+				label: 'Undo',
+				onClick: () => {
+					orderItems = [...orderItems, removedItem];
+				}
+			}
+		});
 	}
 
 	function updateQuantity(id: string, delta: number) {
@@ -228,7 +396,13 @@
 	}
 
 	function handleOrderTypeChange(type: string) {
-		orderType = type as 'dine_in' | 'takeaway' | 'delivery';
+		// Map UI values to API values
+		const typeMap: Record<string, 'dine_in' | 'takeaway' | 'delivery'> = {
+			'Dine-In': 'dine_in',
+			'Takeaway': 'takeaway',
+			'Delivery': 'delivery'
+		};
+		orderType = typeMap[type] || 'dine_in';
 	}
 
 	function toggleTaxes() {
@@ -239,9 +413,35 @@
 		showDiscount = !showDiscount;
 	}
 
-	async function submitOrder() {
+	// Order confirmation dialog handler (1.6)
+	function handlePlaceOrder() {
 		if (orderItems.length === 0) {
 			toast.error('Please add items to the order');
+			return;
+		}
+
+		if (orderType === 'dine_in' && data.supportsTable && !selectedTable) {
+			toast.error('Please select a table for dine-in orders');
+			showTableSelector = true;
+			return;
+		}
+
+		showOrderConfirmation = true;
+	}
+
+	async function submitOrder() {
+		// Double-submit guard (1.2)
+		if (isSubmitting) return;
+
+		if (orderItems.length === 0) {
+			toast.error('Please add items to the order');
+			return;
+		}
+
+		// Validate table selection for dine-in orders when business supports tables
+		if (orderType === 'dine_in' && data.supportsTable && !selectedTable) {
+			toast.error('Please select a table for dine-in orders');
+			showTableSelector = true;
 			return;
 		}
 
@@ -259,18 +459,18 @@
 					size: item.modifiers.size ? {
 						id: crypto.randomUUID(),
 						name: item.modifiers.size,
-						price: 0
+						price: item._modifierPrices?.sizePrice ?? 0
 					} : undefined,
 					spiceLevel: item.modifiers.spiceLevel ? {
 						id: crypto.randomUUID(),
 						name: item.modifiers.spiceLevel,
-						price: 0
+						price: item._modifierPrices?.spiceLevelPrice ?? 0
 					} : undefined,
 					preparation: item.modifiers.preparation,
 					addOns: item.modifiers.addOns?.map((name) => ({
 						id: crypto.randomUUID(),
 						name,
-						price: 0
+						price: item._modifierPrices?.addOnPrices?.[name] ?? 0
 					})),
 					removals: item.modifiers.removals,
 					specialInstructions: item.modifiers.specialInstructions
@@ -279,7 +479,8 @@
 
 			const orderPayload: CreateOrderPayload = {
 				orderType,
-				tableNumber: orderType === 'dine_in' ? `T${selectedTable}` : undefined,
+				tableId: orderType === 'dine_in' && selectedTable ? selectedTable.id : undefined,
+				tableNumber: orderType === 'dine_in' && selectedTable ? selectedTable.tableNumber : undefined,
 				items,
 				taxRate: showTaxes ? taxRate : 0,
 				discount: showDiscount && discountValue > 0 ? {
@@ -290,6 +491,19 @@
 
 			const result = await createOrder(businessId, orderPayload);
 			toast.success(`Order ${result.order.orderNumber} created successfully!`);
+
+			// Auto-start table session for dine-in orders (Issue 3.2)
+			if (orderType === 'dine_in' && selectedTable) {
+				try {
+					await startTableSession(businessId, selectedTable.id, {
+						orderId: result.order.id,
+						orderNumber: result.order.orderNumber
+					});
+				} catch (err) {
+					// Don't fail order creation if table session start fails
+					console.warn('Failed to start table session:', err);
+				}
+			}
 
 			// Show payment dialog
 			currentOrderId = result.order.id;
@@ -305,6 +519,11 @@
 		} finally {
 			isSubmitting = false;
 		}
+	}
+
+	function handleTableSelect(table: Table) {
+		selectedTable = table;
+		showTableSelector = false;
 	}
 
 	async function handlePaymentComplete(result: {
@@ -326,21 +545,24 @@
 			});
 
 			if (result.change && result.change > 0) {
-				toast.success(`Payment complete! Change: ${result.change.toFixed(2)}`);
+				toast.success(`Payment complete! Change: ${i18n.formatCurrency(result.change)}`, {
+					duration: 10000,
+					closeButton: true
+				});
 			} else {
 				toast.success('Payment processed successfully!');
 			}
 
 			if (paymentResult.remainingBalance <= 0) {
-				// Order fully paid - clear and reset
-				orderItems = [];
+				// Order fully paid - show receipt dialog
+				currentPaymentId = paymentResult.payment.id;
+				currentPaymentChange = result.change;
 				showPaymentDialog = false;
-				currentOrderId = '';
-				currentOrderNumber = '';
+				showReceiptDialog = true;
 			} else {
 				// Partial payment - update balance
 				currentBalanceDue = paymentResult.remainingBalance;
-				toast.info(`Remaining balance: ${paymentResult.remainingBalance.toFixed(2)}`);
+				toast.info(`Remaining balance: ${i18n.formatCurrency(paymentResult.remainingBalance)}`);
 			}
 
 		} catch (error) {
@@ -351,18 +573,68 @@
 		}
 	}
 
+	async function handleSplitPaymentComplete(result: {
+		payments: { method: PaymentMethod; amount: number; cashReceived?: number }[];
+		remainingBalance: number;
+	}) {
+		isProcessingPayment = true;
+
+		try {
+			const businessId = $page.data.business.id;
+
+			const paymentResult = await createSplitPayment(businessId, {
+				orderId: currentOrderId,
+				payments: result.payments.map((p) => ({
+					amount: p.amount,
+					method: p.method,
+					cashReceived: p.cashReceived
+				}))
+			});
+
+			toast.success('Split payment processed successfully!');
+
+			if (paymentResult.remainingBalance <= 0) {
+				// Show receipt for the first payment
+				currentPaymentId = paymentResult.payments[0]?.id || '';
+				currentPaymentChange = undefined;
+				showPaymentDialog = false;
+				showReceiptDialog = true;
+			} else {
+				currentBalanceDue = paymentResult.remainingBalance;
+				toast.info(`Remaining balance: ${i18n.formatCurrency(paymentResult.remainingBalance)}`);
+			}
+		} catch (error) {
+			console.error('Failed to process split payment:', error);
+			toast.error('Failed to process split payment. Please try again.');
+		} finally {
+			isProcessingPayment = false;
+		}
+	}
+
 	function handlePaymentCancel() {
 		showPaymentDialog = false;
 		// Order is created but not paid - notify user
 		toast.info(`Order ${currentOrderNumber} saved. You can pay later from the orders list.`);
 		orderItems = [];
+		clearCartStorage();
 		currentOrderId = '';
 		currentOrderNumber = '';
 	}
 
+	function handleReceiptClose() {
+		showReceiptDialog = false;
+		// Clear order state after receipt is closed
+		orderItems = [];
+		clearCartStorage();
+		currentOrderId = '';
+		currentOrderNumber = '';
+		currentPaymentId = '';
+		currentPaymentChange = undefined;
+	}
+
 	// Transform for legacy MenuItem type expected by components
 	const legacyMenuItem = $derived(selectedItem ? {
-		id: parseInt(selectedItem.id.replace(/\D/g, '').slice(0, 8)) || 1,
+		id: selectedItem.id,
 		name: selectedItem.name,
 		price: selectedItem.price,
 		image: selectedItem.image,
@@ -376,9 +648,9 @@
 		} : undefined
 	} : null);
 
-	// Transform menu items for MenuItemCard component
+	// Transform menu items for MenuItemCard component (1.19 — includes menuItemId for cart qty)
 	const displayMenuItems = $derived(filteredMenuItems().map(item => ({
-		id: parseInt(item.id.replace(/\D/g, '').slice(0, 8)) || 1,
+		id: item.id,
 		name: item.name,
 		price: item.price,
 		image: item.image,
@@ -390,7 +662,8 @@
 			addOns: item.modifiers.addOns?.map(a => ({ name: a.name, price: a.price })),
 			removals: item.modifiers.removals
 		} : undefined,
-		_original: item
+		_original: item,
+		_menuItemId: item.menuItemId
 	})));
 
 	function handleAddToOrderFromCard(item: any) {
@@ -436,15 +709,18 @@
 				<!-- Menu Grid -->
 				<div class="flex-1 overflow-y-auto pb-20 lg:pb-0">
 					{#if displayMenuItems.length === 0}
-						<div class="flex h-64 items-center justify-center text-muted-foreground">
-							<p>No menu items found. {data.menuItems.length === 0 ? 'Add items to your menu first.' : 'Try a different search or category.'}</p>
-						</div>
+						<EmptyState type="no-results" title="No items found" description="Try a different search term." size="sm" />
 					{:else}
 						<div
 							class="grid grid-cols-1 gap-2.5 p-2.5 min-[400px]:grid-cols-2 sm:gap-3 sm:p-3 md:gap-4 md:p-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
 						>
 							{#each displayMenuItems as item}
-								<MenuItemCard {item} onAddToOrder={handleAddToOrderFromCard} />
+								<MenuItemCard
+									{item}
+									onAddToOrder={handleAddToOrderFromCard}
+									{region}
+									cartQuantity={cartQuantityMap[item._menuItemId] || 0}
+								/>
 							{/each}
 						</div>
 					{/if}
@@ -453,12 +729,14 @@
 
 			<!-- Order Summary Section - Desktop: Sidebar -->
 			<div
-				class="hidden lg:block lg:w-[380px] lg:shrink-0 lg:border-l lg:border-border xl:w-[420px]"
+				class="hidden lg:flex lg:w-[380px] lg:shrink-0 lg:flex-col lg:border-l lg:border-border xl:w-[420px]"
 			>
-				<OrderSummary
+				<div class="min-h-0 flex-1 overflow-hidden">
+					<OrderSummary
 					{orderItems}
 					orderType={orderType === 'dine_in' ? 'Dine-In' : orderType === 'takeaway' ? 'Takeaway' : 'Delivery'}
-					{selectedTable}
+					selectedTableDisplay={selectedTable?.displayName || null}
+					showTableSelection={data.supportsTable}
 					{subtotal}
 					{showTaxes}
 					{taxRate}
@@ -473,12 +751,15 @@
 					onUpdateQuantity={updateQuantity}
 					onToggleTaxes={toggleTaxes}
 					onToggleDiscount={toggleDiscount}
+					onTableSelectClick={() => showTableSelector = true}
+					{region}
 				/>
-				<div class="border-t border-border p-4">
+				</div>
+				<div class="shrink-0 border-t border-border p-4">
 					<Button
 						class="w-full"
 						size="lg"
-						onclick={submitOrder}
+						onclick={handlePlaceOrder}
 						disabled={orderItems.length === 0 || isSubmitting}
 					>
 						{isSubmitting ? 'Creating Order...' : 'Place Order'}
@@ -488,14 +769,15 @@
 		</div>
 
 		<!-- Mobile: Order Summary Drawer -->
+		{#if orderItems.length > 0}
 		<Drawer.Root bind:open={showOrderSummary}>
 			<div
 				class="fixed right-0 bottom-0 left-0 z-40 border-t border-border bg-background p-3 lg:hidden"
 			>
 				<Drawer.Trigger class="w-full">
 					<Button class="w-full" size="lg">
-						<span class="flex-1 text-left">View Order ({orderItems.length} items)</span>
-						<span class="font-bold">${totalPayment.toFixed(2)}</span>
+						<span class="flex-1 text-left">View Order ({orderItems.length} {orderItems.length === 1 ? 'item' : 'items'})</span>
+						<span class="font-bold">{i18n.formatCurrency(totalPayment)}</span>
 					</Button>
 				</Drawer.Trigger>
 			</div>
@@ -509,7 +791,8 @@
 						<OrderSummary
 							{orderItems}
 							orderType={orderType === 'dine_in' ? 'Dine-In' : orderType === 'takeaway' ? 'Takeaway' : 'Delivery'}
-							{selectedTable}
+							selectedTableDisplay={selectedTable?.displayName || null}
+							showTableSelection={data.supportsTable}
 							{subtotal}
 							{showTaxes}
 							{taxRate}
@@ -524,13 +807,15 @@
 							onUpdateQuantity={updateQuantity}
 							onToggleTaxes={toggleTaxes}
 							onToggleDiscount={toggleDiscount}
+							onTableSelectClick={() => showTableSelector = true}
+							{region}
 						/>
 					</div>
 					<div class="border-t border-border p-4">
 						<Button
 							class="w-full"
 							size="lg"
-							onclick={submitOrder}
+							onclick={handlePlaceOrder}
 							disabled={orderItems.length === 0 || isSubmitting}
 						>
 							{isSubmitting ? 'Creating Order...' : 'Place Order'}
@@ -539,6 +824,7 @@
 				</Drawer.Content>
 			</Drawer.Portal>
 		</Drawer.Root>
+		{/if}
 	</div>
 </div>
 
@@ -562,6 +848,16 @@
 	onQuantityChange={(delta) => (customizationQuantity = Math.max(1, customizationQuantity + delta))}
 	onConfirm={confirmAddToOrder}
 	onCancel={() => (showCustomizationDialog = false)}
+	{region}
+/>
+
+<!-- Order Confirmation Dialog (1.6) -->
+<ConfirmDialog
+	bind:open={showOrderConfirmation}
+	title="Confirm Order"
+	description="{orderItems.length} item{orderItems.length !== 1 ? 's' : ''} - Total: {i18n.formatCurrency(totalPayment)}"
+	confirmLabel="Place Order"
+	onConfirm={() => submitOrder()}
 />
 
 <!-- Payment Dialog -->
@@ -572,6 +868,28 @@
 	totalAmount={currentOrderTotal}
 	balanceDue={currentBalanceDue}
 	onPaymentComplete={handlePaymentComplete}
+	onSplitPaymentComplete={handleSplitPaymentComplete}
 	onCancel={handlePaymentCancel}
 	isProcessing={isProcessingPayment}
+	{region}
+/>
+
+<!-- Table Selector Dialog -->
+{#if data.supportsTable}
+	<TableSelectorDialog
+		open={showTableSelector}
+		tables={data.tables}
+		selectedTableId={selectedTable?.id || null}
+		onSelect={handleTableSelect}
+		onCancel={() => showTableSelector = false}
+	/>
+{/if}
+
+<!-- Receipt Dialog -->
+<ReceiptDialog
+	open={showReceiptDialog}
+	paymentId={currentPaymentId}
+	change={currentPaymentChange}
+	onClose={handleReceiptClose}
+	{region}
 />

@@ -21,6 +21,12 @@
 	--accent-foreground: oklch(0.2671 0.0196 98.939);
 	--destructive: oklch(0.6368 0.2078 25.3313);
 	--destructive-foreground: oklch(1 0 0);
+	--success: oklch(0.5955 0.1569 145.4647);
+	--success-foreground: oklch(1 0 0);
+	--warning: oklch(0.7686 0.1648 70.0804);
+	--warning-foreground: oklch(0.2 0.04 70);
+	--info: oklch(0.6213 0.1452 245.1089);
+	--info-foreground: oklch(1 0 0);
 	--border: oklch(0.8847 0.0069 97.3627);
 	--input: oklch(0.7621 0.0156 98.3528);
 	--ring: oklch(0.6171 0.1375 39.0427);
@@ -37,11 +43,10 @@
 	--sidebar-accent-foreground: oklch(0.325 0 0);
 	--sidebar-border: oklch(0.9401 0 0);
 	--sidebar-ring: oklch(0.7731 0 0);
-	--font-sans:
-		ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-		'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-		'Segoe UI Symbol', 'Noto Color Emoji';
-	--font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+	--font-sans: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+		Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji',
+		'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+	--font-serif: 'Instrument Serif', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
 	--font-mono:
 		ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
 		monospace;
@@ -81,6 +86,12 @@
 	--accent-foreground: oklch(0.9663 0.008 98.8792);
 	--destructive: oklch(0.6368 0.2078 25.3313);
 	--destructive-foreground: oklch(1 0 0);
+	--success: oklch(0.6455 0.1569 145.4647);
+	--success-foreground: oklch(1 0 0);
+	--warning: oklch(0.8086 0.1648 70.0804);
+	--warning-foreground: oklch(0.2 0.04 70);
+	--info: oklch(0.6613 0.1452 245.1089);
+	--info-foreground: oklch(1 0 0);
 	--border: oklch(0.3618 0.0101 106.8928);
 	--input: oklch(0.4336 0.0113 100.2195);
 	--ring: oklch(0.6724 0.1308 38.7559);
@@ -97,11 +108,10 @@
 	--sidebar-accent-foreground: oklch(0.8074 0.0142 93.0137);
 	--sidebar-border: oklch(0.9401 0 0);
 	--sidebar-ring: oklch(0.7731 0 0);
-	--font-sans:
-		ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-		'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-		'Segoe UI Symbol', 'Noto Color Emoji';
-	--font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+	--font-sans: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+		Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji',
+		'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+	--font-serif: 'Instrument Serif', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
 	--font-mono:
 		ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
 		monospace;
@@ -139,6 +149,12 @@
 	--color-accent-foreground: var(--accent-foreground);
 	--color-destructive: var(--destructive);
 	--color-destructive-foreground: var(--destructive-foreground);
+	--color-success: var(--success);
+	--color-success-foreground: var(--success-foreground);
+	--color-warning: var(--warning);
+	--color-warning-foreground: var(--warning-foreground);
+	--color-info: var(--info);
+	--color-info-foreground: var(--info-foreground);
 	--color-border: var(--border);
 	--color-input: var(--input);
 	--color-ring: var(--ring);
@@ -181,5 +197,196 @@
 	}
 	body {
 		@apply bg-background text-foreground;
+	}
+}
+
+/* ========= Public page animations ========= */
+@keyframes fade-up {
+	from {
+		opacity: 0;
+		transform: translateY(24px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes slide-in-left {
+	from {
+		opacity: 0;
+		transform: translateX(-32px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+@keyframes slide-in-right {
+	from {
+		opacity: 0;
+		transform: translateX(32px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+@keyframes scale-in {
+	from {
+		opacity: 0;
+		transform: scale(0.95);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+@keyframes float {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(-8px);
+	}
+}
+
+@keyframes pulse-soft {
+	0%,
+	100% {
+		opacity: 0.4;
+	}
+	50% {
+		opacity: 0.8;
+	}
+}
+
+@keyframes counter {
+	from {
+		--num: 0;
+	}
+}
+
+.animate-fade-up {
+	animation: fade-up 0.7s ease-out both;
+}
+.animate-fade-in {
+	animation: fade-in 0.6s ease-out both;
+}
+.animate-slide-left {
+	animation: slide-in-left 0.7s ease-out both;
+}
+.animate-slide-right {
+	animation: slide-in-right 0.7s ease-out both;
+}
+.animate-scale-in {
+	animation: scale-in 0.5s ease-out both;
+}
+.animate-float {
+	animation: float 6s ease-in-out infinite;
+}
+.animate-pulse-soft {
+	animation: pulse-soft 4s ease-in-out infinite;
+}
+
+.delay-100 {
+	animation-delay: 100ms;
+}
+.delay-200 {
+	animation-delay: 200ms;
+}
+.delay-300 {
+	animation-delay: 300ms;
+}
+.delay-400 {
+	animation-delay: 400ms;
+}
+.delay-500 {
+	animation-delay: 500ms;
+}
+.delay-600 {
+	animation-delay: 600ms;
+}
+.delay-700 {
+	animation-delay: 700ms;
+}
+.delay-800 {
+	animation-delay: 800ms;
+}
+
+/* Serif display headings for public pages */
+.font-display {
+	font-family: 'Instrument Serif', ui-serif, Georgia, serif;
+}
+
+/* Grain overlay texture */
+.grain-overlay::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+	pointer-events: none;
+	z-index: 1;
+}
+
+/* Dotted grid pattern */
+.dot-grid {
+	background-image: radial-gradient(circle, var(--color-border) 1px, transparent 1px);
+	background-size: 24px 24px;
+}
+
+/* Print styles for receipts */
+@media print {
+	/* Hide everything except the print-only content */
+	body * {
+		visibility: hidden;
+	}
+
+	/* Show only the print-only div and its children */
+	.print-only,
+	.print-only * {
+		visibility: visible;
+	}
+
+	/* Position the print content */
+	.print-only {
+		position: absolute;
+		left: 0;
+		top: 0;
+		width: 80mm;
+		margin: 0;
+		padding: 0;
+	}
+
+	/* Reset page margins for thermal printers */
+	@page {
+		size: 80mm auto;
+		margin: 0;
+	}
+
+	/* Ensure background colors print */
+	* {
+		-webkit-print-color-adjust: exact !important;
+		print-color-adjust: exact !important;
+	}
+
+	/* Hide dialog overlays and backdrops */
+	[data-dialog-overlay],
+	[data-dialog-content],
+	[role="dialog"] {
+		visibility: hidden !important;
 	}
 }

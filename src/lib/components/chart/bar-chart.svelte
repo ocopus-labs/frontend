@@ -6,40 +6,103 @@
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { cubicInOut } from 'svelte/easing';
 
-	const chartData = [
-		{ month: 'January', desktop: 186, mobile: 80 },
-		{ month: 'February', desktop: 305, mobile: 200 },
-		{ month: 'March', desktop: 237, mobile: 120 },
-		{ month: 'April', desktop: 73, mobile: 190 },
-		{ month: 'May', desktop: 209, mobile: 130 },
-		{ month: 'June', desktop: 214, mobile: 140 }
-	];
+	let {
+		data = [] as Record<string, any>[],
+		xKey = 'month',
+		series = [] as { key: string; label: string; color: string }[],
+		title = '',
+		description = '',
+		footerText = '',
+		chartConfig = {} as Chart.ChartConfig
+	}: {
+		data?: Record<string, any>[];
+		xKey?: string;
+		series?: { key: string; label: string; color: string }[];
+		title?: string;
+		description?: string;
+		footerText?: string;
+		chartConfig?: Chart.ChartConfig;
+	} = $props();
 
-	const chartConfig = {
-		desktop: { label: 'Desktop', color: 'var(--chart-1)' },
-		mobile: { label: 'Mobile', color: 'var(--chart-2)' }
-	} satisfies Chart.ChartConfig;
+	// Build chartConfig from series if not explicitly provided
+	const resolvedConfig = $derived.by(() => {
+		if (Object.keys(chartConfig).length > 0) return chartConfig;
+		const config: Record<string, { label: string; color: string }> = {};
+		for (const s of series) {
+			config[s.key] = { label: s.label, color: s.color };
+		}
+		return config as Chart.ChartConfig;
+	});
 
 	let context = $state<ChartContextValue>();
 </script>
 
-<Card.Root>
-	<Card.Header>
-		<Card.Title>Bar Chart - Multiple</Card.Title>
-		<Card.Description>January - June 2024</Card.Description>
-	</Card.Header>
-	<Card.Content>
-		<Chart.Container config={chartConfig}>
+{#if data.length > 0 && series.length > 0}
+	{#if title}
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>{title}</Card.Title>
+				{#if description}
+					<Card.Description>{description}</Card.Description>
+				{/if}
+			</Card.Header>
+			<Card.Content>
+				<Chart.Container class="max-h-96 w-full" config={resolvedConfig}>
+					<BarChart
+						bind:context
+						{data}
+						xScale={scaleBand().padding(0.25)}
+						x={xKey}
+						axis="x"
+						{series}
+						x1Scale={scaleBand().paddingInner(0.2)}
+						seriesLayout="group"
+						rule={false}
+						props={{
+							bars: {
+								stroke: 'none',
+								strokeWidth: 0,
+								rounded: 'all',
+								initialY: context?.height,
+								initialHeight: 0,
+								motion: {
+									y: { type: 'tween', duration: 500, easing: cubicInOut },
+									height: { type: 'tween', duration: 500, easing: cubicInOut }
+								}
+							},
+							highlight: { area: { fill: 'none' } },
+							xAxis: {
+								format: (d) => (typeof d === 'string' && d.length > 3 ? d.slice(0, 3) : String(d))
+							}
+						}}
+					>
+						{#snippet tooltip()}
+							<Chart.Tooltip indicator="dashed" />
+						{/snippet}
+					</BarChart>
+				</Chart.Container>
+			</Card.Content>
+			{#if footerText}
+				<Card.Footer>
+					<div class="flex w-full items-start gap-2 text-sm">
+						<div class="grid gap-2">
+							<div class="flex items-center gap-2 leading-none text-muted-foreground">
+								{footerText}
+							</div>
+						</div>
+					</div>
+				</Card.Footer>
+			{/if}
+		</Card.Root>
+	{:else}
+		<Chart.Container config={resolvedConfig}>
 			<BarChart
 				bind:context
-				data={chartData}
+				{data}
 				xScale={scaleBand().padding(0.25)}
-				x="month"
+				x={xKey}
 				axis="x"
-				series={[
-					{ key: 'desktop', label: 'Desktop', color: chartConfig.desktop.color },
-					{ key: 'mobile', label: 'Mobile', color: chartConfig.mobile.color }
-				]}
+				{series}
 				x1Scale={scaleBand().paddingInner(0.2)}
 				seriesLayout="group"
 				rule={false}
@@ -48,7 +111,6 @@
 						stroke: 'none',
 						strokeWidth: 0,
 						rounded: 'all',
-						// use the height of the chart to animate the bars
 						initialY: context?.height,
 						initialHeight: 0,
 						motion: {
@@ -57,7 +119,9 @@
 						}
 					},
 					highlight: { area: { fill: 'none' } },
-					xAxis: { format: (d) => d.slice(0, 3) }
+					xAxis: {
+						format: (d) => (typeof d === 'string' && d.length > 3 ? d.slice(0, 3) : String(d))
+					}
 				}}
 			>
 				{#snippet tooltip()}
@@ -65,17 +129,9 @@
 				{/snippet}
 			</BarChart>
 		</Chart.Container>
-	</Card.Content>
-	<Card.Footer>
-		<div class="flex w-full items-start gap-2 text-sm">
-			<div class="grid gap-2">
-				<div class="flex items-center gap-2 leading-none font-medium">
-					Trending up by 5.2% this month <TrendingUpIcon class="size-4" />
-				</div>
-				<div class="flex items-center gap-2 leading-none text-muted-foreground">
-					Showing total visitors for the last 6 months
-				</div>
-			</div>
-		</div>
-	</Card.Footer>
-</Card.Root>
+	{/if}
+{:else}
+	<div class="flex flex-col items-center justify-center py-10 text-muted-foreground">
+		<p class="text-sm">No data available</p>
+	</div>
+{/if}

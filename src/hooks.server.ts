@@ -1,27 +1,46 @@
 import { redirect, type Handle } from '@sveltejs/kit';
-
-// Routes that don't require authentication
-const PUBLIC_ROUTES = ['/login', '/register', '/reset-password', '/forget-password', '/contact'];
+import { getSession } from '$lib/auth.server';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const { pathname } = event.url;
 
-	// Check if it's a public route, static asset, or landing page
-	const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
-	const isLandingPage = pathname === '/';
 	const isStaticAsset = pathname.startsWith('/_app') || pathname.startsWith('/favicon');
 	const isApiRoute = pathname.startsWith('/api');
 
-	if (isPublicRoute || isLandingPage || isStaticAsset || isApiRoute) {
+	// Static assets and API routes don't need session
+	if (isStaticAsset || isApiRoute) {
 		return resolve(event);
 	}
 
-	// Check for session cookie
-	const sessionCookie = event.cookies.get('better-auth.session_token');
+	// Fetch session for ALL page routes (public, auth, and protected)
+	const sessionData = await getSession(event.request.headers);
 
-	// If no session and trying to access protected route, redirect to login
-	if (!sessionCookie) {
-		const returnTo = encodeURIComponent(pathname);
+	if (sessionData) {
+		event.locals.session = sessionData.session;
+		event.locals.user = sessionData.user;
+	}
+
+	// Determine if this is a public/auth route (no login required)
+	const isLandingPage = pathname === '/';
+	const isAuthRoute =
+		pathname.startsWith('/login') ||
+		pathname.startsWith('/register') ||
+		pathname.startsWith('/forgot-password') ||
+		pathname.startsWith('/forget-password') ||
+		pathname.startsWith('/reset-password') ||
+		pathname.startsWith('/verify-email');
+	const isPublicRoute =
+		pathname.startsWith('/pricing') ||
+		pathname.startsWith('/about');
+
+	// Public and auth routes don't require login
+	if (isLandingPage || isAuthRoute || isPublicRoute) {
+		return resolve(event);
+	}
+
+	// Protected routes require a valid session
+	if (!sessionData) {
+		const returnTo = encodeURIComponent(pathname + event.url.search);
 		redirect(307, `/login?returnTo=${returnTo}`);
 	}
 

@@ -1,4 +1,6 @@
 export * from './business';
+export * from './subscription';
+export * from './admin';
 export {
   getMenu,
   publishMenu,
@@ -34,6 +36,8 @@ export {
   updateItemStatus,
   removeItemFromOrder,
   applyDiscount,
+  deleteOrder,
+  exportOrders,
   type Order,
   type OrderItem,
   type OrderPricing,
@@ -52,12 +56,16 @@ export {
   getPaymentById,
   generateReceipt,
   processRefund,
+  getRefunds,
+  deletePayment,
+  exportPayments,
   type Payment,
   type PaymentMethod,
   type PaymentStatus,
   type PaymentSummary,
   type Receipt,
   type RefundEntry,
+  type Refund,
   type CreatePaymentPayload,
   type CreateSplitPaymentPayload,
   type SplitPaymentItem,
@@ -76,3 +84,199 @@ export {
   type PeakHour,
   type RevenueTrend
 } from './dashboard';
+
+// Table API
+export {
+  getTables,
+  getTableStats,
+  getTableById,
+  getTableByNumber,
+  createTable,
+  updateTable,
+  updateTableStatus,
+  deleteTable,
+  startTableSession,
+  endTableSession,
+  addMaintenanceLog,
+  type Table,
+  type TableStatus,
+  type TableShape,
+  type TablePosition,
+  type TableDimensions,
+  type TableSettings,
+  type TableSession,
+  type MaintenanceLog,
+  type TableStats,
+  type CreateTablePayload,
+  type UpdateTablePayload,
+  type UpdateTableStatusPayload,
+  type StartTableSessionPayload,
+  type EndTableSessionPayload,
+  type AddMaintenanceLogPayload
+} from './table';
+
+// Reservation API
+export {
+  getReservations,
+  getReservationStats,
+  getReservationById,
+  createReservation,
+  updateReservation,
+  confirmReservation,
+  cancelReservation,
+  seatReservation,
+  completeReservation,
+  deleteReservation,
+  type Reservation,
+  type ReservationStatus,
+  type ReservationStats,
+  type CreateReservationPayload,
+  type UpdateReservationPayload
+} from './table';
+
+// Inventory API
+export {
+  getInventoryItems,
+  getInventoryStats,
+  getLowStockItems,
+  getExpiringItems,
+  getInventoryItemById,
+  getInventoryItemBySku,
+  createInventoryItem,
+  updateInventoryItem,
+  processStockTransaction,
+  deleteInventoryItem,
+  exportInventory,
+  getStockTransactions,
+  type InventoryItem,
+  type InventoryTransaction,
+  type InventoryCategory,
+  type InventoryUnit,
+  type InventoryStatus,
+  type InventoryStats,
+  type StockTransactionType,
+  type CreateInventoryItemPayload,
+  type UpdateInventoryItemPayload,
+  type StockTransactionPayload,
+  // Supplier API
+  getSuppliers,
+  getSupplierStats,
+  getSupplierById,
+  createSupplier,
+  updateSupplier,
+  deleteSupplier,
+  type Supplier,
+  type SupplierStatus,
+  type SupplierStats,
+  type CreateSupplierPayload,
+  type UpdateSupplierPayload
+} from './inventory';
+
+// Expense API
+export {
+  getExpenseCategories,
+  getExpenseCategoryById,
+  createExpenseCategory,
+  updateExpenseCategory,
+  deleteExpenseCategory,
+  getExpenses,
+  getExpenseSummary,
+  getPendingExpenses,
+  getExpenseById,
+  createExpense,
+  updateExpense,
+  deleteExpense,
+  approveExpense,
+  rejectExpense,
+  markExpenseAsPaid,
+  exportExpenses,
+  type Expense,
+  type ExpenseCategory,
+  type ExpenseStatus,
+  type ExpenseSummary,
+  type PaymentMethod as ExpensePaymentMethod,
+  type RecurringFrequency,
+  type CreateExpenseCategoryPayload,
+  type UpdateExpenseCategoryPayload,
+  type CreateExpensePayload,
+  type UpdateExpensePayload,
+  type ApproveExpensePayload,
+  type RejectExpensePayload,
+  type MarkAsPaidPayload
+} from './expense';
+
+// Analytics API
+export {
+  getAnalyticsDashboard,
+  getSalesSummary,
+  getPaymentMethodBreakdown,
+  getTopSellingItemsAnalytics,
+  getHourlyBreakdown,
+  getStaffPerformance,
+  getFullReport,
+  getDailyAnalytics,
+  generateDailyAnalytics,
+  type AnalyticsPeriod,
+  type DashboardAnalytics,
+  type SalesSummary,
+  type PaymentMethodBreakdown,
+  type TopSellingItemAnalytics,
+  type HourlyBreakdown,
+  type StaffPerformance,
+  type DailyTrend,
+  type FullReport,
+  type AnalyticsDaily,
+  type AnalyticsPeriodParams
+} from './analytics';
+
+// Search API
+export {
+  globalSearch,
+  type SearchResult,
+  type SearchResponse
+} from './search';
+
+// Team API
+export {
+  getTeamMembers,
+  getTeamStats,
+  getAvailableRoles,
+  getPermissionTree,
+  getTeamMemberById,
+  inviteTeamMember,
+  addExistingUser,
+  updateTeamMember,
+  updateMemberRole,
+  updateMemberPermissions,
+  suspendTeamMember,
+  reactivateTeamMember,
+  removeTeamMember,
+  exportTeamMembers,
+  type TeamMember,
+  type TeamMemberStatus,
+  type TeamRole,
+  type TeamStats,
+  type RoleInfo,
+  type TeamInvitation,
+  type PermissionCategory,
+  type PermissionTree,
+  type InviteTeamMemberPayload,
+  type AddExistingUserPayload,
+  type UpdateTeamMemberPayload,
+  type UpdateMemberRolePayload,
+  type UpdateMemberPermissionsPayload,
+  type SuspendMemberPayload
+} from './team';
+
+// API Keys
+export {
+  getApiKeys,
+  createApiKey,
+  revokeApiKey,
+  rotateApiKey,
+  AVAILABLE_SCOPES,
+  AVAILABLE_PERMISSIONS,
+  type ApiKey,
+  type CreateApiKeyPayload,
+  type CreateApiKeyResponse,
+} from './api-keys';

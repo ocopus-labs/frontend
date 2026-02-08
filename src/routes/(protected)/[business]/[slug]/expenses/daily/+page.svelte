@@ -1,209 +1,255 @@
 <script lang="ts">
+	import type { PageData } from './$types';
+	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/ui/dialog';
-	import { Badge } from '$lib/components/ui/badge';
+	import { IconLoader2 } from '@tabler/icons-svelte';
+	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
+	import PageHeader from '$lib/components/global/page-header.svelte';
 	import {
 		IconPlus,
 		IconPencil,
 		IconTrash,
 		IconReceipt,
-		IconCalendar
+		IconCalendar,
+		IconCheck,
+		IconX
 	} from '@tabler/icons-svelte';
 	import { toast } from 'svelte-sonner';
+	import * as Select from '$lib/components/ui/select';
+	import { EmptyState, StatusPill } from '$lib/components/data-display';
+	import {
+		createExpense,
+		updateExpense,
+		deleteExpense as deleteExpenseApi,
+		approveExpense,
+		rejectExpense,
+		type Expense,
+		type ExpenseCategory,
+		type ExpensePaymentMethod,
+		type CreateExpensePayload
+	} from '$lib/api';
+	import { formatCurrency as i18nFormatCurrency, CURRENCY_CONFIG } from '$lib/utils/i18n';
+	import type { CurrencyCode } from '$lib/utils/i18n';
+	import { userFriendlyError } from '$lib/utils/error';
 
-	// Dummy daily expenses data
-	let expenses = $state([
-		{
-			id: 1,
-			description: 'Fresh produce delivery',
-			category: 'Inventory',
-			amount: 245.5,
-			paymentMethod: 'Bank Transfer',
-			vendor: 'Local Farms',
-			date: '2024-11-06',
-			receiptNo: 'RCP-001',
-			notes: 'Weekly vegetable order'
-		},
-		{
-			id: 2,
-			description: 'Kitchen equipment repair',
-			category: 'Maintenance',
-			amount: 150.0,
-			paymentMethod: 'Cash',
-			vendor: 'TechFix Services',
-			date: '2024-11-06',
-			receiptNo: 'RCP-002',
-			notes: 'Oven thermostat replacement'
-		},
-		{
-			id: 3,
-			description: 'Staff meal allowance',
-			category: 'Staff',
-			amount: 45.0,
-			paymentMethod: 'Cash',
-			vendor: '-',
-			date: '2024-11-06',
-			receiptNo: '-',
-			notes: 'Daily staff meals'
-		},
-		{
-			id: 4,
-			description: 'Cleaning supplies',
-			category: 'Supplies',
-			amount: 89.99,
-			paymentMethod: 'Card',
-			vendor: 'CleanPro',
-			date: '2024-11-06',
-			receiptNo: 'RCP-003',
-			notes: ''
-		},
-		{
-			id: 5,
-			description: 'Electricity bill payment',
-			category: 'Utilities',
-			amount: 420.0,
-			paymentMethod: 'Bank Transfer',
-			vendor: 'City Power Co.',
-			date: '2024-11-05',
-			receiptNo: 'UTL-001',
-			notes: 'November bill'
-		},
-		{
-			id: 6,
-			description: 'Marketing flyers',
-			category: 'Marketing',
-			amount: 75.0,
-			paymentMethod: 'Card',
-			vendor: 'QuickPrint',
-			date: '2024-11-05',
-			receiptNo: 'RCP-004',
-			notes: '500 promotional flyers'
-		}
-	]);
+	let { data }: { data: PageData } = $props();
 
-	let selectedDate = $state('2024-11-06');
+	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
+
+	function formatCurrency(amount: number): string {
+		return i18nFormatCurrency(amount, currency);
+	}
+
+	let expenses = $state<Expense[]>(data.expenses || []);
+	let categories = $state<ExpenseCategory[]>(data.categories || []);
+	let selectedDate = $state(data.selectedDate || new Date().toISOString().split('T')[0]);
 	let showAddDialog = $state(false);
-	let editingExpense = $state<(typeof expenses)[0] | null>(null);
+	let editingExpense = $state<Expense | null>(null);
+	let isSubmitting = $state(false);
+	let rejectDialogOpen = $state(false);
+	let rejectTargetId = $state('');
 
-	let newExpense = $state({
+	let newExpense = $state<{
+		title: string;
+		description: string;
+		categoryId: string;
+		amount: number;
+		paymentMethod: ExpensePaymentMethod;
+		vendorName: string;
+		receiptNumber: string;
+		notes: string;
+	}>({
+		title: '',
 		description: '',
-		category: 'Inventory',
+		categoryId: '',
 		amount: 0,
-		paymentMethod: 'Cash',
-		vendor: '',
-		receiptNo: '',
+		paymentMethod: 'cash',
+		vendorName: '',
+		receiptNumber: '',
 		notes: ''
 	});
 
-	const categories = [
-		'Inventory',
-		'Utilities',
-		'Maintenance',
-		'Staff',
-		'Supplies',
-		'Marketing',
-		'Rent',
-		'Insurance',
-		'Other'
+	const paymentMethods: { value: ExpensePaymentMethod; label: string }[] = [
+		{ value: 'cash', label: 'Cash' },
+		{ value: 'card', label: 'Card' },
+		{ value: 'upi', label: 'UPI' },
+		{ value: 'bank_transfer', label: 'Bank Transfer' },
+		{ value: 'cheque', label: 'Cheque' },
+		{ value: 'other', label: 'Other' }
 	];
-	const paymentMethods = ['Cash', 'Card', 'Bank Transfer', 'Check'];
 
-	const filteredExpenses = $derived(expenses.filter((exp) => exp.date === selectedDate));
-
-	const dailyTotal = $derived(filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0));
+	const dailyTotal = $derived(expenses.reduce((sum, exp) => sum + exp.amount, 0));
 
 	const categoryTotals = $derived(
 		categories
 			.map((cat) => ({
-				category: cat,
-				total: filteredExpenses.filter((e) => e.category === cat).reduce((sum, e) => sum + e.amount, 0)
+				category: cat.name,
+				color: cat.color,
+				total: expenses
+					.filter((e) => e.categoryId === cat.id)
+					.reduce((sum, e) => sum + e.amount, 0)
 			}))
 			.filter((c) => c.total > 0)
 	);
 
-	function addExpense() {
-		if (!newExpense.description.trim() || newExpense.amount <= 0) {
-			toast.error('Please fill in description and amount');
+	function getCategoryName(categoryId: string): string {
+		return categories.find((c) => c.id === categoryId)?.name || 'Uncategorized';
+	}
+
+	function getCategoryColor(categoryId: string): string {
+		const color = categories.find((c) => c.id === categoryId)?.color || '#gray';
+		return `background-color: ${color}20; color: ${color};`;
+	}
+
+	async function handleDateChange(e: Event) {
+		const newDate = (e.target as HTMLInputElement).value;
+		selectedDate = newDate;
+		await goto(`?date=${newDate}`, { invalidateAll: true });
+	}
+
+	async function addExpense() {
+		if (!newExpense.title.trim() || newExpense.amount <= 0) {
+			toast.error('Please fill in title and amount');
+			return;
+		}
+		if (!newExpense.categoryId) {
+			toast.error('Please select a category');
 			return;
 		}
 
-		expenses = [
-			...expenses,
-			{
-				id: Math.max(...expenses.map((e) => e.id)) + 1,
-				...newExpense,
-				date: selectedDate
-			}
-		];
+		isSubmitting = true;
+		try {
+			const payload: CreateExpensePayload = {
+				categoryId: newExpense.categoryId,
+				title: newExpense.title,
+				description: newExpense.description || undefined,
+				amount: newExpense.amount,
+				expenseDate: selectedDate,
+				paymentMethod: newExpense.paymentMethod,
+				vendorName: newExpense.vendorName || undefined,
+				receiptNumber: newExpense.receiptNumber || undefined,
+				notes: newExpense.notes || undefined
+			};
 
-		toast.success('Expense added successfully');
-		showAddDialog = false;
-		newExpense = {
-			description: '',
-			category: 'Inventory',
-			amount: 0,
-			paymentMethod: 'Cash',
-			vendor: '',
-			receiptNo: '',
-			notes: ''
-		};
+			const result = await createExpense(data.businessId, payload);
+			expenses = [...expenses, result.expense];
+			toast.success('Expense added successfully');
+			showAddDialog = false;
+			newExpense = {
+				title: '',
+				description: '',
+				categoryId: '',
+				amount: 0,
+				paymentMethod: 'cash',
+				vendorName: '',
+				receiptNumber: '',
+				notes: ''
+			};
+		} catch (error) {
+			toast.error(userFriendlyError(error, 'Failed to add expense'));
+		} finally {
+			isSubmitting = false;
+		}
 	}
 
-	function editExpense(expense: (typeof expenses)[0]) {
+	function editExpense(expense: Expense) {
 		editingExpense = { ...expense };
 	}
 
-	function saveExpense() {
+	async function saveExpense() {
 		if (!editingExpense) return;
 
-		expenses = expenses.map((e) => (e.id === editingExpense!.id ? editingExpense! : e));
-		toast.success('Expense updated successfully');
-		editingExpense = null;
+		isSubmitting = true;
+		try {
+			const result = await updateExpense(data.businessId, editingExpense.id, {
+				title: editingExpense.title,
+				description: editingExpense.description,
+				amount: editingExpense.amount,
+				paymentMethod: editingExpense.paymentMethod,
+				vendorName: editingExpense.vendorName,
+				notes: editingExpense.notes
+			});
+			expenses = expenses.map((e) => (e.id === editingExpense!.id ? result.expense : e));
+			toast.success('Expense updated successfully');
+			editingExpense = null;
+		} catch (error) {
+			toast.error(userFriendlyError(error, 'Failed to update expense'));
+		} finally {
+			isSubmitting = false;
+		}
 	}
 
-	function deleteExpense(id: number) {
-		expenses = expenses.filter((e) => e.id !== id);
-		toast.success('Expense deleted successfully');
+	async function handleDeleteExpense(id: string) {
+		try {
+			await deleteExpenseApi(data.businessId, id);
+			expenses = expenses.filter((e) => e.id !== id);
+			toast.success('Expense deleted successfully');
+		} catch (error) {
+			toast.error(userFriendlyError(error, 'Failed to delete expense'));
+		}
 	}
 
-	function getCategoryColor(category: string) {
-		const colors: Record<string, string> = {
-			Inventory: 'bg-blue-100 text-blue-800',
-			Utilities: 'bg-yellow-100 text-yellow-800',
-			Maintenance: 'bg-orange-100 text-orange-800',
-			Staff: 'bg-green-100 text-green-800',
-			Supplies: 'bg-purple-100 text-purple-800',
-			Marketing: 'bg-pink-100 text-pink-800',
-			Rent: 'bg-red-100 text-red-800',
-			Insurance: 'bg-gray-100 text-gray-800',
-			Other: 'bg-slate-100 text-slate-800'
-		};
-		return colors[category] || 'bg-gray-100 text-gray-800';
+	async function handleApprove(id: string) {
+		try {
+			const result = await approveExpense(data.businessId, id);
+			expenses = expenses.map((e) => (e.id === id ? result.expense : e));
+			toast.success('Expense approved');
+		} catch (error) {
+			toast.error(userFriendlyError(error, 'Failed to approve expense'));
+		}
+	}
+
+	function handleReject(id: string) {
+		rejectTargetId = id;
+		rejectDialogOpen = true;
+	}
+
+	async function confirmReject(reason?: string) {
+		if (!reason) return;
+		try {
+			const result = await rejectExpense(data.businessId, rejectTargetId, { reason });
+			expenses = expenses.map((e) => (e.id === rejectTargetId ? result.expense : e));
+			toast.success('Expense rejected');
+		} catch (error) {
+			toast.error(userFriendlyError(error, 'Failed to reject expense'));
+		}
+	}
+
+	function getStatusBadge(status: string) {
+		switch (status) {
+			case 'pending':
+				return { class: 'bg-warning/10 text-warning-foreground dark:text-warning', text: 'Pending' };
+			case 'approved':
+				return { class: 'bg-success/10 text-success', text: 'Approved' };
+			case 'rejected':
+				return { class: 'bg-destructive/10 text-destructive', text: 'Rejected' };
+			case 'paid':
+				return { class: 'bg-info/10 text-info', text: 'Paid' };
+			default:
+				return { class: 'bg-muted text-muted-foreground', text: status };
+		}
 	}
 </script>
 
 <div class="flex flex-1 flex-col">
 	<div class="@container/main flex flex-1 flex-col gap-4">
 		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
-				<div>
-					<h1 class="text-2xl font-bold">Daily Expenses</h1>
-					<p class="text-muted-foreground">Track and manage daily business expenses</p>
-				</div>
-				<div class="flex gap-2">
+			<PageHeader title="Daily Expenses" description="Track and manage daily business expenses">
+				{#snippet actions()}
 					<div class="flex items-center gap-2">
 						<IconCalendar class="h-5 w-5 text-muted-foreground" />
-						<Input type="date" bind:value={selectedDate} class="w-auto" />
+						<Input type="date" value={selectedDate} onchange={handleDateChange} class="w-auto" />
 					</div>
 					<Button onclick={() => (showAddDialog = true)}>
 						<IconPlus class="mr-2 h-4 w-4" />
 						Add Expense
 					</Button>
-				</div>
-			</div>
+				{/snippet}
+			</PageHeader>
 
 			<!-- Daily Summary -->
 			<div class="grid grid-cols-1 gap-4 px-6 lg:grid-cols-4">
@@ -212,8 +258,8 @@
 						<Card.Title class="text-sm font-medium">Daily Total</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-3xl font-bold text-red-600">${dailyTotal.toFixed(2)}</div>
-						<p class="text-sm text-muted-foreground">{filteredExpenses.length} transactions</p>
+						<div class="text-3xl font-bold text-destructive">{formatCurrency(dailyTotal)}</div>
+						<p class="text-sm text-muted-foreground">{expenses.length} transactions</p>
 					</Card.Content>
 				</Card.Root>
 
@@ -224,9 +270,9 @@
 					<Card.Content>
 						<div class="flex flex-wrap gap-3">
 							{#each categoryTotals as cat}
-								<div class="rounded-lg bg-muted px-3 py-2">
+								<div class="rounded-lg px-3 py-2" style="background-color: {cat.color}20;">
 									<p class="text-xs text-muted-foreground">{cat.category}</p>
-									<p class="font-semibold">${cat.total.toFixed(2)}</p>
+									<p class="font-semibold">{formatCurrency(cat.total)}</p>
 								</div>
 							{/each}
 							{#if categoryTotals.length === 0}
@@ -238,71 +284,118 @@
 			</div>
 
 			<!-- Expenses Table -->
-			<div class="px-6">
-				<div class="rounded-md border">
-					<Table.Root>
-						<Table.Header>
-							<Table.Row>
-								<Table.Head>Description</Table.Head>
-								<Table.Head>Category</Table.Head>
-								<Table.Head>Vendor</Table.Head>
-								<Table.Head>Payment</Table.Head>
-								<Table.Head>Receipt</Table.Head>
-								<Table.Head>Amount</Table.Head>
-								<Table.Head class="text-right">Actions</Table.Head>
-							</Table.Row>
-						</Table.Header>
-						<Table.Body>
-							{#each filteredExpenses as expense (expense.id)}
+			{#if expenses.length > 0}
+				<div class="px-6">
+					<div class="overflow-x-auto rounded-md border">
+						<Table.Root>
+							<Table.Header>
 								<Table.Row>
-									<Table.Cell>
-										<div>
-											<p class="font-medium">{expense.description}</p>
-											{#if expense.notes}
-												<p class="text-sm text-muted-foreground">{expense.notes}</p>
-											{/if}
-										</div>
-									</Table.Cell>
-									<Table.Cell>
-										<span class="rounded-full px-2 py-1 text-xs {getCategoryColor(expense.category)}">
-											{expense.category}
-										</span>
-									</Table.Cell>
-									<Table.Cell class="text-muted-foreground">{expense.vendor}</Table.Cell>
-									<Table.Cell>{expense.paymentMethod}</Table.Cell>
-									<Table.Cell class="text-muted-foreground">{expense.receiptNo}</Table.Cell>
-									<Table.Cell class="font-medium text-red-600">
-										-${expense.amount.toFixed(2)}
-									</Table.Cell>
-									<Table.Cell class="text-right">
-										<div class="flex justify-end gap-1">
-											<Button variant="ghost" size="sm" onclick={() => editExpense(expense)}>
-												<IconPencil class="h-4 w-4" />
-											</Button>
-											<Button
-												variant="ghost"
-												size="sm"
-												class="text-destructive hover:text-destructive"
-												onclick={() => deleteExpense(expense.id)}
-											>
-												<IconTrash class="h-4 w-4" />
-											</Button>
-										</div>
-									</Table.Cell>
+									<Table.Head>Description</Table.Head>
+									<Table.Head>Category</Table.Head>
+									<Table.Head>Vendor</Table.Head>
+									<Table.Head>Payment</Table.Head>
+									<Table.Head>Status</Table.Head>
+									<Table.Head>Amount</Table.Head>
+									<Table.Head class="text-right">Actions</Table.Head>
 								</Table.Row>
-							{/each}
-						</Table.Body>
-					</Table.Root>
+							</Table.Header>
+							<Table.Body>
+								{#each expenses as expense (expense.id)}
+									<Table.Row>
+										<Table.Cell>
+											<div>
+												<p class="font-medium">{expense.title}</p>
+												{#if expense.notes}
+													<p class="text-sm text-muted-foreground">{expense.notes}</p>
+												{/if}
+											</div>
+										</Table.Cell>
+										<Table.Cell>
+											<span
+												class="rounded-full px-2 py-1 text-xs"
+												style={getCategoryColor(expense.categoryId)}
+											>
+												{getCategoryName(expense.categoryId)}
+											</span>
+										</Table.Cell>
+										<Table.Cell class="text-muted-foreground">
+											{expense.vendorName || '-'}
+										</Table.Cell>
+										<Table.Cell class="capitalize">
+											{expense.paymentMethod.replace('_', ' ')}
+										</Table.Cell>
+										<Table.Cell>
+											<span class="rounded-full px-2 py-1 text-xs {getStatusBadge(expense.status).class}">
+												{getStatusBadge(expense.status).text}
+											</span>
+										</Table.Cell>
+										<Table.Cell class="font-medium text-destructive">
+											-{formatCurrency(expense.amount)}
+										</Table.Cell>
+										<Table.Cell class="text-right">
+											<div class="flex justify-end gap-1">
+												{#if expense.status === 'pending'}
+													<Button
+														variant="ghost"
+														size="icon"
+														class="text-success"
+														onclick={() => handleApprove(expense.id)}
+													aria-label="Approve expense"
+													>
+														<IconCheck class="h-4 w-4" />
+													</Button>
+													<Button
+														variant="ghost"
+														size="icon"
+														class="text-destructive"
+														onclick={() => handleReject(expense.id)}
+													aria-label="Reject expense"
+													>
+														<IconX class="h-4 w-4" />
+													</Button>
+												{/if}
+												<Button variant="ghost" size="icon" onclick={() => editExpense(expense)} aria-label="Edit expense">
+													<IconPencil class="h-4 w-4" />
+												</Button>
+												<Button
+													variant="ghost"
+													size="icon"
+													class="text-destructive hover:text-destructive"
+													onclick={() => handleDeleteExpense(expense.id)}
+												aria-label="Delete expense"
+												>
+													<IconTrash class="h-4 w-4" />
+												</Button>
+											</div>
+										</Table.Cell>
+									</Table.Row>
+								{/each}
+							</Table.Body>
+						</Table.Root>
+					</div>
+				</div>
+			{:else}
+				<EmptyState
+					type="no-data"
+					title="No expenses for this day"
+					description="Add an expense to start tracking."
+					actionLabel="Add Expense"
+					onAction={() => (showAddDialog = true)}
+				/>
+			{/if}
+			<div class="px-6">
+						<div class="flex items-center justify-between border-t pt-4">
+				<p class="text-sm text-muted-foreground">
+					Showing {Math.min((data.page - 1) * data.limit + 1, data.total)} to {Math.min(data.page * data.limit, data.total)} of {data.total} results
+				</p>
+				<div class="flex gap-1">
+					<Button size="sm" variant="outline" disabled={data.page <= 1}
+						onclick={() => goto(`?page=${data.page - 1}&limit=${data.limit}&date=${{selectedDate}}`)}>Previous</Button>
+					<Button size="sm" variant="outline" disabled={data.page >= data.totalPages}
+						onclick={() => goto(`?page=${data.page + 1}&limit=${data.limit}&date=${{selectedDate}}`)}>Next</Button>
 				</div>
 			</div>
-
-			{#if filteredExpenses.length === 0}
-				<div class="flex flex-col items-center justify-center py-12 text-center">
-					<IconReceipt class="h-12 w-12 text-muted-foreground" />
-					<h3 class="mt-4 text-lg font-semibold">No expenses for this day</h3>
-					<p class="text-muted-foreground">Add an expense to start tracking.</p>
-				</div>
-			{/if}
+			</div>
 		</div>
 	</div>
 </div>
@@ -316,52 +409,61 @@
 		</Dialog.Header>
 		<div class="grid gap-4 py-4">
 			<div class="grid gap-2">
-				<label for="description" class="text-sm font-medium">Description *</label>
-				<Input id="description" bind:value={newExpense.description} placeholder="What was this expense for?" />
+				<label for="title" class="text-sm font-medium">Title *</label>
+				<Input id="title" autofocus bind:value={newExpense.title} placeholder="What was this expense for?" />
 			</div>
 			<div class="grid grid-cols-2 gap-4">
 				<div class="grid gap-2">
-					<label for="category" class="text-sm font-medium">Category</label>
-					<select
-						id="category"
-						bind:value={newExpense.category}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						{#each categories as category}
-							<option value={category}>{category}</option>
-						{/each}
-					</select>
+					<label for="category" class="text-sm font-medium">Category *</label>
+					<Select.Root type="single" bind:value={newExpense.categoryId}>
+						<Select.Trigger class="w-full">
+							{newExpense.categoryId ? (categories.find(c => c.id === newExpense.categoryId)?.name || 'Select category') : 'Select category'}
+						</Select.Trigger>
+						<Select.Content>
+							{#each categories as category}
+								<Select.Item value={category.id}>{category.name}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
 				</div>
 				<div class="grid gap-2">
 					<label for="amount" class="text-sm font-medium">Amount *</label>
 					<div class="relative">
-						<span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-						<Input id="amount" type="number" step="0.01" min="0" bind:value={newExpense.amount} class="pl-6" />
+						<span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{CURRENCY_CONFIG[currency]?.symbol || '$'}</span>
+						<Input
+							id="amount"
+							type="number"
+							step="0.01"
+							min="0"
+							bind:value={newExpense.amount}
+							class="pl-6"
+						/>
 					</div>
 				</div>
 			</div>
 			<div class="grid grid-cols-2 gap-4">
 				<div class="grid gap-2">
 					<label for="vendor" class="text-sm font-medium">Vendor</label>
-					<Input id="vendor" bind:value={newExpense.vendor} placeholder="Vendor name" />
+					<Input id="vendor" bind:value={newExpense.vendorName} placeholder="Vendor name" />
 				</div>
 				<div class="grid gap-2">
 					<label for="payment" class="text-sm font-medium">Payment Method</label>
-					<select
-						id="payment"
-						bind:value={newExpense.paymentMethod}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						{#each paymentMethods as method}
-							<option value={method}>{method}</option>
-						{/each}
-					</select>
+					<Select.Root type="single" bind:value={newExpense.paymentMethod}>
+						<Select.Trigger class="w-full">
+							{paymentMethods.find(m => m.value === newExpense.paymentMethod)?.label || 'Select method'}
+						</Select.Trigger>
+						<Select.Content>
+							{#each paymentMethods as method}
+								<Select.Item value={method.value}>{method.label}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
 				</div>
 			</div>
 			<div class="grid grid-cols-2 gap-4">
 				<div class="grid gap-2">
 					<label for="receipt" class="text-sm font-medium">Receipt No.</label>
-					<Input id="receipt" bind:value={newExpense.receiptNo} placeholder="Optional" />
+					<Input id="receipt" bind:value={newExpense.receiptNumber} placeholder="Optional" />
 				</div>
 			</div>
 			<div class="grid gap-2">
@@ -370,8 +472,15 @@
 			</div>
 		</div>
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (showAddDialog = false)}>Cancel</Button>
-			<Button onclick={addExpense}>Add Expense</Button>
+			<Button variant="outline" onclick={() => (showAddDialog = false)} disabled={isSubmitting}>
+				Cancel
+			</Button>
+			<Button onclick={addExpense} disabled={isSubmitting}>
+				{#if isSubmitting}
+					<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+				{/if}
+				Add Expense
+			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
@@ -386,44 +495,37 @@
 		{#if editingExpense}
 			<div class="grid gap-4 py-4">
 				<div class="grid gap-2">
-					<label for="edit-description" class="text-sm font-medium">Description</label>
-					<Input id="edit-description" bind:value={editingExpense.description} />
+					<label for="edit-title" class="text-sm font-medium">Title</label>
+					<Input id="edit-title" autofocus bind:value={editingExpense.title} />
 				</div>
 				<div class="grid grid-cols-2 gap-4">
-					<div class="grid gap-2">
-						<label for="edit-category" class="text-sm font-medium">Category</label>
-						<select
-							id="edit-category"
-							bind:value={editingExpense.category}
-							class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-						>
-							{#each categories as category}
-								<option value={category}>{category}</option>
-							{/each}
-						</select>
-					</div>
 					<div class="grid gap-2">
 						<label for="edit-amount" class="text-sm font-medium">Amount</label>
-						<Input id="edit-amount" type="number" step="0.01" min="0" bind:value={editingExpense.amount} />
-					</div>
-				</div>
-				<div class="grid grid-cols-2 gap-4">
-					<div class="grid gap-2">
-						<label for="edit-vendor" class="text-sm font-medium">Vendor</label>
-						<Input id="edit-vendor" bind:value={editingExpense.vendor} />
+						<Input
+							id="edit-amount"
+							type="number"
+							step="0.01"
+							min="0"
+							bind:value={editingExpense.amount}
+						/>
 					</div>
 					<div class="grid gap-2">
 						<label for="edit-payment" class="text-sm font-medium">Payment Method</label>
-						<select
-							id="edit-payment"
-							bind:value={editingExpense.paymentMethod}
-							class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-						>
-							{#each paymentMethods as method}
-								<option value={method}>{method}</option>
-							{/each}
-						</select>
+						<Select.Root type="single" bind:value={editingExpense.paymentMethod}>
+							<Select.Trigger class="w-full">
+								{paymentMethods.find(m => m.value === editingExpense?.paymentMethod)?.label || 'Select method'}
+							</Select.Trigger>
+							<Select.Content>
+								{#each paymentMethods as method}
+									<Select.Item value={method.value}>{method.label}</Select.Item>
+								{/each}
+							</Select.Content>
+						</Select.Root>
 					</div>
+				</div>
+				<div class="grid gap-2">
+					<label for="edit-vendor" class="text-sm font-medium">Vendor</label>
+					<Input id="edit-vendor" bind:value={editingExpense.vendorName} />
 				</div>
 				<div class="grid gap-2">
 					<label for="edit-notes" class="text-sm font-medium">Notes</label>
@@ -431,9 +533,29 @@
 				</div>
 			</div>
 			<Dialog.Footer>
-				<Button variant="outline" onclick={() => (editingExpense = null)}>Cancel</Button>
-				<Button onclick={saveExpense}>Save Changes</Button>
+				<Button variant="outline" onclick={() => (editingExpense = null)} disabled={isSubmitting}>
+					Cancel
+				</Button>
+				<Button onclick={saveExpense} disabled={isSubmitting}>
+					{#if isSubmitting}
+						<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+					{/if}
+					Save Changes
+				</Button>
 			</Dialog.Footer>
 		{/if}
 	</Dialog.Content>
 </Dialog.Root>
+
+<ConfirmDialog
+	bind:open={rejectDialogOpen}
+	title="Reject Expense"
+	description="Please provide a reason for rejecting this expense."
+	confirmLabel="Reject Expense"
+	variant="destructive"
+	showInput={true}
+	inputLabel="Rejection reason"
+	inputPlaceholder="Enter rejection reason"
+	inputRequired={true}
+	onConfirm={confirmReject}
+/>

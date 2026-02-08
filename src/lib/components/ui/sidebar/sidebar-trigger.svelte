@@ -15,6 +15,7 @@
 	} = $props();
 
 	const sidebar = useSidebar();
+	const btnProps = restProps as Record<string, unknown>;
 </script>
 
 <Button
@@ -28,7 +29,7 @@
 		onclick?.(e);
 		sidebar.toggle();
 	}}
-	{...restProps}
+	{...btnProps}
 >
 	<PanelLeftIcon />
 	<span class="sr-only">Toggle Sidebar</span>

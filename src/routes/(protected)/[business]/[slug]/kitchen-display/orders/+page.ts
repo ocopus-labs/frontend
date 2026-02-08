@@ -1,7 +1,10 @@
 import type { PageLoad } from './$types';
 import { getActiveOrders } from '$lib/api';
 
-export const load: PageLoad = async ({ parent, fetch }) => {
+export const load: PageLoad = async ({ parent, fetch, depends }) => {
+	// Register dependency for invalidation
+	depends('app:orders');
+
 	const parentData = await parent();
 	const businessId = parentData.businessId;
 

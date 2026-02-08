@@ -11,99 +11,52 @@
 		IconReceipt,
 		IconCreditCard,
 		IconCash,
-		IconCalendar
+		IconDeviceMobile,
+		IconRefresh
 	} from '@tabler/icons-svelte';
+	import { EmptyState } from '$lib/components/data-display';
+	import * as Select from '$lib/components/ui/select';
+	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import { toast } from 'svelte-sonner';
+	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
+	import type { CurrencyCode } from '$lib/utils/i18n';
+	import type { Payment, PaymentMethod, PaymentSummary } from '$lib/api/payment';
+	import { goto, invalidateAll } from '$app/navigation';
+	import { page } from '$app/stores';
 
-	// Dummy transactions data
-	let transactions = $state([
-		{
-			id: 'TXN-001',
-			orderId: 'ORD-001',
-			customer: 'John Doe',
-			amount: 45.67,
-			paymentMethod: 'Card',
-			cardLast4: '4242',
-			status: 'completed',
-			date: '2024-11-06',
-			time: '14:35:22'
-		},
-		{
-			id: 'TXN-002',
-			orderId: 'ORD-002',
-			customer: 'Jane Smith',
-			amount: 23.45,
-			paymentMethod: 'Cash',
-			cardLast4: null,
-			status: 'completed',
-			date: '2024-11-06',
-			time: '15:20:18'
-		},
-		{
-			id: 'TXN-003',
-			orderId: 'ORD-003',
-			customer: 'Mike Johnson',
-			amount: 67.89,
-			paymentMethod: 'Card',
-			cardLast4: '8765',
-			status: 'pending',
-			date: '2024-11-06',
-			time: '16:05:44'
-		},
-		{
-			id: 'TXN-004',
-			orderId: 'ORD-004',
-			customer: 'Sarah Wilson',
-			amount: 34.56,
-			paymentMethod: 'UPI',
-			cardLast4: null,
-			status: 'completed',
-			date: '2024-11-05',
-			time: '19:48:33'
-		},
-		{
-			id: 'TXN-005',
-			orderId: 'ORD-005',
-			customer: 'Tom Brown',
-			amount: 12.34,
-			paymentMethod: 'Card',
-			cardLast4: '1234',
-			status: 'refunded',
-			date: '2024-11-05',
-			time: '18:22:11'
-		},
-		{
-			id: 'TXN-006',
-			orderId: 'ORD-006',
-			customer: 'Emily Davis',
-			amount: 89.99,
-			paymentMethod: 'Cash',
-			cardLast4: null,
-			status: 'completed',
-			date: '2024-11-05',
-			time: '20:15:55'
-		}
-	]);
+	let { data } = $props();
+
+	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
+
+	function formatCurrency(amount: number): string {
+		return i18nFormatCurrency(amount, currency);
+	}
 
 	let searchQuery = $state('');
-	let statusFilter = $state('all');
-	let paymentFilter = $state('all');
+	let isRefreshing = $state(false);
 
-	const filteredTransactions = $derived(
-		transactions.filter((txn) => {
-			const matchesSearch =
-				txn.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				txn.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				txn.orderId.toLowerCase().includes(searchQuery.toLowerCase());
-			const matchesStatus = statusFilter === 'all' || txn.status === statusFilter;
-			const matchesPayment = paymentFilter === 'all' || txn.paymentMethod === paymentFilter;
-			return matchesSearch && matchesStatus && matchesPayment;
-		})
+	const payments = $derived(data.payments as Payment[]);
+	const summary = $derived(data.summary as PaymentSummary | null);
+
+	// Client-side search filtering on the current page of results
+	const filteredPayments = $derived(
+		searchQuery
+			? payments.filter((payment) => {
+					const q = searchQuery.toLowerCase();
+					return (
+						payment.paymentNumber.toLowerCase().includes(q) ||
+						payment.orderNumber.toLowerCase().includes(q) ||
+						(payment.customerInfo?.name?.toLowerCase().includes(q) ?? false)
+					);
+				})
+			: payments
 	);
 
 	const totalAmount = $derived(
-		filteredTransactions.reduce((sum, txn) => {
-			if (txn.status === 'completed') return sum + txn.amount;
-			if (txn.status === 'refunded') return sum - txn.amount;
+		filteredPayments.reduce((sum, payment) => {
+			if (payment.status === 'completed') return sum + payment.amount;
+			if (payment.status === 'refunded') return sum - payment.amount;
 			return sum;
 		}, 0)
 	);
@@ -116,6 +69,8 @@
 				return { variant: 'secondary' as const, text: 'Pending' };
 			case 'refunded':
 				return { variant: 'destructive' as const, text: 'Refunded' };
+			case 'partially_refunded':
+				return { variant: 'outline' as const, text: 'Partial Refund' };
 			case 'failed':
 				return { variant: 'destructive' as const, text: 'Failed' };
 			default:
@@ -123,23 +78,117 @@
 		}
 	}
 
-	function getPaymentIcon(method: string) {
+	function getPaymentIcon(method: PaymentMethod) {
 		switch (method) {
-			case 'Card':
+			case 'card':
 				return IconCreditCard;
-			case 'Cash':
+			case 'cash':
 				return IconCash;
+			case 'upi':
+				return IconDeviceMobile;
 			default:
 				return IconReceipt;
 		}
 	}
 
-	function viewTransaction(txnId: string) {
-		console.log('View transaction:', txnId);
+	function getPaymentMethodLabel(method: PaymentMethod): string {
+		switch (method) {
+			case 'card':
+				return 'Card';
+			case 'cash':
+				return 'Cash';
+			case 'upi':
+				return 'UPI';
+			case 'net_banking':
+				return 'Net Banking';
+			case 'wallet':
+				return 'Wallet';
+			default:
+				return 'Other';
+		}
+	}
+
+	function formatDateTime(dateString: string) {
+		const date = new Date(dateString);
+		return {
+			date: date.toLocaleDateString(),
+			time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+		};
+	}
+
+	function viewTransaction(payment: Payment) {
+		if (payment.orderId) {
+			goto(`/${$page.params.business}/${$page.params.slug}/orders/${payment.orderId}`);
+		} else {
+			toast.info('No order linked to this payment');
+		}
+	}
+
+	function escapeCSVField(value: unknown): string {
+		const str = String(value ?? '');
+		if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+			return `"${str.replace(/"/g, '""')}"`;
+		}
+		return str;
 	}
 
 	function exportTransactions() {
-		console.log('Export transactions');
+		const csvContent = [
+			['Payment ID', 'Order Number', 'Customer', 'Method', 'Amount', 'Status', 'Date'].join(','),
+			...filteredPayments.map((p) =>
+				[
+					escapeCSVField(p.paymentNumber),
+					escapeCSVField(p.orderNumber),
+					escapeCSVField(p.customerInfo?.name || 'Guest'),
+					escapeCSVField(p.method),
+					escapeCSVField(p.amount),
+					escapeCSVField(p.status),
+					escapeCSVField(new Date(p.createdAt).toISOString())
+				].join(',')
+			)
+		].join('\n');
+
+		const blob = new Blob([csvContent], { type: 'text/csv' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `transactions-${new Date().toISOString().split('T')[0]}.csv`;
+		a.click();
+		URL.revokeObjectURL(url);
+	}
+
+	async function refresh() {
+		isRefreshing = true;
+		await invalidateAll();
+		isRefreshing = false;
+	}
+
+	function goToPage(pageNum: number) {
+		const params = new URLSearchParams($page.url.searchParams);
+		params.set('page', String(pageNum));
+		goto(`?${params.toString()}`);
+	}
+
+	function applyStatusFilter(status: string) {
+		const params = new URLSearchParams($page.url.searchParams);
+		if (status === 'all') {
+			params.delete('status');
+		} else {
+			params.set('status', status);
+		}
+		params.set('page', '1');
+		goto(`?${params.toString()}`);
+	}
+
+	function applyMethodFilter(method: string) {
+		const params = new URLSearchParams($page.url.searchParams);
+		if (method === 'all') {
+			params.delete('method');
+		} else {
+			params.set('method', method);
+		}
+		params.set('page', '1');
+		goto(`?${params.toString()}`);
 	}
 </script>
 
@@ -151,20 +200,26 @@
 					<h1 class="text-2xl font-bold">Transactions</h1>
 					<p class="text-muted-foreground">View and manage all payment transactions</p>
 				</div>
-				<Button onclick={exportTransactions}>
-					<IconDownload class="mr-2 h-4 w-4" />
-					Export
-				</Button>
+				<div class="flex gap-2">
+					<Button variant="outline" onclick={refresh} disabled={isRefreshing}>
+						<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
+						Refresh
+					</Button>
+					<Button onclick={exportTransactions}>
+						<IconDownload class="mr-2 h-4 w-4" />
+						Export
+					</Button>
+				</div>
 			</div>
 
 			<!-- Summary Cards -->
-			<div class="grid grid-cols-1 gap-4 px-6 sm:grid-cols-3">
+			<div class="grid grid-cols-1 gap-4 px-6 sm:grid-cols-4">
 				<Card.Root>
 					<Card.Header class="pb-2">
 						<Card.Title class="text-sm font-medium">Total Transactions</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold">{filteredTransactions.length}</div>
+						<div class="text-2xl font-bold">{data.total}</div>
 					</Card.Content>
 				</Card.Root>
 				<Card.Root>
@@ -172,7 +227,7 @@
 						<Card.Title class="text-sm font-medium">Total Amount</Card.Title>
 					</Card.Header>
 					<Card.Content>
-						<div class="text-2xl font-bold">${totalAmount.toFixed(2)}</div>
+						<div class="text-2xl font-bold">{formatCurrency(totalAmount)}</div>
 					</Card.Content>
 				</Card.Root>
 				<Card.Root>
@@ -181,10 +236,22 @@
 					</Card.Header>
 					<Card.Content>
 						<div class="text-2xl font-bold">
-							${filteredTransactions.length > 0 ? (totalAmount / filteredTransactions.length).toFixed(2) : '0.00'}
+							{formatCurrency(
+								filteredPayments.length > 0 ? totalAmount / filteredPayments.length : 0
+							)}
 						</div>
 					</Card.Content>
 				</Card.Root>
+				{#if summary}
+					<Card.Root>
+						<Card.Header class="pb-2">
+							<Card.Title class="text-sm font-medium">Pending Amount</Card.Title>
+						</Card.Header>
+						<Card.Content>
+							<div class="text-2xl font-bold">{formatCurrency(summary.pendingAmount)}</div>
+						</Card.Content>
+					</Card.Root>
+				{/if}
 			</div>
 
 			<!-- Filters and Search -->
@@ -199,36 +266,42 @@
 				</div>
 
 				<div class="flex gap-2">
-					<select
-						bind:value={statusFilter}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="all">All Status</option>
-						<option value="completed">Completed</option>
-						<option value="pending">Pending</option>
-						<option value="refunded">Refunded</option>
-						<option value="failed">Failed</option>
-					</select>
+					<Select.Root type="single" value={data.statusFilter} onValueChange={(v) => applyStatusFilter(v)}>
+						<Select.Trigger class="w-[150px]">
+							{({ all: 'All Status', completed: 'Completed', pending: 'Pending', refunded: 'Refunded', failed: 'Failed' } as Record<string, string>)[data.statusFilter] || 'All Status'}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="all">All Status</Select.Item>
+							<Select.Item value="completed">Completed</Select.Item>
+							<Select.Item value="pending">Pending</Select.Item>
+							<Select.Item value="refunded">Refunded</Select.Item>
+							<Select.Item value="failed">Failed</Select.Item>
+						</Select.Content>
+					</Select.Root>
 
-					<select
-						bind:value={paymentFilter}
-						class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-					>
-						<option value="all">All Methods</option>
-						<option value="Card">Card</option>
-						<option value="Cash">Cash</option>
-						<option value="UPI">UPI</option>
-					</select>
+					<Select.Root type="single" value={data.methodFilter} onValueChange={(v) => applyMethodFilter(v)}>
+						<Select.Trigger class="w-[150px]">
+							{({ all: 'All Methods', card: 'Card', cash: 'Cash', upi: 'UPI', net_banking: 'Net Banking', wallet: 'Wallet' } as Record<string, string>)[data.methodFilter] || 'All Methods'}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="all">All Methods</Select.Item>
+							<Select.Item value="card">Card</Select.Item>
+							<Select.Item value="cash">Cash</Select.Item>
+							<Select.Item value="upi">UPI</Select.Item>
+							<Select.Item value="net_banking">Net Banking</Select.Item>
+							<Select.Item value="wallet">Wallet</Select.Item>
+						</Select.Content>
+					</Select.Root>
 				</div>
 			</div>
 
 			<!-- Transactions Table -->
 			<div class="px-6">
-				<div class="rounded-md border">
+				<div class="overflow-x-auto rounded-md border">
 					<Table.Root>
 						<Table.Header>
 							<Table.Row>
-								<Table.Head>Transaction ID</Table.Head>
+								<Table.Head>Payment ID</Table.Head>
 								<Table.Head>Order</Table.Head>
 								<Table.Head>Customer</Table.Head>
 								<Table.Head>Payment Method</Table.Head>
@@ -239,37 +312,42 @@
 							</Table.Row>
 						</Table.Header>
 						<Table.Body>
-							{#each filteredTransactions as txn (txn.id)}
+							{#each filteredPayments as payment (payment.id)}
+								{@const dateTime = formatDateTime(payment.createdAt)}
+								{@const PaymentIcon = getPaymentIcon(payment.method)}
 								<Table.Row>
-									<Table.Cell class="font-medium">{txn.id}</Table.Cell>
-									<Table.Cell class="text-muted-foreground">{txn.orderId}</Table.Cell>
-									<Table.Cell>{txn.customer}</Table.Cell>
+									<Table.Cell class="font-mono text-sm font-medium"
+										>{payment.paymentNumber}</Table.Cell
+									>
+									<Table.Cell class="font-mono text-sm text-muted-foreground"
+										>{payment.orderNumber}</Table.Cell
+									>
+									<Table.Cell>{payment.customerInfo?.name || 'Guest'}</Table.Cell>
 									<Table.Cell>
 										<div class="flex items-center gap-2">
-											<svelte:component
-												this={getPaymentIcon(txn.paymentMethod)}
-												class="h-4 w-4"
-											/>
-											{txn.paymentMethod}
-											{#if txn.cardLast4}
-												<span class="text-muted-foreground">••••{txn.cardLast4}</span>
-											{/if}
+											<PaymentIcon class="h-4 w-4" />
+											{getPaymentMethodLabel(payment.method)}
 										</div>
 									</Table.Cell>
-									<Table.Cell class="font-medium">${txn.amount.toFixed(2)}</Table.Cell>
+									<Table.Cell class="font-medium">{formatCurrency(payment.amount)}</Table.Cell>
 									<Table.Cell>
-										<Badge variant={getStatusBadge(txn.status).variant}>
-											{getStatusBadge(txn.status).text}
+										<Badge variant={getStatusBadge(payment.status).variant}>
+											{getStatusBadge(payment.status).text}
 										</Badge>
 									</Table.Cell>
 									<Table.Cell>
 										<div class="text-sm">
-											<div>{txn.date}</div>
-											<div class="text-muted-foreground">{txn.time}</div>
+											<div>{dateTime.date}</div>
+											<div class="text-muted-foreground">{dateTime.time}</div>
 										</div>
 									</Table.Cell>
 									<Table.Cell class="text-right">
-										<Button variant="ghost" size="sm" onclick={() => viewTransaction(txn.id)}>
+										<Button
+											variant="ghost"
+											size="icon"
+											onclick={() => viewTransaction(payment)}
+											aria-label="View order"
+										>
 											<IconEye class="h-4 w-4" />
 										</Button>
 									</Table.Cell>
@@ -280,11 +358,59 @@
 				</div>
 			</div>
 
-			{#if filteredTransactions.length === 0}
-				<div class="flex flex-col items-center justify-center py-12 text-center">
-					<IconReceipt class="h-12 w-12 text-muted-foreground" />
-					<h3 class="mt-4 text-lg font-semibold">No transactions found</h3>
-					<p class="text-muted-foreground">Try adjusting your search or filter criteria.</p>
+			{#if filteredPayments.length === 0}
+				<EmptyState
+					type="no-results"
+					title="No transactions found"
+					description="Transactions will appear here after payments are processed."
+				/>
+			{/if}
+
+			<!-- Pagination -->
+			{#if data.totalPages > 1}
+				<div class="flex items-center justify-between px-6">
+					<p class="text-sm text-muted-foreground">
+						Showing <span class="font-medium">{(data.page - 1) * data.limit + 1}</span> to
+						<span class="font-medium">{Math.min(data.page * data.limit, data.total)}</span> of
+						<span class="font-medium">{data.total}</span> transactions
+					</p>
+					<div class="flex items-center gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={data.page <= 1}
+							onclick={() => goToPage(data.page - 1)}
+						>
+							<ChevronLeft class="h-4 w-4" />
+							Previous
+						</Button>
+
+						<div class="flex items-center gap-1">
+							{#each Array.from({ length: Math.min(5, data.totalPages) }, (_, i) => {
+								const start = Math.max(1, Math.min(data.page - 2, data.totalPages - 4));
+								return start + i;
+							}) as pageNum}
+								<Button
+									variant={pageNum === data.page ? 'default' : 'ghost'}
+									size="sm"
+									class="w-9"
+									onclick={() => goToPage(pageNum)}
+								>
+									{pageNum}
+								</Button>
+							{/each}
+						</div>
+
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={data.page >= data.totalPages}
+							onclick={() => goToPage(data.page + 1)}
+						>
+							Next
+							<ChevronRight class="h-4 w-4" />
+						</Button>
+					</div>
 				</div>
 			{/if}
 		</div>

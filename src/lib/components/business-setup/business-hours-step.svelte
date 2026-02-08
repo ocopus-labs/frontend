@@ -13,8 +13,8 @@
 
 	// Validation schema
 	export const businessHoursSchema = z.object({
-		hoursType: z.enum(['same', 'different'], {
-			errorMap: () => ({ message: 'Please select an option for business hours' })
+		hoursType: z.enum(['same', 'different']).refine((val) => !!val, {
+			message: 'Please select an option for business hours'
 		})
 	});
 

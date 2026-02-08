@@ -1,6 +1,12 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { IconChevronDown } from '@tabler/icons-svelte';
+	import {
+		IconArmchair,
+		IconBike,
+		IconShoppingBag,
+		IconMapPin,
+		IconChevronRight
+	} from '@tabler/icons-svelte';
 	import OrderItem from './OrderItem.svelte';
 	import OrderTotals from './OrderTotals.svelte';
 	import type { OrderItem as OrderItemType } from './OrderItem.svelte';
@@ -8,7 +14,8 @@
 	interface Props {
 		orderItems: OrderItemType[];
 		orderType: string;
-		selectedTable: number;
+		selectedTableDisplay: string | null;
+		showTableSelection: boolean;
 		subtotal: number;
 		showTaxes: boolean;
 		taxRate: number;
@@ -23,12 +30,15 @@
 		onUpdateQuantity: (id: string, delta: number) => void;
 		onToggleTaxes: () => void;
 		onToggleDiscount: () => void;
+		onTableSelectClick?: () => void;
+		region?: string;
 	}
 
 	let {
 		orderItems,
 		orderType,
-		selectedTable,
+		selectedTableDisplay,
+		showTableSelection,
 		subtotal,
 		showTaxes,
 		taxRate,
@@ -42,53 +52,78 @@
 		onRemoveItem,
 		onUpdateQuantity,
 		onToggleTaxes,
-		onToggleDiscount
+		onToggleDiscount,
+		onTableSelectClick,
+		region = 'us'
 	}: Props = $props();
+
+	const orderTypes = [
+		{ id: 'Dine-In', label: 'Dine-In', icon: IconArmchair },
+		{ id: 'Takeaway', label: 'Takeaway', icon: IconShoppingBag },
+		{ id: 'Delivery', label: 'Delivery', icon: IconBike }
+	];
 </script>
 
-<aside class="flex h-full flex-col bg-card">
-	<!-- Order Header -->
-	<div class="border-b border-border p-3 md:p-4 lg:p-6">
-		<div class="mb-3 flex items-center justify-between md:mb-4">
-			<h2 class="text-base font-bold md:text-lg">Order Summary</h2>
-			<span class="text-xs font-medium text-muted-foreground md:text-sm">#B12309</span>
+<aside class="flex h-full max-h-full flex-col overflow-hidden bg-card">
+	<!-- Order Type Selection - Large Touch Targets -->
+	<div class="border-b border-border p-4">
+		<div class="grid grid-cols-3 gap-2">
+			{#each orderTypes as type}
+				<button
+					onclick={() => onOrderTypeChange(type.id)}
+					class="flex flex-col items-center justify-center gap-1.5 rounded-md p-3 transition-all active:scale-95
+						{orderType === type.id
+							? 'bg-primary text-primary-foreground shadow-sm'
+							: 'bg-muted/50 text-muted-foreground hover:bg-muted'}"
+				>
+					<type.icon class="h-5 w-5" />
+					<span class="text-xs font-medium">{type.label}</span>
+				</button>
+			{/each}
 		</div>
-		<div class="mb-3 flex gap-2 md:mb-4">
-			<Button
-				size="sm"
-				variant={orderType === 'Dine-In' ? 'default' : 'outline'}
-				onclick={() => onOrderTypeChange('Dine-In')}
-				class="flex-1 text-xs md:text-sm"
+
+		<!-- Table Selection - Only for Dine-In -->
+		{#if showTableSelection && orderType === 'Dine-In'}
+			<button
+				onclick={onTableSelectClick}
+				class="mt-3 flex w-full items-center justify-between rounded-md border-2 border-dashed border-border p-3 transition-all hover:border-primary hover:bg-muted/30 active:scale-[0.98]
+					{selectedTableDisplay ? 'border-solid border-primary/50 bg-primary/5' : ''}"
 			>
-				Dine-In
-			</Button>
-			<Button
-				size="sm"
-				variant={orderType === 'Delivery' ? 'default' : 'outline'}
-				onclick={() => onOrderTypeChange('Delivery')}
-				class="flex-1 text-xs md:text-sm"
-			>
-				Delivery
-			</Button>
-		</div>
-		<div class="flex gap-2">
-			<Button variant="outline" size="sm" class="flex-1 text-xs md:text-sm">
-				{orderType}
-				<IconChevronDown class="ml-1 h-3 w-3 md:h-4 md:w-4" />
-			</Button>
-			<Button variant="outline" size="sm" class="flex-1 text-xs md:text-sm">
-				<span class="hidden sm:inline">Select Table {selectedTable}</span>
-				<span class="sm:hidden">Table {selectedTable}</span>
-				<IconChevronDown class="ml-1 h-3 w-3 md:h-4 md:w-4" />
-			</Button>
-		</div>
+				<div class="flex items-center gap-3">
+					<div class="flex h-10 w-10 items-center justify-center rounded-md bg-muted">
+						<IconMapPin class="h-5 w-5 text-muted-foreground" />
+					</div>
+					<div class="text-left">
+						<p class="text-sm font-medium">
+							{selectedTableDisplay || 'Select Table'}
+						</p>
+						<p class="text-xs text-muted-foreground">
+							{selectedTableDisplay ? 'Tap to change' : 'Required for dine-in'}
+						</p>
+					</div>
+				</div>
+				<IconChevronRight class="h-5 w-5 text-muted-foreground" />
+			</button>
+		{/if}
 	</div>
 
 	<!-- Order Items -->
-	<div class="flex-1 overflow-auto p-3 md:p-4 lg:p-6">
-		{#each orderItems as item}
-			<OrderItem {item} onRemove={onRemoveItem} {onUpdateQuantity} />
-		{/each}
+	<div class="flex-1 overflow-auto p-4">
+		{#if orderItems.length === 0}
+			<div class="flex h-full flex-col items-center justify-center text-center">
+				<div class="mb-3 rounded-full bg-muted p-4">
+					<IconShoppingBag class="h-8 w-8 text-muted-foreground" />
+				</div>
+				<p class="text-sm font-medium text-muted-foreground">No items yet</p>
+				<p class="text-xs text-muted-foreground">Tap items from the menu to add</p>
+			</div>
+		{:else}
+			<div class="space-y-3">
+				{#each orderItems as item}
+					<OrderItem {item} onRemove={onRemoveItem} {onUpdateQuantity} {region} />
+				{/each}
+			</div>
+		{/if}
 	</div>
 
 	<!-- Order Totals -->
@@ -104,5 +139,6 @@
 		{totalPayment}
 		{onToggleTaxes}
 		{onToggleDiscount}
+		{region}
 	/>
 </aside>

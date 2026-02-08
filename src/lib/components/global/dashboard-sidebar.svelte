@@ -1,6 +1,5 @@
 <script lang="ts">
 	import NavMain from './nav-main.svelte';
-	import NavProjects from './nav-projects.svelte';
 	import NavUser from './nav-user.svelte';
 	import BusinessSwitcher from './business-switcher.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
@@ -8,13 +7,18 @@
 	import { page } from '$app/stores';
 	import type { ComponentProps } from 'svelte';
 	import type { Business } from '$lib/api/types';
+	import type { Subscription } from '$lib/api/subscription';
 
 	let {
 		ref = $bindable(null),
 		collapsible = 'icon',
 		businesses = [],
+		subscription = null,
 		...restProps
-	}: ComponentProps<typeof Sidebar.Root> & { businesses?: Business[] } = $props();
+	}: ComponentProps<typeof Sidebar.Root> & {
+		businesses?: Business[];
+		subscription?: Subscription | null;
+	} = $props();
 
 	// Get business type and slug from URL
 	const businessType = $derived($page.params.business || 'restaurant');
@@ -42,13 +46,6 @@
 		}))
 	);
 
-	const projectItems = $derived(
-		rawData.projects.map((project) => ({
-			...project,
-			url: replaceUrlPlaceholders(project.url)
-		}))
-	);
-
 	// Get current business from the list
 	const currentBusiness = $derived(businesses.find((b) => b.slug === slug));
 </script>
@@ -58,8 +55,7 @@
 		<BusinessSwitcher {businesses} {currentBusiness} />
 	</Sidebar.Header>
 	<Sidebar.Content>
-		<NavMain items={navMainItems} />
-		<NavProjects projects={projectItems} />
+		<NavMain items={navMainItems} {subscription} />
 	</Sidebar.Content>
 	<Sidebar.Footer>
 		<NavUser />

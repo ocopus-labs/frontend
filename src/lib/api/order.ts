@@ -77,6 +77,12 @@ export interface Order {
   actualCompletionTime?: string;
   createdAt: string;
   updatedAt: string;
+  auditTrail?: Array<{
+    action: string;
+    performedBy: string;
+    performedAt: string;
+    details?: Record<string, unknown>;
+  }>;
   table?: {
     id: string;
     tableNumber: string;
@@ -291,4 +297,30 @@ export async function applyDiscount(
 ): Promise<{ message: string; order: Order }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.post(`/business/${businessId}/orders/${orderId}/discount`, discount);
+}
+
+export async function deleteOrder(
+  businessId: string,
+  orderId: string,
+  options?: FetchOption
+): Promise<{ message: string; order: Order }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.delete(`/business/${businessId}/orders/${orderId}`);
+}
+
+// ==================== EXPORT ====================
+
+export async function exportOrders(
+  businessId: string,
+  params?: { status?: string; startDate?: string; endDate?: string }
+): Promise<Blob> {
+  const searchParams = new URLSearchParams();
+  if (params?.status && params.status !== 'all') searchParams.set('status', params.status);
+  if (params?.startDate) searchParams.set('startDate', params.startDate);
+  if (params?.endDate) searchParams.set('endDate', params.endDate);
+  const query = searchParams.toString();
+  const url = `/api/business/${businessId}/orders/export${query ? `?${query}` : ''}`;
+  const res = await fetch(url, { credentials: 'include' });
+  if (!res.ok) throw new Error('Export failed');
+  return res.blob();
 }

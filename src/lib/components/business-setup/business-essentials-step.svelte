@@ -216,7 +216,7 @@
 				<Field.Label for="business-logo">Business Logo (Optional)</Field.Label>
 				<ImageCropper.Root
 					bind:src={businessLogo}
-					onUpload={handleLogoUpload}
+					onCropped={handleLogoUpload}
 					onUnsupportedFile={() => toast.error('Unsupported file type. Please upload an image.')}
 				>
 					<ImageCropper.UploadTrigger>

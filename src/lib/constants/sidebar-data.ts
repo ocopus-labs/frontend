@@ -1,13 +1,6 @@
 import AudioWaveformIcon from '@lucide/svelte/icons/audio-waveform';
-import BookOpenIcon from '@lucide/svelte/icons/book-open';
-import BotIcon from '@lucide/svelte/icons/bot';
-import ChartPieIcon from '@lucide/svelte/icons/chart-pie';
 import CommandIcon from '@lucide/svelte/icons/command';
-import FrameIcon from '@lucide/svelte/icons/frame';
 import GalleryVerticalEndIcon from '@lucide/svelte/icons/gallery-vertical-end';
-import MapIcon from '@lucide/svelte/icons/map';
-import Settings2Icon from '@lucide/svelte/icons/settings-2';
-import SquareTerminalIcon from '@lucide/svelte/icons/square-terminal';
 import LayoutDashboardIcon from '@lucide/svelte/icons/layout-dashboard';
 import CreditCardIcon from '@lucide/svelte/icons/credit-card';
 import UtensilsIcon from '@lucide/svelte/icons/utensils';
@@ -16,8 +9,40 @@ import TableIcon from '@lucide/svelte/icons/table';
 import PackageIcon from '@lucide/svelte/icons/package';
 import DollarSignIcon from '@lucide/svelte/icons/dollar-sign';
 import MonitorIcon from '@lucide/svelte/icons/monitor';
+import UsersIcon from '@lucide/svelte/icons/users';
+import SettingsIcon from '@lucide/svelte/icons/settings';
+import type { FeatureKey } from '$lib/utils/plan-features';
 
-export const sidebarData = {
+export interface NavSubItem {
+	title: string;
+	url: string;
+}
+
+export interface NavItem {
+	title: string;
+	url: string;
+	icon?: any;
+	isActive?: boolean;
+	requiredFeature?: FeatureKey;
+	requiredPlan?: 'PRO' | 'ENTERPRISE';
+	items?: NavSubItem[];
+}
+
+export interface SidebarData {
+	user: {
+		name: string;
+		email: string;
+		avatar: string;
+	};
+	teams: {
+		name: string;
+		logo: any;
+		plan: string;
+	}[];
+	navMain: NavItem[];
+}
+
+export const sidebarData: Record<string, SidebarData> = {
 	restaurant: {
 		user: {
 			name: 'John Manager',
@@ -119,13 +144,15 @@ export const sidebarData = {
 				title: 'Kitchen Display',
 				url: '/[business]/[slug]/kitchen-display',
 				icon: MonitorIcon,
+				requiredFeature: 'kitchenDisplay',
+				requiredPlan: 'PRO',
 				items: [
 					{
 						title: 'Orders Queue',
 						url: '/[business]/[slug]/kitchen-display/orders'
 					},
 					{
-						title: 'Preparation Status',
+						title: 'Hall Display',
 						url: '/[business]/[slug]/kitchen-display/status'
 					}
 				]
@@ -149,6 +176,8 @@ export const sidebarData = {
 				title: 'Inventory',
 				url: '/[business]/[slug]/inventory',
 				icon: PackageIcon,
+				requiredFeature: 'inventory',
+				requiredPlan: 'PRO',
 				items: [
 					{
 						title: 'Stock',
@@ -164,6 +193,8 @@ export const sidebarData = {
 				title: 'Expenses',
 				url: '/[business]/[slug]/expenses',
 				icon: DollarSignIcon,
+				requiredFeature: 'expenses',
+				requiredPlan: 'PRO',
 				items: [
 					{
 						title: 'Daily',
@@ -178,23 +209,40 @@ export const sidebarData = {
 						url: '/[business]/[slug]/expenses/reports'
 					}
 				]
-			}
-		],
-		projects: [
-			{
-				name: 'Kitchen',
-				url: '/[business]/[slug]/areas/kitchen',
-				icon: FrameIcon
 			},
 			{
-				name: 'Dining Area',
-				url: '/[business]/[slug]/areas/dining-area',
-				icon: ChartPieIcon
+				title: 'Team',
+				url: '/[business]/[slug]/team',
+				icon: UsersIcon,
+				items: [
+					{
+						title: 'Members',
+						url: '/[business]/[slug]/team'
+					},
+					{
+						title: 'Roles',
+						url: '/[business]/[slug]/team/roles'
+					},
+					{
+						title: 'Invitations',
+						url: '/[business]/[slug]/team/invitations'
+					}
+				]
 			},
 			{
-				name: 'Bar',
-				url: '/[business]/[slug]/areas/bar',
-				icon: MapIcon
+				title: 'Settings',
+				url: '/[business]/[slug]/settings',
+				icon: SettingsIcon,
+				items: [
+					{
+						title: 'General',
+						url: '/[business]/[slug]/settings'
+					},
+					{
+						title: 'API Keys',
+						url: '/[business]/[slug]/settings/api-keys'
+					}
+				]
 			}
 		]
 	}
