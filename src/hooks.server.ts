@@ -32,9 +32,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const isPublicRoute =
 		pathname.startsWith('/pricing') ||
 		pathname.startsWith('/about');
+	const isOrderRoute = pathname.startsWith('/order');
 
 	// Public and auth routes don't require login
-	if (isLandingPage || isAuthRoute || isPublicRoute) {
+	if (isLandingPage || isAuthRoute || isPublicRoute || isOrderRoute) {
 		return resolve(event);
 	}
 
