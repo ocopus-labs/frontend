@@ -38,6 +38,9 @@ export interface CreateMenuItemPayload {
     addOns?: MenuItemModifier[];
     removals?: string[];
   };
+  taxCode?: string;
+  taxCategory?: string;
+  customTaxRate?: number;
 }
 
 type FetchOption = { fetch?: typeof fetch };

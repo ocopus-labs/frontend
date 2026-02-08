@@ -23,6 +23,9 @@ export interface OrderItem {
     removals?: string[];
     specialInstructions?: string;
   };
+  taxCode?: string;
+  taxCategory?: string;
+  taxRate?: number;
   status: 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
 }
 
@@ -35,6 +38,7 @@ export interface OrderPricing {
   discountAmount: number;
   serviceCharge?: number;
   total: number;
+  taxBreakdown?: import('./tax').TaxBreakdown;
 }
 
 export interface OrderDiscount {
@@ -75,6 +79,7 @@ export interface Order {
   priority: 'low' | 'normal' | 'high' | 'urgent';
   estimatedCompletionTime?: string;
   actualCompletionTime?: string;
+  invoiceNumber?: string;
   createdAt: string;
   updatedAt: string;
   auditTrail?: Array<{

@@ -302,6 +302,25 @@ export {
   type LoyaltyLeaderboardEntry
 } from './loyalty';
 
+// Tax API
+export {
+  getTaxSettings,
+  updateTaxSettings,
+  validateTaxNumber,
+  getTaxRegimes,
+  exportTaxReport,
+  type TaxSettings,
+  type TaxRegime,
+  type TaxCategoryConfig,
+  type RegimeInfo,
+  type TaxComponent,
+  type ItemTaxBreakdown,
+  type TaxBreakdown,
+  type GstConfig,
+  type VatConfig,
+  type SalesTaxConfig
+} from './tax';
+
 // API Keys
 export {
   getApiKeys,

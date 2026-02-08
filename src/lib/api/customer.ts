@@ -18,6 +18,7 @@ export interface Customer {
   address?: CustomerAddress;
   notes?: string;
   tags: string[];
+  taxId?: string;
   status: 'active' | 'inactive';
   createdBy: string;
   createdAt: string;
@@ -44,6 +45,7 @@ export interface CreateCustomerPayload {
   address?: CustomerAddress;
   notes?: string;
   tags?: string[];
+  taxId?: string;
 }
 
 export interface UpdateCustomerPayload extends Partial<CreateCustomerPayload> {
