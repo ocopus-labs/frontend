@@ -118,6 +118,8 @@
 	}
 
 	// WebSocket setup
+	let cleanupFns: Array<() => void> = [];
+
 	onMount(() => {
 		// Start elapsed time ticker
 		tickInterval = setInterval(() => {
@@ -141,45 +143,45 @@
 			isFullscreen = !!document.fullscreenElement;
 		});
 
-		const socket = connectSocket();
+		(async () => {
+			const socket = await connectSocket();
 
-		if (socket) {
-			socket.on('connect', () => {
-				isConnected = true;
-				joinBusiness(data.businessId);
-			});
+			if (socket) {
+				socket.on('connect', async () => {
+					isConnected = true;
+					await joinBusiness(data.businessId);
+				});
 
-			socket.on('disconnect', () => {
-				isConnected = false;
-			});
+				socket.on('disconnect', () => {
+					isConnected = false;
+				});
 
-			const unsubOrderCreated = onOrderCreated(() => {
-				invalidate('app:orders');
-			});
+				const unsubOrderCreated = await onOrderCreated(() => {
+					invalidate('app:orders');
+				});
+				cleanupFns.push(unsubOrderCreated);
 
-			const unsubOrderUpdated = onOrderUpdated(() => {
-				invalidate('app:orders');
-			});
+				const unsubOrderUpdated = await onOrderUpdated(() => {
+					invalidate('app:orders');
+				});
+				cleanupFns.push(unsubOrderUpdated);
 
-			const unsubOrderCompleted = onOrderCompleted(() => {
-				invalidate('app:orders');
-				playBeep();
-			});
+				const unsubOrderCompleted = await onOrderCompleted(() => {
+					invalidate('app:orders');
+					playBeep();
+				});
+				cleanupFns.push(unsubOrderCompleted);
 
-			const unsubItemStatus = onItemStatus(() => {
-				invalidate('app:orders');
-			});
-
-			return () => {
-				unsubOrderCreated();
-				unsubOrderUpdated();
-				unsubOrderCompleted();
-				unsubItemStatus();
-			};
-		}
+				const unsubItemStatus = await onItemStatus(() => {
+					invalidate('app:orders');
+				});
+				cleanupFns.push(unsubItemStatus);
+			}
+		})();
 	});
 
 	onDestroy(() => {
+		cleanupFns.forEach((fn) => fn());
 		leaveBusiness(data.businessId);
 		disconnectSocket();
 		if (hideTimer) clearTimeout(hideTimer);

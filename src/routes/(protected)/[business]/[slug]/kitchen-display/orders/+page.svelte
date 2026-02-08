@@ -98,6 +98,8 @@
 	}
 
 	// WebSocket setup for real-time updates
+	let cleanupFns: Array<() => void> = [];
+
 	onMount(() => {
 		tickInterval = setInterval(() => {
 			now = Date.now();
@@ -107,52 +109,52 @@
 			isFullscreen = !!document.fullscreenElement;
 		});
 
-		const socket = connectSocket();
+		(async () => {
+			const socket = await connectSocket();
 
-		if (socket) {
-			socket.on('connect', () => {
-				isConnected = true;
-				joinBusiness(data.businessId);
-				toast.success('Real-time updates connected');
-			});
+			if (socket) {
+				socket.on('connect', async () => {
+					isConnected = true;
+					await joinBusiness(data.businessId);
+					toast.success('Real-time updates connected');
+				});
 
-			socket.on('disconnect', () => {
-				isConnected = false;
-			});
+				socket.on('disconnect', () => {
+					isConnected = false;
+				});
 
-			// Listen for new orders
-			const unsubOrderCreated = onOrderCreated((order) => {
-				invalidate('app:orders');
-				playBeep();
-				toast.info(`New order: ${order.orderNumber}`);
-			});
+				// Listen for new orders
+				const unsubOrderCreated = await onOrderCreated((order) => {
+					invalidate('app:orders');
+					playBeep();
+					toast.info(`New order: ${order.orderNumber}`);
+				});
+				cleanupFns.push(unsubOrderCreated);
 
-			// Listen for order updates
-			const unsubOrderUpdated = onOrderUpdated(() => {
-				invalidate('app:orders');
-			});
+				// Listen for order updates
+				const unsubOrderUpdated = await onOrderUpdated(() => {
+					invalidate('app:orders');
+				});
+				cleanupFns.push(unsubOrderUpdated);
 
-			// Listen for completed orders
-			const unsubOrderCompleted = onOrderCompleted(() => {
-				invalidate('app:orders');
-				toast.success('Order completed');
-			});
+				// Listen for completed orders
+				const unsubOrderCompleted = await onOrderCompleted(() => {
+					invalidate('app:orders');
+					toast.success('Order completed');
+				});
+				cleanupFns.push(unsubOrderCompleted);
 
-			// Listen for item status changes
-			const unsubItemStatus = onItemStatus(() => {
-				invalidate('app:orders');
-			});
-
-			return () => {
-				unsubOrderCreated();
-				unsubOrderUpdated();
-				unsubOrderCompleted();
-				unsubItemStatus();
-			};
-		}
+				// Listen for item status changes
+				const unsubItemStatus = await onItemStatus(() => {
+					invalidate('app:orders');
+				});
+				cleanupFns.push(unsubItemStatus);
+			}
+		})();
 	});
 
 	onDestroy(() => {
+		cleanupFns.forEach((fn) => fn());
 		leaveBusiness(data.businessId);
 		disconnectSocket();
 		if (tickInterval) clearInterval(tickInterval);
