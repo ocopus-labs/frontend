@@ -19,23 +19,23 @@
 		score === 0
 			? 'bg-muted'
 			: score === 1
-				? 'bg-red-500'
+				? 'bg-destructive'
 				: score === 2
 					? 'bg-orange-500'
 					: score === 3
 						? 'bg-yellow-500'
-						: 'bg-green-500'
+						: 'bg-emerald-500'
 	);
 
 	let textColor = $derived(
 		score === 1
-			? 'text-red-600'
+			? 'text-destructive'
 			: score === 2
-				? 'text-orange-600'
+				? 'text-orange-600 dark:text-orange-400'
 				: score === 3
-					? 'text-yellow-600'
+					? 'text-yellow-600 dark:text-yellow-400'
 					: score === 4
-						? 'text-green-600'
+						? 'text-emerald-600 dark:text-emerald-400'
 						: 'text-muted-foreground'
 	);
 </script>

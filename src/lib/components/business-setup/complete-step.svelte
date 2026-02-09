@@ -28,8 +28,8 @@
 	<div class="space-y-4">
 		<div class="rounded-lg border p-4">
 			<div class="flex items-start gap-3">
-				<div class="rounded-full bg-green-100 p-1 dark:bg-green-900">
-					<IconCheck class="h-5 w-5 text-green-600 dark:text-green-400" />
+				<div class="rounded-full bg-emerald-100 p-1 dark:bg-emerald-900">
+					<IconCheck class="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
 				</div>
 				<div class="flex-1">
 					<div class="flex items-center gap-2">
@@ -45,8 +45,8 @@
 
 		<div class="rounded-lg border p-4">
 			<div class="flex items-start gap-3">
-				<div class="rounded-full bg-green-100 p-1 dark:bg-green-900">
-					<IconCheck class="h-5 w-5 text-green-600 dark:text-green-400" />
+				<div class="rounded-full bg-emerald-100 p-1 dark:bg-emerald-900">
+					<IconCheck class="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
 				</div>
 				<div class="flex-1">
 					<div class="flex items-center gap-2">
@@ -62,8 +62,8 @@
 
 		<div class="rounded-lg border p-4">
 			<div class="flex items-start gap-3">
-				<div class="rounded-full bg-green-100 p-1 dark:bg-green-900">
-					<IconCheck class="h-5 w-5 text-green-600 dark:text-green-400" />
+				<div class="rounded-full bg-emerald-100 p-1 dark:bg-emerald-900">
+					<IconCheck class="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
 				</div>
 				<div class="flex-1">
 					<div class="flex items-center gap-2">
@@ -77,8 +77,8 @@
 
 		<div class="rounded-lg border p-4">
 			<div class="flex items-start gap-3">
-				<div class="rounded-full bg-green-100 p-1 dark:bg-green-900">
-					<IconCheck class="h-5 w-5 text-green-600 dark:text-green-400" />
+				<div class="rounded-full bg-emerald-100 p-1 dark:bg-emerald-900">
+					<IconCheck class="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
 				</div>
 				<div class="flex-1">
 					<div class="flex items-center gap-2">

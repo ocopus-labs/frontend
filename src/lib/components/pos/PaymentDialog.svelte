@@ -346,9 +346,9 @@
 
 						<!-- Change Display -->
 						{#if change > 0}
-							<div class="rounded-lg bg-green-50 p-3 dark:bg-green-950">
+							<div class="rounded-lg bg-emerald-50 p-3 dark:bg-emerald-950">
 								<p class="text-sm text-muted-foreground">Change to return:</p>
-								<p class="text-2xl font-bold text-green-600 dark:text-green-400">
+								<p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
 									{i18n.formatCurrency(change)}
 								</p>
 							</div>
@@ -409,7 +409,7 @@
 							<span>{i18n.formatCurrency(cashReceived)}</span>
 						</div>
 						{#if change > 0}
-							<div class="flex justify-between text-sm text-green-600 dark:text-green-400">
+							<div class="flex justify-between text-sm text-emerald-600 dark:text-emerald-400">
 								<span>Change:</span>
 								<span>{i18n.formatCurrency(change)}</span>
 							</div>
@@ -417,7 +417,7 @@
 					{/if}
 					{#if paymentAmount < balanceDue}
 						<div class="mt-2 border-t border-border pt-2">
-							<div class="flex justify-between text-sm text-orange-600 dark:text-orange-400">
+							<div class="flex justify-between text-sm text-amber-600 dark:text-amber-400">
 								<span>Remaining Balance:</span>
 								<span>{i18n.formatCurrency(balanceDue - paymentAmount)}</span>
 							</div>
@@ -503,7 +503,7 @@
 										class="text-sm"
 									/>
 									{#if (entry.cashReceived ?? 0) > entry.amount}
-										<p class="text-xs text-green-600">
+										<p class="text-xs text-emerald-600 dark:text-emerald-400">
 											Change: {i18n.formatCurrency((entry.cashReceived ?? 0) - entry.amount)}
 										</p>
 									{/if}
@@ -527,7 +527,7 @@
 							</span>
 						</div>
 						{#if Math.abs(splitRemaining) >= 0.01}
-							<div class="flex justify-between text-sm text-orange-600 dark:text-orange-400">
+							<div class="flex justify-between text-sm text-amber-600 dark:text-amber-400">
 								<span>{splitRemaining > 0 ? 'Remaining:' : 'Over by:'}</span>
 								<span>{i18n.formatCurrency(Math.abs(splitRemaining))}</span>
 							</div>

@@ -182,7 +182,7 @@
 			</div>
 		{/if}
 		{#if receipt.discount > 0}
-			<div class="my-[3px] flex justify-between text-[11px] text-green-600 print:text-[9px]">
+			<div class="my-[3px] flex justify-between text-[11px] text-emerald-600 dark:text-emerald-400 print:text-[9px]">
 				<span>Discount</span>
 				<span>-{i18n.formatCurrency(receipt.discount)}</span>
 			</div>
@@ -223,7 +223,7 @@
 		</div>
 		{#if change && change > 0}
 			<div
-				class="my-[3px] flex justify-between text-[11px] font-bold text-green-600 print:text-[9px]"
+				class="my-[3px] flex justify-between text-[11px] font-bold text-emerald-600 dark:text-emerald-400 print:text-[9px]"
 			>
 				<span>Change</span>
 				<span>{i18n.formatCurrency(change)}</span>

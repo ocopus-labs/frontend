@@ -70,14 +70,14 @@
 			<span class="text-sm {showDiscount ? 'text-foreground' : 'text-muted-foreground'}">
 				Discount
 				{#if showDiscount && discountValue > 0}
-					<span class="ml-1 text-xs text-green-600">
+					<span class="ml-1 text-xs text-emerald-600 dark:text-emerald-400">
 						({discountType === 'percentage' ? `${discountValue}%` : i18n.formatCurrency(discountValue)})
 					</span>
 				{/if}
 			</span>
 		</button>
 		{#if showDiscount && discount > 0}
-			<span class="text-sm font-medium text-green-600">-{i18n.formatCurrency(discount)}</span>
+			<span class="text-sm font-medium text-emerald-600 dark:text-emerald-400">-{i18n.formatCurrency(discount)}</span>
 		{:else}
 			<span class="text-sm text-muted-foreground">—</span>
 		{/if}
