@@ -7,6 +7,7 @@
 	import { authClient } from '$lib/auth';
 	import Eye from '@lucide/svelte/icons/eye';
 	import EyeOff from '@lucide/svelte/icons/eye-off';
+	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { page } from '$app/stores';
@@ -137,32 +138,15 @@
 				{#if passwordError}
 					<Field.Description class="text-destructive">{passwordError}</Field.Description>
 				{:else if confirmPassword && password === confirmPassword}
-					<Field.Description class="text-green-600 dark:text-green-400">Passwords match</Field.Description>
+					<Field.Description class="text-emerald-600 dark:text-emerald-400">Passwords match</Field.Description>
 				{/if}
 			</Field.Field>
 
 			<Field.Field>
 				<Button type="submit" disabled={isLoading} class="w-full">
 					{#if isLoading}
-						<span class="flex items-center gap-2">
-							<svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24">
-								<circle
-									class="opacity-25"
-									cx="12"
-									cy="12"
-									r="10"
-									stroke="currentColor"
-									stroke-width="4"
-									fill="none"
-								></circle>
-								<path
-									class="opacity-75"
-									fill="currentColor"
-									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-								></path>
-							</svg>
-							Resetting...
-						</span>
+						<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+						Resetting...
 					{:else}
 						Reset Password
 					{/if}

@@ -132,7 +132,7 @@
       {#if confirmPassword && password !== confirmPassword}
         <Field.Description class="text-destructive">Passwords do not match</Field.Description>
       {:else if confirmPassword && password === confirmPassword}
-        <Field.Description class="text-green-600 dark:text-green-400">Passwords match</Field.Description>
+        <Field.Description class="text-emerald-600 dark:text-emerald-400">Passwords match</Field.Description>
       {:else}
         <Field.Description>Please confirm your password.</Field.Description>
       {/if}
