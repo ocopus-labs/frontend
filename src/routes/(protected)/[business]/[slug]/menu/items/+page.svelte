@@ -20,6 +20,7 @@
 	import { IconSearch, IconPlus, IconEdit, IconTrash, IconEye, IconEyeOff, IconCopy } from '@tabler/icons-svelte';
 	import * as Select from '$lib/components/ui/select';
 	import { Textarea } from '$lib/components/ui/textarea';
+import { Checkbox } from '$lib/components/ui/checkbox';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import { EmptyState, StatusPill } from '$lib/components/data-display';
@@ -534,7 +535,7 @@
 			<div class="grid grid-cols-4 items-center gap-4">
 				<label class="text-right">Vegetarian</label>
 				<div class="col-span-3">
-					<input type="checkbox" bind:checked={formIsVegetarian} class="mr-2" />
+					<Checkbox bind:checked={formIsVegetarian} class="mr-2" />
 					<span class="text-sm text-muted-foreground">Mark as vegetarian</span>
 				</div>
 			</div>
@@ -649,7 +650,7 @@
 			<div class="grid grid-cols-4 items-center gap-4">
 				<label class="text-right">Vegetarian</label>
 				<div class="col-span-3">
-					<input type="checkbox" bind:checked={formIsVegetarian} class="mr-2" />
+					<Checkbox bind:checked={formIsVegetarian} class="mr-2" />
 					<span class="text-sm text-muted-foreground">Mark as vegetarian</span>
 				</div>
 			</div>

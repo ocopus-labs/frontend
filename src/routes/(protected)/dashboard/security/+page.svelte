@@ -5,6 +5,10 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
+import { Checkbox } from '$lib/components/ui/checkbox';
+	import * as InputGroup from '$lib/components/ui/input-group/index.js';
+	import Eye from '@lucide/svelte/icons/eye';
+	import EyeOff from '@lucide/svelte/icons/eye-off';
 	import { toast } from 'svelte-sonner';
 	import { onMount } from 'svelte';
 	import {
@@ -28,6 +32,10 @@
 	let currentPassword = $state('');
 	let newPassword = $state('');
 	let confirmPassword = $state('');
+	let showCurrentPassword = $state(false);
+	let showNewPassword = $state(false);
+	let showConfirmPassword = $state(false);
+	let showDisablePassword = $state(false);
 	let revokeOtherOnChange = $state(false);
 	let isChangingPassword = $state(false);
 
@@ -268,42 +276,79 @@
 			<form class="space-y-4" onsubmit={(e) => { e.preventDefault(); handleChangePassword(); }}>
 				<div class="space-y-2">
 					<Label for="current-password">Current Password</Label>
-					<Input
-						id="current-password"
-						type="password"
-						bind:value={currentPassword}
-						placeholder="Enter current password"
-						required
-					/>
+					<InputGroup.Root>
+						<InputGroup.Input
+							id="current-password"
+							type={showCurrentPassword ? 'text' : 'password'}
+							bind:value={currentPassword}
+							placeholder="Enter current password"
+							required
+						/>
+						<InputGroup.Button
+							size="icon-sm"
+							ontouchstart={(e) => e.preventDefault()}
+							onclick={() => (showCurrentPassword = !showCurrentPassword)}
+							aria-label={showCurrentPassword ? 'Hide password' : 'Show password'}
+						>
+							{#if showCurrentPassword}
+								<EyeOff class="size-4" />
+							{:else}
+								<Eye class="size-4" />
+							{/if}
+						</InputGroup.Button>
+					</InputGroup.Root>
 				</div>
 				<div class="space-y-2">
 					<Label for="new-password">New Password</Label>
-					<Input
-						id="new-password"
-						type="password"
-						bind:value={newPassword}
-						placeholder="Enter new password (min. 8 characters)"
-						required
-						minlength={8}
-					/>
+					<InputGroup.Root>
+						<InputGroup.Input
+							id="new-password"
+							type={showNewPassword ? 'text' : 'password'}
+							bind:value={newPassword}
+							placeholder="Enter new password (min. 8 characters)"
+							required
+							minlength={8}
+						/>
+						<InputGroup.Button
+							size="icon-sm"
+							ontouchstart={(e) => e.preventDefault()}
+							onclick={() => (showNewPassword = !showNewPassword)}
+							aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+						>
+							{#if showNewPassword}
+								<EyeOff class="size-4" />
+							{:else}
+								<Eye class="size-4" />
+							{/if}
+						</InputGroup.Button>
+					</InputGroup.Root>
 				</div>
 				<div class="space-y-2">
 					<Label for="confirm-password">Confirm New Password</Label>
-					<Input
-						id="confirm-password"
-						type="password"
-						bind:value={confirmPassword}
-						placeholder="Confirm new password"
-						required
-					/>
+					<InputGroup.Root>
+						<InputGroup.Input
+							id="confirm-password"
+							type={showConfirmPassword ? 'text' : 'password'}
+							bind:value={confirmPassword}
+							placeholder="Confirm new password"
+							required
+						/>
+						<InputGroup.Button
+							size="icon-sm"
+							ontouchstart={(e) => e.preventDefault()}
+							onclick={() => (showConfirmPassword = !showConfirmPassword)}
+							aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+						>
+							{#if showConfirmPassword}
+								<EyeOff class="size-4" />
+							{:else}
+								<Eye class="size-4" />
+							{/if}
+						</InputGroup.Button>
+					</InputGroup.Root>
 				</div>
 				<div class="flex items-center gap-2">
-					<input
-						type="checkbox"
-						id="revoke-others"
-						bind:checked={revokeOtherOnChange}
-						class="rounded border-input"
-					/>
+					<Checkbox id="revoke-others" bind:checked={revokeOtherOnChange} />
 					<Label for="revoke-others" class="text-sm font-normal">Sign out all other devices</Label>
 				</div>
 				<Button type="submit" disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}>
@@ -426,12 +471,26 @@
 					</p>
 					<div class="space-y-2">
 						<Label for="disable-password">Password</Label>
-						<Input
-							id="disable-password"
-							type="password"
-							bind:value={disablePassword}
-							placeholder="Enter your password"
-						/>
+						<InputGroup.Root>
+							<InputGroup.Input
+								id="disable-password"
+								type={showDisablePassword ? 'text' : 'password'}
+								bind:value={disablePassword}
+								placeholder="Enter your password"
+							/>
+							<InputGroup.Button
+								size="icon-sm"
+								ontouchstart={(e) => e.preventDefault()}
+								onclick={() => (showDisablePassword = !showDisablePassword)}
+								aria-label={showDisablePassword ? 'Hide password' : 'Show password'}
+							>
+								{#if showDisablePassword}
+									<EyeOff class="size-4" />
+								{:else}
+									<Eye class="size-4" />
+								{/if}
+							</InputGroup.Button>
+						</InputGroup.Root>
 					</div>
 					<div class="flex gap-2">
 						<Button variant="destructive" onclick={handleDisable2FA} disabled={isDisabling2FA || !disablePassword}>

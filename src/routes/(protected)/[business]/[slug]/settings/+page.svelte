@@ -18,6 +18,7 @@
 	import { CURRENCY_CONFIG } from '$lib/utils/i18n';
 	import type { CurrencyCode } from '$lib/utils/i18n';
 	import * as Select from '$lib/components/ui/select';
+import { Checkbox } from '$lib/components/ui/checkbox';
 
 	let { data } = $props();
 
@@ -337,15 +338,15 @@
 								<h4 class="text-sm font-medium">Payment Methods</h4>
 								<div class="space-y-2">
 									<div class="flex items-center gap-2">
-										<input type="checkbox" id="cash" bind:checked={paymentMethodCash} />
+										<Checkbox id="cash" bind:checked={paymentMethodCash} />
 										<label for="cash" class="text-sm">Cash</label>
 									</div>
 									<div class="flex items-center gap-2">
-										<input type="checkbox" id="card" bind:checked={paymentMethodCard} />
+										<Checkbox id="card" bind:checked={paymentMethodCard} />
 										<label for="card" class="text-sm">Credit/Debit Card</label>
 									</div>
 									<div class="flex items-center gap-2">
-										<input type="checkbox" id="digital" bind:checked={paymentMethodDigital} />
+										<Checkbox id="digital" bind:checked={paymentMethodDigital} />
 										<label for="digital" class="text-sm">Digital Wallets</label>
 									</div>
 								</div>

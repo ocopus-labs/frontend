@@ -6,6 +6,7 @@
 	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
+import { Checkbox } from '$lib/components/ui/checkbox';
 	import PageHeader from '$lib/components/global/page-header.svelte';
 	import {
 		IconPlus,
@@ -620,7 +621,7 @@
 			</div>
 			<div class="grid gap-2">
 				<div class="flex items-center gap-2">
-					<input type="checkbox" id="trackExpiry" bind:checked={newItem.trackExpiry} />
+					<Checkbox id="trackExpiry" bind:checked={newItem.trackExpiry} />
 					<label for="trackExpiry" class="text-sm font-medium">Track expiry date</label>
 				</div>
 				{#if newItem.trackExpiry}
@@ -706,7 +707,7 @@
 				</div>
 				<div class="grid gap-2">
 					<div class="flex items-center gap-2">
-						<input type="checkbox" id="edit-trackExpiry" bind:checked={editTrackExpiry} />
+						<Checkbox id="edit-trackExpiry" bind:checked={editTrackExpiry} />
 						<label for="edit-trackExpiry" class="text-sm font-medium">Track expiry date</label>
 					</div>
 					{#if editTrackExpiry}
