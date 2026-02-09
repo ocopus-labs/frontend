@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { PageData } from './$types';
 	import StatsCard from '$lib/components/global/stats-card.svelte';
 	import BarChart from '$lib/components/chart/lazy-bar-chart.svelte';
 	import PieChart from '$lib/components/chart/lazy-pie-chart.svelte';
@@ -11,13 +10,6 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Alert from '$lib/components/ui/alert';
 	import * as Select from '$lib/components/ui/select';
-	import { Badge } from '$lib/components/ui/badge';
-	import {
-		StatusPill,
-		QuickActionCard,
-		MetricRing,
-		StatComparison
-	} from '$lib/components/data-display';
 	import PageHeader from '$lib/components/global/page-header.svelte';
 	import {
 		IconRefresh,
@@ -26,8 +18,10 @@
 		IconReceipt,
 		IconPlus,
 		IconArmchair,
-		IconToolsKitchen2,
-		IconChartBar
+		IconClipboardList,
+		IconCircleCheck,
+		IconCircleX,
+		IconActivity
 	} from '@tabler/icons-svelte';
 
 	let { data } = $props();
@@ -37,7 +31,9 @@
 		description: 'Business management dashboard'
 	};
 
-	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
+	const currency = $derived(
+		((data.business as any)?.settings?.currency || 'USD') as CurrencyCode
+	);
 
 	function formatCurrency(value: number): string {
 		return i18nFormatCurrency(value, currency);
@@ -69,6 +65,19 @@
 		}
 	}
 
+	// Extract sparkline-ready arrays from revenue trends (last 14 days)
+	const revenueSparkline = $derived(
+		(data.revenueTrends || []).slice(-14).map((d: any) => d.revenue ?? 0)
+	);
+	const ordersSparkline = $derived(
+		(data.revenueTrends || []).slice(-14).map((d: any) => d.orders ?? 0)
+	);
+	const aovSparkline = $derived(
+		(data.revenueTrends || [])
+			.slice(-14)
+			.map((d: any) => (d.orders ? (d.revenue ?? 0) / d.orders : 0))
+	);
+
 	// Build stats from real data with real change %
 	let stats = $derived.by(() => {
 		const dashboardStats = data.dashboardStats;
@@ -82,21 +91,24 @@
 					value: formatCurrency(orders.totalRevenue),
 					change: comparison?.revenueChange ?? 0,
 					description: `${orders.completedOrders} completed`,
-					href: 'orders/history'
+					href: 'orders/history',
+					sparklineData: revenueSparkline.length >= 2 ? revenueSparkline : undefined
 				},
 				{
 					title: 'Total Orders',
 					value: orders.totalOrders,
 					change: comparison?.ordersChange ?? 0,
 					description: `${orders.activeOrders} active`,
-					href: 'orders/pending'
+					href: 'orders/pending',
+					sparklineData: ordersSparkline.length >= 2 ? ordersSparkline : undefined
 				},
 				{
 					title: 'Avg Order Value',
 					value: formatCurrency(orders.averageOrderValue),
 					change: comparison?.aovChange ?? 0,
 					description: 'Per completed order',
-					href: 'analytics'
+					href: 'analytics',
+					sparklineData: aovSparkline.length >= 2 ? aovSparkline : undefined
 				},
 				{
 					title: 'Payments',
@@ -134,12 +146,33 @@
 		];
 	});
 
-	// Format hourly breakdown for bar chart
+	// Format hourly breakdown for bar chart (short labels for chart axis)
 	const hourlyChartData = $derived(
-		(data.hourlyBreakdown || []).map((h: any) => ({
-			...h,
-			hour: `${h.hour}:00`
-		}))
+		(data.hourlyBreakdown || []).map((h: any) => {
+			const hr = h.hour;
+			const suffix = hr >= 12 ? 'p' : 'a';
+			const hr12 = hr === 0 ? 12 : hr > 12 ? hr - 12 : hr;
+			return { ...h, hour: `${hr12}${suffix}` };
+		})
+	);
+
+	// Format revenue trend dates for readable x-axis labels
+	const revenueTrendsData = $derived(
+		(data.revenueTrends || []).map((d: any) => {
+			const dateStr = d.date;
+			let label = dateStr;
+			if (typeof dateStr === 'string' && dateStr.includes('-')) {
+				const parts = dateStr.split('-');
+				const month = parseInt(parts[1], 10);
+				const day = parseInt(parts[2], 10);
+				const monthNames = [
+					'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+					'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+				];
+				label = `${monthNames[month - 1]} ${day}`;
+			}
+			return { ...d, date: label };
+		})
 	);
 
 	// Payment breakdown for pie chart
@@ -157,23 +190,20 @@
 	);
 
 	// Build base path for navigation
-	const basePath = $derived(`/${(data.business as any)?.type}/${(data.business as any)?.slug}`);
+	const basePath = $derived(
+		`/${(data.business as any)?.type}/${(data.business as any)?.slug}`
+	);
 
-	// Status badge variant
-	function getStatusPillStatus(
-		status: string
-	): 'success' | 'warning' | 'error' | 'info' | 'neutral' {
-		switch (status) {
-			case 'active':
-				return 'info';
-			case 'completed':
-				return 'success';
-			case 'cancelled':
-				return 'error';
-			default:
-				return 'neutral';
-		}
-	}
+	// Table stats
+	const tableStats = $derived((data as any).tableStats);
+	const tableOccupancyPercent = $derived(
+		tableStats && tableStats.total > 0
+			? Math.round((tableStats.occupied / tableStats.total) * 100)
+			: 0
+	);
+
+	// Order stats for pipeline
+	const orderStats = $derived((data as any).orderStats);
 
 	function formatRelativeTime(dateStr: string): string {
 		const now = new Date();
@@ -186,6 +216,33 @@
 		if (diffHours < 24) return `${diffHours}h ago`;
 		const diffDays = Math.floor(diffHours / 24);
 		return `${diffDays}d ago`;
+	}
+
+	function getActivityIcon(status: string) {
+		switch (status) {
+			case 'completed':
+				return 'text-green-500';
+			case 'cancelled':
+				return 'text-red-500';
+			case 'active':
+				return 'text-blue-500';
+			default:
+				return 'text-muted-foreground';
+		}
+	}
+
+	function getActivityLabel(order: any): string {
+		const name = order.customerInfo?.name || 'Walk-in';
+		switch (order.status) {
+			case 'completed':
+				return `${name} paid ${formatCurrency(order.pricing?.total ?? 0)}`;
+			case 'cancelled':
+				return `Order #${order.orderNumber} cancelled`;
+			case 'active':
+				return `${name} placed order #${order.orderNumber}`;
+			default:
+				return `Order #${order.orderNumber} — ${name}`;
+		}
 	}
 </script>
 
@@ -203,8 +260,14 @@
 					>
 						<IconRefresh class="h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
 					</Button>
-					<Select.Root type="single" value={selectedPeriod} onValueChange={(v) => onPeriodChange(v)}>
-						<Select.Trigger class="w-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm">
+					<Select.Root
+						type="single"
+						value={selectedPeriod}
+						onValueChange={(v) => onPeriodChange(v)}
+					>
+						<Select.Trigger
+							class="w-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+						>
 							{periodLabels[selectedPeriod] ?? selectedPeriod}
 						</Select.Trigger>
 						<Select.Content>
@@ -214,6 +277,13 @@
 							<Select.Item value="month">This Month</Select.Item>
 						</Select.Content>
 					</Select.Root>
+					<Button
+						href="{basePath}/pos/new-order"
+						class="bg-orange-600 text-white shadow-md hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600"
+					>
+						<IconPlus class="mr-1.5 h-4 w-4" />
+						New Order
+					</Button>
 				{/snippet}
 			</PageHeader>
 
@@ -232,133 +302,206 @@
 					</Alert.Root>
 				</div>
 			{:else}
-				<!-- Stats Cards -->
+				<!-- Stats Cards with sparklines -->
 				<StatsCard {stats} {basePath} />
 
-				<!-- Quick Actions -->
-				<div class="grid grid-cols-2 gap-3 px-4 sm:grid-cols-4 lg:px-6">
-					<QuickActionCard
-						title="New Order"
-						description="Start taking an order"
-						icon={IconPlus as any}
-						href="{basePath}/pos/new-order"
-						size="sm"
-						variant="gradient"
-						showArrow
-					/>
-					<QuickActionCard
-						title="Tables"
-						description="View floor plan"
-						icon={IconArmchair as any}
-						href="{basePath}/tables/layout"
-						size="sm"
-						showArrow
-					/>
-					<QuickActionCard
-						title="Menu"
-						description="Manage items"
-						icon={IconToolsKitchen2 as any}
-						href="{basePath}/menu/items"
-						size="sm"
-						showArrow
-					/>
-					<QuickActionCard
-						title="Reports"
-						description="View analytics"
-						icon={IconChartBar as any}
-						href="{basePath}/dashboard/reports"
-						size="sm"
-						showArrow
-					/>
+				<!-- Live Operations Strip -->
+				<div class="grid grid-cols-1 gap-3 px-4 sm:grid-cols-3 lg:px-6">
+					<!-- Table Occupancy -->
+					<Card.Root class="p-4">
+						<div class="flex items-center gap-3">
+							<div
+								class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10"
+							>
+								<IconArmchair class="h-5 w-5 text-blue-500" />
+							</div>
+							<div class="min-w-0 flex-1">
+								<p class="text-xs font-medium text-muted-foreground">Table Occupancy</p>
+								{#if tableStats}
+									<div class="mt-1 flex items-center gap-2">
+										<div class="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+											<div
+												class="h-full rounded-full transition-all duration-500 {tableOccupancyPercent > 80
+													? 'bg-red-500'
+													: tableOccupancyPercent > 50
+														? 'bg-amber-500'
+														: 'bg-green-500'}"
+												style="width: {tableOccupancyPercent}%"
+											></div>
+										</div>
+										<span class="text-sm font-semibold tabular-nums">
+											{tableStats.occupied}/{tableStats.total}
+										</span>
+									</div>
+								{:else}
+									<p class="mt-0.5 text-sm font-semibold">No tables</p>
+								{/if}
+							</div>
+						</div>
+					</Card.Root>
+
+					<!-- Active Orders -->
+					<Card.Root class="p-4">
+						<div class="flex items-center gap-3">
+							<div
+								class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-500/10"
+							>
+								<IconClipboardList class="h-5 w-5 text-orange-500" />
+							</div>
+							<div class="min-w-0 flex-1">
+								<p class="text-xs font-medium text-muted-foreground">Active Orders</p>
+								<p class="text-lg font-bold tabular-nums">
+									{orderStats?.activeOrders ?? data.dashboardStats?.orders?.activeOrders ?? 0}
+								</p>
+							</div>
+						</div>
+					</Card.Root>
+
+					<!-- Order Pipeline -->
+					<Card.Root class="p-4">
+						<div class="flex items-center gap-3">
+							<div
+								class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-500/10"
+							>
+								<IconActivity class="h-5 w-5 text-green-500" />
+							</div>
+							<div class="min-w-0 flex-1">
+								<p class="mb-1.5 text-xs font-medium text-muted-foreground">Order Pipeline</p>
+								<div class="flex items-center gap-3 text-xs">
+									<div class="flex items-center gap-1">
+										<IconClipboardList class="h-3.5 w-3.5 text-blue-500" />
+										<span class="font-semibold tabular-nums">
+											{orderStats?.activeOrders ??
+												data.dashboardStats?.orders?.activeOrders ??
+												0}
+										</span>
+										<span class="text-muted-foreground">Active</span>
+									</div>
+									<div class="flex items-center gap-1">
+										<IconCircleCheck class="h-3.5 w-3.5 text-green-500" />
+										<span class="font-semibold tabular-nums">
+											{orderStats?.completedOrders ??
+												data.dashboardStats?.orders?.completedOrders ??
+												0}
+										</span>
+										<span class="text-muted-foreground">Done</span>
+									</div>
+									{#if orderStats?.cancelledOrders}
+										<div class="flex items-center gap-1">
+											<IconCircleX class="h-3.5 w-3.5 text-red-500" />
+											<span class="font-semibold tabular-nums">
+												{orderStats.cancelledOrders}
+											</span>
+											<span class="text-muted-foreground">Cancelled</span>
+										</div>
+									{/if}
+								</div>
+							</div>
+						</div>
+					</Card.Root>
 				</div>
 
-				<!-- Revenue comparison + Order completion ring -->
-				{#if data.analyticsComparison?.comparison}
-					<div class="grid grid-cols-1 gap-4 px-4 lg:grid-cols-3 lg:px-6">
-						<div class="lg:col-span-2">
-							<StatComparison
-								label="Revenue"
-								currentValue={data.dashboardStats?.orders?.totalRevenue ?? 0}
-								previousValue={(data.dashboardStats?.orders?.totalRevenue ?? 0) /
-									(1 + (data.analyticsComparison.comparison.revenueChange ?? 0) / 100) || 0}
-								format="currency"
-								{currency}
-								currentLabel="This period"
-								previousLabel="Previous"
-							/>
-						</div>
-						<Card.Root>
-							<Card.Content class="flex flex-col items-center justify-center gap-2 py-6">
-								<MetricRing
-									value={data.dashboardStats?.orders?.completedOrders ?? 0}
-									max={Math.max(data.dashboardStats?.orders?.totalOrders ?? 1, 1)}
-									color="success"
-									label="Completed"
-									size="lg"
-								/>
-								<p class="text-sm text-muted-foreground">
-									{data.dashboardStats?.orders?.completedOrders ?? 0} of {data.dashboardStats
-										?.orders?.totalOrders ?? 0} orders
-								</p>
-							</Card.Content>
-						</Card.Root>
-					</div>
-				{/if}
-
-				<!-- Charts: responsive layout — revenue full width on top, other 2 side by side -->
-				<div class="mx-6">
-					<div class="grid grid-cols-1 gap-4 py-4 lg:grid-cols-2">
-						{#if data.revenueTrends && data.revenueTrends.length > 0}
-							<div class=" lg:col-span-2">
-								<BarChart
-									title="Revenue Trends"
-									description="Daily revenue over time"
-									data={data.revenueTrends}
-									xKey="date"
-									series={[
-										{ key: 'revenue', label: 'Revenue', color: 'var(--chart-1)' },
-										{ key: 'orders', label: 'Orders', color: 'var(--chart-2)' }
-									]}
-								/>
-							</div>
-						{:else}
-							<div class="lg:col-span-2">
-								<BarChart title="Revenue Trends" description="Daily revenue over time" />
-							</div>
-						{/if}
-
-						{#if paymentChartData.length > 0}
-							<PieChart
-								title="Payment Methods"
-								description="Breakdown by payment type"
-								data={paymentChartData}
-								labelKey="method"
-								valueKey="amount"
-							/>
-						{:else}
-							<PieChart title="Payment Methods" description="Breakdown by payment type" />
-						{/if}
-
-						{#if hourlyChartData.length > 0}
+				<!-- Main Content: Revenue Chart + Live Activity Feed -->
+				<div class="grid grid-cols-1 gap-4 px-4 lg:grid-cols-3 lg:px-6">
+					<!-- Revenue Chart (2/3 width) -->
+					<div class="lg:col-span-2">
+						{#if revenueTrendsData.length > 0}
 							<BarChart
-								title="Orders by Hour"
-								description="Today's order distribution"
-								data={hourlyChartData}
-								xKey="hour"
+								title="Revenue Trends"
+								description="Daily revenue over time"
+								data={revenueTrendsData}
+								xKey="date"
 								series={[
-									{ key: 'orders', label: 'Orders', color: 'var(--chart-3)' },
-									{ key: 'revenue', label: 'Revenue', color: 'var(--chart-4)' }
+									{ key: 'revenue', label: 'Revenue', color: 'var(--chart-1)' },
+									{ key: 'orders', label: 'Orders', color: 'var(--chart-2)' }
 								]}
 							/>
 						{:else}
-							<BarChart title="Orders by Hour" description="Today's order distribution" />
+							<BarChart title="Revenue Trends" description="Daily revenue over time" />
 						{/if}
 					</div>
+
+					<!-- Live Activity Feed (1/3 width) -->
+					<Card.Root class="flex max-h-[460px] flex-col">
+						<Card.Header class="flex flex-row items-center justify-between pb-3">
+							<div>
+								<Card.Title class="flex items-center gap-2 text-sm font-semibold">
+									<IconActivity class="h-4 w-4 text-orange-500" />
+									Live Activity
+								</Card.Title>
+							</div>
+							<Button variant="ghost" size="sm" href="{basePath}/orders/pending">
+								View All
+							</Button>
+						</Card.Header>
+						<Card.Content class="flex-1 overflow-y-auto pr-2">
+							{#if (data.recentOrders as any[])?.length > 0}
+								<div class="space-y-1">
+									{#each data.recentOrders as any[] as order (order.id)}
+										<a
+											href="{basePath}/orders/{order.id}"
+											class="flex items-start gap-3 rounded-md px-2 py-2 transition-colors hover:bg-muted/50"
+										>
+											<div
+												class="mt-0.5 h-2 w-2 shrink-0 rounded-full {getActivityIcon(order.status)}"
+												style="background-color: currentColor;"
+											></div>
+											<div class="min-w-0 flex-1">
+												<p class="truncate text-sm">{getActivityLabel(order)}</p>
+												<p class="text-xs text-muted-foreground">
+													{formatRelativeTime(order.createdAt)}
+												</p>
+											</div>
+											<span class="shrink-0 text-xs font-medium tabular-nums">
+												{formatCurrency(order.pricing?.total ?? 0)}
+											</span>
+										</a>
+									{/each}
+								</div>
+							{:else}
+								<div
+									class="flex flex-col items-center justify-center py-8 text-muted-foreground"
+								>
+									<IconReceipt class="mb-2 h-8 w-8 opacity-50" />
+									<p class="text-sm">No recent activity</p>
+								</div>
+							{/if}
+						</Card.Content>
+					</Card.Root>
 				</div>
 
-				<!-- Top Selling Items & Recent Orders -->
-				<div class="mx-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-					<!-- Top Selling Items -->
+				<!-- Secondary Charts: Payment Methods + Orders by Hour -->
+				<div class="grid grid-cols-1 gap-4 px-4 lg:grid-cols-2 lg:px-6">
+					{#if paymentChartData.length > 0}
+						<PieChart
+							title="Payment Methods"
+							description="Breakdown by payment type"
+							data={paymentChartData}
+							labelKey="method"
+							valueKey="amount"
+						/>
+					{:else}
+						<PieChart title="Payment Methods" description="Breakdown by payment type" />
+					{/if}
+
+					{#if hourlyChartData.length > 0}
+						<BarChart
+							title="Orders by Hour"
+							description="Today's order distribution"
+							data={hourlyChartData}
+							xKey="hour"
+							series={[
+								{ key: 'orders', label: 'Orders', color: 'var(--chart-3)' },
+								{ key: 'revenue', label: 'Revenue', color: 'var(--chart-4)' }
+							]}
+						/>
+					{:else}
+						<BarChart title="Orders by Hour" description="Today's order distribution" />
+					{/if}
+				</div>
+
+				<!-- Top Selling Items -->
+				<div class="px-4 lg:px-6">
 					<Card.Root>
 						<Card.Header class="flex flex-row items-center justify-between">
 							<div>
@@ -371,76 +514,27 @@
 						</Card.Header>
 						<Card.Content>
 							{#if (data.topItems as any[])?.length > 0}
-								<div class="space-y-3">
+								<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
 									{#each data.topItems as any[] as item, i (item.id)}
-										<div class="flex items-center justify-between">
-											<div class="flex items-center gap-3">
-												<span
-													class="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-medium"
-												>
-													{i + 1}
-												</span>
-												<div>
-													<p class="text-sm font-medium">{item.name}</p>
-													<p class="text-xs text-muted-foreground">{item.category}</p>
-												</div>
-											</div>
-											<div class="text-right">
-												<p class="text-sm font-medium">{formatCurrency(item.revenue)}</p>
-												<p class="text-xs text-muted-foreground">{item.quantitySold} sold</p>
+										<div
+											class="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
+										>
+											<span
+												class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-xs font-bold text-amber-600 dark:text-amber-400"
+											>
+												{i + 1}
+											</span>
+											<div class="min-w-0 flex-1">
+												<p class="truncate text-sm font-medium">{item.name}</p>
+												<p class="text-xs text-muted-foreground">
+													{item.quantitySold} sold &middot; {formatCurrency(item.revenue)}
+												</p>
 											</div>
 										</div>
 									{/each}
 								</div>
 							{:else}
 								<p class="text-sm text-muted-foreground">No sales data yet</p>
-							{/if}
-						</Card.Content>
-					</Card.Root>
-
-					<!-- Recent Orders -->
-					<Card.Root>
-						<Card.Header class="flex flex-row items-center justify-between">
-							<div>
-								<Card.Title class="flex items-center gap-2">
-									<IconReceipt class="h-4 w-4" />
-									Recent Orders
-								</Card.Title>
-								<Card.Description>Latest order activity</Card.Description>
-							</div>
-							<Button variant="ghost" size="sm" href="{basePath}/orders/pending">View All</Button>
-						</Card.Header>
-						<Card.Content>
-							{#if (data.recentOrders as any[])?.length > 0}
-								<div class="space-y-3">
-									{#each data.recentOrders as any[] as order (order.id)}
-										<a
-											href="{basePath}/orders/{order.id}"
-											class="flex items-center justify-between rounded-md p-2 transition-colors hover:bg-muted/50"
-										>
-											<div>
-												<p class="text-sm font-medium">#{order.orderNumber}</p>
-												<p class="text-xs text-muted-foreground">
-													{order.customerInfo?.name || 'Walk-in'} &middot; {formatRelativeTime(
-														order.createdAt
-													)}
-												</p>
-											</div>
-											<div class="flex items-center gap-2">
-												<span class="text-sm font-medium"
-													>{formatCurrency(order.pricing?.total ?? 0)}</span
-												>
-												<StatusPill
-													label={order.status}
-													status={getStatusPillStatus(order.status)}
-													size="sm"
-												/>
-											</div>
-										</a>
-									{/each}
-								</div>
-							{:else}
-								<p class="text-sm text-muted-foreground">No recent orders</p>
 							{/if}
 						</Card.Content>
 					</Card.Root>

@@ -2,12 +2,12 @@ import type { PageLoad } from './$types';
 import {
 	getDashboardStats,
 	getTopSellingItems,
-	getPeakHours,
 	getRevenueTrends,
 	getAnalyticsDashboard,
 	getPaymentMethodBreakdown,
 	getHourlyBreakdown
 } from '$lib/api';
+import { getOrderStats } from '$lib/api/order';
 
 function getDaysFromRange(range: string): number {
 	switch (range) {
@@ -47,14 +47,24 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 	const period = getRangePeriod(dateRange);
 
 	try {
-		const [stats, topItems, peakHours, revenueTrends, analyticsData, paymentData, hourlyData] = await Promise.all([
+		const [
+			stats,
+			topItems,
+			revenueTrends,
+			analyticsData,
+			paymentData,
+			hourlyData,
+			orderStats
+		] = await Promise.all([
 			getDashboardStats(businessId, undefined, { fetch }),
-			getTopSellingItems(businessId, { limit: 5, days }, { fetch }),
-			getPeakHours(businessId, days, { fetch }),
+			getTopSellingItems(businessId, { limit: 10, days }, { fetch }),
 			getRevenueTrends(businessId, days, { fetch }),
 			getAnalyticsDashboard(businessId, { fetch }).catch(() => null),
-			getPaymentMethodBreakdown(businessId, { period: period as any }, { fetch }).catch(() => null),
-			getHourlyBreakdown(businessId, undefined, { fetch }).catch(() => null)
+			getPaymentMethodBreakdown(businessId, { period: period as any }, { fetch }).catch(
+				() => null
+			),
+			getHourlyBreakdown(businessId, undefined, { fetch }).catch(() => null),
+			getOrderStats(businessId, undefined, { fetch }).catch(() => null)
 		]);
 
 		return {
@@ -62,11 +72,11 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 			dateRange,
 			stats,
 			topItems,
-			peakHours,
 			revenueTrends,
 			analyticsComparison: analyticsData?.stats || null,
 			paymentBreakdown: paymentData?.breakdown || [],
 			hourlyBreakdown: hourlyData?.breakdown || [],
+			orderStats: orderStats?.stats || null,
 			analyticsError: null
 		};
 	} catch (error) {
@@ -76,11 +86,11 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 			dateRange,
 			stats: null,
 			topItems: null,
-			peakHours: null,
 			revenueTrends: null,
 			analyticsComparison: null,
 			paymentBreakdown: [],
 			hourlyBreakdown: [],
+			orderStats: null,
 			analyticsError: error instanceof Error ? error.message : 'Failed to load analytics'
 		};
 	}

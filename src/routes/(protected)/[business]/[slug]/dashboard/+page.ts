@@ -5,9 +5,10 @@ import {
 	getPaymentMethodBreakdown,
 	getRevenueTrends,
 	getHourlyBreakdown,
-	getTopSellingItems
+	getTopSellingItems,
+	getTableStats
 } from '$lib/api';
-import { getOrders } from '$lib/api/order';
+import { getOrders, getOrderStats } from '$lib/api/order';
 
 export const load: PageLoad = async ({ parent, fetch, url }) => {
 	const parentData = await parent();
@@ -24,14 +25,28 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 	const analyticsPeriod = periodMap[period] || 'month';
 
 	try {
-		const [stats, analyticsData, paymentData, revenueTrends, hourlyData, topItems, recentOrdersData] = await Promise.all([
+		const [
+			stats,
+			analyticsData,
+			paymentData,
+			revenueTrends,
+			hourlyData,
+			topItems,
+			recentOrdersData,
+			tableStats,
+			orderStats
+		] = await Promise.all([
 			getDashboardStats(businessId, undefined, { fetch }),
 			getAnalyticsDashboard(businessId, { fetch }).catch(() => null),
-			getPaymentMethodBreakdown(businessId, { period: analyticsPeriod as any }, { fetch }).catch(() => null),
+			getPaymentMethodBreakdown(businessId, { period: analyticsPeriod as any }, { fetch }).catch(
+				() => null
+			),
 			getRevenueTrends(businessId, 30, { fetch }).catch(() => null),
 			getHourlyBreakdown(businessId, undefined, { fetch }).catch(() => null),
 			getTopSellingItems(businessId, { limit: 5 }, { fetch }).catch(() => null),
-			getOrders(businessId, { limit: 5 }, { fetch }).catch(() => null)
+			getOrders(businessId, { limit: 10 }, { fetch }).catch(() => null),
+			getTableStats(businessId, { fetch }).catch(() => null),
+			getOrderStats(businessId, undefined, { fetch }).catch(() => null)
 		]);
 
 		return {
@@ -44,6 +59,8 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 			hourlyBreakdown: hourlyData?.breakdown || [],
 			topItems: topItems || [],
 			recentOrders: recentOrdersData?.orders || [],
+			tableStats: tableStats?.stats || null,
+			orderStats: orderStats?.stats || null,
 			statsError: null
 		};
 	} catch (error) {
@@ -58,6 +75,8 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 			hourlyBreakdown: [],
 			topItems: [],
 			recentOrders: [],
+			tableStats: null,
+			orderStats: null,
 			statsError: error instanceof Error ? error.message : 'Failed to load stats'
 		};
 	}
