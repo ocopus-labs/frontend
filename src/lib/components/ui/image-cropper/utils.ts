@@ -81,9 +81,9 @@ export const getCroppedImg = async (
 		Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
 	);
 
-	return new Promise((resolve) => {
-		canvas.toBlob((file) => {
-			resolve(URL.createObjectURL(file!));
-		}, 'image/png');
-	});
+	// Return a data URL (base64) instead of a blob URL so the backend
+	// can detect it via startsWith('data:') and upload to Cloudinary.
+	// Blob URLs (blob:http://localhost/...) are only valid in the current
+	// browser session and cannot be processed server-side.
+	return canvas.toDataURL('image/png');
 };

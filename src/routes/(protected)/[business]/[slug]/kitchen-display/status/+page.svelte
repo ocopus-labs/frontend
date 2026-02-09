@@ -38,6 +38,15 @@
 	// Auto-hide controls
 	let hideTimer: ReturnType<typeof setTimeout> | null = null;
 	let tickInterval: ReturnType<typeof setInterval> | null = null;
+	let invalidateTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function debouncedInvalidate(delay = 400) {
+		if (invalidateTimer) clearTimeout(invalidateTimer);
+		invalidateTimer = setTimeout(() => {
+			invalidate('app:orders');
+			invalidateTimer = null;
+		}, delay);
+	}
 
 	function showControls() {
 		controlsVisible = true;
@@ -162,18 +171,18 @@
 				cleanupFns.push(unsubOrderCreated);
 
 				const unsubOrderUpdated = await onOrderUpdated(() => {
-					invalidate('app:orders');
+					debouncedInvalidate();
 				});
 				cleanupFns.push(unsubOrderUpdated);
 
 				const unsubOrderCompleted = await onOrderCompleted(() => {
-					invalidate('app:orders');
+					debouncedInvalidate();
 					playBeep();
 				});
 				cleanupFns.push(unsubOrderCompleted);
 
 				const unsubItemStatus = await onItemStatus(() => {
-					invalidate('app:orders');
+					debouncedInvalidate();
 				});
 				cleanupFns.push(unsubItemStatus);
 			}
@@ -188,6 +197,7 @@
 		if (tickInterval) clearInterval(tickInterval);
 		if (scrollInterval) clearInterval(scrollInterval);
 		if (scrollResumeTimer) clearTimeout(scrollResumeTimer);
+		if (invalidateTimer) clearTimeout(invalidateTimer);
 		if (browser) {
 			document.removeEventListener('mousemove', showControls);
 			document.removeEventListener('touchstart', showControls);
