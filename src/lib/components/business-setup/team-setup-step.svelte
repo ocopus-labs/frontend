@@ -98,7 +98,7 @@
 
 <div class="space-y-8">
 	<div>
-		<h1 class="text-3xl font-bold">Build your team</h1>
+		<h1 class="step-heading text-3xl font-bold" tabindex="-1">Build your team</h1>
 		<p class="mt-2 text-muted-foreground">
 			Add staff and set permissions (optional - you can do this later)
 		</p>
@@ -153,21 +153,25 @@
 					type="email"
 					placeholder="staff@business.com"
 					bind:value={newMemberEmail}
-					class={errors.email ? 'border-destructive' : ''}
+					aria-required={true}
+					aria-invalid={!!errors.email || undefined}
+					aria-describedby={errors.email ? 'member-email-error' : undefined}
 				/>
 				{#if errors.email}
-					<Field.Error>{errors.email}</Field.Error>
+					<Field.Error id="member-email-error">{errors.email}</Field.Error>
 				{/if}
 			</Field.Field>
 		</Field.Group>
 
 		<Field.Group>
 			<Field.Field>
+				<Field.Label>Role *</Field.Label>
 				<SearchSelect
 					bind:value={newMemberRole}
 					options={roleOptions}
 					placeholder="Select role"
 					emptyPlaceholder="No role found"
+					label="Role"
 				/>
 			</Field.Field>
 		</Field.Group>

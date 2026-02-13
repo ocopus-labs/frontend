@@ -23,6 +23,7 @@
 	import BusinessHoursStep from '$lib/components/business-setup/business-hours-step.svelte';
 	import CompleteStep from '$lib/components/business-setup/complete-step.svelte';
 	import { goto } from '$app/navigation';
+	import { tick } from 'svelte';
 	import { useSession, signOut } from '$lib/auth';
 	import * as Avatar from '$lib/components/ui/avatar';
 	import LogOut from '@lucide/svelte/icons/log-out';
@@ -136,6 +137,9 @@
 
 	// Loading state for form submission
 	let isSubmitting = $state(false);
+
+	// Accessibility: live region announcement
+	let stepAnnouncement = $state('');
 
 	// Component refs for validation
 	let step1Component = $state<any>(null);
@@ -262,15 +266,17 @@
 	}
 
 	// Navigation functions
-	function goToNextStep() {
+	async function goToNextStep() {
 		// Validate current step before proceeding
 		if (!validateCurrentStep()) {
 			toast.error('Please fix the errors before continuing');
-			// Scroll to first error element
+			// Focus first invalid field
+			await tick();
 			if (typeof document !== 'undefined') {
-				const errorEl = document.querySelector('[data-invalid], .text-red-600, .text-destructive');
-				if (errorEl) {
-					errorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				const invalidEl = document.querySelector<HTMLElement>('[aria-invalid="true"]');
+				if (invalidEl) {
+					invalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+					invalidEl.focus();
 				}
 			}
 			return;
@@ -282,26 +288,45 @@
 				highestStepReached = currentStep;
 			}
 			updateStepStatuses();
+			stepAnnouncement = `Step ${currentStep + 1} of ${steps.length}: ${steps[currentStep].name}`;
+			// Focus the step heading after render
+			await tick();
+			if (typeof document !== 'undefined') {
+				const heading = document.querySelector<HTMLElement>('.step-heading');
+				if (heading) {
+					heading.focus();
+				}
+			}
 		}
 	}
 
-	function goToPreviousStep() {
+	async function goToPreviousStep() {
 		if (currentStep > 0) {
 			currentStep--;
 			updateStepStatuses();
+			stepAnnouncement = `Step ${currentStep + 1} of ${steps.length}: ${steps[currentStep].name}`;
+			await tick();
+			if (typeof document !== 'undefined') {
+				const heading = document.querySelector<HTMLElement>('.step-heading');
+				if (heading) heading.focus();
+			}
 		}
 	}
 
-	function goToStep(index: number) {
-		// Allow navigation to any completed step or current step
+	async function goToStep(index: number) {
 		if (index <= highestStepReached) {
 			currentStep = index;
 			updateStepStatuses();
+			stepAnnouncement = `Step ${currentStep + 1} of ${steps.length}: ${steps[currentStep].name}`;
+			await tick();
+			if (typeof document !== 'undefined') {
+				const heading = document.querySelector<HTMLElement>('.step-heading');
+				if (heading) heading.focus();
+			}
 		}
 	}
 
-	function skipStep() {
-		// Only allow skipping team step
+	async function skipStep() {
 		if (currentStep === 2) {
 			if (currentStep < steps.length - 1) {
 				currentStep++;
@@ -309,6 +334,12 @@
 					highestStepReached = currentStep;
 				}
 				updateStepStatuses();
+				stepAnnouncement = `Step ${currentStep + 1} of ${steps.length}: ${steps[currentStep].name}`;
+				await tick();
+				if (typeof document !== 'undefined') {
+					const heading = document.querySelector<HTMLElement>('.step-heading');
+					if (heading) heading.focus();
+				}
 			}
 		}
 	}
@@ -410,15 +441,22 @@
 	}
 </script>
 
+<a href="#step-content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground">
+	Skip to content
+</a>
+
+<!-- Visually-hidden live region for step announcements -->
+<div aria-live="polite" aria-atomic="true" class="sr-only">{stepAnnouncement}</div>
+
 <div class="flex h-dvh w-full bg-background">
 	<!-- Left Sidebar - Steps Navigation -->
-	<aside class="hidden w-72 flex-col border-r bg-card px-6 py-8 lg:flex">
+	<aside aria-label="Setup progress" class="hidden w-72 flex-col border-r bg-card px-6 py-8 lg:flex">
 		<div class="mb-8">
 			<h2 class="text-2xl font-bold">Business Setup</h2>
 			<p class="mt-2 text-sm text-muted-foreground">Let's get your business up and running</p>
 		</div>
 
-		<nav class="space-y-2">
+		<nav aria-label="Setup steps" class="space-y-2">
 			{#each steps as step, index (step.id)}
 				{@const isClickable = index <= highestStepReached}
 				<button
@@ -428,6 +466,7 @@
 						step.status === 'completed' && 'text-muted-foreground hover:bg-muted/50',
 						!isClickable && 'cursor-not-allowed text-muted-foreground/60'
 					)}
+					aria-current={step.status === 'current' ? 'step' : undefined}
 					disabled={!isClickable}
 					onclick={() => goToStep(index)}
 				>
@@ -494,14 +533,21 @@
 					<span>Step {currentStep + 1} of {steps.length}</span>
 					<span>{Math.round(((currentStep + 1) / steps.length) * 100)}%</span>
 				</div>
-				<div class="h-2 w-full overflow-hidden rounded-full bg-muted">
+				<div
+					class="h-2 w-full overflow-hidden rounded-full bg-muted"
+					role="progressbar"
+					aria-valuenow={currentStep + 1}
+					aria-valuemin={1}
+					aria-valuemax={steps.length}
+					aria-label="Setup progress: Step {currentStep + 1} of {steps.length}"
+				>
 					<div
 						class="h-full bg-primary transition-all duration-300"
 						style="width: {((currentStep + 1) / steps.length) * 100}%"
 					></div>
 				</div>
 				<p class="mt-2 text-sm font-medium">{steps[currentStep].name}</p>
-				<div class="mt-1 flex justify-center gap-1.5">
+				<div class="mt-1 flex justify-center gap-1.5" aria-hidden="true">
 					{#each steps as _, i}
 						<div
 							class="size-2 rounded-full transition-colors {i === currentStep
@@ -515,7 +561,7 @@
 			</div>
 
 			<!-- Step Content -->
-			<div class="space-y-6">
+			<div id="step-content" class="space-y-6">
 				<!-- Step 1: Business Essentials -->
 				{#if currentStep === 0}
 					<BusinessEssentialsStep

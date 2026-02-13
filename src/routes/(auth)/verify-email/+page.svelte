@@ -108,6 +108,7 @@
 				placeholder="Enter 6-digit code"
 				bind:value={otp}
 				maxlength={6}
+				aria-required={true}
 				oninput={() => {
 					otp = otp.replace(/\D/g, '');
 				}}

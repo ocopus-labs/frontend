@@ -29,10 +29,6 @@
 		storeAddress: z.string().optional(),
 		storePhone: z.string().optional(),
 		taxRate: z.number().optional(),
-		// .refine((val) => {
-		// 	const num = parseFloat(val);
-		// 	return !isNaN(num) && num >= 0 && num <= 100;
-		// }, 'Tax rate must be between 0 and 100'),
 		storeNotes: z.string().optional()
 	});
 
@@ -65,7 +61,7 @@
 
 <div class="space-y-8">
 	<div>
-		<h1 class="text-3xl font-bold">Create your first store</h1>
+		<h1 class="step-heading text-3xl font-bold" tabindex="-1">Create your first store</h1>
 		<p class="mt-2 text-muted-foreground">You can add more locations later</p>
 	</div>
 
@@ -78,10 +74,12 @@
 					type="text"
 					placeholder={'e.g., "Main Store", "Times Square", "Downtown"'}
 					bind:value={storeName}
-					class={errors.storeName ? 'border-destructive' : ''}
+					aria-required={true}
+					aria-invalid={!!errors.storeName || undefined}
+					aria-describedby={errors.storeName ? 'store-name-error' : undefined}
 				/>
 				{#if errors.storeName}
-					<Field.Error>{errors.storeName}</Field.Error>
+					<Field.Error id="store-name-error">{errors.storeName}</Field.Error>
 				{/if}
 			</Field.Field>
 		</Field.Group>
@@ -94,8 +92,9 @@
 					placeholder="123 Main Street, Suite 100"
 					bind:value={storeAddress}
 					rows={2}
+					aria-describedby="store-address-desc"
 				/>
-				<Field.Description
+				<Field.Description id="store-address-desc"
 					>Full address including street, city, state, and zip code</Field.Description
 				>
 			</Field.Field>
@@ -122,12 +121,13 @@
 					step="0.001"
 					placeholder="8.875"
 					bind:value={taxRate}
-					class={errors.taxRate ? 'border-destructive' : ''}
+					aria-invalid={!!errors.taxRate || undefined}
+					aria-describedby={errors.taxRate ? 'tax-rate-error' : 'tax-rate-desc'}
 				/>
 				{#if errors.taxRate}
-					<Field.Error>{errors.taxRate}</Field.Error>
+					<Field.Error id="tax-rate-error">{errors.taxRate}</Field.Error>
 				{:else}
-					<Field.Description>Standard tax rate for transactions at this location</Field.Description>
+					<Field.Description id="tax-rate-desc">Standard tax rate for transactions at this location</Field.Description>
 				{/if}
 			</Field.Field>
 		</Field.Group>
@@ -140,8 +140,9 @@
 					placeholder="Any additional information about this location..."
 					bind:value={storeNotes}
 					rows={3}
+					aria-describedby="store-notes-desc"
 				/>
-				<Field.Description>Special instructions, parking info, or other details</Field.Description>
+				<Field.Description id="store-notes-desc">Special instructions, parking info, or other details</Field.Description>
 			</Field.Field>
 		</Field.Group>
 	</div>

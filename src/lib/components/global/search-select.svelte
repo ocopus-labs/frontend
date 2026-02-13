@@ -11,12 +11,18 @@
 		value = $bindable(''),
 		options = [],
 		placeholder = '',
-		emptyPlaceholder = 'No options found'
+		emptyPlaceholder = 'No options found',
+		label = undefined,
+		invalid = undefined,
+		describedBy = undefined
 	}: {
 		value: string;
 		options: { label: string; value: string }[];
 		placeholder?: string;
 		emptyPlaceholder?: string;
+		label?: string;
+		invalid?: boolean;
+		describedBy?: string;
 	} = $props();
 
 	let open = $state(false);
@@ -35,6 +41,9 @@
 					variant="outline"
 					role="combobox"
 					aria-expanded={open}
+					aria-label={label}
+					aria-invalid={invalid || undefined}
+					aria-describedby={describedBy}
 					class="w-full justify-between bg-background px-3 font-normal outline-offset-0 hover:bg-background focus-visible:border-ring focus-visible:outline-[3px] focus-visible:outline-ring/20"
 					{...props}
 				>

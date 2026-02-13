@@ -41,7 +41,7 @@
 
 <div class="space-y-8">
 	<div>
-		<h1 class="text-3xl font-bold">Business Hours</h1>
+		<h1 class="step-heading text-3xl font-bold" tabindex="-1">Business Hours</h1>
 		<p class="mt-2 text-muted-foreground">
 			Set your operating hours (you can customize this later)
 		</p>
@@ -51,7 +51,7 @@
 		<Field.Group>
 			<Field.Field>
 				<Field.Label>Operating Hours</Field.Label>
-				<RadioGroup.Root bind:value={hoursType}>
+				<RadioGroup.Root bind:value={hoursType} aria-describedby={errors.hoursType ? 'hours-type-error' : undefined}>
 					<div class="space-y-3">
 						<div class="rounded-lg border p-4">
 							<div class="flex items-start gap-3">
@@ -103,7 +103,7 @@
 					</div>
 				</RadioGroup.Root>
 				{#if errors.hoursType}
-					<Field.Error>{errors.hoursType}</Field.Error>
+					<Field.Error id="hours-type-error">{errors.hoursType}</Field.Error>
 				{/if}
 			</Field.Field>
 		</Field.Group>

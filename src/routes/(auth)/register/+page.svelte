@@ -77,11 +77,11 @@
     </div>
     <Field.Field>
       <Field.Label for="name">Full Name</Field.Label>
-      <Input id="name" type="text" placeholder="John Doe" bind:value={name} required />
+      <Input id="name" type="text" placeholder="John Doe" bind:value={name} required aria-required={true} />
     </Field.Field>
     <Field.Field>
       <Field.Label for="email">Email</Field.Label>
-      <Input id="email" type="email" placeholder="m@example.com" bind:value={email} required />
+      <Input id="email" type="email" placeholder="m@example.com" bind:value={email} required aria-required={true} />
     </Field.Field>
     <Field.Field>
       <Field.Label for="password">Password</Field.Label>
@@ -91,6 +91,7 @@
           type={showPassword ? 'text' : 'password'}
           bind:value={password}
           required
+          aria-required={true}
         />
         <InputGroup.Button
           size="icon-sm"
@@ -115,6 +116,9 @@
           type={showConfirmPassword ? 'text' : 'password'}
           bind:value={confirmPassword}
           required
+          aria-required={true}
+          aria-invalid={confirmPassword && password !== confirmPassword ? true : undefined}
+          aria-describedby="confirm-password-feedback"
         />
         <InputGroup.Button
           size="icon-sm"
@@ -130,11 +134,11 @@
         </InputGroup.Button>
       </InputGroup.Root>
       {#if confirmPassword && password !== confirmPassword}
-        <Field.Description class="text-destructive">Passwords do not match</Field.Description>
+        <Field.Error id="confirm-password-feedback">Passwords do not match</Field.Error>
       {:else if confirmPassword && password === confirmPassword}
-        <Field.Description class="text-emerald-600 dark:text-emerald-400">Passwords match</Field.Description>
+        <Field.Description id="confirm-password-feedback" class="text-emerald-600 dark:text-emerald-400">Passwords match</Field.Description>
       {:else}
-        <Field.Description>Please confirm your password.</Field.Description>
+        <Field.Description id="confirm-password-feedback">Please confirm your password.</Field.Description>
       {/if}
     </Field.Field>
     <Field.Field>

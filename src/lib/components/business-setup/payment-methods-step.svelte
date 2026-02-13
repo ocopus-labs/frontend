@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { Input } from '$lib/components/ui/input';
 	import * as Field from '$lib/components/ui/field';
 	import SearchSelect from '$lib/components/global/search-select.svelte';
 	import { z } from 'zod';
@@ -21,7 +20,7 @@
 
 	let newProvider = $state('');
 
-	// Validation schema
+	// Validation schema — cash defaults to true so "at least one method" always passes
 	export const paymentMethodsSchema = z
 		.object({
 			acceptCash: z.boolean(),
@@ -31,27 +30,18 @@
 		})
 		.refine(
 			(data) => {
-				// At least one payment method must be selected
 				return data.acceptCash || data.acceptCards || data.acceptDigitalWallets;
 			},
 			{
 				message: 'At least one payment method must be selected',
 				path: ['paymentMethods']
 			}
-		)
-		.refine(
-			(data) => {
-				// If cards are accepted, at least one provider must be specified
-				if (data.acceptCards && (!data.cardProviders || data.cardProviders.length === 0)) {
-					return false;
-				}
-				return true;
-			},
-			{
-				message: 'Please add at least one card provider',
-				path: ['cardProviders']
-			}
 		);
+
+	// Soft warning: cards enabled but no provider added
+	let cardProviderWarning = $derived(
+		acceptCards && (!cardProviders || cardProviders.length === 0)
+	);
 
 	const providerOptions = [
 		{ label: 'Stripe', value: 'stripe' },
@@ -102,12 +92,12 @@
 
 <div class="space-y-8">
 	<div>
-		<h1 class="text-3xl font-bold">Payment Methods</h1>
+		<h1 class="step-heading text-3xl font-bold" tabindex="-1">Payment Methods</h1>
 		<p class="mt-2 text-muted-foreground">How will you accept payments?</p>
 	</div>
 
 	{#if errors.paymentMethods}
-		<div class="rounded-lg border border-destructive bg-destructive/10 p-4">
+		<div class="rounded-lg border border-destructive bg-destructive/10 p-4" role="alert">
 			<p class="text-sm text-destructive">{errors.paymentMethods}</p>
 		</div>
 	{/if}
@@ -156,11 +146,20 @@
 													type="button"
 													onclick={() => removeCardProvider(provider)}
 													class="text-xs text-muted-foreground hover:text-destructive"
+													aria-label="Remove {provider}"
 												>
 													Remove
 												</button>
 											</div>
 										{/each}
+									</div>
+								{/if}
+
+								{#if cardProviderWarning}
+									<div class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 dark:border-amber-700 dark:bg-amber-950">
+										<p class="text-sm text-amber-800 dark:text-amber-200">
+											You'll need to add a card provider before accepting card payments.
+										</p>
 									</div>
 								{/if}
 
@@ -174,6 +173,7 @@
 													options={providerOptions}
 													placeholder="Select provider"
 													emptyPlaceholder="No provider found"
+													label="Card Provider"
 												/>
 											</div>
 											<button
@@ -185,9 +185,6 @@
 												Add
 											</button>
 										</div>
-										{#if errors.cardProviders}
-											<Field.Error>{errors.cardProviders}</Field.Error>
-										{/if}
 									</Field.Field>
 								</Field.Group>
 							</div>
