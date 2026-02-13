@@ -151,8 +151,10 @@ export const sampleMenuResponse: MenuResponse = {
 			updatedAt: '2024-01-01T00:00:00Z'
 		}
 	],
+	modifierGroups: [],
 	totalCategories: 4,
 	totalItems: 4,
+	totalModifierGroups: 0,
 	menuVersion: 1.0,
 	lastPublished: '2024-01-01T00:00:00Z'
 };

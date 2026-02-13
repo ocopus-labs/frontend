@@ -18,9 +18,17 @@ export {
   toggleItemAvailability,
   bulkUpdateAvailability,
   seedDefaultCategories,
+  getModifierGroups,
+  getModifierGroupById,
+  createModifierGroup,
+  updateModifierGroup,
+  deleteModifierGroup,
   type CreateCategoryPayload,
   type CreateMenuItemPayload,
-  type MenuItemModifier
+  type MenuItemModifier,
+  type CreateModifierGroupPayload,
+  type UpdateModifierGroupPayload,
+  type ModifierGroupOptionPayload
 } from './menu';
 export {
   createOrder,

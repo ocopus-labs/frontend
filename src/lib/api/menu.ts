@@ -1,4 +1,4 @@
-import type { MenuCategory, MenuItem, MenuResponse } from '$lib/types/menu';
+import type { MenuCategory, MenuItem, MenuResponse, ModifierGroup } from '$lib/types/menu';
 import { createApiClient, getApiClient } from './client';
 
 // ==================== TYPES ====================
@@ -41,6 +41,33 @@ export interface CreateMenuItemPayload {
   taxCode?: string;
   taxCategory?: string;
   customTaxRate?: number;
+}
+
+export interface ModifierGroupOptionPayload {
+  name: string;
+  price: number;
+  isDefault?: boolean;
+  sortOrder?: number;
+}
+
+export interface CreateModifierGroupPayload {
+  name: string;
+  required?: boolean;
+  multiSelect?: boolean;
+  minSelections?: number;
+  maxSelections?: number;
+  options: ModifierGroupOptionPayload[];
+  sortOrder?: number;
+}
+
+export interface UpdateModifierGroupPayload {
+  name?: string;
+  required?: boolean;
+  multiSelect?: boolean;
+  minSelections?: number;
+  maxSelections?: number;
+  options?: ModifierGroupOptionPayload[];
+  sortOrder?: number;
 }
 
 type FetchOption = { fetch?: typeof fetch };
@@ -200,4 +227,51 @@ export async function seedDefaultCategories(
 ): Promise<{ message: string; categories: MenuCategory[] }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.post(`/business/${businessId}/menu/seed-categories`);
+}
+
+// ==================== MODIFIER GROUPS ====================
+
+export async function getModifierGroups(
+  businessId: string,
+  options?: FetchOption
+): Promise<{ modifierGroups: ModifierGroup[] }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get(`/business/${businessId}/menu/modifier-groups`);
+}
+
+export async function getModifierGroupById(
+  businessId: string,
+  groupId: string,
+  options?: FetchOption
+): Promise<{ modifierGroup: ModifierGroup }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get(`/business/${businessId}/menu/modifier-groups/${groupId}`);
+}
+
+export async function createModifierGroup(
+  businessId: string,
+  data: CreateModifierGroupPayload,
+  options?: FetchOption
+): Promise<{ message: string; modifierGroup: ModifierGroup }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/business/${businessId}/menu/modifier-groups`, data);
+}
+
+export async function updateModifierGroup(
+  businessId: string,
+  groupId: string,
+  data: UpdateModifierGroupPayload,
+  options?: FetchOption
+): Promise<{ message: string; modifierGroup: ModifierGroup }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.patch(`/business/${businessId}/menu/modifier-groups/${groupId}`, data);
+}
+
+export async function deleteModifierGroup(
+  businessId: string,
+  groupId: string,
+  options?: FetchOption
+): Promise<{ message: string }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.delete(`/business/${businessId}/menu/modifier-groups/${groupId}`);
 }

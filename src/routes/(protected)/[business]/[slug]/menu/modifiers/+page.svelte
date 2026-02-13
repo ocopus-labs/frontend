@@ -3,109 +3,42 @@
 	import { Input } from '$lib/components/ui/input';
 	import * as Card from '$lib/components/ui/card';
 	import * as Dialog from '$lib/components/ui/dialog';
-	import * as Table from '$lib/components/ui/table';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Switch } from '$lib/components/ui/switch';
-	import { IconPlus, IconPencil, IconTrash, IconSearch } from '@tabler/icons-svelte';
+	import { IconPlus, IconPencil, IconTrash, IconSearch, IconLoader2 } from '@tabler/icons-svelte';
 	import { EmptyState } from '$lib/components/data-display';
 	import { toast } from 'svelte-sonner';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import { formatCurrency as i18nFormatCurrency, CURRENCY_CONFIG } from '$lib/utils/i18n';
 	import type { CurrencyCode } from '$lib/utils/i18n';
+	import { createModifierGroup, updateModifierGroup, deleteModifierGroup } from '$lib/api';
+	import type { ModifierGroup } from '$lib/types/menu';
+	import { userFriendlyError } from '$lib/utils/error';
+	import { invalidateAll } from '$app/navigation';
 
 	let { data } = $props();
 
 	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
+	const businessId = $derived(data.businessId);
 
 	function formatCurrency(amount: number): string {
 		return i18nFormatCurrency(amount, currency);
 	}
 
-	// Dummy modifiers data
-	let modifiers = $state([
-		{
-			id: 1,
-			name: 'Size',
-			options: [
-				{ name: 'Small', price: 0 },
-				{ name: 'Medium', price: 2 },
-				{ name: 'Large', price: 4 }
-			],
-			required: true,
-			multiSelect: false,
-			appliesTo: ['Pizza', 'Beverages']
-		},
-		{
-			id: 2,
-			name: 'Spice Level',
-			options: [
-				{ name: 'Mild', price: 0 },
-				{ name: 'Medium', price: 0 },
-				{ name: 'Hot', price: 0 },
-				{ name: 'Extra Hot', price: 0.5 }
-			],
-			required: false,
-			multiSelect: false,
-			appliesTo: ['Main Course', 'Appetizers']
-		},
-		{
-			id: 3,
-			name: 'Extra Toppings',
-			options: [
-				{ name: 'Cheese', price: 1.5 },
-				{ name: 'Mushrooms', price: 1 },
-				{ name: 'Olives', price: 1 },
-				{ name: 'Pepperoni', price: 2 },
-				{ name: 'Jalapeños', price: 0.75 }
-			],
-			required: false,
-			multiSelect: true,
-			appliesTo: ['Pizza']
-		},
-		{
-			id: 4,
-			name: 'Sauce',
-			options: [
-				{ name: 'Marinara', price: 0 },
-				{ name: 'Alfredo', price: 1 },
-				{ name: 'Pesto', price: 1.5 },
-				{ name: 'No Sauce', price: 0 }
-			],
-			required: true,
-			multiSelect: false,
-			appliesTo: ['Pasta', 'Pizza']
-		},
-		{
-			id: 5,
-			name: 'Add-ons',
-			options: [
-				{ name: 'Extra Sauce', price: 0.5 },
-				{ name: 'Garlic Bread', price: 2.5 },
-				{ name: 'Side Salad', price: 3 }
-			],
-			required: false,
-			multiSelect: true,
-			appliesTo: ['Main Course', 'Pasta']
-		},
-		{
-			id: 6,
-			name: 'Ice',
-			options: [
-				{ name: 'Regular Ice', price: 0 },
-				{ name: 'Less Ice', price: 0 },
-				{ name: 'No Ice', price: 0 }
-			],
-			required: false,
-			multiSelect: false,
-			appliesTo: ['Beverages']
-		}
-	]);
+	let modifierGroups = $state<ModifierGroup[]>(data.modifierGroups ?? []);
+
+	// Keep in sync when data reloads
+	$effect(() => {
+		modifierGroups = data.modifierGroups ?? [];
+	});
 
 	let searchQuery = $state('');
 	let showAddDialog = $state(false);
-	let editingModifier = $state<(typeof modifiers)[0] | null>(null);
+	let editingModifier = $state<ModifierGroup | null>(null);
 	let deleteModifierDialogOpen = $state(false);
-	let deleteModifierId = $state<number | null>(null);
+	let deleteModifierId = $state<string | null>(null);
+	let saving = $state(false);
+
 	let newModifier = $state({
 		name: '',
 		required: false,
@@ -114,8 +47,12 @@
 	});
 
 	const filteredModifiers = $derived(
-		modifiers.filter((mod) => mod.name.toLowerCase().includes(searchQuery.toLowerCase()))
+		modifierGroups.filter((mod) => mod.name.toLowerCase().includes(searchQuery.toLowerCase()))
 	);
+
+	function resetNewModifier() {
+		newModifier = { name: '', required: false, multiSelect: false, options: [{ name: '', price: 0 }] };
+	}
 
 	function addOption() {
 		newModifier.options = [...newModifier.options, { name: '', price: 0 }];
@@ -125,7 +62,7 @@
 		newModifier.options = newModifier.options.filter((_, i) => i !== index);
 	}
 
-	function addModifier() {
+	async function addModifier() {
 		if (!newModifier.name.trim()) {
 			toast.error('Modifier name is required');
 			return;
@@ -137,30 +74,38 @@
 			return;
 		}
 
-		modifiers = [
-			...modifiers,
-			{
-				id: Math.max(...modifiers.map((m) => m.id)) + 1,
-				name: newModifier.name,
-				options: validOptions,
+		saving = true;
+		try {
+			const { modifierGroup } = await createModifierGroup(businessId, {
+				name: newModifier.name.trim(),
 				required: newModifier.required,
 				multiSelect: newModifier.multiSelect,
-				appliesTo: []
-			}
-		];
-
-		toast.success('Modifier added successfully');
-		showAddDialog = false;
-		newModifier = { name: '', required: false, multiSelect: false, options: [{ name: '', price: 0 }] };
+				options: validOptions.map((opt) => ({
+					name: opt.name.trim(),
+					price: Number(opt.price) || 0
+				}))
+			});
+			modifierGroups = [...modifierGroups, modifierGroup];
+			toast.success('Modifier group created');
+			showAddDialog = false;
+			resetNewModifier();
+		} catch (err) {
+			toast.error(userFriendlyError(err));
+		} finally {
+			saving = false;
+		}
 	}
 
-	function editModifier(modifier: (typeof modifiers)[0]) {
+	function editModifier(modifier: ModifierGroup) {
 		editingModifier = JSON.parse(JSON.stringify(modifier));
 	}
 
 	function addEditOption() {
 		if (editingModifier) {
-			editingModifier.options = [...editingModifier.options, { name: '', price: 0 }];
+			editingModifier.options = [
+				...editingModifier.options,
+				{ id: crypto.randomUUID(), name: '', price: 0, sortOrder: editingModifier.options.length + 1 }
+			];
 		}
 	}
 
@@ -170,7 +115,7 @@
 		}
 	}
 
-	function saveModifier() {
+	async function saveModifier() {
 		if (!editingModifier) return;
 
 		const validOptions = editingModifier.options.filter((opt) => opt.name.trim());
@@ -179,24 +124,48 @@
 			return;
 		}
 
-		modifiers = modifiers.map((mod) =>
-			mod.id === editingModifier!.id ? { ...editingModifier!, options: validOptions } : mod
-		);
-
-		toast.success('Modifier updated successfully');
-		editingModifier = null;
+		saving = true;
+		try {
+			const { modifierGroup } = await updateModifierGroup(businessId, editingModifier.id, {
+				name: editingModifier.name.trim(),
+				required: editingModifier.required,
+				multiSelect: editingModifier.multiSelect,
+				options: validOptions.map((opt) => ({
+					name: opt.name.trim(),
+					price: Number(opt.price) || 0,
+					isDefault: opt.isDefault
+				}))
+			});
+			modifierGroups = modifierGroups.map((mod) =>
+				mod.id === modifierGroup.id ? modifierGroup : mod
+			);
+			toast.success('Modifier group updated');
+			editingModifier = null;
+		} catch (err) {
+			toast.error(userFriendlyError(err));
+		} finally {
+			saving = false;
+		}
 	}
 
-	function triggerDeleteModifier(modifierId: number) {
+	function triggerDeleteModifier(modifierId: string) {
 		deleteModifierId = modifierId;
 		deleteModifierDialogOpen = true;
 	}
 
-	function confirmDeleteModifier() {
+	async function confirmDeleteModifier() {
 		if (deleteModifierId === null) return;
-		modifiers = modifiers.filter((mod) => mod.id !== deleteModifierId);
-		toast.success('Modifier deleted successfully');
-		deleteModifierId = null;
+		const idToDelete = deleteModifierId;
+
+		try {
+			await deleteModifierGroup(businessId, idToDelete);
+			modifierGroups = modifierGroups.filter((mod) => mod.id !== idToDelete);
+			toast.success('Modifier group deleted');
+		} catch (err) {
+			toast.error(userFriendlyError(err));
+		} finally {
+			deleteModifierId = null;
+		}
 	}
 </script>
 
@@ -241,9 +210,7 @@
 										{/if}
 									</Card.Title>
 									<Card.Description>
-										Applies to: {modifier.appliesTo.length > 0
-											? modifier.appliesTo.join(', ')
-											: 'All items'}
+										{modifier.options.length} option{modifier.options.length === 1 ? '' : 's'}
 									</Card.Description>
 								</div>
 								<div class="flex gap-1">
@@ -285,11 +252,11 @@
 </div>
 
 <!-- Add Modifier Dialog -->
-<Dialog.Root bind:open={showAddDialog}>
+<Dialog.Root bind:open={showAddDialog} onOpenChange={(open) => { if (!open) resetNewModifier(); }}>
 	<Dialog.Content class="max-h-[90vh] overflow-y-auto sm:max-w-lg">
 		<Dialog.Header>
 			<Dialog.Title>Add Modifier</Dialog.Title>
-			<Dialog.Description>Create a new modifier with options</Dialog.Description>
+			<Dialog.Description>Create a new modifier group with options</Dialog.Description>
 		</Dialog.Header>
 		<div class="grid gap-4 py-4">
 			<div class="grid gap-2">
@@ -341,8 +308,13 @@
 			</div>
 		</div>
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (showAddDialog = false)}>Cancel</Button>
-			<Button onclick={addModifier}>Add Modifier</Button>
+			<Button variant="outline" onclick={() => (showAddDialog = false)} disabled={saving}>Cancel</Button>
+			<Button onclick={addModifier} disabled={saving}>
+				{#if saving}
+					<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+				{/if}
+				Add Modifier
+			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
@@ -405,8 +377,13 @@
 				</div>
 			</div>
 			<Dialog.Footer>
-				<Button variant="outline" onclick={() => (editingModifier = null)}>Cancel</Button>
-				<Button onclick={saveModifier}>Save Changes</Button>
+				<Button variant="outline" onclick={() => (editingModifier = null)} disabled={saving}>Cancel</Button>
+				<Button onclick={saveModifier} disabled={saving}>
+					{#if saving}
+						<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+					{/if}
+					Save Changes
+				</Button>
 			</Dialog.Footer>
 		{/if}
 	</Dialog.Content>
@@ -415,7 +392,7 @@
 <ConfirmDialog
 	bind:open={deleteModifierDialogOpen}
 	title="Delete Modifier"
-	description="Are you sure you want to delete this modifier? This action cannot be undone."
+	description="Are you sure you want to delete this modifier group? This action cannot be undone."
 	confirmLabel="Delete"
 	variant="destructive"
 	onConfirm={confirmDeleteModifier}
