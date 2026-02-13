@@ -88,7 +88,12 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 	);
 
 	// Payment methods state
-	const savedPaymentMethods = settings.paymentMethods as string[] | undefined;
+	const rawPaymentMethods = settings.paymentMethods;
+	const savedPaymentMethods: string[] | undefined = Array.isArray(rawPaymentMethods)
+		? rawPaymentMethods
+		: typeof rawPaymentMethods === 'string'
+			? JSON.parse(rawPaymentMethods)
+			: undefined;
 	let paymentMethodCash = $state(savedPaymentMethods ? savedPaymentMethods.includes('cash') : true);
 	let paymentMethodCard = $state(savedPaymentMethods ? savedPaymentMethods.includes('card') : true);
 	let paymentMethodDigital = $state(

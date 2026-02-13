@@ -2,6 +2,7 @@
 	Installed from @ieedan/shadcn-svelte-extras
 */
 
+import Compressor from 'compressorjs';
 import type { CropArea } from 'svelte-easy-crop';
 
 export const getFileFromUrl = async (url: string, fileName = 'cropped.png'): Promise<File> => {
@@ -33,17 +34,40 @@ const getRadianAngle = (degreeValue: number) => {
 	return (degreeValue * Math.PI) / 180;
 };
 
+const MAX_OUTPUT_SIZE = 500;
+
+/** Compress a blob using compressor.js and return a base64 data URI */
+const compressBlob = (blob: Blob, quality: number): Promise<string> => {
+	return new Promise((resolve, reject) => {
+		new Compressor(blob as File, {
+			quality,
+			maxWidth: MAX_OUTPUT_SIZE,
+			maxHeight: MAX_OUTPUT_SIZE,
+			mimeType: 'image/webp',
+			success(result) {
+				const reader = new FileReader();
+				reader.onload = () => resolve(reader.result as string);
+				reader.onerror = reject;
+				reader.readAsDataURL(result);
+			},
+			error: reject
+		});
+	});
+};
+
 /** Gets the cropped image from the src using the cropped area
  *
  * @param imageSrc
  * @param pixelCrop
  * @param rotation
- * @returns
+ * @param quality - Output quality 0-1 (default 0.8)
+ * @returns base64 data URI
  */
 export const getCroppedImg = async (
 	imageSrc: string,
 	pixelCrop: CropArea,
-	rotation = 0
+	rotation = 0,
+	quality = 0.8
 ): Promise<string> => {
 	const image = await createImage(imageSrc);
 	const canvas = document.createElement('canvas');
@@ -81,9 +105,10 @@ export const getCroppedImg = async (
 		Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
 	);
 
-	return new Promise((resolve) => {
-		canvas.toBlob((file) => {
-			resolve(URL.createObjectURL(file!));
-		}, 'image/png');
+	// Convert canvas to blob, then compress with compressor.js
+	const blob = await new Promise<Blob>((resolve) => {
+		canvas.toBlob((b) => resolve(b!), 'image/png');
 	});
+
+	return compressBlob(blob, quality);
 };
