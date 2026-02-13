@@ -79,6 +79,7 @@
 		"@dodopayments/better-auth": "^1.4.2",
 		"@tabler/icons-svelte": "^3.35.0",
 		"better-auth": "^1.4.13",
+		"compressorjs": "^1.2.1",
 		"dodopayments": "^2.14.3",
 		"html2pdf.js": "^0.14.0",
 		"socket.io-client": "^4.8.3"
