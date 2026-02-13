@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { PageData } from './$types';
+	import type { MenuCategory } from '$lib/types/menu';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Card from '$lib/components/ui/card';
@@ -9,165 +11,137 @@
 		IconPencil,
 		IconTrash,
 		IconSearch,
-		IconGripVertical
+		IconGripVertical,
+		IconWand
 	} from '@tabler/icons-svelte';
+	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import { EmptyState } from '$lib/components/data-display';
 	import { toast } from 'svelte-sonner';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
+	import {
+		createCategory,
+		updateCategory,
+		deleteCategory as deleteCategoryApi,
+		reorderCategories,
+		seedDefaultCategories
+	} from '$lib/api';
+	import { userFriendlyError } from '$lib/utils/error';
 
-	// Dummy categories data
-	let categories = $state([
-		{
-			id: 1,
-			name: 'Appetizers',
-			description: 'Starters and small bites',
-			itemCount: 12,
-			color: '#ef4444',
-			isActive: true,
-			sortOrder: 1
-		},
-		{
-			id: 2,
-			name: 'Main Course',
-			description: 'Primary dishes and entrees',
-			itemCount: 24,
-			color: '#f97316',
-			isActive: true,
-			sortOrder: 2
-		},
-		{
-			id: 3,
-			name: 'Pizza',
-			description: 'Hand-tossed pizzas with various toppings',
-			itemCount: 18,
-			color: '#eab308',
-			isActive: true,
-			sortOrder: 3
-		},
-		{
-			id: 4,
-			name: 'Pasta',
-			description: 'Italian pasta varieties',
-			itemCount: 10,
-			color: '#22c55e',
-			isActive: true,
-			sortOrder: 4
-		},
-		{
-			id: 5,
-			name: 'Salads',
-			description: 'Fresh and healthy salad options',
-			itemCount: 8,
-			color: '#14b8a6',
-			isActive: true,
-			sortOrder: 5
-		},
-		{
-			id: 6,
-			name: 'Desserts',
-			description: 'Sweet treats and desserts',
-			itemCount: 15,
-			color: '#8b5cf6',
-			isActive: true,
-			sortOrder: 6
-		},
-		{
-			id: 7,
-			name: 'Beverages',
-			description: 'Drinks and refreshments',
-			itemCount: 20,
-			color: '#06b6d4',
-			isActive: true,
-			sortOrder: 7
-		},
-		{
-			id: 8,
-			name: 'Specials',
-			description: 'Chef specials and seasonal items',
-			itemCount: 5,
-			color: '#ec4899',
-			isActive: false,
-			sortOrder: 8
-		}
-	]);
+	let { data }: { data: PageData } = $props();
 
+	const businessId = data.businessId;
+
+	let categories = $state<MenuCategory[]>(data.categories || []);
 	let searchQuery = $state('');
 	let showAddDialog = $state(false);
-	let editingCategory = $state<(typeof categories)[0] | null>(null);
+	let editingCategory = $state<MenuCategory | null>(null);
 	let deleteCategoryDialogOpen = $state(false);
-	let deleteCategoryId = $state<number | null>(null);
-	let newCategory = $state({
-		name: '',
-		description: '',
-		color: '#3b82f6'
-	});
+	let deleteCategoryTarget = $state<MenuCategory | null>(null);
+	let isSubmitting = $state(false);
+
+	let newCategory = $state({ name: '', description: '' });
 
 	const filteredCategories = $derived(
-		categories.filter(
-			(cat) =>
-				cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				cat.description.toLowerCase().includes(searchQuery.toLowerCase())
-		)
+		categories
+			.filter(
+				(cat) =>
+					cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+					(cat.description || '').toLowerCase().includes(searchQuery.toLowerCase())
+			)
+			.sort((a, b) => a.sortOrder - b.sortOrder)
 	);
 
-	function addCategory() {
+	async function addCategory() {
 		if (!newCategory.name.trim()) {
 			toast.error('Category name is required');
 			return;
 		}
 
-		categories = [
-			...categories,
-			{
-				id: Math.max(...categories.map((c) => c.id)) + 1,
-				name: newCategory.name,
-				description: newCategory.description,
-				itemCount: 0,
-				color: newCategory.color,
-				isActive: true,
-				sortOrder: categories.length + 1
-			}
-		];
-
-		toast.success('Category added successfully');
-		showAddDialog = false;
-		newCategory = { name: '', description: '', color: '#3b82f6' };
+		isSubmitting = true;
+		try {
+			const result = await createCategory(businessId, {
+				name: newCategory.name.trim(),
+				description: newCategory.description.trim() || undefined
+			});
+			categories = [...categories, result.category];
+			toast.success('Category added successfully');
+			showAddDialog = false;
+			newCategory = { name: '', description: '' };
+		} catch (error) {
+			toast.error(userFriendlyError(error, 'Failed to add category'));
+		} finally {
+			isSubmitting = false;
+		}
 	}
 
-	function editCategory(category: (typeof categories)[0]) {
+	function openEditDialog(category: MenuCategory) {
 		editingCategory = { ...category };
 	}
 
-	function saveCategory() {
+	async function saveCategory() {
 		if (!editingCategory) return;
 
-		categories = categories.map((cat) => (cat.id === editingCategory!.id ? editingCategory! : cat));
-
-		toast.success('Category updated successfully');
-		editingCategory = null;
+		isSubmitting = true;
+		try {
+			const result = await updateCategory(businessId, editingCategory.id, {
+				name: editingCategory.name,
+				description: editingCategory.description || undefined
+			});
+			categories = categories.map((cat) =>
+				cat.id === result.category.id ? result.category : cat
+			);
+			toast.success('Category updated successfully');
+			editingCategory = null;
+		} catch (error) {
+			toast.error(userFriendlyError(error, 'Failed to update category'));
+		} finally {
+			isSubmitting = false;
+		}
 	}
 
-	function triggerDeleteCategory(categoryId: number) {
-		const category = categories.find((c) => c.id === categoryId);
-		if (category && category.itemCount > 0) {
-			toast.error('Cannot delete category with items. Move items first.');
-			return;
-		}
-		deleteCategoryId = categoryId;
+	function triggerDeleteCategory(category: MenuCategory) {
+		deleteCategoryTarget = category;
 		deleteCategoryDialogOpen = true;
 	}
 
-	function confirmDeleteCategory() {
-		if (deleteCategoryId === null) return;
-		categories = categories.filter((cat) => cat.id !== deleteCategoryId);
-		toast.success('Category deleted successfully');
-		deleteCategoryId = null;
+	async function confirmDeleteCategory() {
+		if (!deleteCategoryTarget) return;
+		try {
+			await deleteCategoryApi(businessId, deleteCategoryTarget.id);
+			categories = categories.filter((cat) => cat.id !== deleteCategoryTarget!.id);
+			toast.success('Category deleted successfully');
+		} catch (error) {
+			toast.error(userFriendlyError(error, 'Failed to delete category'));
+		} finally {
+			deleteCategoryTarget = null;
+		}
 	}
 
-	function toggleCategory(categoryId: number) {
-		categories = categories.map((cat) =>
-			cat.id === categoryId ? { ...cat, isActive: !cat.isActive } : cat
-		);
+	async function toggleCategory(category: MenuCategory) {
+		try {
+			const result = await updateCategory(businessId, category.id, {
+				isActive: !category.isActive
+			});
+			categories = categories.map((cat) =>
+				cat.id === result.category.id ? result.category : cat
+			);
+			toast.success(result.category.isActive ? 'Category enabled' : 'Category disabled');
+		} catch (error) {
+			toast.error(userFriendlyError(error, 'Failed to toggle category'));
+		}
+	}
+
+	async function seedCategories() {
+		isSubmitting = true;
+		try {
+			const result = await seedDefaultCategories(businessId);
+			categories = result.categories;
+			toast.success('Default categories created successfully');
+		} catch (error) {
+			toast.error(userFriendlyError(error, 'Failed to seed categories'));
+		} finally {
+			isSubmitting = false;
+		}
 	}
 </script>
 
@@ -179,69 +153,90 @@
 					<h1 class="text-2xl font-bold">Categories</h1>
 					<p class="text-muted-foreground">Organize your menu items into categories</p>
 				</div>
-				<Button onclick={() => (showAddDialog = true)}>
-					<IconPlus class="mr-2 h-4 w-4" />
-					Add Category
-				</Button>
-			</div>
-
-			<!-- Search -->
-			<div class="px-6">
-				<div class="relative max-w-sm">
-					<IconSearch
-						class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-					/>
-					<Input placeholder="Search categories..." bind:value={searchQuery} class="pl-9" />
+				<div class="flex gap-2">
+					{#if categories.length === 0}
+						<Button variant="outline" onclick={seedCategories} disabled={isSubmitting}>
+							{#if isSubmitting}
+								<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+							{:else}
+								<IconWand class="mr-2 h-4 w-4" />
+							{/if}
+							Use Default Categories
+						</Button>
+					{/if}
+					<Button onclick={() => (showAddDialog = true)}>
+						<IconPlus class="mr-2 h-4 w-4" />
+						Add Category
+					</Button>
 				</div>
 			</div>
 
-			<!-- Categories Grid -->
-			<div class="grid grid-cols-1 gap-4 px-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-				{#each filteredCategories as category (category.id)}
-					<Card.Root class="relative overflow-hidden {!category.isActive ? 'opacity-60' : ''}">
-						<div class="absolute top-0 left-0 h-1 w-full" style="background-color: {category.color}"
-						></div>
-						<Card.Header class="pb-2">
-							<div class="flex items-start justify-between">
-								<div class="flex items-center gap-2">
-									<IconGripVertical class="h-4 w-4 cursor-grab text-muted-foreground" />
-									<Card.Title class="text-lg">{category.name}</Card.Title>
-								</div>
-								<Badge variant={category.isActive ? 'default' : 'secondary'}>
-									{category.isActive ? 'Active' : 'Inactive'}
-								</Badge>
-							</div>
-						</Card.Header>
-						<Card.Content>
-							<p class="text-sm text-muted-foreground">{category.description}</p>
-							<p class="mt-2 text-sm">
-								<span class="font-medium">{category.itemCount}</span> items
-							</p>
-						</Card.Content>
-						<Card.Footer class="flex justify-between gap-2">
-							<Button variant="ghost" size="sm" onclick={() => toggleCategory(category.id)}>
-								{category.isActive ? 'Disable' : 'Enable'}
-							</Button>
-							<div class="flex gap-1">
-								<Button variant="ghost" size="icon" onclick={() => editCategory(category)}>
-									<IconPencil class="h-4 w-4" />
-								</Button>
-								<Button
-									variant="ghost"
-									size="icon"
-									onclick={() => triggerDeleteCategory(category.id)}
-									class="text-destructive hover:text-destructive"
-								>
-									<IconTrash class="h-4 w-4" />
-								</Button>
-							</div>
-						</Card.Footer>
-					</Card.Root>
-				{/each}
-			</div>
+			<!-- Search -->
+			{#if categories.length > 0}
+				<div class="px-6">
+					<div class="relative max-w-sm">
+						<IconSearch
+							class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+						/>
+						<Input placeholder="Search categories..." bind:value={searchQuery} class="pl-9" />
+					</div>
+				</div>
+			{/if}
 
-			{#if filteredCategories.length === 0}
-				<EmptyState type="empty" title="No categories" description="Create your first category to organize menu items." />
+			<!-- Categories Grid -->
+			{#if filteredCategories.length > 0}
+				<div class="grid grid-cols-1 gap-4 px-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+					{#each filteredCategories as category (category.id)}
+						<Card.Root class="relative overflow-hidden {!category.isActive ? 'opacity-60' : ''}">
+							<Card.Header class="pb-2">
+								<div class="flex items-start justify-between">
+									<div class="flex items-center gap-2">
+										<IconGripVertical class="h-4 w-4 cursor-grab text-muted-foreground" />
+										<Card.Title class="text-lg">{category.name}</Card.Title>
+									</div>
+									<Badge variant={category.isActive ? 'default' : 'secondary'}>
+										{category.isActive ? 'Active' : 'Inactive'}
+									</Badge>
+								</div>
+							</Card.Header>
+							<Card.Content>
+								<p class="text-sm text-muted-foreground">
+									{category.description || 'No description'}
+								</p>
+							</Card.Content>
+							<Card.Footer class="flex justify-between gap-2">
+								<Button variant="ghost" size="sm" onclick={() => toggleCategory(category)}>
+									{category.isActive ? 'Disable' : 'Enable'}
+								</Button>
+								<div class="flex gap-1">
+									<Button variant="ghost" size="icon" onclick={() => openEditDialog(category)}>
+										<IconPencil class="h-4 w-4" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="icon"
+										onclick={() => triggerDeleteCategory(category)}
+										class="text-destructive hover:text-destructive"
+									>
+										<IconTrash class="h-4 w-4" />
+									</Button>
+								</div>
+							</Card.Footer>
+						</Card.Root>
+					{/each}
+				</div>
+			{:else if categories.length === 0}
+				<EmptyState
+					type="empty"
+					title="No categories yet"
+					description="Create your first category to organize menu items, or use default categories to get started."
+				/>
+			{:else}
+				<EmptyState
+					type="no-results"
+					title="No categories found"
+					description="Try adjusting your search."
+				/>
 			{/if}
 		</div>
 	</div>
@@ -267,22 +262,15 @@
 					placeholder="Category description"
 				/>
 			</div>
-			<div class="grid gap-2">
-				<label for="color" class="text-sm font-medium">Color</label>
-				<div class="flex items-center gap-2">
-					<input
-						id="color"
-						type="color"
-						bind:value={newCategory.color}
-						class="h-10 w-14 cursor-pointer rounded border"
-					/>
-					<Input bind:value={newCategory.color} class="flex-1" />
-				</div>
-			</div>
 		</div>
 		<Dialog.Footer>
 			<Button variant="outline" onclick={() => (showAddDialog = false)}>Cancel</Button>
-			<Button onclick={addCategory}>Add Category</Button>
+			<Button onclick={addCategory} disabled={isSubmitting}>
+				{#if isSubmitting}
+					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+				{/if}
+				Add Category
+			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
@@ -298,7 +286,12 @@
 			<div class="grid gap-4 py-4">
 				<div class="grid gap-2">
 					<label for="edit-name" class="text-sm font-medium">Name</label>
-					<Input id="edit-name" autofocus bind:value={editingCategory.name} placeholder="Category name" />
+					<Input
+						id="edit-name"
+						autofocus
+						bind:value={editingCategory.name}
+						placeholder="Category name"
+					/>
 				</div>
 				<div class="grid gap-2">
 					<label for="edit-description" class="text-sm font-medium">Description</label>
@@ -308,22 +301,15 @@
 						placeholder="Category description"
 					/>
 				</div>
-				<div class="grid gap-2">
-					<label for="edit-color" class="text-sm font-medium">Color</label>
-					<div class="flex items-center gap-2">
-						<input
-							id="edit-color"
-							type="color"
-							bind:value={editingCategory.color}
-							class="h-10 w-14 cursor-pointer rounded border"
-						/>
-						<Input bind:value={editingCategory.color} class="flex-1" />
-					</div>
-				</div>
 			</div>
 			<Dialog.Footer>
 				<Button variant="outline" onclick={() => (editingCategory = null)}>Cancel</Button>
-				<Button onclick={saveCategory}>Save Changes</Button>
+				<Button onclick={saveCategory} disabled={isSubmitting}>
+					{#if isSubmitting}
+						<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+					{/if}
+					Save Changes
+				</Button>
 			</Dialog.Footer>
 		{/if}
 	</Dialog.Content>
