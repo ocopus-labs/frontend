@@ -8,6 +8,7 @@
 	import type { NavItem } from '$lib/constants/sidebar-data';
 	import { hasFeatureAccess } from '$lib/utils/plan-features';
 	import UpgradePromptDialog from './upgrade-prompt-dialog.svelte';
+	import { page } from '$app/stores';
 
 	let {
 		items,
@@ -21,6 +22,18 @@
 	let upgradeDialogOpen = $state(false);
 	let selectedFeatureName = $state('');
 	let selectedRequiredPlan = $state<'PRO' | 'ENTERPRISE'>('PRO');
+
+	const pathname = $derived($page.url.pathname);
+
+	// Check if a parent group should be open (current path starts with its base url)
+	function isGroupActive(item: NavItem): boolean {
+		return pathname.startsWith(item.url);
+	}
+
+	// Check if a sub-item is the current page
+	function isSubItemActive(subItem: { url: string }): boolean {
+		return pathname === subItem.url;
+	}
 
 	// Check if a nav item is locked based on subscription
 	function isItemLocked(item: NavItem): boolean {
@@ -51,13 +64,15 @@
 	<Sidebar.Menu>
 		{#each items as item (item.title)}
 			{@const locked = isItemLocked(item)}
-			<Collapsible.Root open={item.isActive && !locked} class="group/collapsible">
+			{@const groupActive = isGroupActive(item)}
+			<Collapsible.Root open={groupActive && !locked} class="group/collapsible">
 				{#snippet child({ props })}
 					<Sidebar.MenuItem {...props}>
 						<Collapsible.Trigger onclick={(e) => locked && handleLockedClick(item, e)}>
 							{#snippet child({ props })}
 								<Sidebar.MenuButton
 									{...props}
+									isActive={groupActive}
 									tooltipContent={locked
 										? `${item.title} (${item.requiredPlan} plan required)`
 										: item.title}
@@ -86,7 +101,7 @@
 								<Sidebar.MenuSub>
 									{#each item.items ?? [] as subItem (subItem.title)}
 										<Sidebar.MenuSubItem>
-											<Sidebar.MenuSubButton>
+											<Sidebar.MenuSubButton isActive={isSubItemActive(subItem)}>
 												{#snippet child({ props })}
 													<a href={subItem.url} {...props}>
 														<span>{subItem.title}</span>
