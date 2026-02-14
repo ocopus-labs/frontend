@@ -225,21 +225,7 @@ export const sidebarData: Record<string, SidebarData> = {
 			{
 				title: 'Team',
 				url: '/[business]/[slug]/team',
-				icon: UsersIcon,
-				items: [
-					{
-						title: 'Members',
-						url: '/[business]/[slug]/team'
-					},
-					{
-						title: 'Roles',
-						url: '/[business]/[slug]/team/roles'
-					},
-					{
-						title: 'Invitations',
-						url: '/[business]/[slug]/team/invitations'
-					}
-				]
+				icon: UsersIcon
 			},
 			{
 				title: 'Settings',
