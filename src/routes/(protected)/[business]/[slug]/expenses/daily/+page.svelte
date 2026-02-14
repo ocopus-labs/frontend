@@ -27,6 +27,8 @@
 		deleteExpense as deleteExpenseApi,
 		approveExpense,
 		rejectExpense,
+		createExpenseCategory,
+		deleteExpenseCategory,
 		type Expense,
 		type ExpenseCategory,
 		type ExpensePaymentMethod,
@@ -72,6 +74,54 @@
 		receiptNumber: '',
 		notes: ''
 	});
+
+	let showCategoryDialog = $state(false);
+	let newCategoryName = $state('');
+	let newCategoryColor = $state('#6366f1');
+	let newCategoryDescription = $state('');
+	let isCategorySubmitting = $state(false);
+
+	const defaultColors = [
+		'#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4',
+		'#6366f1', '#a855f7', '#ec4899', '#64748b', '#14b8a6'
+	];
+
+	async function addCategory() {
+		if (!newCategoryName.trim()) {
+			toast.error('Please enter a category name');
+			return;
+		}
+		isCategorySubmitting = true;
+		try {
+			const result = await createExpenseCategory(data.businessId, {
+				name: newCategoryName.trim(),
+				color: newCategoryColor,
+				description: newCategoryDescription.trim() || undefined
+			});
+			categories = [...categories, result.category];
+			newExpense.categoryId = result.category.id;
+			toast.success(`Category "${result.category.name}" created`);
+			showCategoryDialog = false;
+			newCategoryName = '';
+			newCategoryColor = '#6366f1';
+			newCategoryDescription = '';
+		} catch (error) {
+			toast.error(userFriendlyError(error, 'Failed to create category'));
+		} finally {
+			isCategorySubmitting = false;
+		}
+	}
+
+	async function handleDeleteCategory(categoryId: string) {
+		try {
+			await deleteExpenseCategory(data.businessId, categoryId);
+			categories = categories.filter((c) => c.id !== categoryId);
+			if (newExpense.categoryId === categoryId) newExpense.categoryId = '';
+			toast.success('Category deleted');
+		} catch (error) {
+			toast.error(userFriendlyError(error, 'Failed to delete category'));
+		}
+	}
 
 	const paymentMethods: { value: ExpensePaymentMethod; label: string }[] = [
 		{ value: 'cash', label: 'Cash' },
@@ -415,16 +465,27 @@
 			<div class="grid grid-cols-2 gap-4">
 				<div class="grid gap-2">
 					<label for="category" class="text-sm font-medium">Category *</label>
-					<Select.Root type="single" bind:value={newExpense.categoryId}>
-						<Select.Trigger class="w-full">
-							{newExpense.categoryId ? (categories.find(c => c.id === newExpense.categoryId)?.name || 'Select category') : 'Select category'}
-						</Select.Trigger>
-						<Select.Content>
-							{#each categories as category}
-								<Select.Item value={category.id}>{category.name}</Select.Item>
-							{/each}
-						</Select.Content>
-					</Select.Root>
+					<div class="flex gap-2">
+						<Select.Root type="single" bind:value={newExpense.categoryId}>
+							<Select.Trigger class="w-full">
+								{newExpense.categoryId ? (categories.find(c => c.id === newExpense.categoryId)?.name || 'Select category') : 'Select category'}
+							</Select.Trigger>
+							<Select.Content>
+								{#each categories as category}
+									<Select.Item value={category.id}>
+										<span class="mr-2 inline-block h-2 w-2 rounded-full" style="background-color: {category.color};"></span>
+										{category.name}
+									</Select.Item>
+								{/each}
+								{#if categories.length === 0}
+									<div class="px-2 py-1.5 text-sm text-muted-foreground">No categories yet</div>
+								{/if}
+							</Select.Content>
+						</Select.Root>
+						<Button variant="outline" size="icon" type="button" onclick={() => (showCategoryDialog = true)} title="Add new category">
+							<IconPlus class="h-4 w-4" />
+						</Button>
+					</div>
 				</div>
 				<div class="grid gap-2">
 					<label for="amount" class="text-sm font-medium">Amount *</label>
@@ -544,6 +605,66 @@
 				</Button>
 			</Dialog.Footer>
 		{/if}
+	</Dialog.Content>
+</Dialog.Root>
+
+<!-- New Category Dialog -->
+<Dialog.Root bind:open={showCategoryDialog}>
+	<Dialog.Content class="sm:max-w-md">
+		<Dialog.Header>
+			<Dialog.Title>New Category</Dialog.Title>
+			<Dialog.Description>Create an expense category</Dialog.Description>
+		</Dialog.Header>
+		<div class="grid gap-4 py-4">
+			<div class="grid gap-2">
+				<label for="cat-name" class="text-sm font-medium">Name *</label>
+				<Input id="cat-name" autofocus bind:value={newCategoryName} placeholder="e.g. Rent, Utilities, Supplies" />
+			</div>
+			<div class="grid gap-2">
+				<label for="cat-desc" class="text-sm font-medium">Description</label>
+				<Input id="cat-desc" bind:value={newCategoryDescription} placeholder="Optional description" />
+			</div>
+			<div class="grid gap-2">
+				<label class="text-sm font-medium">Color</label>
+				<div class="flex flex-wrap gap-2">
+					{#each defaultColors as color}
+						<button
+							type="button"
+							class="h-8 w-8 rounded-full border-2 transition-transform hover:scale-110"
+							style="background-color: {color}; border-color: {newCategoryColor === color ? 'currentColor' : 'transparent'};"
+							onclick={() => (newCategoryColor = color)}
+						></button>
+					{/each}
+				</div>
+			</div>
+			{#if categories.length > 0}
+				<div class="grid gap-2">
+					<label class="text-sm font-medium">Existing Categories</label>
+					<div class="flex flex-wrap gap-2">
+						{#each categories as cat}
+							<span class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs" style="background-color: {cat.color}20; color: {cat.color};">
+								<span class="h-2 w-2 rounded-full" style="background-color: {cat.color};"></span>
+								{cat.name}
+								<button type="button" class="ml-1 hover:text-destructive" onclick={() => handleDeleteCategory(cat.id)} title="Delete category">
+									<IconX class="h-3 w-3" />
+								</button>
+							</span>
+						{/each}
+					</div>
+				</div>
+			{/if}
+		</div>
+		<Dialog.Footer>
+			<Button variant="outline" onclick={() => (showCategoryDialog = false)} disabled={isCategorySubmitting}>
+				Cancel
+			</Button>
+			<Button onclick={addCategory} disabled={isCategorySubmitting || !newCategoryName.trim()}>
+				{#if isCategorySubmitting}
+					<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+				{/if}
+				Create Category
+			</Button>
+		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
 
