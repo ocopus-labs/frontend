@@ -1,5 +1,5 @@
 import type { PageLoad } from './$types';
-import { getMenu, getItems } from '$lib/api';
+import { getMenu, getItems, getInventoryItems } from '$lib/api';
 
 export const load: PageLoad = async ({ parent, fetch, url }) => {
 	const { businessId, businessType, config, business } = await parent();
@@ -9,9 +9,10 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 	const offset = (page - 1) * limit;
 
 	try {
-		const [menuData, itemsData] = await Promise.all([
+		const [menuData, itemsData, inventoryData] = await Promise.all([
 			getMenu(businessId, { fetch }),
-			getItems(businessId, { limit, offset }, { fetch })
+			getItems(businessId, { limit, offset }, { fetch }),
+			getInventoryItems(businessId, { active: true, limit: 500 }, { fetch })
 		]);
 
 		const total = itemsData.total;
@@ -24,6 +25,7 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 			business,
 			categories: menuData.categories,
 			items: itemsData.items,
+			inventoryItems: inventoryData.items,
 			menuVersion: menuData.menuVersion,
 			lastPublished: menuData.lastPublished,
 			isLoaded: true,
@@ -42,6 +44,7 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 			business,
 			categories: [],
 			items: [],
+			inventoryItems: [],
 			menuVersion: 1.0,
 			lastPublished: undefined,
 			isLoaded: false,

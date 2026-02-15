@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { goto } from '$app/navigation';
-	import type { MenuItem, MenuCategory } from '$lib/types/menu';
+	import type { MenuItem, MenuCategory, MenuItemIngredient } from '$lib/types/menu';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Table from '$lib/components/ui/table';
@@ -17,10 +17,10 @@
 		createCategory,
 		seedDefaultCategories
 	} from '$lib/api';
-	import { IconSearch, IconPlus, IconEdit, IconTrash, IconEye, IconEyeOff, IconCopy } from '@tabler/icons-svelte';
+	import { IconSearch, IconPlus, IconEdit, IconTrash, IconEye, IconEyeOff, IconCopy, IconX } from '@tabler/icons-svelte';
 	import * as Select from '$lib/components/ui/select';
 	import { Textarea } from '$lib/components/ui/textarea';
-import { Checkbox } from '$lib/components/ui/checkbox';
+	import { Checkbox } from '$lib/components/ui/checkbox';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import { EmptyState, StatusPill } from '$lib/components/data-display';
@@ -43,6 +43,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 	// Menu data from API
 	let categories = $state<MenuCategory[]>(data.categories || []);
 	let menuItems = $state<MenuItem[]>(data.items || []);
+	const inventoryItems = (data as any).inventoryItems || [];
 
 	let searchQuery = $state('');
 	let categoryFilter = $state('all');
@@ -63,6 +64,39 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 	let formImage = $state('');
 	let formIsVegetarian = $state(false);
 	let useImageUrl = $state(false); // Toggle between upload and URL input
+
+	// Ingredient state
+	let formIngredients = $state<{ inventoryItemId: string; inventoryItemName: string; quantityUsed: number; unit: string; costPerUnit: number }[]>([]);
+	let ingredientSearch = $state('');
+
+	const filteredInventory = $derived(
+		inventoryItems.filter((inv: any) => {
+			if (!ingredientSearch) return true;
+			return inv.name.toLowerCase().includes(ingredientSearch.toLowerCase());
+		}).filter((inv: any) => !formIngredients.some((fi) => fi.inventoryItemId === inv.id))
+	);
+
+	const computedFoodCost = $derived(
+		formIngredients.reduce((sum, ing) => sum + ing.quantityUsed * ing.costPerUnit, 0)
+	);
+
+	function addIngredient(invItem: any) {
+		formIngredients = [
+			...formIngredients,
+			{
+				inventoryItemId: invItem.id,
+				inventoryItemName: invItem.name,
+				quantityUsed: 1,
+				unit: invItem.unit,
+				costPerUnit: Number(invItem.costPerUnit)
+			}
+		];
+		ingredientSearch = '';
+	}
+
+	function removeIngredient(inventoryItemId: string) {
+		formIngredients = formIngredients.filter((i) => i.inventoryItemId !== inventoryItemId);
+	}
 
 	// Form data for add category
 	let newCategoryName = $state('');
@@ -102,6 +136,8 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 		formImage = '';
 		formIsVegetarian = false;
 		useImageUrl = false;
+		formIngredients = [];
+		ingredientSearch = '';
 		showAddDialog = true;
 	}
 
@@ -116,6 +152,15 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 		formIsVegetarian = item.isVegetarian || false;
 		// If existing image is a URL (not base64), show URL input mode
 		useImageUrl = item.image ? !item.image.startsWith('data:') : false;
+		// Populate ingredients from item
+		formIngredients = (item.ingredients || []).map((ing) => ({
+			inventoryItemId: ing.inventoryItemId,
+			inventoryItemName: ing.inventoryItemName,
+			quantityUsed: ing.quantityUsed,
+			unit: ing.unit,
+			costPerUnit: ing.costPerUnit
+		}));
+		ingredientSearch = '';
 		showEditDialog = true;
 	}
 
@@ -134,7 +179,10 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 				categoryId: formCategory,
 				isAvailable: formAvailable,
 				image: formImage || undefined,
-				isVegetarian: formIsVegetarian
+				isVegetarian: formIsVegetarian,
+				ingredients: formIngredients.length > 0
+					? formIngredients.map((i) => ({ inventoryItemId: i.inventoryItemId, quantityUsed: i.quantityUsed, unit: i.unit }))
+					: undefined
 			});
 
 			menuItems = [...menuItems, result.item];
@@ -159,7 +207,8 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 				categoryId: formCategory,
 				isAvailable: formAvailable,
 				image: formImage || undefined,
-				isVegetarian: formIsVegetarian
+				isVegetarian: formIsVegetarian,
+				ingredients: formIngredients.map((i) => ({ inventoryItemId: i.inventoryItemId, quantityUsed: i.quantityUsed, unit: i.unit }))
 			});
 
 			const index = menuItems.findIndex((item) => item.id === editingItem?.id);
@@ -215,6 +264,14 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 		formImage = item.image || '';
 		formIsVegetarian = item.isVegetarian || false;
 		useImageUrl = item.image ? !item.image.startsWith('data:') : false;
+		formIngredients = (item.ingredients || []).map((ing) => ({
+			inventoryItemId: ing.inventoryItemId,
+			inventoryItemName: ing.inventoryItemName,
+			quantityUsed: ing.quantityUsed,
+			unit: ing.unit,
+			costPerUnit: ing.costPerUnit
+		}));
+		ingredientSearch = '';
 		showAddDialog = true;
 	}
 
@@ -274,6 +331,90 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 	};
 </script>
 
+{#snippet ingredientPicker()}
+	<div class="grid grid-cols-4 items-start gap-4">
+		<label class="pt-2 text-right text-sm font-medium">Ingredients</label>
+		<div class="col-span-3 space-y-3">
+			<!-- Search inventory items -->
+			<div class="relative">
+				<IconSearch class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+				<Input
+					placeholder="Search inventory items..."
+					bind:value={ingredientSearch}
+					class="pl-9"
+				/>
+			</div>
+
+			<!-- Dropdown results -->
+			{#if ingredientSearch && filteredInventory.length > 0}
+				<div class="max-h-40 overflow-y-auto rounded-md border bg-popover">
+					{#each filteredInventory.slice(0, 8) as invItem (invItem.id)}
+						<button
+							type="button"
+							class="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-accent"
+							onclick={() => addIngredient(invItem)}
+						>
+							<span class="font-medium">{invItem.name}</span>
+							<span class="text-xs text-muted-foreground">
+								{Number(invItem.currentStock)} {invItem.unit} in stock
+							</span>
+						</button>
+					{/each}
+				</div>
+			{:else if ingredientSearch && filteredInventory.length === 0}
+				<p class="px-3 py-2 text-sm text-muted-foreground">No matching inventory items</p>
+			{/if}
+
+			<!-- Selected ingredients -->
+			{#if formIngredients.length > 0}
+				<div class="space-y-2">
+					{#each formIngredients as ingredient, idx (ingredient.inventoryItemId)}
+						<div class="flex items-center gap-2 rounded-md border p-2">
+							<span class="flex-1 text-sm font-medium">{ingredient.inventoryItemName}</span>
+							<Input
+								type="number"
+								step="0.01"
+								min="0.001"
+								class="w-20"
+								value={ingredient.quantityUsed}
+								onchange={(e) => {
+									const val = parseFloat((e.currentTarget as HTMLInputElement).value);
+									if (val > 0) {
+										formIngredients[idx] = { ...formIngredients[idx], quantityUsed: val };
+										formIngredients = [...formIngredients];
+									}
+								}}
+							/>
+							<span class="text-xs text-muted-foreground">{ingredient.unit}</span>
+							<Button
+								variant="ghost"
+								size="icon"
+								class="h-7 w-7"
+								onclick={() => removeIngredient(ingredient.inventoryItemId)}
+							>
+								<IconX class="h-3 w-3" />
+							</Button>
+						</div>
+					{/each}
+				</div>
+
+				<!-- Food cost summary -->
+				<div class="flex items-center justify-between rounded-md bg-muted px-3 py-2">
+					<span class="text-sm font-medium">Food Cost</span>
+					<div class="text-right">
+						<span class="text-sm font-semibold">{formatCurrency(computedFoodCost)}</span>
+						{#if formPrice && parseFloat(formPrice) > 0}
+							<span class="ml-1 text-xs text-muted-foreground">
+								({Math.round((computedFoodCost / parseFloat(formPrice)) * 100)}%)
+							</span>
+						{/if}
+					</div>
+				</div>
+			{/if}
+		</div>
+	</div>
+{/snippet}
+
 <div class="flex flex-1 flex-col sm:p-6">
 	<div class="@container/main flex flex-1 flex-col gap-4">
 		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
@@ -332,6 +473,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 							<Table.Head>{businessType === 'retail' ? 'Product' : 'Item'} Name</Table.Head>
 							<Table.Head>Category</Table.Head>
 							<Table.Head>Price</Table.Head>
+							<Table.Head>Food Cost</Table.Head>
 							<Table.Head>Status</Table.Head>
 							<Table.Head class="text-right">Actions</Table.Head>
 						</Table.Row>
@@ -360,6 +502,20 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 								</Table.Cell>
 								<Table.Cell>{getCategoryName(item.categoryId)}</Table.Cell>
 								<Table.Cell>{formatCurrency(item.price)}</Table.Cell>
+								<Table.Cell>
+									{#if item.foodCost != null && item.foodCost > 0}
+										<div class="flex flex-col">
+											<span>{formatCurrency(item.foodCost)}</span>
+											{#if item.price > 0}
+												<span class="text-xs text-muted-foreground">
+													{Math.round((item.foodCost / item.price) * 100)}%
+												</span>
+											{/if}
+										</div>
+									{:else}
+										<span class="text-xs text-muted-foreground">-</span>
+									{/if}
+								</Table.Cell>
 								<Table.Cell>
 									<StatusPill
 										label={item.isAvailable ? 'Available' : 'Unavailable'}
@@ -446,7 +602,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 
 <!-- Add Item Dialog -->
 <Dialog.Root bind:open={showAddDialog}>
-	<Dialog.Content>
+	<Dialog.Content class="max-h-[90vh] overflow-y-auto">
 		<Dialog.Header>
 			<Dialog.Title>Add {businessType === 'retail' ? 'Product' : 'Menu Item'}</Dialog.Title>
 			<Dialog.Description>
@@ -539,6 +695,8 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 					<span class="text-sm text-muted-foreground">Mark as vegetarian</span>
 				</div>
 			</div>
+
+			{@render ingredientPicker()}
 		</div>
 
 		<Dialog.Footer>
@@ -555,7 +713,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 
 <!-- Edit Item Dialog -->
 <Dialog.Root bind:open={showEditDialog}>
-	<Dialog.Content>
+	<Dialog.Content class="max-h-[90vh] overflow-y-auto">
 		<Dialog.Header>
 			<Dialog.Title>Edit {businessType === 'retail' ? 'Product' : 'Menu Item'}</Dialog.Title>
 			<Dialog.Description>
@@ -654,6 +812,8 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 					<span class="text-sm text-muted-foreground">Mark as vegetarian</span>
 				</div>
 			</div>
+
+			{@render ingredientPicker()}
 		</div>
 
 		<Dialog.Footer>

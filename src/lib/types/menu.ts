@@ -18,6 +18,14 @@ export interface MenuItemModifier {
 	sortOrder: number;
 }
 
+export interface MenuItemIngredient {
+	inventoryItemId: string;
+	inventoryItemName: string;
+	quantityUsed: number;
+	unit: string;
+	costPerUnit: number;
+}
+
 export interface MenuItem {
 	id: string;
 	name: string;
@@ -38,6 +46,8 @@ export interface MenuItem {
 		addOns?: MenuItemModifier[];
 		removals?: string[]; // Simple string array for removal options
 	};
+	ingredients?: MenuItemIngredient[];
+	foodCost?: number;
 	taxCode?: string;
 	taxCategory?: string;
 	customTaxRate?: number;

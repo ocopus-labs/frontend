@@ -19,6 +19,12 @@ export interface MenuItemModifier {
   sortOrder: number;
 }
 
+export interface MenuItemIngredientPayload {
+  inventoryItemId: string;
+  quantityUsed: number;
+  unit: string;
+}
+
 export interface CreateMenuItemPayload {
   name: string;
   description?: string;
@@ -41,6 +47,7 @@ export interface CreateMenuItemPayload {
   taxCode?: string;
   taxCategory?: string;
   customTaxRate?: number;
+  ingredients?: MenuItemIngredientPayload[];
 }
 
 export interface ModifierGroupOptionPayload {
