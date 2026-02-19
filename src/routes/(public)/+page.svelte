@@ -361,7 +361,7 @@
 						href="/contact"
 						size="lg"
 						variant="outline"
-						class="border-primary-foreground/30 px-8 text-base text-primary-foreground hover:bg-primary-foreground/10"
+						class="border-primary-foreground/30 px-8 text-base text-black hover:bg-primary-foreground/10"
 					>
 						Contact Sales
 					</Button>
