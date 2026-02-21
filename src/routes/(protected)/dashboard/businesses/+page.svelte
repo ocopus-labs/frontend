@@ -1,11 +1,14 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import * as Avatar from '$lib/components/ui/avatar';
 	import * as Table from '$lib/components/ui/table';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import { Badge } from '$lib/components/ui/badge';
+	import { toast } from 'svelte-sonner';
+	import { deleteBusiness } from '$lib/api';
 	import type { PageData } from './$types';
 
 	import Plus from '@lucide/svelte/icons/plus';
@@ -49,6 +52,35 @@
 
 	function openBusinessSettings(business: any) {
 		goto(`/${business.type}/${business.slug}/settings`);
+	}
+
+	let businessToDelete: any = $state(null);
+	let deleteDialogOpen = $state(false);
+	let isDeleting = $state(false);
+
+	function openDeleteDialog(business: any) {
+		businessToDelete = business;
+		// Defer to next frame so the dropdown fully closes
+		// before the AlertDialog opens (avoids Radix dismiss race)
+		setTimeout(() => {
+			deleteDialogOpen = true;
+		}, 0);
+	}
+
+	async function confirmDelete() {
+		if (!businessToDelete) return;
+		isDeleting = true;
+		try {
+			await deleteBusiness(businessToDelete.id);
+			toast.success(`"${businessToDelete.name}" deleted successfully`);
+			deleteDialogOpen = false;
+			businessToDelete = null;
+			await invalidateAll();
+		} catch (err: any) {
+			toast.error(err?.message ?? 'Failed to delete business. Please try again.');
+		} finally {
+			isDeleting = false;
+		}
 	}
 </script>
 
@@ -145,7 +177,10 @@
 											Settings
 										</DropdownMenu.Item>
 										<DropdownMenu.Separator />
-										<DropdownMenu.Item class="text-destructive">
+										<DropdownMenu.Item
+											class="text-destructive focus:text-destructive"
+											onclick={() => openDeleteDialog(business)}
+										>
 											<Trash2 class="mr-2 size-4" />
 											Delete
 										</DropdownMenu.Item>
@@ -175,3 +210,26 @@
 		</Card.Root>
 	{/if}
 </div>
+
+<!-- Delete Confirmation Dialog -->
+<AlertDialog.Root bind:open={deleteDialogOpen} onOpenChange={(open) => { if (!open) businessToDelete = null; }}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Delete Business</AlertDialog.Title>
+			<AlertDialog.Description>
+				Are you sure you want to delete <strong>{businessToDelete?.name}</strong>? This action cannot be
+				undone and all associated data will be permanently removed.
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel disabled={isDeleting}>Cancel</AlertDialog.Cancel>
+			<AlertDialog.Action
+				class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+				disabled={isDeleting}
+				onclick={confirmDelete}
+			>
+				{isDeleting ? 'Deleting...' : 'Delete Business'}
+			</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
