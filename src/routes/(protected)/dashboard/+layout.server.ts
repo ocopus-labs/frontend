@@ -22,6 +22,9 @@ export const load: LayoutServerLoad = async ({ fetch, locals, url }) => {
 		};
 	} catch (err) {
 		console.warn('Failed to fetch user businesses:', err);
-		redirect(307, '/login');
+		return {
+			businesses: [],
+			subscription: null
+		};
 	}
 };
