@@ -90,6 +90,15 @@ export default defineConfig({
 						}
 					},
 					{
+						urlPattern: /\/api\/auth\/.*/i,
+						handler: 'NetworkOnly',
+						options: {
+							fetchOptions: {
+								credentials: 'include' as RequestCredentials
+							}
+						}
+					},
+					{
 						urlPattern: /\/api\/.*/i,
 						handler: 'NetworkFirst',
 						options: {
@@ -101,7 +110,10 @@ export default defineConfig({
 							cacheableResponse: {
 								statuses: [0, 200]
 							},
-							networkTimeoutSeconds: 10
+							networkTimeoutSeconds: 10,
+							fetchOptions: {
+								credentials: 'include' as RequestCredentials
+							}
 						}
 					}
 				]
