@@ -1,30 +1,36 @@
 <script lang="ts">
-	import { useRegisterSW } from 'virtual:pwa-register/svelte';
+	import { browser } from '$app/environment';
 	import { Button } from '$lib/components/ui/button';
 
-	const {
-		needRefresh: [needRefresh],
-		updateServiceWorker
-	} = useRegisterSW({
-		onRegisteredSW(swUrl, registration) {
-			if (registration) {
-				// Check for updates every hour
-				setInterval(
-					() => {
-						registration.update();
-					},
-					60 * 60 * 1000
-				);
-			}
-		}
-	});
+	let showRefresh = $state(false);
+	let updateSW: ((reloadPage?: boolean) => Promise<void>) | undefined = $state();
+
+	if (browser) {
+		import('virtual:pwa-register').then(({ registerSW }) => {
+			updateSW = registerSW({
+				onNeedRefresh() {
+					showRefresh = true;
+				},
+				onRegisteredSW(_swUrl, registration) {
+					if (registration) {
+						setInterval(
+							() => {
+								registration.update();
+							},
+							60 * 60 * 1000
+						);
+					}
+				}
+			});
+		});
+	}
 
 	function close() {
-		$needRefresh = false;
+		showRefresh = false;
 	}
 </script>
 
-{#if $needRefresh}
+{#if showRefresh}
 	<div
 		class="fixed bottom-4 right-4 z-[9999] flex items-center gap-3 rounded-lg border bg-background p-4 shadow-lg"
 		role="alert"
@@ -35,7 +41,7 @@
 		</div>
 		<div class="flex gap-2">
 			<Button variant="ghost" size="sm" onclick={close}>Dismiss</Button>
-			<Button size="sm" onclick={() => updateServiceWorker(true)}>Update</Button>
+			<Button size="sm" onclick={() => updateSW?.(true)}>Update</Button>
 		</div>
 	</div>
 {/if}
