@@ -1,5 +1,6 @@
-import { redirect, type Handle } from '@sveltejs/kit';
+import { redirect, type Handle, type HandleFetch } from '@sveltejs/kit';
 import { getSession } from '$lib/auth.server';
+import { env } from '$env/dynamic/public';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const { pathname } = event.url;
@@ -45,4 +46,20 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	return resolve(event);
+};
+
+/**
+ * Forward cookies to cross-origin API requests during SSR.
+ * SvelteKit's event.fetch only auto-forwards cookies for same-origin requests.
+ * Since PUBLIC_API_BASE may point to a different origin (e.g. pos.rohitk06.in),
+ * we need to manually attach the cookie header for authenticated API calls.
+ */
+export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
+	const apiBase = env.PUBLIC_API_BASE || '/api';
+
+	if (apiBase !== '/api' && request.url.startsWith(apiBase)) {
+		request.headers.set('cookie', event.request.headers.get('cookie') || '');
+	}
+
+	return fetch(request);
 };
