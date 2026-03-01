@@ -3,26 +3,33 @@
 	import { Button } from '$lib/components/ui/button';
 
 	let showRefresh = $state(false);
-	let updateSW: ((reloadPage?: boolean) => Promise<void>) | undefined = $state();
+	let waitingWorker: ServiceWorker | null = $state(null);
 
-	if (browser) {
-		import('virtual:pwa-register').then(({ registerSW }) => {
-			updateSW = registerSW({
-				onNeedRefresh() {
-					showRefresh = true;
-				},
-				onRegisteredSW(_swUrl, registration) {
-					if (registration) {
-						setInterval(
-							() => {
-								registration.update();
-							},
-							60 * 60 * 1000
-						);
-					}
-				}
-			});
-		});
+	if (browser && 'serviceWorker' in navigator) {
+		navigator.serviceWorker
+			.register('/sw.js', { scope: '/' })
+			.then((registration) => {
+				// Check for updates every hour
+				setInterval(() => registration.update(), 60 * 60 * 1000);
+
+				registration.addEventListener('updatefound', () => {
+					const newWorker = registration.installing;
+					if (!newWorker) return;
+
+					newWorker.addEventListener('statechange', () => {
+						if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+							waitingWorker = newWorker;
+							showRefresh = true;
+						}
+					});
+				});
+			})
+			.catch((err) => console.error('SW registration failed:', err));
+	}
+
+	function update() {
+		waitingWorker?.postMessage({ type: 'SKIP_WAITING' });
+		window.location.reload();
 	}
 
 	function close() {
@@ -41,7 +48,7 @@
 		</div>
 		<div class="flex gap-2">
 			<Button variant="ghost" size="sm" onclick={close}>Dismiss</Button>
-			<Button size="sm" onclick={() => updateSW?.(true)}>Update</Button>
+			<Button size="sm" onclick={update}>Update</Button>
 		</div>
 	</div>
 {/if}
