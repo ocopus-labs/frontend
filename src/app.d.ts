@@ -9,6 +9,15 @@ interface AppUser extends User {
 }
 
 declare global {
+	interface BeforeInstallPromptEvent extends Event {
+		prompt(): Promise<void>;
+		userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+	}
+
+	interface WindowEventMap {
+		beforeinstallprompt: BeforeInstallPromptEvent;
+	}
+
 	namespace App {
 		// interface Error {}
 		interface Locals {

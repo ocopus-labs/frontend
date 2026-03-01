@@ -5,6 +5,9 @@
 	let showRefresh = $state(false);
 	let waitingWorker: ServiceWorker | null = $state(null);
 
+	let showInstall = $state(false);
+	let deferredPrompt: BeforeInstallPromptEvent | null = $state(null);
+
 	if (browser && 'serviceWorker' in navigator) {
 		navigator.serviceWorker
 			.register('/sw.js', { scope: '/' })
@@ -25,6 +28,17 @@
 				});
 			})
 			.catch((err) => console.error('SW registration failed:', err));
+
+		window.addEventListener('beforeinstallprompt', (e) => {
+			e.preventDefault();
+			deferredPrompt = e as BeforeInstallPromptEvent;
+			showInstall = true;
+		});
+
+		window.addEventListener('appinstalled', () => {
+			showInstall = false;
+			deferredPrompt = null;
+		});
 	}
 
 	function update() {
@@ -32,10 +46,40 @@
 		window.location.reload();
 	}
 
-	function close() {
+	function closeRefresh() {
 		showRefresh = false;
 	}
+
+	async function install() {
+		if (!deferredPrompt) return;
+		deferredPrompt.prompt();
+		const { outcome } = await deferredPrompt.userChoice;
+		if (outcome === 'accepted') {
+			showInstall = false;
+		}
+		deferredPrompt = null;
+	}
+
+	function closeInstall() {
+		showInstall = false;
+	}
 </script>
+
+{#if showInstall}
+	<div
+		class="fixed bottom-4 left-4 z-[9999] flex items-center gap-3 rounded-lg border bg-background p-4 shadow-lg"
+		role="alert"
+	>
+		<div class="text-sm">
+			<p class="font-medium">Install RestaurantPro</p>
+			<p class="text-muted-foreground">Add to your home screen for quick access.</p>
+		</div>
+		<div class="flex gap-2">
+			<Button variant="ghost" size="sm" onclick={closeInstall}>Dismiss</Button>
+			<Button size="sm" onclick={install}>Install</Button>
+		</div>
+	</div>
+{/if}
 
 {#if showRefresh}
 	<div
@@ -47,7 +91,7 @@
 			<p class="text-muted-foreground">Reload to update the app.</p>
 		</div>
 		<div class="flex gap-2">
-			<Button variant="ghost" size="sm" onclick={close}>Dismiss</Button>
+			<Button variant="ghost" size="sm" onclick={closeRefresh}>Dismiss</Button>
 			<Button size="sm" onclick={update}>Update</Button>
 		</div>
 	</div>
