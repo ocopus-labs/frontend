@@ -17,7 +17,7 @@
 	let { categories, selectedCategory, onCategorySelect }: Props = $props();
 </script>
 
-<div class="no-scrollbar flex max-w-full gap-1.5 overflow-x-auto pb-1 md:flex-wrap md:gap-2 md:pb-2">
+<div class="no-scrollbar flex max-w-full gap-1.5 overflow-x-auto pb-1 flex-wrap md:gap-2 md:pb-2">
 	{#each categories as category}
 		<Button
 			variant={selectedCategory === category.name ? 'default' : 'outline'}
