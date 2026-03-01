@@ -811,7 +811,7 @@
 						<EmptyState type="no-results" title="No items found" description="Try a different search term." size="sm" />
 					{:else}
 						<div
-							class="grid grid-cols-3 gap-1.5 p-1.5 sm:grid-cols-2 sm:gap-3 sm:p-3 md:grid-cols-3 md:gap-4 md:p-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+							class="flex flex-col gap-1.5 p-2 sm:grid sm:grid-cols-2 sm:gap-3 sm:p-3 md:grid-cols-3 md:gap-4 md:p-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
 						>
 							{#each displayMenuItems as item}
 								<MenuItemCard

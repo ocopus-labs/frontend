@@ -33,47 +33,47 @@
 	const i18n = createI18nUtils(region);
 </script>
 
-<!-- Mobile: compact tappable card (hidden on sm+) -->
+<!-- Mobile: horizontal card (hidden on sm+) -->
 <button
 	type="button"
-	class="group relative flex flex-col overflow-hidden rounded-xl border bg-card text-left shadow-sm transition-all active:scale-[0.97] sm:hidden"
+	class="group flex w-full items-center gap-3 overflow-hidden rounded-xl border bg-card p-2 text-left shadow-sm transition-all active:scale-[0.98] sm:hidden"
 	class:opacity-50={!item.available}
 	disabled={!item.available}
 	onclick={() => item.available && onAddToOrder(item)}
 >
-	<div class="relative aspect-square w-full overflow-hidden">
+	<div class="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg">
 		<img
 			src={item.image}
 			alt={item.name}
-			class="h-full w-full rounded-t-xl object-cover"
+			class="h-full w-full object-cover"
 			loading="lazy"
 		/>
 		{#if !item.available}
 			<Badge
-				class="absolute top-1 right-1 text-[10px]"
+				class="absolute top-0.5 right-0.5 text-[9px] px-1 py-0"
 				variant="destructive"
 			>
-				Unavailable
+				N/A
 			</Badge>
 		{/if}
-		{#if item.available && cartQuantity > 0}
-			<div class="absolute right-1 bottom-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground shadow-md">
-				{cartQuantity}
-			</div>
-		{:else if item.available}
-			<div class="absolute right-1 bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
-				<IconPlus class="h-3.5 w-3.5" />
-			</div>
-		{/if}
 	</div>
-	<div class="flex flex-col gap-0.5 p-1.5">
-		<h3 class="line-clamp-1 text-[11px] font-medium leading-tight">
+	<div class="flex min-w-0 flex-1 flex-col gap-0.5">
+		<h3 class="line-clamp-1 text-sm font-medium leading-tight">
 			{item.name}
 		</h3>
-		<span class="text-[11px] font-bold text-primary">
+		<span class="text-sm font-bold text-primary">
 			{i18n.formatCurrency(item.price)}
 		</span>
 	</div>
+	{#if item.available && cartQuantity > 0}
+		<div class="flex h-7 min-w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary px-2 text-xs font-bold text-primary-foreground shadow-md">
+			{cartQuantity}
+		</div>
+	{:else if item.available}
+		<div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
+			<IconPlus class="h-3.5 w-3.5" />
+		</div>
+	{/if}
 </button>
 
 <!-- Desktop: full card with button (hidden on mobile) -->
