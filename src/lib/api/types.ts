@@ -11,7 +11,7 @@ export type BusinessType =
 
 export interface BusinessAddress {
   street?: string;
-  city: string;
+  city?: string;
   state?: string;
   country: string;
   postalCode?: string;

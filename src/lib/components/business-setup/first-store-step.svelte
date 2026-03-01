@@ -5,42 +5,37 @@
 	import { z } from 'zod';
 
 	let {
-		storeName = $bindable(''),
-		storeAddress = $bindable(''),
-		storePhone = $bindable(''),
+		address = $bindable(''),
+		phone = $bindable(''),
 		taxRate = $bindable(''),
-		storeNotes = $bindable(''),
 		errors = $bindable({})
 	}: {
-		storeName: string;
-		storeAddress: string;
-		storePhone: string;
+		address: string;
+		phone: string;
 		taxRate: string;
-		storeNotes: string;
 		errors: Record<string, string>;
 	} = $props();
 
-	// Validation schema
-	export const firstStoreSchema = z.object({
-		storeName: z
+	// Validation schema - all fields optional
+	export const locationDetailsSchema = z.object({
+		address: z.string().optional(),
+		phone: z.string().optional(),
+		taxRate: z
 			.string()
-			.min(2, 'Store name must be at least 2 characters')
-			.max(100, 'Store name is too long'),
-		storeAddress: z.string().optional(),
-		storePhone: z.string().optional(),
-		taxRate: z.number().optional(),
-		storeNotes: z.string().optional()
+			.optional()
+			.refine(
+				(val) => !val || (!isNaN(Number(val)) && Number(val) >= 0 && Number(val) <= 100),
+				{ message: 'Tax rate must be a number between 0 and 100' }
+			)
 	});
 
-	// Validate function
+	// Validate function - always succeeds unless taxRate is invalid
 	export function validate() {
 		try {
-			firstStoreSchema.parse({
-				storeName,
-				storeAddress,
-				storePhone,
-				taxRate,
-				storeNotes
+			locationDetailsSchema.parse({
+				address,
+				phone,
+				taxRate
 			});
 			errors = {};
 			return true;
@@ -61,36 +56,18 @@
 
 <div class="space-y-8">
 	<div>
-		<h1 class="step-heading text-3xl font-bold" tabindex="-1">Create your first store</h1>
-		<p class="mt-2 text-muted-foreground">You can add more locations later</p>
+		<h1 class="step-heading text-3xl font-bold" tabindex="-1">Location & Details</h1>
+		<p class="mt-2 text-muted-foreground">All optional — you can configure these from your dashboard later.</p>
 	</div>
 
 	<div class="space-y-6">
 		<Field.Group>
 			<Field.Field>
-				<Field.Label for="store-name">Store/Location Name *</Field.Label>
-				<Input
-					id="store-name"
-					type="text"
-					placeholder={'e.g., "Main Store", "Times Square", "Downtown"'}
-					bind:value={storeName}
-					aria-required={true}
-					aria-invalid={!!errors.storeName || undefined}
-					aria-describedby={errors.storeName ? 'store-name-error' : undefined}
-				/>
-				{#if errors.storeName}
-					<Field.Error id="store-name-error">{errors.storeName}</Field.Error>
-				{/if}
-			</Field.Field>
-		</Field.Group>
-
-		<Field.Group>
-			<Field.Field>
-				<Field.Label for="store-address">Store Address (Optional)</Field.Label>
+				<Field.Label for="store-address">Address (Optional)</Field.Label>
 				<Textarea
 					id="store-address"
 					placeholder="123 Main Street, Suite 100"
-					bind:value={storeAddress}
+					bind:value={address}
 					rows={2}
 					aria-describedby="store-address-desc"
 				/>
@@ -107,14 +84,14 @@
 					id="store-phone"
 					type="tel"
 					placeholder="+1 (555) 000-0000"
-					bind:value={storePhone}
+					bind:value={phone}
 				/>
 			</Field.Field>
 		</Field.Group>
 
 		<Field.Group>
 			<Field.Field>
-				<Field.Label for="tax-rate">Tax Rate for this location (%) (Optional)</Field.Label>
+				<Field.Label for="tax-rate">Tax Rate (%) (Optional)</Field.Label>
 				<Input
 					id="tax-rate"
 					type="number"
@@ -129,20 +106,6 @@
 				{:else}
 					<Field.Description id="tax-rate-desc">Standard tax rate for transactions at this location</Field.Description>
 				{/if}
-			</Field.Field>
-		</Field.Group>
-
-		<Field.Group>
-			<Field.Field>
-				<Field.Label for="store-notes">Additional Notes (Optional)</Field.Label>
-				<Textarea
-					id="store-notes"
-					placeholder="Any additional information about this location..."
-					bind:value={storeNotes}
-					rows={3}
-					aria-describedby="store-notes-desc"
-				/>
-				<Field.Description id="store-notes-desc">Special instructions, parking info, or other details</Field.Description>
 			</Field.Field>
 		</Field.Group>
 	</div>

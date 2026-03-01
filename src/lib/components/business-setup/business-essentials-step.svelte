@@ -163,7 +163,7 @@
 	<div>
 		<h1 class="step-heading text-3xl font-bold" tabindex="-1">Let's set up your business</h1>
 		<p class="mt-2 text-muted-foreground">
-			Just a few essentials to get started. This should take about 5 minutes.
+			Just a few essentials to get started. This should take about 2 minutes.
 		</p>
 	</div>
 

@@ -2,14 +2,10 @@
 	import { Button } from '$lib/components/ui/button';
 	import { cn } from '$lib/utils';
 	import { toast } from 'svelte-sonner';
-	import { createBusiness, updateBusinessSettings, type CreateBusinessPayload, type BusinessType } from '$lib/api';
-	import { inviteTeamMember, type TeamRole } from '$lib/api/team';
+	import { createBusiness, type CreateBusinessPayload, type BusinessType } from '$lib/api';
 
 	import Building2 from '@lucide/svelte/icons/building-2';
 	import MapPin from '@lucide/svelte/icons/map-pin';
-	import Users from '@lucide/svelte/icons/users';
-	import CreditCard from '@lucide/svelte/icons/credit-card';
-	import Clock from '@lucide/svelte/icons/clock';
 	import CheckCircle2 from '@lucide/svelte/icons/check-circle-2';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
@@ -18,10 +14,6 @@
 	// Import step components
 	import BusinessEssentialsStep from '$lib/components/business-setup/business-essentials-step.svelte';
 	import FirstStoreStep from '$lib/components/business-setup/first-store-step.svelte';
-	import TeamSetupStep from '$lib/components/business-setup/team-setup-step.svelte';
-	import PaymentMethodsStep from '$lib/components/business-setup/payment-methods-step.svelte';
-	import BusinessHoursStep from '$lib/components/business-setup/business-hours-step.svelte';
-	import CompleteStep from '$lib/components/business-setup/complete-step.svelte';
 	import { goto } from '$app/navigation';
 	import { tick } from 'svelte';
 	import { useSession, signOut } from '$lib/auth';
@@ -64,38 +56,10 @@
 			status: 'current'
 		},
 		{
-			id: 'first-store',
-			name: 'First Store',
+			id: 'location-details',
+			name: 'Location & Details',
 			icon: MapPin,
-			description: 'Create your first location',
-			status: 'upcoming'
-		},
-		{
-			id: 'team',
-			name: 'Team Setup',
-			icon: Users,
-			description: 'Add team members and permissions',
-			status: 'upcoming'
-		},
-		{
-			id: 'payments',
-			name: 'Payment Methods',
-			icon: CreditCard,
-			description: 'Configure payment options',
-			status: 'upcoming'
-		},
-		{
-			id: 'hours',
-			name: 'Business Hours',
-			icon: Clock,
-			description: 'Set your operating hours',
-			status: 'upcoming'
-		},
-		{
-			id: 'complete',
-			name: 'Complete',
-			icon: CheckCircle2,
-			description: 'Review and finish setup',
+			description: 'Address, phone, and tax rate',
 			status: 'upcoming'
 		}
 	]);
@@ -112,28 +76,11 @@
 	let currency = $state('');
 	let step1Errors = $state({});
 
-	// Form data - Step 2: First Store
-	let storeName = $state('');
-	let storeAddress = $state('');
-	let storePhone = $state('');
+	// Form data - Step 2: Location & Details
+	let address = $state('');
+	let phone = $state('');
 	let taxRate = $state('');
-	let storeNotes = $state('');
 	let step2Errors = $state({});
-
-	// Form data - Step 3: Team
-	let teamMembers = $state<Array<{ email: string; role: string; stores: string[] }>>([]);
-	let step3Errors = $state({});
-
-	// Form data - Step 4: Payments
-	let acceptCash = $state(true);
-	let acceptCards = $state(false);
-	let cardProviders = $state<string[]>([]);
-	let acceptDigitalWallets = $state(false);
-	let step4Errors = $state({});
-
-	// Form data - Step 5: Business Hours
-	let hoursType = $state('same');
-	let step5Errors = $state({});
 
 	// Loading state for form submission
 	let isSubmitting = $state(false);
@@ -144,9 +91,6 @@
 	// Component refs for validation
 	let step1Component = $state<any>(null);
 	let step2Component = $state<any>(null);
-	let step3Component = $state<any>(null);
-	let step4Component = $state<any>(null);
-	let step5Component = $state<any>(null);
 
 	// Track highest step reached (for navigation)
 	let highestStepReached = $state(0);
@@ -160,8 +104,8 @@
 		if (saved) {
 			try {
 				const data = JSON.parse(saved);
-				currentStep = data.currentStep ?? 0;
-				highestStepReached = data.highestStepReached ?? 0;
+				currentStep = Math.min(data.currentStep ?? 0, 1);
+				highestStepReached = Math.min(data.highestStepReached ?? 0, 1);
 				businessName = data.businessName ?? '';
 				businessType = data.businessType ?? '';
 				restaurantSubType = data.restaurantSubType ?? '';
@@ -171,17 +115,9 @@
 				city = data.city ?? '';
 				timezone = data.timezone ?? '';
 				currency = data.currency ?? '';
-				storeName = data.storeName ?? '';
-				storeAddress = data.storeAddress ?? '';
-				storePhone = data.storePhone ?? '';
+				address = data.address ?? data.storeAddress ?? '';
+				phone = data.phone ?? data.storePhone ?? '';
 				taxRate = data.taxRate ?? '';
-				storeNotes = data.storeNotes ?? '';
-				teamMembers = data.teamMembers ?? [];
-				acceptCash = data.acceptCash ?? true;
-				acceptCards = data.acceptCards ?? false;
-				cardProviders = data.cardProviders ?? [];
-				acceptDigitalWallets = data.acceptDigitalWallets ?? false;
-				hoursType = data.hoursType ?? 'same';
 			} catch (e) {
 				console.error('Failed to load saved progress:', e);
 			}
@@ -215,20 +151,12 @@
 					city,
 					timezone,
 					currency,
-					storeName,
-					storeAddress,
-					storePhone,
-					taxRate,
-					storeNotes,
-					teamMembers,
-					acceptCash,
-					acceptCards,
-					cardProviders,
-					acceptDigitalWallets,
-					hoursType
+					address,
+					phone,
+					taxRate
 				};
 				sessionStorage.setItem('business-setup-progress', JSON.stringify(formData));
-			}, 500); // Save after 500ms of no changes
+			}, 500);
 		}
 	});
 
@@ -239,12 +167,6 @@
 				return step1Component?.validate() ?? false;
 			case 1:
 				return step2Component?.validate() ?? false;
-			case 2:
-				return step3Component?.validate() ?? true; // Optional
-			case 3:
-				return step4Component?.validate() ?? false;
-			case 4:
-				return step5Component?.validate() ?? false;
 			default:
 				return true;
 		}
@@ -257,8 +179,6 @@
 				return { ...step, status: 'completed' as const };
 			} else if (index === currentStep) {
 				return { ...step, status: 'current' as const };
-			} else if (index <= highestStepReached) {
-				return { ...step, status: 'upcoming' as const };
 			} else {
 				return { ...step, status: 'upcoming' as const };
 			}
@@ -282,21 +202,20 @@
 			return;
 		}
 
-		if (currentStep < steps.length - 1) {
-			currentStep++;
-			if (currentStep > highestStepReached) {
-				highestStepReached = currentStep;
+		if (currentStep === 0) {
+			currentStep = 1;
+			if (1 > highestStepReached) {
+				highestStepReached = 1;
 			}
 			updateStepStatuses();
-			stepAnnouncement = `Step ${currentStep + 1} of ${steps.length}: ${steps[currentStep].name}`;
-			// Focus the step heading after render
+			stepAnnouncement = `Step 2 of 2: ${steps[1].name}`;
 			await tick();
 			if (typeof document !== 'undefined') {
 				const heading = document.querySelector<HTMLElement>('.step-heading');
-				if (heading) {
-					heading.focus();
-				}
+				if (heading) heading.focus();
 			}
+		} else if (currentStep === 1) {
+			await completeSetup();
 		}
 	}
 
@@ -304,7 +223,7 @@
 		if (currentStep > 0) {
 			currentStep--;
 			updateStepStatuses();
-			stepAnnouncement = `Step ${currentStep + 1} of ${steps.length}: ${steps[currentStep].name}`;
+			stepAnnouncement = `Step ${currentStep + 1} of 2: ${steps[currentStep].name}`;
 			await tick();
 			if (typeof document !== 'undefined') {
 				const heading = document.querySelector<HTMLElement>('.step-heading');
@@ -317,7 +236,7 @@
 		if (index <= highestStepReached) {
 			currentStep = index;
 			updateStepStatuses();
-			stepAnnouncement = `Step ${currentStep + 1} of ${steps.length}: ${steps[currentStep].name}`;
+			stepAnnouncement = `Step ${currentStep + 1} of 2: ${steps[currentStep].name}`;
 			await tick();
 			if (typeof document !== 'undefined') {
 				const heading = document.querySelector<HTMLElement>('.step-heading');
@@ -326,22 +245,8 @@
 		}
 	}
 
-	async function skipStep() {
-		if (currentStep === 2) {
-			if (currentStep < steps.length - 1) {
-				currentStep++;
-				if (currentStep > highestStepReached) {
-					highestStepReached = currentStep;
-				}
-				updateStepStatuses();
-				stepAnnouncement = `Step ${currentStep + 1} of ${steps.length}: ${steps[currentStep].name}`;
-				await tick();
-				if (typeof document !== 'undefined') {
-					const heading = document.querySelector<HTMLElement>('.step-heading');
-					if (heading) heading.focus();
-				}
-			}
-		}
+	async function skipAndCreate() {
+		await completeSetup();
 	}
 
 	async function completeSetup() {
@@ -357,15 +262,15 @@
 				logo: businessLogo || undefined,
 				subType: restaurantSubType || undefined,
 				address: {
-					street: storeAddress || undefined,
-					city: city,
+					street: address || undefined,
+					city: city || undefined,
 					state: undefined,
 					country: country,
 					postalCode: undefined
 				},
 				contact: {
 					email: user?.email || undefined,
-					phone: storePhone || undefined
+					phone: phone || undefined
 				},
 				settings: {
 					timezone: timezone,
@@ -376,42 +281,6 @@
 
 			// Create the business
 			const result = await createBusiness(payload);
-			const businessId = result.business.id;
-
-			// Save additional setup data (fire-and-forget, don't block navigation)
-			const followUpTasks: Promise<unknown>[] = [];
-
-			// Send team invites
-			const roleMap: Record<string, TeamRole> = {
-				cashier: 'staff',
-				manager: 'manager',
-				viewer: 'viewer',
-				accountant: 'accountant',
-				staff: 'staff'
-			};
-			for (const member of teamMembers) {
-				if (member.email) {
-					const role = roleMap[member.role] || 'staff';
-					followUpTasks.push(
-						inviteTeamMember(businessId, { email: member.email, role }).catch((err) => {
-							console.error(`Failed to invite ${member.email}:`, err);
-						})
-					);
-				}
-			}
-
-			// Save payment methods and business hours to settings
-			followUpTasks.push(
-				updateBusinessSettings(businessId, {
-					paymentMethods: { cash: acceptCash, cards: acceptCards, digitalWallets: acceptDigitalWallets, cardProviders },
-					businessHours: { type: hoursType }
-				} as any).catch((err) => {
-					console.error('Failed to save payment/hours settings:', err);
-				})
-			);
-
-			// Wait for all follow-up tasks but don't block on failures
-			await Promise.allSettled(followUpTasks);
 
 			// Clear saved progress
 			if (typeof window !== 'undefined') {
@@ -562,7 +431,6 @@
 
 			<!-- Step Content -->
 			<div id="step-content" class="space-y-6">
-				<!-- Step 1: Business Essentials -->
 				{#if currentStep === 0}
 					<BusinessEssentialsStep
 						bind:this={step1Component}
@@ -580,28 +448,11 @@
 				{:else if currentStep === 1}
 					<FirstStoreStep
 						bind:this={step2Component}
-						bind:storeName
-						bind:storeAddress
-						bind:storePhone
+						bind:address
+						bind:phone
 						bind:taxRate
-						bind:storeNotes
 						bind:errors={step2Errors}
 					/>
-				{:else if currentStep === 2}
-					<TeamSetupStep bind:this={step3Component} bind:teamMembers bind:errors={step3Errors} />
-				{:else if currentStep === 3}
-					<PaymentMethodsStep
-						bind:this={step4Component}
-						bind:acceptCash
-						bind:acceptCards
-						bind:cardProviders
-						bind:acceptDigitalWallets
-						bind:errors={step4Errors}
-					/>
-				{:else if currentStep === 4}
-					<BusinessHoursStep bind:this={step5Component} bind:hoursType bind:errors={step5Errors} />
-				{:else if currentStep === 5}
-					<CompleteStep onComplete={completeSetup} />
 				{/if}
 
 				<!-- Navigation Buttons -->
@@ -609,7 +460,7 @@
 					<div>
 						{#if currentStep === 0}
 							<Button variant="ghost" onclick={() => goto('/dashboard')}>Cancel</Button>
-						{:else if currentStep > 0 && currentStep < 5}
+						{:else}
 							<Button variant="ghost" onclick={goToPreviousStep}>
 								<ChevronLeft class="mr-1 size-4" />
 								Back
@@ -618,23 +469,21 @@
 					</div>
 
 					<div class="flex items-center gap-3">
-						{#if currentStep === 2}
-							<Button variant="outline" onclick={skipStep}>Skip for Now</Button>
-						{/if}
-
-						{#if currentStep < 5}
+						{#if currentStep === 0}
 							<Button onclick={goToNextStep}>
 								Continue
 								<ChevronRight class="ml-1 size-4" />
 							</Button>
 						{:else}
-							<Button onclick={completeSetup} size="lg" disabled={isSubmitting}>
+							<Button variant="outline" onclick={skipAndCreate} disabled={isSubmitting}>
+								Skip & Create Business
+							</Button>
+							<Button onclick={goToNextStep} disabled={isSubmitting}>
 								{#if isSubmitting}
 									<Loader2 class="mr-2 size-4 animate-spin" />
 									Creating...
 								{:else}
-									Go to Dashboard
-									<ChevronRight class="ml-1 size-4" />
+									Create Business
 								{/if}
 							</Button>
 						{/if}
