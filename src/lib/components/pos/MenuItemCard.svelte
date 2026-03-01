@@ -32,33 +32,29 @@
 	const i18n = createI18nUtils('in');
 </script>
 
-<Card.Root class="group gap-3 overflow-hidden py-0 transition-all hover:shadow-md">
-	<div class="relative aspect-4/3 w-full overflow-hidden">
+<Card.Root class="group gap-2 overflow-hidden py-0 transition-all hover:shadow-md md:gap-3">
+	<div class="relative aspect-[4/3] w-full overflow-hidden">
 		<img
 			src={item.image}
 			alt={item.name}
 			class="h-full w-full rounded-t-lg object-cover"
 			loading="lazy"
 		/>
-		{#if item.available}
-			<Badge class="absolute top-1.5 right-1.5 text-[10px] md:top-2 md:right-2 md:text-xs">
-				Available
-			</Badge>
-		{:else}
+		{#if !item.available}
 			<Badge
-				class="absolute top-1.5 right-1.5 text-[10px] md:top-2 md:right-2 md:text-xs"
+				class="absolute top-1 right-1 text-[10px] md:top-2 md:right-2 md:text-xs"
 				variant="destructive"
 			>
-				Not Available
+				Unavailable
 			</Badge>
 		{/if}
 	</div>
-	<div class="p-2 pt-0 md:p-2.5 md:pt-0">
-		<h3 class=" line-clamp-2 min-h-8 text-xs font-semibold sm:text-sm md:text-base">
+	<div class="p-1.5 pt-0 md:p-2.5 md:pt-0">
+		<h3 class="line-clamp-1 text-xs font-semibold sm:line-clamp-2 sm:min-h-8 sm:text-sm md:text-base">
 			{item.name}
 		</h3>
 		<div class="flex items-center justify-between">
-			<span class="text-sm font-bold sm:text-base md:text-lg">
+			<span class="text-xs font-bold sm:text-base md:text-lg">
 				{i18n.formatCurrency(item.price)}
 			</span>
 		</div>
@@ -66,9 +62,10 @@
 			<Button
 				size="sm"
 				onclick={() => onAddToOrder(item)}
-				class="mt-2 h-7 w-full shrink-0 px-2 text-[10px] sm:h-8 sm:px-3 sm:text-xs md:h-9 md:text-sm"
+				class="mt-1.5 h-7 w-full shrink-0 px-2 text-[10px] sm:mt-2 sm:h-8 sm:px-3 sm:text-xs md:h-9 md:text-sm"
 			>
 				<IconPlus class="h-3 w-3 sm:mr-1 md:h-4 md:w-4" />
+				<span class="sm:hidden">Add</span>
 				<span class="hidden sm:inline">Add</span>
 				<span class="hidden md:inline"> to Cart</span>
 			</Button>
@@ -77,10 +74,9 @@
 				size="sm"
 				variant="outline"
 				disabled
-				class="mt-2 h-7 w-full shrink-0 px-2 text-[10px] sm:h-8 sm:px-3 sm:text-xs md:h-9 md:text-sm"
+				class="mt-1.5 h-7 w-full shrink-0 px-2 text-[10px] sm:mt-2 sm:h-8 sm:px-3 sm:text-xs md:h-9 md:text-sm"
 			>
-				<span class="hidden sm:inline">Unavailable</span>
-				<span class="sm:hidden">N/A</span>
+				N/A
 			</Button>
 		{/if}
 	</div>

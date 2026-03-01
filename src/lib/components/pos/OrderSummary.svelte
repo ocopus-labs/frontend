@@ -66,18 +66,18 @@
 
 <aside class="flex h-full max-h-full flex-col overflow-hidden bg-card">
 	<!-- Order Type Selection - Large Touch Targets -->
-	<div class="border-b border-border p-4">
-		<div class="grid grid-cols-3 gap-2">
+	<div class="border-b border-border p-3 md:p-4">
+		<div class="grid grid-cols-3 gap-1.5 md:gap-2">
 			{#each orderTypes as type}
 				<button
 					onclick={() => onOrderTypeChange(type.id)}
-					class="flex flex-col items-center justify-center gap-1.5 rounded-md p-3 transition-all active:scale-95
+					class="flex flex-col items-center justify-center gap-1 rounded-md p-2 transition-all active:scale-95 md:gap-1.5 md:p-3
 						{orderType === type.id
 							? 'bg-primary text-primary-foreground shadow-sm'
 							: 'bg-muted/50 text-muted-foreground hover:bg-muted'}"
 				>
-					<type.icon class="h-5 w-5" />
-					<span class="text-xs font-medium">{type.label}</span>
+					<type.icon class="h-4 w-4 md:h-5 md:w-5" />
+					<span class="text-[11px] font-medium md:text-xs">{type.label}</span>
 				</button>
 			{/each}
 		</div>
@@ -108,7 +108,7 @@
 	</div>
 
 	<!-- Order Items -->
-	<div class="flex-1 overflow-auto p-4">
+	<div class="flex-1 overflow-auto p-3 md:p-4">
 		{#if orderItems.length === 0}
 			<div class="flex h-full flex-col items-center justify-center text-center">
 				<div class="mb-3 rounded-full bg-muted p-4">

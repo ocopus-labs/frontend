@@ -770,7 +770,7 @@
 	}
 </script>
 
-<div class="flex h-screen overflow-hidden bg-background">
+<div class="flex h-[100dvh] overflow-hidden bg-background">
 	<!-- Main Content Area -->
 	<div class="flex flex-1 flex-col">
 		<!-- Header -->
@@ -778,8 +778,8 @@
 			<!-- Menu Section -->
 			<div class="flex flex-1 flex-col overflow-hidden lg:min-w-0">
 				<!-- Category Tabs & Search -->
-				<div class="border-b border-border p-2.5 md:p-4 lg:p-6">
-					<div class="mb-2.5 md:mb-3 lg:mb-4">
+				<div class="border-b border-border p-2 md:p-4 lg:p-6">
+					<div class="mb-2 md:mb-3 lg:mb-4">
 						<MenuCategories
 							categories={data.categories.map((c: { id: string; name: string; count: number }) => ({
 								name: c.name,
@@ -799,19 +799,19 @@
 								type="text"
 								placeholder="Search menu items..."
 								bind:value={searchQuery}
-								class="h-9 pl-9 text-sm md:h-10"
+								class="h-8 pl-9 text-sm md:h-10"
 							/>
 						</div>
 					</div>
 				</div>
 
 				<!-- Menu Grid -->
-				<div class="flex-1 overflow-y-auto pb-20 lg:pb-0">
+				<div class="flex-1 overflow-y-auto pb-24 lg:pb-0">
 					{#if displayMenuItems.length === 0}
 						<EmptyState type="no-results" title="No items found" description="Try a different search term." size="sm" />
 					{:else}
 						<div
-							class="grid grid-cols-1 gap-2.5 p-2.5 min-[400px]:grid-cols-2 sm:gap-3 sm:p-3 md:gap-4 md:p-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+							class="grid grid-cols-2 gap-2 p-2 sm:grid-cols-2 sm:gap-3 sm:p-3 md:grid-cols-3 md:gap-4 md:p-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
 						>
 							{#each displayMenuItems as item}
 								<MenuItemCard
@@ -887,11 +887,14 @@
 		{#if orderItems.length > 0}
 		<Drawer.Root bind:open={showOrderSummary}>
 			<div
-				class="fixed right-0 bottom-0 left-0 z-40 border-t border-border bg-background p-3 lg:hidden"
+				class="safe-bottom fixed right-0 bottom-0 left-0 z-40 border-t border-border bg-background/95 p-2.5 backdrop-blur-sm lg:hidden"
 			>
 				<Drawer.Trigger class="w-full">
-					<Button class="w-full" size="lg">
-						<span class="flex-1 text-left">View Order ({orderItems.length} {orderItems.length === 1 ? 'item' : 'items'})</span>
+					<Button class="h-12 w-full gap-3 text-base" size="lg">
+						<div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary-foreground/20 text-sm font-bold">
+							{orderItems.length}
+						</div>
+						<span class="flex-1 text-left">View Order</span>
 						<span class="font-bold">{i18n.formatCurrency(totalPayment)}</span>
 					</Button>
 				</Drawer.Trigger>
@@ -900,9 +903,30 @@
 			<Drawer.Portal>
 				<Drawer.Overlay class="fixed inset-0 z-50 bg-black/40" />
 				<Drawer.Content
-					class="fixed inset-x-0 bottom-0 z-50 mt-24 flex h-[85vh] flex-col rounded-t-[10px] border bg-background"
+					class="fixed inset-x-0 bottom-0 z-50 mt-10 flex max-h-[90dvh] flex-col rounded-t-xl border bg-background"
 				>
-					<div class="flex-1 overflow-hidden">
+					<!-- Drag Handle -->
+					<div class="flex justify-center py-3">
+						<div class="h-1.5 w-12 rounded-full bg-muted-foreground/30"></div>
+					</div>
+					<!-- Customer Picker (mobile only) -->
+					<div class="border-b border-border px-4 pb-3">
+						<CustomerPicker businessId={(data.business as any)?.id} bind:selectedCustomer />
+						{#if selectedCustomer && customerLoyalty && loyaltySettings?.enabled}
+							<div class="mt-2 flex items-center justify-between rounded-md bg-muted/50 px-3 py-2">
+								<div class="flex items-center gap-2 text-sm">
+									<span class="font-medium">{customerLoyalty.points} pts</span>
+									<Badge variant="secondary" class="text-xs capitalize">{customerLoyalty.tier}</Badge>
+								</div>
+								{#if customerLoyalty.points >= loyaltySettings.minimumRedemption}
+									<Button variant="outline" size="sm" class="h-7 text-xs" onclick={openRedeemDialog}>
+										Redeem Points
+									</Button>
+								{/if}
+							</div>
+						{/if}
+					</div>
+					<div class="min-h-0 flex-1 overflow-hidden">
 						<OrderSummary
 							{orderItems}
 							orderType={orderType === 'dine_in' ? 'Dine-In' : orderType === 'takeaway' ? 'Takeaway' : 'Delivery'}
@@ -926,9 +950,9 @@
 							{region}
 						/>
 					</div>
-					<div class="border-t border-border p-4">
+					<div class="safe-bottom border-t border-border p-3">
 						<Button
-							class="w-full"
+							class="h-12 w-full text-base"
 							size="lg"
 							onclick={handlePlaceOrder}
 							disabled={orderItems.length === 0 || isSubmitting}

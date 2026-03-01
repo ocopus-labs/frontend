@@ -348,6 +348,20 @@
 	background-size: 24px 24px;
 }
 
+/* Hide scrollbar but allow scrolling */
+.no-scrollbar {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+	display: none;
+}
+
+/* Safe area padding for mobile devices with notches/home indicators */
+.safe-bottom {
+	padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /* Print styles for receipts */
 @media print {
 	/* Hide everything except the print-only content */
