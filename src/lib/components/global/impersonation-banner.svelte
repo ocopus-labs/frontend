@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { stopImpersonation } from '$lib/api/admin';
 	import { toast } from 'svelte-sonner';
@@ -10,10 +11,8 @@
 	let stopping = $state(false);
 
 	// Check for impersonation cookie on mount
-	$effect(() => {
-		if (typeof document !== 'undefined') {
-			isImpersonating = document.cookie.includes('admin_session_token');
-		}
+	onMount(() => {
+		isImpersonating = document.cookie.includes('admin_session_token');
 	});
 
 	async function handleStopImpersonation() {

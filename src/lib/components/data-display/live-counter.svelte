@@ -36,7 +36,7 @@
 		animatedValue.set(value);
 	});
 
-	const displayValue = $derived(() => {
+	const displayValue = $derived.by(() => {
 		const val = $animatedValue;
 
 		switch (format) {
@@ -74,5 +74,5 @@
 </script>
 
 <span class={cn('tabular-nums', className)} data-slot="live-counter">
-	{prefix}{displayValue()}{suffix}
+	{prefix}{displayValue}{suffix}
 </span>

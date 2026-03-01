@@ -32,18 +32,20 @@
 	}
 
 	$effect(() => {
-		loadAnnouncements();
+		let cancelled = false;
+		getActiveAnnouncements()
+			.then((result) => {
+				if (cancelled) return;
+				const dismissedIds = getDismissedIds();
+				announcements = result.announcements.filter((a) => !dismissedIds.has(a.id));
+			})
+			.catch(() => {
+				// Silently fail - announcements are non-critical
+			});
+		return () => {
+			cancelled = true;
+		};
 	});
-
-	async function loadAnnouncements() {
-		try {
-			const result = await getActiveAnnouncements();
-			const dismissedIds = getDismissedIds();
-			announcements = result.announcements.filter((a) => !dismissedIds.has(a.id));
-		} catch {
-			// Silently fail - announcements are non-critical
-		}
-	}
 
 	async function handleDismiss(id: string) {
 		saveDismissedId(id);

@@ -21,14 +21,11 @@
 
 	let dark = $state(false);
 
-	function initTheme() {
-		if (typeof window === 'undefined') return;
+	if (typeof window !== 'undefined') {
 		dark =
 			localStorage.getItem('theme') === 'dark' ||
 			(!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
 	}
-
-	initTheme();
 
 	function toggleTheme() {
 		dark = !dark;
@@ -37,7 +34,7 @@
 	}
 
 	// Get initials from user name
-	const initials = $derived(() => {
+	const initials = $derived.by(() => {
 		if (!user?.name) return 'U';
 		return user.name
 			.split(' ')
@@ -72,7 +69,7 @@
 					>
 						<Avatar.Root class="size-8 rounded-lg">
 							<Avatar.Image src={user?.image} alt={user?.name || 'User'} />
-							<Avatar.Fallback class="rounded-lg">{initials()}</Avatar.Fallback>
+							<Avatar.Fallback class="rounded-lg">{initials}</Avatar.Fallback>
 						</Avatar.Root>
 						<div class="grid flex-1 text-left text-sm leading-tight">
 							<span class="truncate font-medium">{user?.name || 'User'}</span>
@@ -92,7 +89,7 @@
 					<div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
 						<Avatar.Root class="size-8 rounded-lg">
 							<Avatar.Image src={user?.image} alt={user?.name || 'User'} />
-							<Avatar.Fallback class="rounded-lg">{initials()}</Avatar.Fallback>
+							<Avatar.Fallback class="rounded-lg">{initials}</Avatar.Fallback>
 						</Avatar.Root>
 						<div class="grid flex-1 text-left text-sm leading-tight">
 							<span class="truncate font-medium">{user?.name || 'User'}</span>
