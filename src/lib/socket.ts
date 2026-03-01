@@ -1,5 +1,6 @@
 import type { Socket } from 'socket.io-client';
 import { browser } from '$app/environment';
+import { env } from '$env/dynamic/public';
 
 let socket: Socket | null = null;
 let ioModule: typeof import('socket.io-client') | null = null;
@@ -23,17 +24,29 @@ export async function getSocket(): Promise<Socket | null> {
 
 	if (!socket) {
 		const { io } = await loadSocketIO();
-		const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+		const backendUrl = env.PUBLIC_API_BASE?.replace('/api', '') || 'http://localhost:3000';
 		socket = io(`${backendUrl}/orders`, {
 			withCredentials: true,
-			autoConnect: false
+			autoConnect: false,
+			transports: ['websocket', 'polling'],
+			reconnection: true,
+			reconnectionAttempts: 10,
+			reconnectionDelay: 1000,
+			reconnectionDelayMax: 5000,
+			timeout: 10000
 		});
 
-		socket.on('connect', () => {});
+		socket.on('connect', () => {
+			console.log('[Socket] Connected:', socket?.id);
+		});
 
-		socket.on('disconnect', () => {});
+		socket.on('disconnect', (reason) => {
+			console.log('[Socket] Disconnected:', reason);
+		});
 
-		socket.on('connect_error', () => {});
+		socket.on('connect_error', (error) => {
+			console.error('[Socket] Connection error:', error.message);
+		});
 	}
 
 	return socket;

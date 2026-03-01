@@ -123,6 +123,11 @@
 					isConnected = false;
 				});
 
+				socket.on('connect_error', (error) => {
+					isConnected = false;
+					toast.error(`Connection failed: ${error.message}`);
+				});
+
 				// Listen for new orders
 				const unsubOrderCreated = await onOrderCreated((order) => {
 					invalidate('app:orders');
