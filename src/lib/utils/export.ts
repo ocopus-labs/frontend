@@ -58,22 +58,57 @@ export function downloadCsv(
 }
 
 /**
- * Dynamically imports html2pdf.js (already installed), renders the given
- * HTML element to a PDF, and triggers the download.
+ * Converts oklch() colors (unsupported by html2canvas) to rgb() on an element
+ * and all its descendants by reading the computed styles.
+ */
+export function convertOklchColors(element: HTMLElement): void {
+	const colorProps = ['color', 'background-color', 'border-color', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color', 'outline-color', 'text-decoration-color'];
+
+	function processElement(el: HTMLElement) {
+		const computed = getComputedStyle(el);
+		for (const prop of colorProps) {
+			const value = computed.getPropertyValue(prop);
+			if (value && value.includes('oklch')) {
+				// getComputedStyle returns resolved values — reading it and
+				// writing it back forces the browser to serialize as rgb()
+				el.style.setProperty(prop, value);
+			}
+		}
+	}
+
+	processElement(element);
+	element.querySelectorAll<HTMLElement>('*').forEach(processElement);
+}
+
+/**
+ * Clones an element, converts oklch colors to rgb, renders to PDF, then
+ * cleans up the clone. This avoids mutating the original DOM.
  */
 export async function downloadPdf(element: HTMLElement, filename: string): Promise<void> {
 	const html2pdf = (await import('html2pdf.js')).default;
 
 	const pdfFilename = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
 
-	await html2pdf()
-		.set({
-			margin: [10, 10, 10, 10],
-			filename: pdfFilename,
-			image: { type: 'jpeg', quality: 0.98 },
-			html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
-			jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-		} as Record<string, unknown>)
-		.from(element)
-		.save();
+	// Clone to avoid mutating visible DOM
+	const clone = element.cloneNode(true) as HTMLElement;
+	clone.style.position = 'fixed';
+	clone.style.left = '-9999px';
+	document.body.appendChild(clone);
+
+	try {
+		convertOklchColors(clone);
+
+		await html2pdf()
+			.set({
+				margin: [10, 10, 10, 10],
+				filename: pdfFilename,
+				image: { type: 'jpeg', quality: 0.98 },
+				html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+				jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+			} as Record<string, unknown>)
+			.from(clone)
+			.save();
+	} finally {
+		document.body.removeChild(clone);
+	}
 }
