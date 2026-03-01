@@ -48,17 +48,11 @@ export default defineConfig({
 				runtimeCaching: [
 					{
 						urlPattern: ({ request }) => request.mode === 'navigate',
-						handler: 'NetworkFirst',
+						handler: 'NetworkOnly',
 						options: {
-							cacheName: 'pages-cache',
-							expiration: {
-								maxEntries: 50,
-								maxAgeSeconds: 60 * 60 * 24 // 1 day
-							},
-							cacheableResponse: {
-								statuses: [0, 200]
-							},
-							networkTimeoutSeconds: 5
+							fetchOptions: {
+								credentials: 'include' as RequestCredentials
+							}
 						}
 					},
 					{
