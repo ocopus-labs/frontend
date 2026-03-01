@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import * as Avatar from '$lib/components/ui/avatar';
@@ -75,7 +75,7 @@
 			toast.success(`"${businessToDelete.name}" deleted successfully`);
 			deleteDialogOpen = false;
 			businessToDelete = null;
-			await invalidateAll();
+			await invalidate('app:user-businesses');
 		} catch (err: any) {
 			toast.error(err?.message ?? 'Failed to delete business. Please try again.');
 		} finally {

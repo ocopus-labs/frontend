@@ -2,7 +2,8 @@ import type { PageLoad } from './$types';
 import { getPayments, getPaymentSummary } from '$lib/api/payment';
 import type { PaymentMethod } from '$lib/api/payment';
 
-export const load: PageLoad = async ({ url, parent, fetch }) => {
+export const load: PageLoad = async ({ url, parent, fetch, depends }) => {
+  depends('app:transactions');
   const { business } = await parent();
 
   const page = Math.max(1, Number(url.searchParams.get('page')) || 1);

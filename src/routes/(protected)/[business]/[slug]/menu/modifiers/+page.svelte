@@ -14,7 +14,7 @@
 	import { createModifierGroup, updateModifierGroup, deleteModifierGroup } from '$lib/api';
 	import type { ModifierGroup } from '$lib/types/menu';
 	import { userFriendlyError } from '$lib/utils/error';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidate } from '$app/navigation';
 
 	let { data } = $props();
 

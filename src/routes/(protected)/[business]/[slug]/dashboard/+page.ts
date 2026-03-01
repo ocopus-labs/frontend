@@ -10,7 +10,8 @@ import {
 } from '$lib/api';
 import { getOrders } from '$lib/api/order';
 
-export const load: PageLoad = async ({ parent, fetch, url }) => {
+export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
+	depends('app:dashboard');
 	const parentData = await parent();
 	const businessId = parentData.businessId;
 	const period = url.searchParams.get('period') || 'month';

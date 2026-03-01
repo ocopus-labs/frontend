@@ -1,7 +1,8 @@
 import type { PageLoad } from './$types';
 import { getExpenses, getExpenseCategories } from '$lib/api';
 
-export const load: PageLoad = async ({ parent, fetch, url }) => {
+export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
+	depends('app:expenses');
 	const parentData = await parent();
 	const businessId = parentData.businessId;
 

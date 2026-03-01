@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -185,7 +185,7 @@
 
 			showAddDialog = false;
 			resetForm();
-			await invalidateAll();
+			await invalidate('app:customers');
 		} catch (error) {
 			toast.error(userFriendlyError(error));
 		} finally {
@@ -203,7 +203,7 @@
 		try {
 			await deleteCustomer(businessId, deleteTargetId);
 			toast.success('Customer deleted');
-			await invalidateAll();
+			await invalidate('app:customers');
 		} catch (error) {
 			toast.error(userFriendlyError(error));
 		}
@@ -223,7 +223,7 @@
 		}
 	}
 
-	function handleSearch(value: string) {
+	async function handleSearch(value: string) {
 		searchQuery = value;
 		const url = new URL($page.url);
 		if (value) {
@@ -232,10 +232,11 @@
 			url.searchParams.delete('search');
 		}
 		url.searchParams.set('offset', '0');
-		goto(url.toString(), { replaceState: true, invalidateAll: true });
+		await goto(url.toString(), { replaceState: true });
+		await invalidate('app:customers');
 	}
 
-	function handleStatusFilter(value: string) {
+	async function handleStatusFilter(value: string) {
 		statusFilter = value;
 		const url = new URL($page.url);
 		if (value && value !== 'all') {
@@ -244,13 +245,15 @@
 			url.searchParams.delete('status');
 		}
 		url.searchParams.set('offset', '0');
-		goto(url.toString(), { replaceState: true, invalidateAll: true });
+		await goto(url.toString(), { replaceState: true });
+		await invalidate('app:customers');
 	}
 
-	function goToPage(pageNum: number) {
+	async function goToPage(pageNum: number) {
 		const url = new URL($page.url);
 		url.searchParams.set('offset', String((pageNum - 1) * pagination.limit));
-		goto(url.toString(), { replaceState: true, invalidateAll: true });
+		await goto(url.toString(), { replaceState: true });
+		await invalidate('app:customers');
 	}
 
 	function viewCustomer(customerId: string) {

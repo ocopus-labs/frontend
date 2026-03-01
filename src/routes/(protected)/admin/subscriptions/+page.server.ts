@@ -1,7 +1,8 @@
 import { getAdminSubscriptions } from '$lib/api/admin';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ fetch, url }) => {
+export const load: PageServerLoad = async ({ fetch, url, depends }) => {
+	depends('app:subscriptions');
 	const page = Number(url.searchParams.get('page')) || 1;
 	const limit = Number(url.searchParams.get('limit')) || 20;
 	const status = url.searchParams.get('status') || undefined;

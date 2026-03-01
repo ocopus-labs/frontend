@@ -3,7 +3,8 @@ import { getUserBusinesses } from '$lib/api';
 import { getMySubscription } from '$lib/api/subscription';
 import type { LayoutServerLoad } from './$types';
 
-export const load: LayoutServerLoad = async ({ fetch, locals, url }) => {
+export const load: LayoutServerLoad = async ({ fetch, locals, url, depends }) => {
+	depends('app:user-businesses');
 	// Check for session from hooks.server.ts
 	if (!locals.session) {
 		const returnTo = encodeURIComponent(url.pathname);

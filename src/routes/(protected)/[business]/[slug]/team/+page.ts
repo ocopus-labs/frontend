@@ -1,7 +1,8 @@
 import type { PageLoad } from './$types';
 import { getTeamMembers, getTeamStats, getAvailableRoles, getPermissionTree } from '$lib/api';
 
-export const load: PageLoad = async ({ parent, fetch, url }) => {
+export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
+	depends('app:team');
 	const parentData = await parent();
 	const businessId = parentData.businessId;
 

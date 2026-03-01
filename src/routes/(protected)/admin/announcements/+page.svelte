@@ -10,7 +10,7 @@
 	import { Textarea } from '$lib/components/ui/textarea/index.js';
 	import { Switch } from '$lib/components/ui/switch';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidate } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { userFriendlyError } from '$lib/utils/error';
 	import type { PageData } from './$types';
@@ -134,7 +134,7 @@
 				toast.success('Announcement created successfully');
 			}
 			dialogOpen = false;
-			await invalidateAll();
+			await invalidate('app:announcements');
 		} catch (err) {
 			toast.error(userFriendlyError(err));
 		} finally {
@@ -152,7 +152,7 @@
 		try {
 			await deleteAdminAnnouncement(deleteTargetId);
 			toast.success('Announcement deleted successfully');
-			await invalidateAll();
+			await invalidate('app:announcements');
 		} catch (err) {
 			toast.error(userFriendlyError(err));
 		}
@@ -164,7 +164,7 @@
 			toast.success(
 				announcement.isActive ? 'Announcement unpublished' : 'Announcement published'
 			);
-			await invalidateAll();
+			await invalidate('app:announcements');
 		} catch (err) {
 			toast.error(userFriendlyError(err));
 		}

@@ -8,7 +8,7 @@
 	import { toast } from 'svelte-sonner';
 	import PageHeader from '$lib/components/global/page-header.svelte';
 	import { updateLoyaltySettings, type LoyaltySettings } from '$lib/api';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidate } from '$app/navigation';
 	import { userFriendlyError } from '$lib/utils/error';
 
 	let { data }: { data: PageData } = $props();
@@ -69,7 +69,7 @@
 				}
 			});
 			toast.success('Loyalty settings saved');
-			await invalidateAll();
+			await invalidate('app:loyalty-settings');
 		} catch (error) {
 			toast.error(userFriendlyError(error));
 		} finally {

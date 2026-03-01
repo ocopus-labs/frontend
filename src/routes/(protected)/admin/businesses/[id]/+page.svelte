@@ -6,7 +6,7 @@
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import { updateAdminBusinessStatus } from '$lib/api/admin';
 	import { toast } from 'svelte-sonner';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidate } from '$app/navigation';
 	import type { PageData } from './$types';
 
 	import { formatCurrency } from '$lib/utils/i18n';
@@ -63,7 +63,7 @@
 		try {
 			await updateAdminBusinessStatus(business.id, 'suspended');
 			toast.success('Business has been suspended');
-			await invalidateAll();
+			await invalidate('app:admin-businesses');
 		} catch (error) {
 			toast.error('Failed to suspend business');
 		} finally {
@@ -76,7 +76,7 @@
 		try {
 			await updateAdminBusinessStatus(business.id, 'active');
 			toast.success('Business has been activated');
-			await invalidateAll();
+			await invalidate('app:admin-businesses');
 		} catch (error) {
 			toast.error('Failed to activate business');
 		} finally {

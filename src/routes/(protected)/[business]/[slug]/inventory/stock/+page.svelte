@@ -24,7 +24,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 	import { SearchInput, FilterDropdown } from '$lib/components/search';
 	import { EmptyState, StatusPill } from '$lib/components/data-display';
 	import { toast } from 'svelte-sonner';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import {
 		createInventoryItem,
@@ -243,7 +243,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 			await createInventoryItem(data.businessId, payload);
 			toast.success('Item added successfully');
 			showAddDialog = false;
-			await invalidateAll();
+			await invalidate('app:inventory');
 		} catch (error) {
 			toast.error(userFriendlyError(error, 'Failed to add item'));
 		} finally {
@@ -274,7 +274,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 			});
 			toast.success('Item updated successfully');
 			editingItem = null;
-			await invalidateAll();
+			await invalidate('app:inventory');
 		} catch (error) {
 			toast.error(userFriendlyError(error, 'Failed to update item'));
 		} finally {
@@ -292,7 +292,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 		try {
 			await deleteInventoryItem(data.businessId, deleteItemId);
 			toast.success('Item deleted successfully');
-			await invalidateAll();
+			await invalidate('app:inventory');
 		} catch (error) {
 			toast.error(userFriendlyError(error, 'Failed to delete item'));
 		}
@@ -325,7 +325,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 			});
 			toast.success('Stock adjusted successfully');
 			adjustingStock = null;
-			await invalidateAll();
+			await invalidate('app:inventory');
 		} catch (error) {
 			toast.error(userFriendlyError(error, 'Failed to adjust stock'));
 		} finally {

@@ -1,7 +1,8 @@
 import { getAdminWebhooks } from '$lib/api/admin';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ fetch, url }) => {
+export const load: PageServerLoad = async ({ fetch, url, depends }) => {
+	depends('app:webhooks');
 	const page = Number(url.searchParams.get('page')) || 1;
 	const limit = Number(url.searchParams.get('limit')) || 50;
 	const provider = url.searchParams.get('provider') || undefined;

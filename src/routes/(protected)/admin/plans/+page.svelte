@@ -9,7 +9,7 @@
 	import { Textarea } from '$lib/components/ui/textarea/index.js';
 	import { Switch } from '$lib/components/ui/switch';
 	import { Separator } from '$lib/components/ui/separator';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidate } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { userFriendlyError } from '$lib/utils/error';
 	import type { PageData } from './$types';
@@ -189,7 +189,7 @@
 				toast.success('Plan created successfully');
 			}
 			dialogOpen = false;
-			await invalidateAll();
+			await invalidate('app:plans');
 		} catch (err) {
 			toast.error(userFriendlyError(err));
 		} finally {
@@ -203,7 +203,7 @@
 			toast.success(
 				plan.status === 'active' ? 'Plan archived successfully' : 'Plan restored successfully'
 			);
-			await invalidateAll();
+			await invalidate('app:plans');
 		} catch (err) {
 			toast.error(userFriendlyError(err));
 		}

@@ -7,7 +7,7 @@
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import { banAdminUser, unbanAdminUser, updateAdminUserRole } from '$lib/api/admin';
 	import { toast } from 'svelte-sonner';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidate } from '$app/navigation';
 	import type { PageData } from './$types';
 
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
@@ -69,7 +69,7 @@
 		try {
 			await banAdminUser(user.id, { reason: reason || undefined });
 			toast.success('User has been banned');
-			await invalidateAll();
+			await invalidate('app:admin-users');
 		} catch (error) {
 			toast.error('Failed to ban user');
 		} finally {
@@ -82,7 +82,7 @@
 		try {
 			await unbanAdminUser(user.id);
 			toast.success('User has been unbanned');
-			await invalidateAll();
+			await invalidate('app:admin-users');
 		} catch (error) {
 			toast.error('Failed to unban user');
 		} finally {
@@ -96,7 +96,7 @@
 		try {
 			await updateAdminUserRole(user.id, newRole);
 			toast.success(`Role updated to ${newRole.replace('_', ' ')}`);
-			await invalidateAll();
+			await invalidate('app:admin-users');
 		} catch (error) {
 			toast.error('Failed to update role');
 		} finally {

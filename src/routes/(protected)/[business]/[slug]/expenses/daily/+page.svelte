@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { goto } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Card from '$lib/components/ui/card';
@@ -158,7 +158,8 @@
 	async function handleDateChange(e: Event) {
 		const newDate = (e.target as HTMLInputElement).value;
 		selectedDate = newDate;
-		await goto(`?date=${newDate}`, { invalidateAll: true });
+		await goto(`?date=${newDate}`);
+		await invalidate('app:expenses');
 	}
 
 	async function addExpense() {

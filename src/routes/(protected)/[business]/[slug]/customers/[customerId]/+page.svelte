@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -134,7 +134,7 @@
 			await updateCustomer(businessId, customer.id, payload);
 			toast.success('Customer updated');
 			showEditDialog = false;
-			await invalidateAll();
+			await invalidate('app:customer-detail');
 		} catch (error) {
 			toast.error(userFriendlyError(error));
 		} finally {
@@ -165,7 +165,7 @@
 			await adjustLoyaltyPoints(businessId, customer.id, adjustAmount, adjustReason.trim());
 			toast.success(`Points ${adjustAmount > 0 ? 'added' : 'deducted'} successfully`);
 			showAdjustDialog = false;
-			await invalidateAll();
+			await invalidate('app:customer-detail');
 		} catch (error) {
 			toast.error(userFriendlyError(error));
 		} finally {

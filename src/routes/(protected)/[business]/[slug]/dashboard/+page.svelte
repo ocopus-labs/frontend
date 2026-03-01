@@ -2,7 +2,7 @@
 	import StatsCard from '$lib/components/global/stats-card.svelte';
 	import BarChart from '$lib/components/chart/lazy-bar-chart.svelte';
 	import PieChart from '$lib/components/chart/lazy-pie-chart.svelte';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
 	import type { CurrencyCode } from '$lib/utils/i18n';
@@ -59,7 +59,7 @@
 	async function refreshDashboard() {
 		isRefreshing = true;
 		try {
-			await invalidateAll();
+			await invalidate('app:dashboard');
 		} finally {
 			isRefreshing = false;
 		}

@@ -22,7 +22,7 @@
 	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
 	import type { CurrencyCode } from '$lib/utils/i18n';
 	import type { Payment, PaymentMethod, PaymentSummary } from '$lib/api/payment';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
 
 	let { data } = $props();
@@ -159,7 +159,7 @@
 
 	async function refresh() {
 		isRefreshing = true;
-		await invalidateAll();
+		await invalidate('app:transactions');
 		isRefreshing = false;
 	}
 

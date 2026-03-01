@@ -15,7 +15,7 @@
 		type TaxRegime,
 		type RegimeInfo
 	} from '$lib/api';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { userFriendlyError } from '$lib/utils/error';
 	import { IconFileSpreadsheet } from '@tabler/icons-svelte';
@@ -154,7 +154,7 @@
 
 			await updateTaxSettings(businessId, payload);
 			toast.success('Tax settings saved');
-			await invalidateAll();
+			await invalidate('app:tax-settings');
 		} catch (error) {
 			toast.error(userFriendlyError(error));
 		} finally {

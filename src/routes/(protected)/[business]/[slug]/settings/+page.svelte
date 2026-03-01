@@ -12,7 +12,7 @@
 		IconCreditCard
 	} from '@tabler/icons-svelte';
 	import { updateBusiness } from '$lib/api/business';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidate } from '$app/navigation';
 	import { useSession } from '$lib/auth';
 	import type { Business } from '$lib/api/types';
 	import { CURRENCY_CONFIG } from '$lib/utils/i18n';
@@ -148,7 +148,8 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 				}
 			});
 
-			await invalidateAll();
+			await invalidate('app:settings');
+		await invalidate('app:business-data');
 			toast.success('Settings saved successfully.');
 		} catch (err: unknown) {
 			console.error('Failed to save settings:', err);

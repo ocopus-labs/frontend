@@ -9,7 +9,7 @@
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import BulkActionBar from '$lib/components/admin/bulk-action-bar.svelte';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
 	import { userFriendlyError } from '$lib/utils/error';
@@ -86,7 +86,7 @@
 			}
 			selectedIds = new Set();
 			bulkDialogOpen = false;
-			await invalidateAll();
+			await invalidate('app:subscriptions');
 		} catch (err) {
 			toast.error(userFriendlyError(err, 'Bulk action failed'));
 		}
@@ -139,7 +139,7 @@
 		try {
 			await cancelAdminSubscription(cancelTargetId);
 			toast.success('Subscription canceled');
-			await invalidateAll();
+			await invalidate('app:subscriptions');
 		} catch {
 			toast.error('Failed to cancel subscription');
 		} finally {
@@ -159,7 +159,7 @@
 		try {
 			await extendAdminTrial(extendTargetId, extendDays);
 			toast.success(`Trial extended by ${extendDays} days`);
-			await invalidateAll();
+			await invalidate('app:subscriptions');
 		} catch {
 			toast.error('Failed to extend trial');
 		} finally {

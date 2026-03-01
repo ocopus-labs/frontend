@@ -1,4 +1,5 @@
 import { env } from '$env/dynamic/public';
+import { browser } from '$app/environment';
 
 export interface FetchOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
@@ -27,6 +28,47 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json();
 }
 
+// ==================== Client-side GET cache ====================
+
+const cache = new Map<string, { data: unknown; expiry: number }>();
+const DEFAULT_CACHE_TTL_MS = 30_000; // 30 seconds
+
+function getCached<T>(key: string): T | null {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiry) {
+    cache.delete(key);
+    return null;
+  }
+  return entry.data as T;
+}
+
+function setCache(key: string, data: unknown, ttlMs: number = DEFAULT_CACHE_TTL_MS) {
+  cache.set(key, { data, expiry: Date.now() + ttlMs });
+  // Cap cache size to prevent unbounded growth
+  if (cache.size > 200) {
+    const oldest = cache.keys().next().value;
+    if (oldest) cache.delete(oldest);
+  }
+}
+
+/**
+ * Clear cached API responses.
+ * - No argument: clears all cached data
+ * - With pattern: clears entries whose key contains the pattern
+ */
+export function clearApiCache(pattern?: string) {
+  if (!pattern) {
+    cache.clear();
+    return;
+  }
+  for (const key of cache.keys()) {
+    if (key.includes(pattern)) cache.delete(key);
+  }
+}
+
+// ==================== API Client ====================
+
 /**
  * Creates an API client with optional custom fetch function.
  *
@@ -48,9 +90,19 @@ async function handleResponse<T>(response: Response): Promise<T> {
 export function createApiClient(options: ApiClientOptions = {}) {
   const fetchFn = options.fetch || fetch;
   const baseUrl = env.PUBLIC_API_BASE || '/api';
+  // Only use client-side cache when using browser fetch (not SSR's fetch)
+  const useCache = browser && !options.fetch;
 
   async function request<T>(endpoint: string, fetchOptions: FetchOptions = {}): Promise<T> {
     const { body, headers: customHeaders, ...rest } = fetchOptions;
+    const method = (rest.method || 'GET').toUpperCase();
+
+    // Client-side GET cache check
+    const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
+    if (useCache && method === 'GET') {
+      const cached = getCached<T>(url);
+      if (cached !== null) return cached;
+    }
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -67,9 +119,15 @@ export function createApiClient(options: ApiClientOptions = {}) {
       config.body = JSON.stringify(body);
     }
 
-    const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
     const response = await fetchFn(url, config);
-    return handleResponse<T>(response);
+    const data = await handleResponse<T>(response);
+
+    // Cache successful GET responses on client
+    if (useCache && method === 'GET') {
+      setCache(url, data);
+    }
+
+    return data;
   }
 
   return {

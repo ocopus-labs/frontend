@@ -1,7 +1,8 @@
 import type { PageLoad } from './$types';
 import { getInventoryItems, getInventoryStats } from '$lib/api';
 
-export const load: PageLoad = async ({ parent, fetch, url }) => {
+export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
+	depends('app:inventory');
 	const parentData = await parent();
 	const businessId = parentData.businessId;
 

@@ -8,7 +8,7 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
 	import { userFriendlyError } from '$lib/utils/error';
@@ -129,7 +129,7 @@
 				const result = await getAdminWebhookDetail(retryTargetId);
 				selectedEvent = result.event;
 			}
-			await invalidateAll();
+			await invalidate('app:webhooks');
 		} catch (err) {
 			toast.error(userFriendlyError(err, 'Failed to retry webhook event'));
 		} finally {

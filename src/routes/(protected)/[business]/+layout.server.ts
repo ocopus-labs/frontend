@@ -2,7 +2,8 @@ import { getUserBusinesses } from '$lib/api';
 import { getMySubscription } from '$lib/api/subscription';
 import type { LayoutServerLoad } from './$types';
 
-export const load: LayoutServerLoad = async ({ fetch }) => {
+export const load: LayoutServerLoad = async ({ fetch, depends }) => {
+	depends('app:business-layout');
 	try {
 		const [{ businesses }, subscriptionResponse] = await Promise.all([
 			getUserBusinesses({ fetch }),

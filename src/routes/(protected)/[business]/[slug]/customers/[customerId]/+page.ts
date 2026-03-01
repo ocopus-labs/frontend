@@ -1,7 +1,8 @@
 import type { PageLoad } from './$types';
 import { getCustomerWithOrders, getLoyaltyAccount, getLoyaltyTransactions, getLoyaltySettings } from '$lib/api';
 
-export const load: PageLoad = async ({ parent, fetch, params }) => {
+export const load: PageLoad = async ({ parent, fetch, params, depends }) => {
+	depends('app:customer-detail');
 	const parentData = await parent();
 	const businessId = parentData.businessId;
 	const customerId = params.customerId;

@@ -3,7 +3,8 @@ import { VALID_BUSINESS_TYPES, BUSINESS_TYPE_CONFIG } from '$lib/types/business'
 import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 
-export const load: LayoutServerLoad = async ({ params, locals, fetch }) => {
+export const load: LayoutServerLoad = async ({ params, locals, fetch, depends }) => {
+	depends('app:business-data');
 	const { business, slug } = params;
 
 	// Validate business type
