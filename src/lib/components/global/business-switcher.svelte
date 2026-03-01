@@ -47,14 +47,14 @@
 						class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
 					>
 						<div
-							class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
+							class="flex aspect-square size-8 items-center justify-center rounded-lg text-sidebar-primary-foreground"
 						>
 							{#if currentBusiness?.logo}
 								<img
 									src={currentBusiness.logo}
 									alt={currentBusiness.name}
 									loading="lazy"
-									class="size-4 object-contain"
+									class="object-contain"
 								/>
 							{:else}
 								<StoreIcon class="size-4" />
