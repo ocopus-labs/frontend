@@ -1,8 +1,9 @@
 // Subscription API client
 
+import { env } from '$env/dynamic/public';
 import { formatCurrency as i18nFormatCurrency, type CurrencyCode } from '$lib/utils/i18n';
 
-const API_BASE = '/api/subscription';
+const API_BASE = `${env.PUBLIC_API_BASE || '/api'}/subscription`;
 
 // Types
 export interface SubscriptionPlan {
