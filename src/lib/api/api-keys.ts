@@ -81,6 +81,7 @@ export const AVAILABLE_PERMISSIONS = [
   { value: 'operations:update', label: 'Update Orders', scope: 'orders' },
   { value: 'operations:cancel', label: 'Cancel Orders', scope: 'orders' },
   { value: 'catalog:read', label: 'Read Menu', scope: 'menu' },
+  { value: 'catalog:create', label: 'Create Menu Items', scope: 'menu' },
   { value: 'catalog:update', label: 'Update Menu', scope: 'menu' },
   { value: 'scheduling:read', label: 'Read Tables', scope: 'tables' },
   { value: 'inventory:read', label: 'Read Inventory', scope: 'inventory' },
