@@ -8,7 +8,7 @@ import {
 	getTopSellingItems,
 	getTableStats
 } from '$lib/api';
-import { getOrders, getOrderStats } from '$lib/api/order';
+import { getOrders } from '$lib/api/order';
 
 export const load: PageLoad = async ({ parent, fetch, url }) => {
 	const parentData = await parent();
@@ -33,8 +33,7 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 			hourlyData,
 			topItems,
 			recentOrdersData,
-			tableStats,
-			orderStats
+			tableStats
 		] = await Promise.all([
 			getDashboardStats(businessId, undefined, { fetch }),
 			getAnalyticsDashboard(businessId, { fetch }).catch(() => null),
@@ -45,8 +44,7 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 			getHourlyBreakdown(businessId, undefined, { fetch }).catch(() => null),
 			getTopSellingItems(businessId, { limit: 5 }, { fetch }).catch(() => null),
 			getOrders(businessId, { limit: 10 }, { fetch }).catch(() => null),
-			getTableStats(businessId, { fetch }).catch(() => null),
-			getOrderStats(businessId, undefined, { fetch }).catch(() => null)
+			getTableStats(businessId, { fetch }).catch(() => null)
 		]);
 
 		return {
@@ -60,7 +58,7 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 			topItems: topItems || [],
 			recentOrders: recentOrdersData?.orders || [],
 			tableStats: tableStats?.stats || null,
-			orderStats: orderStats?.stats || null,
+			orderStats: stats?.orders || null,
 			statsError: null
 		};
 	} catch (error) {

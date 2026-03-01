@@ -13,14 +13,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 		return resolve(event);
 	}
 
-	// Fetch session for ALL page routes (public, auth, and protected)
-	const sessionData = await getSession(event.request.headers);
-
-	if (sessionData) {
-		event.locals.session = sessionData.session;
-		event.locals.user = sessionData.user;
-	}
-
 	// Determine if this is a public/auth route (no login required)
 	const isLandingPage = pathname === '/';
 	const isAuthRoute =
@@ -34,9 +26,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 		pathname.startsWith('/pricing') ||
 		pathname.startsWith('/about');
 
-	// Public and auth routes don't require login
+	// Public and auth routes don't need a session fetch
 	if (isLandingPage || isAuthRoute || isPublicRoute) {
 		return resolve(event);
+	}
+
+	// Only fetch session for protected routes
+	const sessionData = await getSession(event.request.headers);
+
+	if (sessionData) {
+		event.locals.session = sessionData.session;
+		event.locals.user = sessionData.user;
 	}
 
 	// Protected routes require a valid session

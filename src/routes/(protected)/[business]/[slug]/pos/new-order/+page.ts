@@ -12,8 +12,16 @@ export const load: PageLoad = async ({ params, parent, fetch }) => {
   const supportsTable = businessConfig?.features?.includes('tables') ?? false;
 
   try {
-    // Load menu data
-    const menuData = await getMenu(business.id, { fetch });
+    // Load menu and tables in parallel
+    const [menuData, tablesData] = await Promise.all([
+      getMenu(business.id, { fetch }),
+      supportsTable
+        ? getTables(business.id, undefined, { fetch }).catch((e) => {
+            console.warn('Failed to load tables:', e);
+            return { tables: [] };
+          })
+        : Promise.resolve({ tables: [] })
+    ]);
 
     // Transform menu data for POS display
     const categories = menuData.categories
@@ -70,23 +78,11 @@ export const load: PageLoad = async ({ params, parent, fetch }) => {
         } : undefined
       }));
 
-    // Load tables if business supports them
-    let tables: any[] = [];
-    if (supportsTable) {
-      try {
-        const tablesData = await getTables(business.id, undefined, { fetch });
-        tables = tablesData.tables || [];
-      } catch (e) {
-        console.warn('Failed to load tables:', e);
-        tables = [];
-      }
-    }
-
     return {
       categories,
       menuItems,
       menuVersion: menuData.menuVersion,
-      tables,
+      tables: tablesData.tables || [],
       supportsTable
     };
   } catch (e) {
