@@ -1,6 +1,7 @@
 <script>
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { Separator } from '$lib/components/ui/separator/index.js';
+	import { APP_NAME } from '$lib/constants/config';
 
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
 	import Lightbulb from '@lucide/svelte/icons/lightbulb';
@@ -40,7 +41,7 @@
 	];
 
 	const milestones = [
-		{ year: '2024', event: 'POS Platform founded with a mission to democratize business software.' },
+		{ year: '2024', event: `${APP_NAME} founded with a mission to democratize business software.` },
 		{
 			year: '2024',
 			event: 'Launched beta with support for restaurants, salons, and gyms.'
@@ -51,10 +52,10 @@
 </script>
 
 <svelte:head>
-	<title>About — POS Platform</title>
+	<title>About — {APP_NAME}</title>
 	<meta
 		name="description"
-		content="Learn about POS Platform's mission to empower Indian businesses with modern, affordable POS technology."
+		content="Learn about {APP_NAME}'s mission to empower Indian businesses with modern, affordable POS technology."
 	/>
 </svelte:head>
 
@@ -97,7 +98,7 @@
 					</h2>
 					<div class="mt-6 space-y-4 text-muted-foreground leading-relaxed">
 						<p>
-							POS Platform was born from a simple observation: small and mid-sized businesses in India
+							{APP_NAME} was born from a simple observation: small and mid-sized businesses in India
 							were either stuck with outdated cash registers or forced to pay exorbitant fees for
 							enterprise software that wasn't built for their needs.
 						</p>
@@ -107,7 +108,7 @@
 							and affordability that small businesses deserve.
 						</p>
 						<p>
-							Today, POS Platform supports restaurants, salons, gyms, clinics, and more — all from a
+							Today, {APP_NAME} supports restaurants, salons, gyms, clinics, and more — all from a
 							single, unified platform that adapts to each business type's unique workflow.
 						</p>
 					</div>

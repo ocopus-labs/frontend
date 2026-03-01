@@ -3,6 +3,7 @@
 	import { Separator } from '$lib/components/ui/separator/index.js';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import * as Accordion from '$lib/components/ui/accordion/index.js';
+	import { APP_NAME } from '$lib/constants/config';
 
 	import Check from '@lucide/svelte/icons/check';
 	import X from '@lucide/svelte/icons/x';
@@ -98,7 +99,7 @@
 
 	const faqs = [
 		{
-			q: 'Can I try POS Platform for free?',
+			q: `Can I try ${APP_NAME} for free?`,
 			a: 'Yes! Our Free plan is completely free forever with no credit card required. You can also start a 14-day free trial of the Pro plan to test all features.'
 		},
 		{
@@ -133,10 +134,10 @@
 </script>
 
 <svelte:head>
-	<title>Pricing — POS Platform</title>
+	<title>Pricing — {APP_NAME}</title>
 	<meta
 		name="description"
-		content="Simple, transparent pricing for POS Platform. Free plan available. Pro and Enterprise plans for growing businesses."
+		content="Simple, transparent pricing for {APP_NAME}. Free plan available. Pro and Enterprise plans for growing businesses."
 	/>
 </svelte:head>
 

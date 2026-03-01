@@ -3,6 +3,7 @@
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { toast } from 'svelte-sonner';
+	import { APP_NAME } from '$lib/constants/config';
 	import type { PageData } from './$types';
 
 	import {
@@ -80,7 +81,7 @@
 </script>
 
 <svelte:head>
-	<title>Admin Dashboard | POS Platform</title>
+	<title>Admin Dashboard | {APP_NAME}</title>
 </svelte:head>
 
 <div class="space-y-6">

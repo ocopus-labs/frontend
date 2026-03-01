@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { Separator } from '$lib/components/ui/separator/index.js';
+	import { APP_NAME } from '$lib/constants/config';
 
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
 	import Rss from '@lucide/svelte/icons/rss';
@@ -73,7 +74,7 @@
 </script>
 
 <svelte:head>
-	<title>Blog — POS Platform</title>
+	<title>Blog — {APP_NAME}</title>
 	<meta
 		name="description"
 		content="Insights, guides, and tips for Indian business owners. Learn about POS systems, inventory management, UPI payments, GST compliance, and more."

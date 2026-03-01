@@ -1,12 +1,13 @@
 <script>
 	import { Separator } from '$lib/components/ui/separator/index.js';
+	import { APP_NAME } from '$lib/constants/config';
 </script>
 
 <svelte:head>
-	<title>Privacy Policy — POS Platform</title>
+	<title>Privacy Policy — {APP_NAME}</title>
 	<meta
 		name="description"
-		content="POS Platform privacy policy. Learn how we collect, use, and protect your personal and business data."
+		content="{APP_NAME} privacy policy. Learn how we collect, use, and protect your personal and business data."
 	/>
 </svelte:head>
 
@@ -33,7 +34,7 @@
 		<div class="mx-auto max-w-3xl px-6 lg:px-8">
 			<article class="prose prose-neutral dark:prose-invert max-w-none space-y-8 text-sm leading-relaxed text-muted-foreground [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:text-foreground [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-foreground [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-1">
 				<p>
-					POS Platform ("we", "our", or "us") is committed to protecting the privacy and security
+					{APP_NAME} ("we", "our", or "us") is committed to protecting the privacy and security
 					of your personal and business information. This Privacy Policy explains how we collect,
 					use, share, and safeguard your data when you use our platform and services.
 				</p>

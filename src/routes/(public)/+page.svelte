@@ -4,6 +4,7 @@
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
 	import DashboardImage from '$lib/assets/dashboard.png';
+	import { APP_NAME } from '$lib/constants/config';
 
 	import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
 	import Package from '@lucide/svelte/icons/package';
@@ -81,7 +82,7 @@
 			name: 'Rajesh Kumar',
 			role: 'Spice Garden Restaurant, Mumbai',
 			content:
-				'POS Platform transformed how we manage our restaurant. Table management and KOT printing have reduced our order errors by 80%.',
+				`${APP_NAME} transformed how we manage our restaurant. Table management and KOT printing have reduced our order errors by 80%.`,
 			rating: 5
 		},
 		{
@@ -109,7 +110,7 @@
 </script>
 
 <svelte:head>
-	<title>POS Platform — The All-in-One Point of Sale for Every Business</title>
+	<title>{APP_NAME} — The All-in-One Point of Sale for Every Business</title>
 	<meta
 		name="description"
 		content="Modern POS and business management platform for restaurants, salons, gyms, clinics, and more. Built for Indian businesses with UPI, GST, and multi-location support."
@@ -187,7 +188,7 @@
 				<img
 					class="w-full"
 					src={DashboardImage}
-					alt="POS Platform Dashboard showing sales analytics and order management"
+					alt="{APP_NAME} Dashboard showing sales analytics and order management"
 					width={2880}
 					height={2074}
 				/>
@@ -272,7 +273,7 @@
 				One platform, <span class="italic">every</span> business
 			</h2>
 			<p class="mt-4 text-lg text-muted-foreground">
-				Whether you run a restaurant, salon, or gym — POS Platform adapts to your workflow.
+				Whether you run a restaurant, salon, or gym — {APP_NAME} adapts to your workflow.
 			</p>
 		</div>
 
@@ -350,7 +351,7 @@
 					Ready to transform your business?
 				</h2>
 				<p class="mx-auto mt-4 max-w-lg text-lg text-primary-foreground/80">
-					Join businesses across India that trust POS Platform to power their daily operations.
+					Join businesses across India that trust {APP_NAME} to power their daily operations.
 				</p>
 				<div class="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
 					<Button href="/register" size="lg" variant="secondary" class="px-8 text-base">

@@ -2,6 +2,7 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
+	import { APP_NAME } from '$lib/constants/config';
 
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
 	import CreditCard from '@lucide/svelte/icons/credit-card';
@@ -148,10 +149,10 @@
 </script>
 
 <svelte:head>
-	<title>Integrations — POS Platform</title>
+	<title>Integrations — {APP_NAME}</title>
 	<meta
 		name="description"
-		content="POS Platform integrations with UPI, GST, WhatsApp, Zomato, Swiggy, thermal printers, and more. Connect your business tools."
+		content="{APP_NAME} integrations with UPI, GST, WhatsApp, Zomato, Swiggy, thermal printers, and more. Connect your business tools."
 	/>
 </svelte:head>
 
@@ -173,7 +174,7 @@
 				Connect your <span class="italic">entire</span> ecosystem
 			</h1>
 			<p class="animate-fade-up delay-200 mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-				From UPI payments to food delivery aggregators — POS Platform integrates with the tools
+				From UPI payments to food delivery aggregators — {APP_NAME} integrates with the tools
 				Indian businesses use every day.
 			</p>
 		</div>

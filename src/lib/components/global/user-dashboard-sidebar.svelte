@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { APP_NAME } from '$lib/constants/config';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import NavUser from './nav-user.svelte';
 	import { page } from '$app/stores';
@@ -79,7 +80,7 @@
 						<Store class="size-4" />
 					</div>
 					<div class="grid flex-1 text-left text-sm leading-tight">
-						<span class="truncate font-semibold">POS Platform</span>
+						<span class="truncate font-semibold">{APP_NAME}</span>
 						<span class="truncate text-xs text-muted-foreground"
 							>{businesses.length} business{businesses.length !== 1 ? 'es' : ''}</span
 						>

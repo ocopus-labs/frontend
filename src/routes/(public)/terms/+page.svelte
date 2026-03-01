@@ -1,12 +1,13 @@
 <script>
 	import { Separator } from '$lib/components/ui/separator/index.js';
+	import { APP_NAME } from '$lib/constants/config';
 </script>
 
 <svelte:head>
-	<title>Terms of Service — POS Platform</title>
+	<title>Terms of Service — {APP_NAME}</title>
 	<meta
 		name="description"
-		content="POS Platform terms of service. Read the terms and conditions governing your use of our platform."
+		content="{APP_NAME} terms of service. Read the terms and conditions governing your use of our platform."
 	/>
 </svelte:head>
 
@@ -33,7 +34,7 @@
 		<div class="mx-auto max-w-3xl px-6 lg:px-8">
 			<article class="prose prose-neutral dark:prose-invert max-w-none space-y-8 text-sm leading-relaxed text-muted-foreground [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:text-foreground [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-foreground [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-1">
 				<p>
-					These Terms of Service ("Terms") govern your access to and use of the POS Platform
+					These Terms of Service ("Terms") govern your access to and use of the {APP_NAME}
 					services, website, and applications (collectively, the "Service"). By using the Service,
 					you agree to be bound by these Terms.
 				</p>
@@ -91,14 +92,14 @@
 
 				<h2>7. Intellectual Property</h2>
 				<p>
-					The Service, including its design, features, and content, is owned by POS Platform and
+					The Service, including its design, features, and content, is owned by {APP_NAME} and
 					protected by intellectual property laws. You may not copy, modify, or create derivative
 					works based on the Service.
 				</p>
 
 				<h2>8. Limitation of Liability</h2>
 				<p>
-					To the maximum extent permitted by law, POS Platform shall not be liable for any indirect,
+					To the maximum extent permitted by law, {APP_NAME} shall not be liable for any indirect,
 					incidental, special, consequential, or punitive damages, including loss of profits, data,
 					or business opportunities, arising from your use of the Service.
 				</p>

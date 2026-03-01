@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { APP_NAME } from '$lib/constants/config';
 	import { Separator } from '$lib/components/ui/separator/index.js';
 	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
 </script>
@@ -49,7 +50,7 @@
 							></path>
 						</svg>
 					</div>
-					<span class="text-lg font-semibold tracking-tight">POS Platform</span>
+					<span class="text-lg font-semibold tracking-tight">{APP_NAME}</span>
 				</a>
 				<p class="max-w-xs text-sm leading-relaxed text-muted-foreground">
 					The all-in-one point of sale and business management platform, purpose-built for Indian
@@ -131,7 +132,7 @@
 
 		<div class="flex flex-col items-center justify-between gap-4 sm:flex-row">
 			<p class="text-xs text-muted-foreground">
-				&copy; {new Date().getFullYear()} POS Platform. All rights reserved.
+				&copy; {new Date().getFullYear()} {APP_NAME}. All rights reserved.
 			</p>
 			<p class="flex items-center gap-1.5 text-xs text-muted-foreground">
 				Made with care in India

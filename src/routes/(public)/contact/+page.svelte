@@ -7,6 +7,7 @@
 	import * as Accordion from '$lib/components/ui/accordion/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
 	import { toast } from 'svelte-sonner';
+	import { APP_NAME } from '$lib/constants/config';
 
 	import MailIcon from '@lucide/svelte/icons/mail';
 	import PhoneIcon from '@lucide/svelte/icons/phone';
@@ -103,10 +104,10 @@
 </script>
 
 <svelte:head>
-	<title>Contact — POS Platform</title>
+	<title>Contact — {APP_NAME}</title>
 	<meta
 		name="description"
-		content="Get in touch with the POS Platform team. We are here to help you find the right plan and get started."
+		content="Get in touch with the {APP_NAME} team. We are here to help you find the right plan and get started."
 	/>
 </svelte:head>
 

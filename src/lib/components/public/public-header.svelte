@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { APP_NAME } from '$lib/constants/config';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import * as Avatar from '$lib/components/ui/avatar/index.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
@@ -102,7 +103,7 @@
 							></path>
 						</svg>
 					</div>
-					<span class="text-lg font-semibold tracking-tight">POS Platform</span>
+					<span class="text-lg font-semibold tracking-tight">{APP_NAME}</span>
 				</a>
 
 				<!-- Desktop Nav -->
