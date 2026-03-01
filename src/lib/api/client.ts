@@ -47,7 +47,10 @@ async function handleResponse<T>(response: Response): Promise<T> {
  */
 export function createApiClient(options: ApiClientOptions = {}) {
   const fetchFn = options.fetch || fetch;
-  const baseUrl = env.PUBLIC_API_BASE || '/api';
+  // When a custom fetch is provided (SSR context), use relative URL so SvelteKit's
+  // fetch auto-forwards cookies from the incoming request. For browser (global fetch),
+  // use the absolute PUBLIC_API_BASE so the request reaches the correct API server.
+  const baseUrl = options.fetch ? '/api' : (env.PUBLIC_API_BASE || '/api');
 
   async function request<T>(endpoint: string, fetchOptions: FetchOptions = {}): Promise<T> {
     const { body, headers: customHeaders, ...rest } = fetchOptions;

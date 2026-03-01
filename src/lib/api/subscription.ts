@@ -1,9 +1,7 @@
 // Subscription API client
 
-import { env } from '$env/dynamic/public';
+import { createApiClient, getApiClient } from './client';
 import { formatCurrency as i18nFormatCurrency, type CurrencyCode } from '$lib/utils/i18n';
-
-const API_BASE = `${env.PUBLIC_API_BASE || '/api'}/subscription`;
 
 // Types
 export interface SubscriptionPlan {
@@ -62,35 +60,7 @@ export interface PortalResponse {
   url: string;
 }
 
-// Fetch helper
-type FetchFn = typeof fetch;
-
-interface FetchOptions {
-  fetch?: FetchFn;
-}
-
-async function apiRequest<T>(
-  endpoint: string,
-  options: RequestInit & FetchOptions = {}
-): Promise<T> {
-  const { fetch: customFetch = fetch, ...init } = options;
-
-  const response = await customFetch(`${API_BASE}${endpoint}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...init.headers,
-    },
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Request failed' }));
-    throw new Error(error.message || `HTTP ${response.status}`);
-  }
-
-  return response.json();
-}
+type FetchOption = { fetch?: typeof fetch };
 
 // API functions
 
@@ -98,27 +68,30 @@ async function apiRequest<T>(
  * Get all available subscription plans
  */
 export async function getSubscriptionPlans(
-  options: FetchOptions = {}
+  options?: FetchOption
 ): Promise<{ plans: SubscriptionPlan[] }> {
-  return apiRequest('/plans', options);
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get('/subscription/plans');
 }
 
 /**
  * Get current user's subscription
  */
 export async function getMySubscription(
-  options: FetchOptions = {}
+  options?: FetchOption
 ): Promise<{ subscription: Subscription }> {
-  return apiRequest('/me', options);
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get('/subscription/me');
 }
 
 /**
  * Get current usage stats
  */
 export async function getSubscriptionUsage(
-  options: FetchOptions = {}
+  options?: FetchOption
 ): Promise<{ usage: UsageStats }> {
-  return apiRequest('/usage', options);
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get('/subscription/usage');
 }
 
 /**
@@ -126,37 +99,30 @@ export async function getSubscriptionUsage(
  */
 export async function createCheckout(
   planSlug: string,
-  options: FetchOptions = {}
+  options?: FetchOption
 ): Promise<CheckoutResponse> {
-  return apiRequest('/checkout', {
-    ...options,
-    method: 'POST',
-    body: JSON.stringify({ planSlug }),
-  });
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post('/subscription/checkout', { planSlug });
 }
 
 /**
  * Cancel subscription
  */
 export async function cancelSubscription(
-  options: FetchOptions = {}
+  options?: FetchOption
 ): Promise<{ success: boolean; cancelAtPeriodEnd: boolean }> {
-  return apiRequest('/cancel', {
-    ...options,
-    method: 'POST',
-  });
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post('/subscription/cancel');
 }
 
 /**
  * Get customer portal URL for managing billing
  */
 export async function getCustomerPortalUrl(
-  options: FetchOptions = {}
+  options?: FetchOption
 ): Promise<PortalResponse> {
-  return apiRequest('/portal', {
-    ...options,
-    method: 'POST',
-  });
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post('/subscription/portal');
 }
 
 /**
