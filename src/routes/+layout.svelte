@@ -9,7 +9,7 @@
 	let { children } = $props();
 </script>
 
-<Toaster />
+<Toaster position="top-center" />
 <!-- <ProgressBar class="text-red-500" /> -->
 {@render children()}
 <ScrollToTop />
