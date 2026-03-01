@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { goto } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
+	import { clearApiCache } from '$lib/api/client';
 	import type { MenuItem, MenuCategory, MenuItemIngredient } from '$lib/types/menu';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -40,10 +41,18 @@
 	const businessType = data.businessType;
 	const config = data.config;
 
+	function invalidateMenuData() {
+		clearApiCache('/menu');
+		invalidate('app:menu');
+	}
+
 	// Menu data from API
 	let categories = $state<MenuCategory[]>(data.categories || []);
 	let menuItems = $state<MenuItem[]>(data.items || []);
 	const inventoryItems = (data as any).inventoryItems || [];
+
+	$effect(() => { categories = data.categories || []; });
+	$effect(() => { menuItems = data.items || []; });
 
 	let searchQuery = $state('');
 	let categoryFilter = $state('all');
@@ -188,6 +197,7 @@
 			menuItems = [...menuItems, result.item];
 			showAddDialog = false;
 			toast.success('Item added successfully');
+			invalidateMenuData();
 		} catch (error) {
 			toast.error(userFriendlyError(error, 'Failed to add item'));
 		} finally {
@@ -219,6 +229,7 @@
 			showEditDialog = false;
 			editingItem = null;
 			toast.success('Item updated successfully');
+			invalidateMenuData();
 		} catch (error) {
 			toast.error(userFriendlyError(error, 'Failed to update item'));
 		} finally {
@@ -236,6 +247,7 @@
 			await deleteMenuItemApi(businessId, deleteTargetId);
 			menuItems = menuItems.filter((item) => item.id !== deleteTargetId);
 			toast.success('Item deleted successfully');
+			invalidateMenuData();
 		} catch (error) {
 			toast.error(userFriendlyError(error, 'Failed to delete item'));
 		}
@@ -250,6 +262,7 @@
 				menuItems = [...menuItems];
 			}
 			toast.success(result.message);
+			invalidateMenuData();
 		} catch (error) {
 			toast.error(userFriendlyError(error, 'Failed to toggle availability'));
 		}
@@ -291,6 +304,7 @@
 			showAddCategoryDialog = false;
 			newCategoryName = '';
 			toast.success('Category added successfully');
+			invalidateMenuData();
 		} catch (error) {
 			toast.error(userFriendlyError(error, 'Failed to add category'));
 		} finally {
@@ -304,6 +318,7 @@
 			const result = await seedDefaultCategories(businessId);
 			categories = result.categories;
 			toast.success('Default categories created successfully');
+			invalidateMenuData();
 		} catch (error) {
 			toast.error(userFriendlyError(error, 'Failed to seed categories'));
 		} finally {

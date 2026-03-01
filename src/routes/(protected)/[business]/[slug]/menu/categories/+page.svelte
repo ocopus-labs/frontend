@@ -26,12 +26,21 @@
 		seedDefaultCategories
 	} from '$lib/api';
 	import { userFriendlyError } from '$lib/utils/error';
+	import { invalidate } from '$app/navigation';
+	import { clearApiCache } from '$lib/api/client';
 
 	let { data }: { data: PageData } = $props();
 
 	const businessId = data.businessId;
 
+	function invalidateMenuData() {
+		clearApiCache('/menu');
+		invalidate('app:menu');
+	}
+
 	let categories = $state<MenuCategory[]>(data.categories || []);
+
+	$effect(() => { categories = data.categories || []; });
 	let searchQuery = $state('');
 	let showAddDialog = $state(false);
 	let editingCategory = $state<MenuCategory | null>(null);
@@ -65,6 +74,7 @@
 			});
 			categories = [...categories, result.category];
 			toast.success('Category added successfully');
+			invalidateMenuData();
 			showAddDialog = false;
 			newCategory = { name: '', description: '' };
 		} catch (error) {
@@ -91,6 +101,7 @@
 				cat.id === result.category.id ? result.category : cat
 			);
 			toast.success('Category updated successfully');
+			invalidateMenuData();
 			editingCategory = null;
 		} catch (error) {
 			toast.error(userFriendlyError(error, 'Failed to update category'));
@@ -110,6 +121,7 @@
 			await deleteCategoryApi(businessId, deleteCategoryTarget.id);
 			categories = categories.filter((cat) => cat.id !== deleteCategoryTarget!.id);
 			toast.success('Category deleted successfully');
+			invalidateMenuData();
 		} catch (error) {
 			toast.error(userFriendlyError(error, 'Failed to delete category'));
 		} finally {
@@ -126,6 +138,7 @@
 				cat.id === result.category.id ? result.category : cat
 			);
 			toast.success(result.category.isActive ? 'Category enabled' : 'Category disabled');
+			invalidateMenuData();
 		} catch (error) {
 			toast.error(userFriendlyError(error, 'Failed to toggle category'));
 		}
@@ -137,6 +150,7 @@
 			const result = await seedDefaultCategories(businessId);
 			categories = result.categories;
 			toast.success('Default categories created successfully');
+			invalidateMenuData();
 		} catch (error) {
 			toast.error(userFriendlyError(error, 'Failed to seed categories'));
 		} finally {

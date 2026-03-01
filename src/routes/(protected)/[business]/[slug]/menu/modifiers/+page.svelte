@@ -15,6 +15,12 @@
 	import type { ModifierGroup } from '$lib/types/menu';
 	import { userFriendlyError } from '$lib/utils/error';
 	import { invalidate } from '$app/navigation';
+	import { clearApiCache } from '$lib/api/client';
+
+	function invalidateMenuData() {
+		clearApiCache('/menu');
+		invalidate('app:menu');
+	}
 
 	let { data } = $props();
 
@@ -87,6 +93,7 @@
 			});
 			modifierGroups = [...modifierGroups, modifierGroup];
 			toast.success('Modifier group created');
+			invalidateMenuData();
 			showAddDialog = false;
 			resetNewModifier();
 		} catch (err) {
@@ -140,6 +147,7 @@
 				mod.id === modifierGroup.id ? modifierGroup : mod
 			);
 			toast.success('Modifier group updated');
+			invalidateMenuData();
 			editingModifier = null;
 		} catch (err) {
 			toast.error(userFriendlyError(err));
@@ -161,6 +169,7 @@
 			await deleteModifierGroup(businessId, idToDelete);
 			modifierGroups = modifierGroups.filter((mod) => mod.id !== idToDelete);
 			toast.success('Modifier group deleted');
+			invalidateMenuData();
 		} catch (err) {
 			toast.error(userFriendlyError(err));
 		} finally {

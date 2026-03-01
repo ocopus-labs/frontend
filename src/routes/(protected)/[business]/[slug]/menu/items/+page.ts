@@ -1,7 +1,8 @@
 import type { PageLoad } from './$types';
 import { getMenu, getItems, getInventoryItems } from '$lib/api';
 
-export const load: PageLoad = async ({ parent, fetch, url }) => {
+export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
+	depends('app:menu');
 	const { businessId, businessType, config, business } = await parent();
 
 	const page = Math.max(1, Number(url.searchParams.get('page')) || 1);

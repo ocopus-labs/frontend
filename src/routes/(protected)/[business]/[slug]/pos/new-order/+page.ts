@@ -4,7 +4,8 @@ import { getTables } from '$lib/api/table';
 import { BUSINESS_TYPE_CONFIG } from '$lib/types/business';
 import { error } from '@sveltejs/kit';
 
-export const load: PageLoad = async ({ params, parent, fetch }) => {
+export const load: PageLoad = async ({ params, parent, fetch, depends }) => {
+  depends('app:menu');
   const { business } = await parent();
 
   // Check if this business type supports tables
