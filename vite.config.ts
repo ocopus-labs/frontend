@@ -45,16 +45,10 @@ export default defineConfig({
 			workbox: {
 				globPatterns: ['client/**/*.{js,css,ico,png,svg,webp,woff,woff2}'],
 				navigateFallback: null,
+				// Navigation requests are NOT handled by the SW at all.
+				// This lets the browser handle them natively with full cookie support,
+				// which is critical for auth in PWA standalone mode with cross-origin APIs.
 				runtimeCaching: [
-					{
-						urlPattern: ({ request }) => request.mode === 'navigate',
-						handler: 'NetworkOnly',
-						options: {
-							fetchOptions: {
-								credentials: 'include' as RequestCredentials
-							}
-						}
-					},
 					{
 						urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
 						handler: 'CacheFirst',
