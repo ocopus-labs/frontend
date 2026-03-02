@@ -26,8 +26,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 		pathname.startsWith('/pricing') ||
 		pathname.startsWith('/about');
 
-	// Public and auth routes don't need a session fetch
-	if (isLandingPage || isAuthRoute || isPublicRoute) {
+	// Redirect logged-in users away from landing and auth pages to dashboard
+	if (isLandingPage || isAuthRoute) {
+		const sessionData = await getSession(event.request.headers);
+		if (sessionData) {
+			redirect(307, '/dashboard');
+		}
+		return resolve(event);
+	}
+
+	// Public routes (pricing, about) don't need a session fetch
+	if (isPublicRoute) {
 		return resolve(event);
 	}
 
