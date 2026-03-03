@@ -65,57 +65,87 @@
 		{#each items as item (item.title)}
 			{@const locked = isItemLocked(item)}
 			{@const groupActive = isGroupActive(item)}
-			<Collapsible.Root open={groupActive && !locked} class="group/collapsible">
-				{#snippet child({ props })}
-					<Sidebar.MenuItem {...props}>
-						<Collapsible.Trigger onclick={(e) => locked && handleLockedClick(item, e)}>
-							{#snippet child({ props })}
-								<Sidebar.MenuButton
-									{...props}
-									isActive={groupActive}
-									tooltipContent={locked
-										? `${item.title} (${item.requiredPlan} plan required)`
-										: item.title}
-									class={locked ? 'opacity-60' : ''}
-								>
-									{#if locked}
-										<LockIcon class="size-4 text-muted-foreground" />
-									{:else if item.icon}
-										<item.icon />
-									{/if}
-									<span class={locked ? 'text-muted-foreground' : ''}>{item.title}</span>
-									{#if locked && item.requiredPlan}
-										<Badge variant="outline" class="ml-auto mr-1 text-[10px] px-1.5 py-0">
-											{item.requiredPlan}
-										</Badge>
-									{:else}
-										<ChevronRightIcon
-											class="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
-										/>
-									{/if}
-								</Sidebar.MenuButton>
-							{/snippet}
-						</Collapsible.Trigger>
-						{#if !locked}
-							<Collapsible.Content>
-								<Sidebar.MenuSub>
-									{#each item.items ?? [] as subItem (subItem.title)}
-										<Sidebar.MenuSubItem>
-											<Sidebar.MenuSubButton isActive={isSubItemActive(subItem)}>
-												{#snippet child({ props })}
-													<a href={subItem.url} {...props}>
-														<span>{subItem.title}</span>
-													</a>
-												{/snippet}
-											</Sidebar.MenuSubButton>
-										</Sidebar.MenuSubItem>
-									{/each}
-								</Sidebar.MenuSub>
-							</Collapsible.Content>
-						{/if}
-					</Sidebar.MenuItem>
-				{/snippet}
-			</Collapsible.Root>
+			{@const hasSubItems = item.items && item.items.length > 0}
+			{#if hasSubItems}
+				<Collapsible.Root open={groupActive && !locked} class="group/collapsible">
+					{#snippet child({ props })}
+						<Sidebar.MenuItem {...props}>
+							<Collapsible.Trigger onclick={(e) => locked && handleLockedClick(item, e)}>
+								{#snippet child({ props })}
+									<Sidebar.MenuButton
+										{...props}
+										isActive={groupActive}
+										tooltipContent={locked
+											? `${item.title} (${item.requiredPlan} plan required)`
+											: item.title}
+										class={locked ? 'opacity-60' : ''}
+									>
+										{#if locked}
+											<LockIcon class="size-4 text-muted-foreground" />
+										{:else if item.icon}
+											<item.icon />
+										{/if}
+										<span class={locked ? 'text-muted-foreground' : ''}>{item.title}</span>
+										{#if locked && item.requiredPlan}
+											<Badge variant="outline" class="ml-auto mr-1 text-[10px] px-1.5 py-0">
+												{item.requiredPlan}
+											</Badge>
+										{:else}
+											<ChevronRightIcon
+												class="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+											/>
+										{/if}
+									</Sidebar.MenuButton>
+								{/snippet}
+							</Collapsible.Trigger>
+							{#if !locked}
+								<Collapsible.Content>
+									<Sidebar.MenuSub>
+										{#each item.items ?? [] as subItem (subItem.title)}
+											<Sidebar.MenuSubItem>
+												<Sidebar.MenuSubButton isActive={isSubItemActive(subItem)}>
+													{#snippet child({ props })}
+														<a href={subItem.url} {...props}>
+															<span>{subItem.title}</span>
+														</a>
+													{/snippet}
+												</Sidebar.MenuSubButton>
+											</Sidebar.MenuSubItem>
+										{/each}
+									</Sidebar.MenuSub>
+								</Collapsible.Content>
+							{/if}
+						</Sidebar.MenuItem>
+					{/snippet}
+				</Collapsible.Root>
+			{:else}
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton
+						isActive={groupActive}
+						tooltipContent={locked
+							? `${item.title} (${item.requiredPlan} plan required)`
+							: item.title}
+						class={locked ? 'opacity-60' : ''}
+						onclick={(e) => locked && handleLockedClick(item, e)}
+					>
+						{#snippet child({ props })}
+							<a href={locked ? '#' : item.url} {...props}>
+								{#if locked}
+									<LockIcon class="size-4 text-muted-foreground" />
+								{:else if item.icon}
+									<item.icon />
+								{/if}
+								<span class={locked ? 'text-muted-foreground' : ''}>{item.title}</span>
+								{#if locked && item.requiredPlan}
+									<Badge variant="outline" class="ml-auto mr-1 text-[10px] px-1.5 py-0">
+										{item.requiredPlan}
+									</Badge>
+								{/if}
+							</a>
+						{/snippet}
+					</Sidebar.MenuButton>
+				</Sidebar.MenuItem>
+			{/if}
 		{/each}
 	</Sidebar.Menu>
 </Sidebar.Group>
