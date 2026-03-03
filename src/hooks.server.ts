@@ -26,11 +26,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 		pathname.startsWith('/pricing') ||
 		pathname.startsWith('/about');
 
-	// Redirect logged-in users away from landing and auth pages to dashboard
+	// Redirect logged-in users away from landing and auth pages
 	if (isLandingPage || isAuthRoute) {
 		const sessionData = await getSession(event.request.headers);
 		if (sessionData) {
-			redirect(307, '/dashboard');
+			const target = sessionData?.user?.role === 'super_admin' ? '/admin' : '/dashboard';
+			redirect(307, target);
 		}
 		return resolve(event);
 	}

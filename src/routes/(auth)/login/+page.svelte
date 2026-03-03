@@ -81,7 +81,9 @@
 				}
 			} else {
 				toast.success('Login successful!');
-				goto(redirectTo);
+				const user = result.data?.user;
+				const target = user?.role === 'super_admin' ? '/admin' : redirectTo;
+				goto(target);
 			}
 		} catch (error) {
 			toast.error('Login failed', {

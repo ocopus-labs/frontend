@@ -58,8 +58,9 @@ export function downloadCsv(
 }
 
 /**
- * Resolves any CSS color (including oklch/lab/lch) to rgb by using a temporary
- * DOM element — the browser's computed style for `color` always serializes to rgb.
+ * Resolves any CSS color (including oklch/lab/lch/color-mix) to rgb by using a
+ * temporary DOM element — the browser's computed style for `color` always
+ * serializes to rgb.
  */
 function colorToRgb(value: string): string {
 	const probe = document.createElement('div');
@@ -72,14 +73,64 @@ function colorToRgb(value: string): string {
 }
 
 /**
- * Replaces oklch (and color-mix with oklch) inside a composite value string
- * like box-shadow by finding each oklch(...) / color-mix(...oklch...) call
- * and converting it to rgb.
+ * Finds the index of the closing parenthesis that matches the opening one at
+ * `openIndex`. Returns -1 if unmatched.
  */
-function replaceOklchInValue(value: string): string {
-	return value.replace(/(?:color-mix\([^)]*oklch[^)]*(?:\([^)]*\))*[^)]*\))|oklch\([^)]*\)/g, (match) =>
-		colorToRgb(match)
-	);
+function findMatchingParen(text: string, openIndex: number): number {
+	let depth = 1;
+	for (let i = openIndex + 1; i < text.length; i++) {
+		if (text[i] === '(') depth++;
+		else if (text[i] === ')') {
+			depth--;
+			if (depth === 0) return i;
+		}
+	}
+	return -1;
+}
+
+/**
+ * Replaces all oklch(...) and color-mix(...oklch...) expressions in a CSS
+ * string with browser-resolved rgb equivalents. Handles nested parentheses
+ * correctly (e.g. color-mix(in oklch, oklch(L C H) 50%, transparent)).
+ */
+function replaceOklchInCssText(css: string): string {
+	let result = '';
+	let i = 0;
+
+	while (i < css.length) {
+		// Check for color-mix( containing oklch
+		if (css.startsWith('color-mix(', i)) {
+			const openIdx = i + 9; // index of '('
+			const closeIdx = findMatchingParen(css, openIdx);
+			if (closeIdx !== -1) {
+				const expr = css.slice(i, closeIdx + 1);
+				if (expr.includes('oklch')) {
+					result += colorToRgb(expr);
+				} else {
+					result += expr;
+				}
+				i = closeIdx + 1;
+				continue;
+			}
+		}
+
+		// Check for oklch(
+		if (css.startsWith('oklch(', i)) {
+			const openIdx = i + 5; // index of '('
+			const closeIdx = findMatchingParen(css, openIdx);
+			if (closeIdx !== -1) {
+				const expr = css.slice(i, closeIdx + 1);
+				result += colorToRgb(expr);
+				i = closeIdx + 1;
+				continue;
+			}
+		}
+
+		result += css[i];
+		i++;
+	}
+
+	return result;
 }
 
 /** CSS properties that can carry color values html2canvas will try to parse. */
@@ -99,13 +150,13 @@ const COLOR_PROPS = [
 	'stroke',
 	'box-shadow',
 	'text-shadow',
-	'background'
+	'background',
+	'background-image'
 ];
 
 /**
  * Converts oklch() colors (unsupported by html2canvas) to rgb() on an element
  * and all its descendants by reading computed styles and overriding with rgb.
- * Also inlines CSS custom properties that resolve to oklch.
  */
 export function convertOklchColors(element: HTMLElement): void {
 	function processElement(el: HTMLElement) {
@@ -115,24 +166,27 @@ export function convertOklchColors(element: HTMLElement): void {
 		for (const prop of COLOR_PROPS) {
 			const value = computed.getPropertyValue(prop);
 			if (value && value.includes('oklch')) {
-				el.style.setProperty(prop, replaceOklchInValue(value));
-			}
-		}
-
-		// Inline any CSS custom properties that resolve to oklch
-		for (let i = 0; i < computed.length; i++) {
-			const prop = computed[i];
-			if (prop.startsWith('--')) {
-				const value = computed.getPropertyValue(prop).trim();
-				if (value.includes('oklch')) {
-					el.style.setProperty(prop, replaceOklchInValue(value));
-				}
+				el.style.setProperty(prop, replaceOklchInCssText(value));
 			}
 		}
 	}
 
 	processElement(element);
 	element.querySelectorAll<HTMLElement>('*').forEach(processElement);
+}
+
+/**
+ * Replaces oklch values inside all <style> elements of a document.
+ * This is needed because html2canvas clones the entire document including
+ * stylesheets and tries to parse CSS color values itself — it doesn't support
+ * oklch, so we must convert them to rgb in the stylesheet text.
+ */
+export function sanitizeStylesheets(doc: Document): void {
+	doc.querySelectorAll('style').forEach((style) => {
+		if (style.textContent && style.textContent.includes('oklch')) {
+			style.textContent = replaceOklchInCssText(style.textContent);
+		}
+	});
 }
 
 /**
@@ -144,26 +198,22 @@ export async function downloadPdf(element: HTMLElement, filename: string): Promi
 
 	const pdfFilename = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
 
-	// Clone to avoid mutating visible DOM
-	const clone = element.cloneNode(true) as HTMLElement;
-	clone.style.position = 'fixed';
-	clone.style.left = '-9999px';
-	document.body.appendChild(clone);
-
-	try {
-		convertOklchColors(clone);
-
-		await html2pdf()
-			.set({
-				margin: [10, 10, 10, 10],
-				filename: pdfFilename,
-				image: { type: 'jpeg', quality: 0.98 },
-				html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
-				jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-			} as Record<string, unknown>)
-			.from(clone)
-			.save();
-	} finally {
-		document.body.removeChild(clone);
-	}
+	await html2pdf()
+		.set({
+			margin: [10, 10, 10, 10],
+			filename: pdfFilename,
+			image: { type: 'jpeg', quality: 0.98 },
+			html2canvas: {
+				scale: 2,
+				useCORS: true,
+				scrollY: 0,
+				onclone: (clonedDoc: Document) => {
+					sanitizeStylesheets(clonedDoc);
+					convertOklchColors(clonedDoc.body);
+				}
+			},
+			jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+		} as Record<string, unknown>)
+		.from(element)
+		.save();
 }

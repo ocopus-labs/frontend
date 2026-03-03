@@ -6,7 +6,7 @@
 	import { generateReceipt, type Receipt as ReceiptType, type PaymentMethod } from '$lib/api';
 	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
-	import { convertOklchColors } from '$lib/utils/export';
+	import { convertOklchColors, sanitizeStylesheets } from '$lib/utils/export';
 
 	interface Props {
 		open: boolean;
@@ -73,29 +73,24 @@
 			const receiptEl = document.querySelector('.receipt-preview-content') as HTMLElement | null;
 			if (!receiptEl) throw new Error('Receipt element not found');
 
-			// Clone to avoid mutating visible DOM; convert oklch colors for html2canvas
-			const clone = receiptEl.cloneNode(true) as HTMLElement;
-			clone.style.position = 'fixed';
-			clone.style.left = '-9999px';
-			document.body.appendChild(clone);
-
-			try {
-				convertOklchColors(clone);
-
-				const filename = `receipt-${receiptData.paymentNumber || 'unknown'}.pdf`;
-				await html2pdf()
-					.set({
-						margin: 4,
-						filename,
-						image: { type: 'jpeg', quality: 0.98 },
-						html2canvas: { scale: 2, useCORS: true },
-						jsPDF: { unit: 'mm', format: [80, 200], orientation: 'portrait' }
-					})
-					.from(clone)
-					.save();
-			} finally {
-				document.body.removeChild(clone);
-			}
+			const filename = `receipt-${receiptData.paymentNumber || 'unknown'}.pdf`;
+			await html2pdf()
+				.set({
+					margin: 4,
+					filename,
+					image: { type: 'jpeg', quality: 0.98 },
+					html2canvas: {
+						scale: 2,
+						useCORS: true,
+						onclone: (clonedDoc: Document) => {
+							sanitizeStylesheets(clonedDoc);
+							convertOklchColors(clonedDoc.body);
+						}
+					},
+					jsPDF: { unit: 'mm', format: [80, 200], orientation: 'portrait' }
+				})
+				.from(receiptEl)
+				.save();
 
 			toast.success('Receipt downloaded');
 		} catch (err) {
