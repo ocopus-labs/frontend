@@ -58,7 +58,7 @@
 		<NavMain items={navMainItems} {subscription} />
 	</Sidebar.Content>
 	<Sidebar.Footer>
-		<NavUser />
+		<NavUser {subscription} />
 	</Sidebar.Footer>
 	<Sidebar.Rail />
 </Sidebar.Root>

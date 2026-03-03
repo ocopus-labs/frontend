@@ -1,6 +1,5 @@
 <script lang="ts">
 	import BadgeCheckIcon from '@lucide/svelte/icons/badge-check';
-	import BellIcon from '@lucide/svelte/icons/bell';
 	import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down';
 	import CreditCardIcon from '@lucide/svelte/icons/credit-card';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
@@ -14,10 +13,22 @@
 	import { signOut, useSession } from '$lib/auth';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
+	import type { Subscription } from '$lib/api/subscription';
+
+	let {
+		subscription = null,
+		hideUpgrade = false
+	}: { subscription?: Subscription | null; hideUpgrade?: boolean } = $props();
 
 	const session = useSession();
 	const user = $derived($session?.data?.user);
 	const sidebar = useSidebar();
+
+	const planName = $derived(subscription?.plan?.displayName || subscription?.plan?.name);
+	const isTopTier = $derived(
+		subscription?.plan?.slug === 'enterprise' ||
+			(subscription?.plan?.features?.whiteLabel && subscription?.plan?.features?.api)
+	);
 
 	let dark = $state(false);
 
@@ -98,13 +109,15 @@
 					</div>
 				</DropdownMenu.Label>
 				<DropdownMenu.Separator />
-				<DropdownMenu.Group>
-					<DropdownMenu.Item>
-						<SparklesIcon />
-						Upgrade to Pro
-					</DropdownMenu.Item>
-				</DropdownMenu.Group>
-				<DropdownMenu.Separator />
+				{#if !hideUpgrade && !isTopTier}
+					<DropdownMenu.Group>
+						<DropdownMenu.Item onclick={() => goto('/dashboard/subscriptions')}>
+							<SparklesIcon />
+							{planName ? `Upgrade from ${planName}` : 'Upgrade to Pro'}
+						</DropdownMenu.Item>
+					</DropdownMenu.Group>
+					<DropdownMenu.Separator />
+				{/if}
 				<DropdownMenu.Group>
 					<DropdownMenu.Item onclick={() => goto('/dashboard/security')}>
 						<BadgeCheckIcon />
@@ -113,10 +126,6 @@
 					<DropdownMenu.Item onclick={() => goto('/dashboard/billing')}>
 						<CreditCardIcon />
 						Billing
-					</DropdownMenu.Item>
-					<DropdownMenu.Item onclick={() => goto('/dashboard/notifications')}>
-						<BellIcon />
-						Notifications
 					</DropdownMenu.Item>
 					<DropdownMenu.Item onclick={toggleTheme}>
 						{#if dark}

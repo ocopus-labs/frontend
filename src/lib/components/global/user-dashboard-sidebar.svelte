@@ -5,6 +5,7 @@
 	import { page } from '$app/stores';
 	import type { ComponentProps } from 'svelte';
 	import type { Business } from '$lib/api/types';
+	import type { Subscription } from '$lib/api/subscription';
 
 	import Store from '@lucide/svelte/icons/store';
 	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
@@ -19,8 +20,9 @@
 		ref = $bindable(null),
 		collapsible = 'icon',
 		businesses = [],
+		subscription = null,
 		...restProps
-	}: ComponentProps<typeof Sidebar.Root> & { businesses?: Business[] } = $props();
+	}: ComponentProps<typeof Sidebar.Root> & { businesses?: Business[]; subscription?: Subscription | null } = $props();
 
 	const navItems = [
 		{
@@ -137,7 +139,7 @@
 	</Sidebar.Content>
 
 	<Sidebar.Footer>
-		<NavUser />
+		<NavUser {subscription} />
 	</Sidebar.Footer>
 	<Sidebar.Rail />
 </Sidebar.Root>

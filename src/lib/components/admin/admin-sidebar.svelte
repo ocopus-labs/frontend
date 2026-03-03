@@ -182,7 +182,7 @@
 	</Sidebar.Content>
 
 	<Sidebar.Footer>
-		<NavUser />
+		<NavUser hideUpgrade />
 	</Sidebar.Footer>
 	<Sidebar.Rail />
 </Sidebar.Root>
