@@ -1,11 +1,12 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { invalidate } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/ui/dialog';
+	import * as Tabs from '$lib/components/ui/tabs';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import PageHeader from '$lib/components/global/page-header.svelte';
@@ -33,6 +34,7 @@
 		type ApiKey,
 		type CreateApiKeyPayload
 	} from '$lib/api';
+	import { env } from '$env/dynamic/public';
 
 	let { data }: { data: PageData } = $props();
 
@@ -64,6 +66,92 @@
 		AVAILABLE_PERMISSIONS.filter((p) => selectedScopes.includes(p.scope))
 	);
 
+	// MCP connection guide data
+	const mcpEndpoint = `${env.PUBLIC_API_BASE ?? ''}/mcp`;
+
+	interface McpGuide {
+		name: string;
+		configPaths: string[];
+		config: string;
+		notes?: string;
+	}
+
+	const guides = $derived<McpGuide[]>([
+		{
+			name: 'Claude Desktop',
+			configPaths: [
+				'macOS: ~/Library/Application Support/Claude/claude_desktop_config.json',
+				'Windows: %APPDATA%\\Claude\\claude_desktop_config.json'
+			],
+			config: JSON.stringify(
+				{
+					mcpServers: {
+						'business-pos': {
+							url: mcpEndpoint,
+							headers: { Authorization: 'Bearer YOUR_API_KEY' }
+						}
+					}
+				},
+				null,
+				2
+			)
+		},
+		{
+			name: 'VS Code',
+			configPaths: ['.vscode/mcp.json in your project root'],
+			config: JSON.stringify(
+				{
+					servers: {
+						'business-pos': {
+							type: 'http',
+							url: mcpEndpoint,
+							headers: { Authorization: 'Bearer YOUR_API_KEY' }
+						}
+					}
+				},
+				null,
+				2
+			),
+			notes: 'Works with the Claude Code extension and GitHub Copilot.'
+		},
+		{
+			name: 'Cursor',
+			configPaths: ['.cursor/mcp.json in your project root'],
+			config: JSON.stringify(
+				{
+					mcpServers: {
+						'business-pos': {
+							url: mcpEndpoint,
+							headers: { Authorization: 'Bearer YOUR_API_KEY' }
+						}
+					}
+				},
+				null,
+				2
+			)
+		},
+		{
+			name: 'Windsurf',
+			configPaths: ['~/.codeium/windsurf/mcp_config.json'],
+			config: JSON.stringify(
+				{
+					mcpServers: {
+						'business-pos': {
+							url: mcpEndpoint,
+							headers: { Authorization: 'Bearer YOUR_API_KEY' }
+						}
+					}
+				},
+				null,
+				2
+			)
+		}
+	]);
+
+	const claudeCliCommand = $derived(
+		`claude mcp add --transport streamable-http business-pos ${mcpEndpoint} --header "Authorization: Bearer YOUR_API_KEY"`
+	);
+
 	function resetForm() {
 		newKeyName = '';
 		selectedScopes = [];
@@ -75,7 +163,9 @@
 		if (selectedScopes.includes(scope)) {
 			selectedScopes = selectedScopes.filter((s) => s !== scope);
 			// Remove permissions that belong to this scope
-			const scopePerms: string[] = AVAILABLE_PERMISSIONS.filter((p) => p.scope === scope).map((p) => p.value as string);
+			const scopePerms: string[] = AVAILABLE_PERMISSIONS.filter((p) => p.scope === scope).map(
+				(p) => p.value as string
+			);
 			selectedPermissions = selectedPermissions.filter((p) => !scopePerms.includes(p));
 		} else {
 			selectedScopes = [...selectedScopes, scope];
@@ -183,6 +273,15 @@
 		}
 	}
 
+	async function copyText(text: string) {
+		try {
+			await navigator.clipboard.writeText(text);
+			toast.success('Copied to clipboard');
+		} catch {
+			toast.error('Failed to copy');
+		}
+	}
+
 	function formatDate(dateString?: string | null): string {
 		if (!dateString) return '-';
 		return new Date(dateString).toLocaleDateString('en-US', {
@@ -220,179 +319,250 @@
 				{/snippet}
 			</PageHeader>
 
-			<!-- Stats -->
-			<div class="grid grid-cols-2 gap-4 px-6 sm:grid-cols-3">
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Active Keys</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="flex items-center gap-2">
-							<IconKey class="h-5 w-5 text-muted-foreground" />
-							<span class="text-2xl font-bold">{activeKeys.length}</span>
-						</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Revoked</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<span class="text-2xl font-bold text-muted-foreground">{revokedKeys.length}</span>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Max Keys</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<span class="text-2xl font-bold">{activeKeys.length} / 5</span>
-					</Card.Content>
-				</Card.Root>
-			</div>
+			<Tabs.Root value="keys" class="px-6">
+				<Tabs.List>
+					<Tabs.Trigger value="keys">API Keys</Tabs.Trigger>
+					<Tabs.Trigger value="guide">Setup Guide</Tabs.Trigger>
+				</Tabs.List>
 
-			<!-- Active Keys Table -->
-			{#if activeKeys.length > 0}
-				<div class="px-6">
-					<h3 class="mb-3 text-sm font-medium text-muted-foreground">Active Keys</h3>
-					<div class="overflow-x-auto rounded-md border">
-						<Table.Root>
-							<Table.Header>
-								<Table.Row>
-									<Table.Head>Name</Table.Head>
-									<Table.Head>Key</Table.Head>
-									<Table.Head>Scopes</Table.Head>
-									<Table.Head>Last Used</Table.Head>
-									<Table.Head>Expires</Table.Head>
-									<Table.Head class="text-right">Actions</Table.Head>
-								</Table.Row>
-							</Table.Header>
-							<Table.Body>
-								{#each activeKeys as key (key.id)}
-									<Table.Row>
-										<Table.Cell>
-											<div class="flex items-center gap-2">
-												<IconKey class="h-4 w-4 text-muted-foreground" />
-												<span class="font-medium">{key.name}</span>
-											</div>
-										</Table.Cell>
-										<Table.Cell>
-											<code class="rounded bg-muted px-2 py-0.5 text-xs">
-												{key.keyPrefix}...
-											</code>
-										</Table.Cell>
-										<Table.Cell>
-											<div class="flex flex-wrap gap-1">
-												{#each key.scopes.slice(0, 3) as scope}
-													<Badge variant="secondary" class="text-xs">{scope}</Badge>
-												{/each}
-												{#if key.scopes.length > 3}
-													<Badge variant="outline" class="text-xs">+{key.scopes.length - 3}</Badge>
-												{/if}
-											</div>
-										</Table.Cell>
-										<Table.Cell class="text-muted-foreground text-sm">
-											{formatRelativeTime(key.lastUsedAt)}
-										</Table.Cell>
-										<Table.Cell class="text-sm">
-											{#if key.expiresAt}
-												{#if new Date(key.expiresAt) < new Date()}
-													<Badge variant="destructive" class="text-xs">Expired</Badge>
-												{:else}
-													{formatDate(key.expiresAt)}
-												{/if}
-											{:else}
-												<span class="text-muted-foreground">Never</span>
-											{/if}
-										</Table.Cell>
-										<Table.Cell class="text-right">
-											<div class="flex justify-end gap-1">
-												<Button
-													variant="ghost"
-													size="icon"
-													onclick={() => handleRotate(key.id)}
-													aria-label="Rotate key"
-												>
-													<IconRefresh class="h-4 w-4" />
-												</Button>
-												<Button
-													variant="ghost"
-													size="icon"
-													class="text-destructive hover:text-destructive"
-													onclick={() => handleRevoke(key.id)}
-													aria-label="Revoke key"
-												>
-													<IconTrash class="h-4 w-4" />
-												</Button>
-											</div>
-										</Table.Cell>
-									</Table.Row>
-								{/each}
-							</Table.Body>
-						</Table.Root>
+				<!-- Keys Tab -->
+				<Tabs.Content value="keys" class="space-y-4 pt-4">
+					<!-- Stats -->
+					<div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+						<Card.Root>
+							<Card.Header class="pb-2">
+								<Card.Title class="text-sm font-medium">Active Keys</Card.Title>
+							</Card.Header>
+							<Card.Content>
+								<div class="flex items-center gap-2">
+									<IconKey class="h-5 w-5 text-muted-foreground" />
+									<span class="text-2xl font-bold">{activeKeys.length}</span>
+								</div>
+							</Card.Content>
+						</Card.Root>
+						<Card.Root>
+							<Card.Header class="pb-2">
+								<Card.Title class="text-sm font-medium">Revoked</Card.Title>
+							</Card.Header>
+							<Card.Content>
+								<span class="text-2xl font-bold text-muted-foreground">{revokedKeys.length}</span>
+							</Card.Content>
+						</Card.Root>
+						<Card.Root>
+							<Card.Header class="pb-2">
+								<Card.Title class="text-sm font-medium">Max Keys</Card.Title>
+							</Card.Header>
+							<Card.Content>
+								<span class="text-2xl font-bold">{activeKeys.length} / 5</span>
+							</Card.Content>
+						</Card.Root>
 					</div>
-				</div>
-			{:else}
-				<EmptyState
-					type="empty"
-					title="No API keys yet"
-					description="Create an API key to connect AI agents to your business via MCP."
-					actionLabel="Create API Key"
-					onAction={() => (showCreateDialog = true)}
-				/>
-			{/if}
 
-			<!-- Revoked Keys (collapsed) -->
-			{#if revokedKeys.length > 0}
-				<div class="px-6">
-					<h3 class="mb-3 text-sm font-medium text-muted-foreground">Revoked Keys</h3>
-					<div class="overflow-x-auto rounded-md border opacity-60">
-						<Table.Root>
-							<Table.Header>
-								<Table.Row>
-									<Table.Head>Name</Table.Head>
-									<Table.Head>Key</Table.Head>
-									<Table.Head>Created</Table.Head>
-									<Table.Head>Status</Table.Head>
-								</Table.Row>
-							</Table.Header>
-							<Table.Body>
-								{#each revokedKeys as key (key.id)}
-									<Table.Row>
-										<Table.Cell class="font-medium">{key.name}</Table.Cell>
-										<Table.Cell>
-											<code class="rounded bg-muted px-2 py-0.5 text-xs">{key.keyPrefix}...</code>
-										</Table.Cell>
-										<Table.Cell class="text-muted-foreground">{formatDate(key.createdAt)}</Table.Cell>
-										<Table.Cell>
-											<Badge variant="secondary" class="text-xs">Revoked</Badge>
-										</Table.Cell>
-									</Table.Row>
-								{/each}
-							</Table.Body>
-						</Table.Root>
-					</div>
-				</div>
-			{/if}
-
-			<!-- Usage Info -->
-			<div class="px-6">
-				<Card.Root>
-					<Card.Header>
-						<Card.Title class="text-sm font-medium">How to Use</Card.Title>
-					</Card.Header>
-					<Card.Content class="space-y-2 text-sm text-muted-foreground">
-						<p>Connect any MCP-compatible AI agent (Claude, etc.) using your API key:</p>
-						<div class="rounded-md bg-muted p-3">
-							<code class="text-xs">
-								POST /api/mcp<br />
-								Authorization: Bearer pos_k_...
-							</code>
+					<!-- Active Keys Table -->
+					{#if activeKeys.length > 0}
+						<div>
+							<h3 class="mb-3 text-sm font-medium text-muted-foreground">Active Keys</h3>
+							<div class="overflow-x-auto rounded-md border">
+								<Table.Root>
+									<Table.Header>
+										<Table.Row>
+											<Table.Head>Name</Table.Head>
+											<Table.Head>Key</Table.Head>
+											<Table.Head>Scopes</Table.Head>
+											<Table.Head>Last Used</Table.Head>
+											<Table.Head>Expires</Table.Head>
+											<Table.Head class="text-right">Actions</Table.Head>
+										</Table.Row>
+									</Table.Header>
+									<Table.Body>
+										{#each activeKeys as key (key.id)}
+											<Table.Row>
+												<Table.Cell>
+													<div class="flex items-center gap-2">
+														<IconKey class="h-4 w-4 text-muted-foreground" />
+														<span class="font-medium">{key.name}</span>
+													</div>
+												</Table.Cell>
+												<Table.Cell>
+													<code class="rounded bg-muted px-2 py-0.5 text-xs">
+														{key.keyPrefix}...
+													</code>
+												</Table.Cell>
+												<Table.Cell>
+													<div class="flex flex-wrap gap-1">
+														{#each key.scopes.slice(0, 3) as scope}
+															<Badge variant="secondary" class="text-xs">{scope}</Badge>
+														{/each}
+														{#if key.scopes.length > 3}
+															<Badge variant="outline" class="text-xs">+{key.scopes.length - 3}</Badge>
+														{/if}
+													</div>
+												</Table.Cell>
+												<Table.Cell class="text-muted-foreground text-sm">
+													{formatRelativeTime(key.lastUsedAt)}
+												</Table.Cell>
+												<Table.Cell class="text-sm">
+													{#if key.expiresAt}
+														{#if new Date(key.expiresAt) < new Date()}
+															<Badge variant="destructive" class="text-xs">Expired</Badge>
+														{:else}
+															{formatDate(key.expiresAt)}
+														{/if}
+													{:else}
+														<span class="text-muted-foreground">Never</span>
+													{/if}
+												</Table.Cell>
+												<Table.Cell class="text-right">
+													<div class="flex justify-end gap-1">
+														<Button
+															variant="ghost"
+															size="icon"
+															onclick={() => handleRotate(key.id)}
+															aria-label="Rotate key"
+														>
+															<IconRefresh class="h-4 w-4" />
+														</Button>
+														<Button
+															variant="ghost"
+															size="icon"
+															class="text-destructive hover:text-destructive"
+															onclick={() => handleRevoke(key.id)}
+															aria-label="Revoke key"
+														>
+															<IconTrash class="h-4 w-4" />
+														</Button>
+													</div>
+												</Table.Cell>
+											</Table.Row>
+										{/each}
+									</Table.Body>
+								</Table.Root>
+							</div>
 						</div>
-						<p>The agent can then call tools like <code class="rounded bg-muted px-1 text-xs">list-orders</code>, <code class="rounded bg-muted px-1 text-xs">get-menu</code>, <code class="rounded bg-muted px-1 text-xs">create-order</code>, etc. based on the key's scopes and permissions.</p>
-					</Card.Content>
-				</Card.Root>
-			</div>
+					{:else}
+						<EmptyState
+							type="empty"
+							title="No API keys yet"
+							description="Create an API key to connect AI agents to your business via MCP."
+							actionLabel="Create API Key"
+							onAction={() => (showCreateDialog = true)}
+						/>
+					{/if}
+
+					<!-- Revoked Keys -->
+					{#if revokedKeys.length > 0}
+						<div>
+							<h3 class="mb-3 text-sm font-medium text-muted-foreground">Revoked Keys</h3>
+							<div class="overflow-x-auto rounded-md border opacity-60">
+								<Table.Root>
+									<Table.Header>
+										<Table.Row>
+											<Table.Head>Name</Table.Head>
+											<Table.Head>Key</Table.Head>
+											<Table.Head>Created</Table.Head>
+											<Table.Head>Status</Table.Head>
+										</Table.Row>
+									</Table.Header>
+									<Table.Body>
+										{#each revokedKeys as key (key.id)}
+											<Table.Row>
+												<Table.Cell class="font-medium">{key.name}</Table.Cell>
+												<Table.Cell>
+													<code class="rounded bg-muted px-2 py-0.5 text-xs">{key.keyPrefix}...</code>
+												</Table.Cell>
+												<Table.Cell class="text-muted-foreground">{formatDate(key.createdAt)}</Table.Cell>
+												<Table.Cell>
+													<Badge variant="secondary" class="text-xs">Revoked</Badge>
+												</Table.Cell>
+											</Table.Row>
+										{/each}
+									</Table.Body>
+								</Table.Root>
+							</div>
+						</div>
+					{/if}
+				</Tabs.Content>
+
+				<!-- Setup Guide Tab -->
+				<Tabs.Content value="guide" class="space-y-6 pt-4">
+					<div class="space-y-2">
+						<p class="text-sm text-muted-foreground">
+							Connect any MCP-compatible AI application to your business. Create an API key in the
+							<strong>API Keys</strong> tab, then add the configuration below to your preferred app.
+						</p>
+						<div class="flex items-center gap-2 rounded-md border bg-muted/50 px-3 py-2">
+							<span class="text-xs text-muted-foreground">MCP Endpoint:</span>
+							<code class="text-xs font-medium">{mcpEndpoint}</code>
+							<Button variant="ghost" size="icon" class="ml-auto h-6 w-6" onclick={() => copyText(mcpEndpoint)} aria-label="Copy endpoint URL">
+								<IconCopy class="h-3.5 w-3.5" />
+							</Button>
+						</div>
+					</div>
+
+					<!-- App-specific guides -->
+					{#each guides as guide (guide.name)}
+						<Card.Root>
+							<Card.Header>
+								<Card.Title class="text-sm font-medium">{guide.name}</Card.Title>
+								<Card.Description>
+									{#each guide.configPaths as configPath}
+										<code class="text-xs">{configPath}</code>
+										{#if guide.configPaths.length > 1}<br />{/if}
+									{/each}
+								</Card.Description>
+							</Card.Header>
+							<Card.Content class="space-y-3">
+								{#if guide.notes}
+									<p class="text-xs text-muted-foreground">{guide.notes}</p>
+								{/if}
+								<div class="relative">
+									<pre class="overflow-x-auto rounded-md bg-muted p-3 text-xs leading-relaxed">{guide.config}</pre>
+									<Button
+										variant="ghost"
+										size="icon"
+										class="absolute right-2 top-2 h-7 w-7 bg-muted hover:bg-accent"
+										onclick={() => copyText(guide.config)}
+										aria-label="Copy {guide.name} configuration"
+									>
+										<IconCopy class="h-3.5 w-3.5" />
+									</Button>
+								</div>
+							</Card.Content>
+						</Card.Root>
+					{/each}
+
+					<!-- Claude Code CLI -->
+					<Card.Root>
+						<Card.Header>
+							<Card.Title class="text-sm font-medium">Claude Code (CLI)</Card.Title>
+							<Card.Description>
+								<code class="text-xs">Run in your terminal</code>
+							</Card.Description>
+						</Card.Header>
+						<Card.Content>
+							<div class="relative">
+								<pre class="overflow-x-auto rounded-md bg-muted p-3 text-xs leading-relaxed">{claudeCliCommand}</pre>
+								<Button
+									variant="ghost"
+									size="icon"
+									class="absolute right-2 top-2 h-7 w-7 bg-muted hover:bg-accent"
+									onclick={() => copyText(claudeCliCommand)}
+									aria-label="Copy CLI command"
+								>
+									<IconCopy class="h-3.5 w-3.5" />
+								</Button>
+							</div>
+						</Card.Content>
+					</Card.Root>
+
+					<p class="text-xs text-muted-foreground">
+						Replace <code class="rounded bg-muted px-1 font-medium">YOUR_API_KEY</code> with an active API key from the API Keys tab. The agent can then call tools like
+						<code class="rounded bg-muted px-1">list-orders</code>,
+						<code class="rounded bg-muted px-1">get-menu</code>,
+						<code class="rounded bg-muted px-1">create-order</code>, etc. based on the key's scopes and permissions.
+					</p>
+				</Tabs.Content>
+			</Tabs.Root>
 		</div>
 	</div>
 </div>

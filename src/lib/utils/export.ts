@@ -58,20 +58,75 @@ export function downloadCsv(
 }
 
 /**
+ * Resolves any CSS color (including oklch/lab/lch) to rgb by using a temporary
+ * DOM element — the browser's computed style for `color` always serializes to rgb.
+ */
+function colorToRgb(value: string): string {
+	const probe = document.createElement('div');
+	probe.style.color = value;
+	probe.style.display = 'none';
+	document.body.appendChild(probe);
+	const resolved = getComputedStyle(probe).color;
+	document.body.removeChild(probe);
+	return resolved;
+}
+
+/**
+ * Replaces oklch (and color-mix with oklch) inside a composite value string
+ * like box-shadow by finding each oklch(...) / color-mix(...oklch...) call
+ * and converting it to rgb.
+ */
+function replaceOklchInValue(value: string): string {
+	return value.replace(/(?:color-mix\([^)]*oklch[^)]*(?:\([^)]*\))*[^)]*\))|oklch\([^)]*\)/g, (match) =>
+		colorToRgb(match)
+	);
+}
+
+/** CSS properties that can carry color values html2canvas will try to parse. */
+const COLOR_PROPS = [
+	'color',
+	'background-color',
+	'border-color',
+	'border-top-color',
+	'border-right-color',
+	'border-bottom-color',
+	'border-left-color',
+	'outline-color',
+	'text-decoration-color',
+	'caret-color',
+	'accent-color',
+	'fill',
+	'stroke',
+	'box-shadow',
+	'text-shadow',
+	'background'
+];
+
+/**
  * Converts oklch() colors (unsupported by html2canvas) to rgb() on an element
- * and all its descendants by reading the computed styles.
+ * and all its descendants by reading computed styles and overriding with rgb.
+ * Also inlines CSS custom properties that resolve to oklch.
  */
 export function convertOklchColors(element: HTMLElement): void {
-	const colorProps = ['color', 'background-color', 'border-color', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color', 'outline-color', 'text-decoration-color'];
-
 	function processElement(el: HTMLElement) {
 		const computed = getComputedStyle(el);
-		for (const prop of colorProps) {
+
+		// Convert standard color properties
+		for (const prop of COLOR_PROPS) {
 			const value = computed.getPropertyValue(prop);
 			if (value && value.includes('oklch')) {
-				// getComputedStyle returns resolved values — reading it and
-				// writing it back forces the browser to serialize as rgb()
-				el.style.setProperty(prop, value);
+				el.style.setProperty(prop, replaceOklchInValue(value));
+			}
+		}
+
+		// Inline any CSS custom properties that resolve to oklch
+		for (let i = 0; i < computed.length; i++) {
+			const prop = computed[i];
+			if (prop.startsWith('--')) {
+				const value = computed.getPropertyValue(prop).trim();
+				if (value.includes('oklch')) {
+					el.style.setProperty(prop, replaceOklchInValue(value));
+				}
 			}
 		}
 	}
