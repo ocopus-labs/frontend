@@ -5,17 +5,19 @@
 	import LockIcon from '@lucide/svelte/icons/lock';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import type { Subscription } from '$lib/api/subscription';
-	import type { NavItem } from '$lib/constants/sidebar-data';
+	import type { NavItem, SidebarRole } from '$lib/constants/sidebar-data';
 	import { hasFeatureAccess } from '$lib/utils/plan-features';
 	import UpgradePromptDialog from './upgrade-prompt-dialog.svelte';
 	import { page } from '$app/stores';
 
 	let {
 		items,
-		subscription = null
+		subscription = null,
+		userRole = null
 	}: {
 		items: NavItem[];
 		subscription?: Subscription | null;
+		userRole?: string | null;
 	} = $props();
 
 	// State for upgrade dialog
@@ -24,6 +26,30 @@
 	let selectedRequiredPlan = $state<'PRO' | 'ENTERPRISE'>('PRO');
 
 	const pathname = $derived($page.url.pathname);
+
+	// Whether the current user can manage subscription (owners only)
+	const canManageSubscription = $derived(
+		!userRole || userRole === 'owner' || userRole === 'restaurant_owner'
+	);
+
+	// Filter items based on user role and subscription
+	const visibleItems = $derived(
+		items.filter((item) => {
+			// Role-based filtering: hide management pages from non-permitted roles
+			if (item.allowedRoles) {
+				if (userRole && !item.allowedRoles.includes(userRole as SidebarRole)) {
+					return false;
+				}
+			}
+			// Subscription-based filtering for non-owners:
+			// If a feature is locked and user can't manage subscription, hide it entirely
+			// (no point showing upgrade prompts to staff who can't upgrade)
+			if (!canManageSubscription && item.requiredFeature) {
+				return hasFeatureAccess(subscription, item.requiredFeature);
+			}
+			return true;
+		})
+	);
 
 	// Check if a parent group should be open (current path starts with its base url)
 	function isGroupActive(item: NavItem): boolean {
@@ -35,7 +61,7 @@
 		return pathname === subItem.url;
 	}
 
-	// Check if a nav item is locked based on subscription
+	// Check if a nav item is locked based on subscription (only relevant for owners)
 	function isItemLocked(item: NavItem): boolean {
 		if (!item.requiredFeature) return false;
 		return !hasFeatureAccess(subscription, item.requiredFeature);
@@ -62,7 +88,7 @@
 <Sidebar.Group>
 	<Sidebar.GroupLabel>Platform</Sidebar.GroupLabel>
 	<Sidebar.Menu>
-		{#each items as item (item.title)}
+		{#each visibleItems as item (item.title)}
 			{@const locked = isItemLocked(item)}
 			{@const groupActive = isGroupActive(item)}
 			{@const hasSubItems = item.items && item.items.length > 0}

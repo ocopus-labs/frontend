@@ -6,7 +6,7 @@
 	import { createI18nUtils } from '$lib/utils/i18n';
 
 	export interface MenuItem {
-		id: number;
+		id: string | number;
 		name: string;
 		price: number;
 		image: string;

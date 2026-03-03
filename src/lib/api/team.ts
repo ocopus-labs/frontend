@@ -3,7 +3,7 @@ import { createApiClient, getApiClient } from './client';
 // ==================== TYPES ====================
 
 export type TeamMemberStatus = 'active' | 'inactive' | 'suspended';
-export type TeamRole = 'manager' | 'staff' | 'viewer' | 'accountant';
+export type TeamRole = 'restaurant_owner' | 'manager' | 'staff' | 'viewer' | 'accountant';
 
 export interface TeamMember {
   id: string;

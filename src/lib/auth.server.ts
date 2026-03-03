@@ -1,9 +1,13 @@
 import { env } from '$env/dynamic/public';
 import type { Session, User } from 'better-auth';
 
+interface SessionUser extends User {
+	role?: string | null;
+}
+
 export interface SessionResponse {
 	session: Session;
-	user: User;
+	user: SessionUser;
 }
 
 /**

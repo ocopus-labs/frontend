@@ -19,6 +19,8 @@ export interface NavSubItem {
 	url: string;
 }
 
+export type SidebarRole = 'owner' | 'restaurant_owner' | 'manager' | 'staff' | 'viewer' | 'accountant';
+
 export interface NavItem {
 	title: string;
 	url: string;
@@ -26,6 +28,8 @@ export interface NavItem {
 	isActive?: boolean;
 	requiredFeature?: FeatureKey;
 	requiredPlan?: 'PRO' | 'ENTERPRISE';
+	/** Roles that can see this item. If omitted, visible to all roles. */
+	allowedRoles?: SidebarRole[];
 	items?: NavSubItem[];
 }
 
@@ -107,6 +111,7 @@ export const sidebarData: Record<string, SidebarData> = {
 				title: 'Menu',
 				url: '/[business]/[slug]/menu',
 				icon: UtensilsIcon,
+				allowedRoles: ['owner', 'restaurant_owner', 'manager'],
 				items: [
 					{
 						title: 'Items',
@@ -225,12 +230,14 @@ export const sidebarData: Record<string, SidebarData> = {
 			{
 				title: 'Team',
 				url: '/[business]/[slug]/team',
-				icon: UsersIcon
+				icon: UsersIcon,
+				allowedRoles: ['owner', 'restaurant_owner', 'manager']
 			},
 			{
 				title: 'Settings',
 				url: '/[business]/[slug]/settings',
 				icon: SettingsIcon,
+				allowedRoles: ['owner', 'restaurant_owner'],
 				items: [
 					{
 						title: 'General',
