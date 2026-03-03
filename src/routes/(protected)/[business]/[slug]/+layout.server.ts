@@ -1,4 +1,5 @@
 import { getBusinessBySlug } from '$lib/api';
+import { getBusinessSubscription } from '$lib/api/subscription';
 import { VALID_BUSINESS_TYPES, BUSINESS_TYPE_CONFIG } from '$lib/types/business';
 import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
@@ -19,6 +20,10 @@ export const load: LayoutServerLoad = async ({ params, locals, fetch, depends })
 		// Fetch real business data from API
 		const { business: businessData, userRole } = await getBusinessBySlug(slug, { fetch });
 
+		// Fetch the business owner's subscription (determines feature access for all team members)
+		const subscriptionResponse = await getBusinessSubscription(businessData.id, { fetch })
+			.catch(() => ({ subscription: null }));
+
 		return {
 			business: {
 				...businessData,
@@ -27,7 +32,8 @@ export const load: LayoutServerLoad = async ({ params, locals, fetch, depends })
 			businessId: businessData.id,
 			businessType: business,
 			config: businessConfig,
-			userRole
+			userRole,
+			subscription: subscriptionResponse.subscription
 		};
 	} catch (err) {
 		// Fallback to mock data if API fails (for development)
@@ -46,7 +52,8 @@ export const load: LayoutServerLoad = async ({ params, locals, fetch, depends })
 			businessId: slug, // Use slug as fallback ID
 			businessType: business,
 			config: businessConfig,
-			userRole: 'owner'
+			userRole: 'owner',
+			subscription: null
 		};
 	}
 };

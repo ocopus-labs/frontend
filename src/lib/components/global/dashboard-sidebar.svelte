@@ -27,6 +27,12 @@
 	// Get userRole from nested [slug] layout data
 	const userRole = $derived(($page.data.userRole as string) || null);
 
+	// Use business-level subscription from [slug] layout (owner's subscription)
+	// instead of the user's personal subscription from parent layout
+	const businessSubscription = $derived(
+		($page.data.subscription as Subscription | null) ?? subscription
+	);
+
 	// Helper function to replace URL placeholders with actual values
 	function replaceUrlPlaceholders(url: string): string {
 		return url.replace('[business]', businessType).replace('[slug]', slug);
@@ -58,10 +64,10 @@
 		<BusinessSwitcher {businesses} {currentBusiness} />
 	</Sidebar.Header>
 	<Sidebar.Content>
-		<NavMain items={navMainItems} {subscription} {userRole} />
+		<NavMain items={navMainItems} subscription={businessSubscription} {userRole} />
 	</Sidebar.Content>
 	<Sidebar.Footer>
-		<NavUser {subscription} />
+		<NavUser subscription={businessSubscription} />
 	</Sidebar.Footer>
 	<Sidebar.Rail />
 </Sidebar.Root>
