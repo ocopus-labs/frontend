@@ -55,8 +55,9 @@
 
 	const totalAmount = $derived(
 		filteredPayments.reduce((sum, payment) => {
-			if (payment.status === 'completed') return sum + payment.amount;
-			if (payment.status === 'refunded') return sum - payment.amount;
+			const amount = Number(payment.amount);
+			if (payment.status === 'completed') return sum + amount;
+			if (payment.status === 'refunded') return sum - amount;
 			return sum;
 		}, 0)
 	);
