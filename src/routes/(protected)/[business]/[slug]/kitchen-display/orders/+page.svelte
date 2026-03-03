@@ -19,7 +19,7 @@
 		IconFilter
 	} from '@tabler/icons-svelte';
 	import { invalidate } from '$app/navigation';
-	import { updateItemStatus, updateOrderStatus, type Order, type OrderItem } from '$lib/api';
+	import { updateItemStatus, bulkUpdateItemStatuses, updateOrderStatus, type Order, type OrderItem } from '$lib/api';
 	import { toast } from 'svelte-sonner';
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
@@ -317,18 +317,17 @@
 		const pendingItems = order.items.filter((i) => i.status === 'pending');
 		if (pendingItems.length === 0) return;
 
-		const results = await Promise.allSettled(
-			pendingItems.map((item) =>
-				updateItemStatus(data.businessId, order.orderId, item.id, 'preparing')
-			)
-		);
-		await invalidate('app:orders');
-
-		const failed = results.filter((r) => r.status === 'rejected').length;
-		if (failed > 0) {
-			toast.error(`Failed to start ${failed} item${failed === 1 ? '' : 's'}`);
-		} else {
+		try {
+			await bulkUpdateItemStatuses(
+				data.businessId,
+				order.orderId,
+				pendingItems.map((item) => item.id),
+				'preparing'
+			);
+			await invalidate('app:orders');
 			toast.success(`Started all ${pendingItems.length} item${pendingItems.length === 1 ? '' : 's'}`);
+		} catch (error) {
+			toast.error('Failed to start items');
 		}
 	}
 

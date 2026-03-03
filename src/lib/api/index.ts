@@ -42,6 +42,7 @@ export {
   addItemsToOrder,
   updateItemQuantity,
   updateItemStatus,
+  bulkUpdateItemStatuses,
   removeItemFromOrder,
   applyDiscount,
   deleteOrder,

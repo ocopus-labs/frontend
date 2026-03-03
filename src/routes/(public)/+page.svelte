@@ -118,7 +118,7 @@
 </svelte:head>
 
 <!-- ============ HERO ============ -->
-<section class="relative -z-10 overflow-hidden pt-28 lg:pt-36">
+<section class="relative overflow-hidden pt-28 lg:pt-36">
 	<!-- Background decoration -->
 	<div aria-hidden="true" class="absolute inset-0 -z-10">
 		<div class="dot-grid absolute inset-0 opacity-40 dark:opacity-20"></div>

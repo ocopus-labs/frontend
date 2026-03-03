@@ -56,7 +56,7 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 			hourlyData,
 			orderStats
 		] = await Promise.all([
-			getDashboardStats(businessId, undefined, { fetch }),
+			getDashboardStats(businessId, undefined, { fetch, period }),
 			getTopSellingItems(businessId, { limit: 10, days }, { fetch }),
 			getRevenueTrends(businessId, days, { fetch }),
 			getAnalyticsDashboard(businessId, { fetch }).catch(() => null),

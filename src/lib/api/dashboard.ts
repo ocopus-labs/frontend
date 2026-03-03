@@ -39,10 +39,13 @@ type FetchOption = { fetch?: typeof fetch };
 export async function getDashboardStats(
   businessId: string,
   date?: string,
-  options?: FetchOption
+  options?: FetchOption & { period?: string }
 ): Promise<DashboardStats> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  const query = date ? `?date=${date}` : '';
+  const params = new URLSearchParams();
+  if (date) params.set('date', date);
+  if (options?.period) params.set('period', options.period);
+  const query = params.toString() ? `?${params.toString()}` : '';
 
   const [orderStatsRes, paymentSummaryRes] = await Promise.all([
     api.get<{ stats: OrderStats }>(`/business/${businessId}/orders/stats${query}`),

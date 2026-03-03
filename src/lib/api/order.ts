@@ -290,6 +290,17 @@ export async function updateItemStatus(
   return api.patch(`/business/${businessId}/orders/${orderId}/items/${itemId}/status`, { status });
 }
 
+export async function bulkUpdateItemStatuses(
+  businessId: string,
+  orderId: string,
+  itemIds: string[],
+  status: 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled',
+  options?: FetchOption
+): Promise<{ message: string; order: Order }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.patch(`/business/${businessId}/orders/${orderId}/items/bulk-status`, { itemIds, status });
+}
+
 export async function applyDiscount(
   businessId: string,
   orderId: string,

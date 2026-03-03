@@ -26,6 +26,15 @@ export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 	const analyticsPeriod = periodMap[period] || 'month';
 
 	try {
+		// Map period to days for top-items endpoint
+		const periodDaysMap: Record<string, number> = {
+			today: 1,
+			yesterday: 1,
+			week: 7,
+			month: 30
+		};
+		const days = periodDaysMap[analyticsPeriod] || 30;
+
 		const [
 			stats,
 			analyticsData,
@@ -36,14 +45,14 @@ export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 			recentOrdersData,
 			tableStats
 		] = await Promise.all([
-			getDashboardStats(businessId, undefined, { fetch }),
+			getDashboardStats(businessId, undefined, { fetch, period: analyticsPeriod }),
 			getAnalyticsDashboard(businessId, { fetch }).catch(() => null),
 			getPaymentMethodBreakdown(businessId, { period: analyticsPeriod as any }, { fetch }).catch(
 				() => null
 			),
-			getRevenueTrends(businessId, 30, { fetch }).catch(() => null),
+			getRevenueTrends(businessId, days, { fetch }).catch(() => null),
 			getHourlyBreakdown(businessId, undefined, { fetch }).catch(() => null),
-			getTopSellingItems(businessId, { limit: 5 }, { fetch }).catch(() => null),
+			getTopSellingItems(businessId, { limit: 5, days }, { fetch }).catch(() => null),
 			getOrders(businessId, { limit: 10 }, { fetch }).catch(() => null),
 			getTableStats(businessId, { fetch }).catch(() => null)
 		]);
