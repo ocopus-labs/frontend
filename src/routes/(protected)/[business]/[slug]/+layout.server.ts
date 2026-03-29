@@ -36,24 +36,7 @@ export const load: LayoutServerLoad = async ({ params, locals, fetch, depends })
 			subscription: subscriptionResponse.subscription
 		};
 	} catch (err) {
-		// Fallback to mock data if API fails (for development)
-		console.warn('Failed to fetch business, using mock data:', err);
-
-		const businessData = {
-			id: slug,
-			name: `${businessConfig.label} - ${slug}`,
-			type: business,
-			slug: slug,
-			config: businessConfig
-		};
-
-		return {
-			business: businessData,
-			businessId: slug, // Use slug as fallback ID
-			businessType: business,
-			config: businessConfig,
-			userRole: 'owner',
-			subscription: null
-		};
+		console.error('Failed to fetch business data:', err);
+		redirect(307, '/dashboard?error=business-unavailable');
 	}
 };
