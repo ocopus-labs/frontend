@@ -25,6 +25,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const isPublicRoute =
 		pathname.startsWith('/pricing') ||
 		pathname.startsWith('/about');
+	const isOrderRoute = pathname.startsWith('/order');
 
 	// Redirect logged-in users away from landing and auth pages
 	if (isLandingPage || isAuthRoute) {
@@ -36,8 +37,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 		return resolve(event);
 	}
 
-	// Public routes (pricing, about) don't need a session fetch
-	if (isPublicRoute) {
+	// Public and order routes don't require login
+	if (isPublicRoute || isOrderRoute) {
 		return resolve(event);
 	}
 

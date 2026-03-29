@@ -6,13 +6,15 @@
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import StoreIcon from '@lucide/svelte/icons/store';
 	import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
+	import Building2Icon from '@lucide/svelte/icons/building-2';
 	import { goto } from '$app/navigation';
-	import type { Business } from '$lib/api/types';
+	import type { Business, Franchise } from '$lib/api/types';
 
 	let {
 		businesses = [],
+		franchises = [],
 		currentBusiness
-	}: { businesses: Business[]; currentBusiness?: Business } = $props();
+	}: { businesses: Business[]; franchises?: Franchise[]; currentBusiness?: Business } = $props();
 	const sidebar = useSidebar();
 
 	// Get display name - first letter capitalized
@@ -34,6 +36,62 @@
 	function goToAllBusinesses() {
 		goto('/dashboard');
 	}
+
+	// Group businesses: franchise businesses grouped, independent businesses separate
+	interface BusinessGroup {
+		type: 'franchise' | 'independent';
+		franchise?: Franchise;
+		businesses: Business[];
+	}
+
+	const groupedBusinesses = $derived.by(() => {
+		const groups: BusinessGroup[] = [];
+		const franchiseMap = new Map<string, Franchise>();
+		const franchiseBizIds = new Set<string>();
+
+		// Build franchise lookup (from the franchise data which includes business IDs)
+		for (const f of franchises ?? []) {
+			franchiseMap.set(f.id, f);
+		}
+
+		// Group businesses by franchiseId (if available on the business object)
+		const franchiseGroups = new Map<string, Business[]>();
+		const independent: Business[] = [];
+
+		for (const biz of businesses) {
+			const fId = (biz as any).franchiseId;
+			if (fId && franchiseMap.has(fId)) {
+				if (!franchiseGroups.has(fId)) {
+					franchiseGroups.set(fId, []);
+				}
+				franchiseGroups.get(fId)!.push(biz);
+			} else {
+				independent.push(biz);
+			}
+		}
+
+		// Add franchise groups
+		for (const [fId, bizList] of franchiseGroups) {
+			groups.push({
+				type: 'franchise',
+				franchise: franchiseMap.get(fId),
+				businesses: bizList,
+			});
+		}
+
+		// Add independent businesses
+		if (independent.length > 0) {
+			groups.push({
+				type: 'independent',
+				businesses: independent,
+			});
+		}
+
+		return groups;
+	});
+
+	// Flat list for keyboard shortcuts
+	const allBusinesses = $derived(businesses);
 </script>
 
 <Sidebar.Menu>
@@ -78,47 +136,107 @@
 				side={sidebar.isMobile ? 'bottom' : 'right'}
 				sideOffset={4}
 			>
-				<DropdownMenu.Label class="text-xs text-muted-foreground"
-					>Your Businesses</DropdownMenu.Label
-				>
-				{#each businesses as business, index (business.id)}
-					<DropdownMenu.Item
-						onSelect={() => switchBusiness(business)}
-						class="gap-2 p-2"
-						disabled={business.slug === currentBusiness?.slug}
-					>
-						<div class="flex size-6 items-center justify-center rounded-md border">
-							{#if business.logo}
-								<img src={business.logo} alt={business.name} loading="lazy" class="size-3.5 object-contain" />
-							{:else}
-								<span class="text-xs font-medium">{getInitial(business.name)}</span>
-							{/if}
-						</div>
-						<span class="flex-1 truncate">{business.name}</span>
-						<span class="text-xs text-muted-foreground capitalize">{business.type}</span>
-						{#if index < 9}
-							<DropdownMenu.Shortcut>⌘{index + 1}</DropdownMenu.Shortcut>
-						{/if}
-					</DropdownMenu.Item>
+				{#each groupedBusinesses as group}
+					{#if group.type === 'franchise' && group.franchise}
+						<DropdownMenu.Label class="text-xs text-muted-foreground">
+							<Building2Icon class="mr-1 inline size-3" />
+							{group.franchise.name}
+						</DropdownMenu.Label>
+						{#each group.businesses as business (business.id)}
+							<DropdownMenu.Item
+								onSelect={() => switchBusiness(business)}
+								class="gap-2 p-2 pl-4"
+								disabled={business.slug === currentBusiness?.slug}
+							>
+								<div class="flex size-6 items-center justify-center rounded-md border">
+									{#if business.logo}
+										<img
+											src={business.logo}
+											alt={business.name}
+											loading="lazy"
+											class="size-3.5 object-contain"
+										/>
+									{:else}
+										<span class="text-xs font-medium"
+											>{getInitial(business.name)}</span
+										>
+									{/if}
+								</div>
+								<span class="flex-1 truncate">{business.name}</span>
+								<span class="text-xs text-muted-foreground capitalize"
+									>{business.type}</span
+								>
+							</DropdownMenu.Item>
+						{/each}
+						<DropdownMenu.Separator />
+					{:else}
+						<DropdownMenu.Label class="text-xs text-muted-foreground"
+							>Independent</DropdownMenu.Label
+						>
+						{#each group.businesses as business, index (business.id)}
+							<DropdownMenu.Item
+								onSelect={() => switchBusiness(business)}
+								class="gap-2 p-2"
+								disabled={business.slug === currentBusiness?.slug}
+							>
+								<div class="flex size-6 items-center justify-center rounded-md border">
+									{#if business.logo}
+										<img
+											src={business.logo}
+											alt={business.name}
+											loading="lazy"
+											class="size-3.5 object-contain"
+										/>
+									{:else}
+										<span class="text-xs font-medium"
+											>{getInitial(business.name)}</span
+										>
+									{/if}
+								</div>
+								<span class="flex-1 truncate">{business.name}</span>
+								<span class="text-xs text-muted-foreground capitalize"
+									>{business.type}</span
+								>
+							</DropdownMenu.Item>
+						{/each}
+						<DropdownMenu.Separator />
+					{/if}
 				{/each}
 				{#if businesses.length === 0}
 					<DropdownMenu.Item disabled class="gap-2 p-2 text-muted-foreground">
 						No businesses found
 					</DropdownMenu.Item>
+					<DropdownMenu.Separator />
 				{/if}
-				<DropdownMenu.Separator />
 				<DropdownMenu.Item class="gap-2 p-2" onSelect={goToAllBusinesses}>
-					<div class="flex size-6 items-center justify-center rounded-md border bg-transparent">
+					<div
+						class="flex size-6 items-center justify-center rounded-md border bg-transparent"
+					>
 						<LayoutGridIcon class="size-4" />
 					</div>
 					<div class="font-medium text-muted-foreground">All businesses</div>
 				</DropdownMenu.Item>
 				<DropdownMenu.Item class="gap-2 p-2" onSelect={addBusiness}>
-					<div class="flex size-6 items-center justify-center rounded-md border bg-transparent">
+					<div
+						class="flex size-6 items-center justify-center rounded-md border bg-transparent"
+					>
 						<PlusIcon class="size-4" />
 					</div>
 					<div class="font-medium text-muted-foreground">Add business</div>
 				</DropdownMenu.Item>
+				{#if (franchises ?? []).length > 0}
+					<DropdownMenu.Item
+						class="gap-2 p-2"
+						onSelect={() => goto('/franchise')}
+					>
+						<div
+							class="flex size-6 items-center justify-center rounded-md border bg-transparent"
+						>
+							<Building2Icon class="size-4" />
+						</div>
+						<div class="font-medium text-muted-foreground">My Franchises</div>
+					</DropdownMenu.Item>
+				{/if}
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
 	</Sidebar.MenuItem>

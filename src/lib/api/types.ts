@@ -44,6 +44,8 @@ export interface Business {
   contact: BusinessContact;
   settings: BusinessSettings;
   status: string;
+  franchiseId?: string;
+  configSource?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -69,4 +71,52 @@ export interface BusinessTypeConfig {
   description: string;
   subtypes: string[];
   features: string[];
+}
+
+// ==================== FRANCHISE TYPES ====================
+
+export interface Franchise {
+  id: string;
+  name: string;
+  slug: string;
+  ownerId: string;
+  logo?: string;
+  description?: string;
+  status: string;
+  settings: Record<string, unknown>;
+  menuTemplate?: Record<string, unknown>;
+  branding?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+  _count?: { businesses: number; staff: number };
+  userRole?: string;
+}
+
+export interface FranchiseUser {
+  id: string;
+  franchiseId: string;
+  userId: string;
+  role: string;
+  status: string;
+  permissions: string[];
+  joinedAt: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+  };
+}
+
+export interface FranchiseAnalytics {
+  totalRevenue: number;
+  totalOrders: number;
+  totalLocations: number;
+  totalStaff: number;
+  locationBreakdown: {
+    businessId: string;
+    businessName: string;
+    revenue: number;
+    orders: number;
+  }[];
 }

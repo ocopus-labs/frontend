@@ -45,6 +45,42 @@
 	let soundEnabled = $state(browser ? localStorage.getItem('kitchen-sound') !== 'false' : true);
 	let filter = $state<'all' | 'pending' | 'preparing' | 'ready'>('all');
 
+	// Optimistic status overrides to prevent items vanishing during rapid updates
+	let optimisticStatuses = $state<Map<string, string>>(new Map());
+	let invalidateTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function debouncedInvalidate(delay = 400) {
+		if (invalidateTimer) clearTimeout(invalidateTimer);
+		invalidateTimer = setTimeout(() => {
+			invalidate('app:orders');
+			invalidateTimer = null;
+		}, delay);
+	}
+
+	// Clear optimistic overrides once server data catches up
+	$effect(() => {
+		if (!data.orders) return;
+		const currentOverrides = optimisticStatuses;
+		if (currentOverrides.size === 0) return;
+
+		const newOverrides = new Map(currentOverrides);
+		let changed = false;
+		for (const [key, optimisticStatus] of currentOverrides) {
+			const dashIdx = key.indexOf('-');
+			const orderId = key.substring(0, dashIdx);
+			const itemId = key.substring(dashIdx + 1);
+			const order = data.orders.find((o: Order) => o.id === orderId);
+			const item = order?.items.find((i: OrderItem) => i.id === itemId);
+			if (item && item.status === optimisticStatus) {
+				newOverrides.delete(key);
+				changed = true;
+			}
+		}
+		if (changed) {
+			optimisticStatuses = newOverrides;
+		}
+	});
+
 	let tickInterval: ReturnType<typeof setInterval> | null = null;
 	let audioCtx: AudioContext | null = null;
 
@@ -132,26 +168,27 @@
 				const unsubOrderCreated = await onOrderCreated((order) => {
 					invalidate('app:orders');
 					playBeep();
-					toast.info(`New order: ${order.orderNumber}`);
+					const source = order.orderSource === 'customer_qr' ? 'QR Order' : 'New order';
+					toast.info(`${source}: ${order.orderNumber}${order.tableNumber ? ` (Table ${order.tableNumber})` : ''}`);
 				});
 				cleanupFns.push(unsubOrderCreated);
 
 				// Listen for order updates
 				const unsubOrderUpdated = await onOrderUpdated(() => {
-					invalidate('app:orders');
+					debouncedInvalidate();
 				});
 				cleanupFns.push(unsubOrderUpdated);
 
 				// Listen for completed orders
 				const unsubOrderCompleted = await onOrderCompleted(() => {
-					invalidate('app:orders');
+					debouncedInvalidate();
 					toast.success('Order completed');
 				});
 				cleanupFns.push(unsubOrderCompleted);
 
-				// Listen for item status changes
+				// Listen for item status changes (debounced to avoid conflicts with optimistic updates)
 				const unsubItemStatus = await onItemStatus(() => {
-					invalidate('app:orders');
+					debouncedInvalidate();
 				});
 				cleanupFns.push(unsubItemStatus);
 			}
@@ -163,6 +200,7 @@
 		leaveBusiness(data.businessId);
 		disconnectSocket();
 		if (tickInterval) clearInterval(tickInterval);
+		if (invalidateTimer) clearTimeout(invalidateTimer);
 	});
 
 	// Transform API orders to kitchen display format
@@ -178,6 +216,7 @@
 		priorityWeight: number;
 		readyCount: number;
 		totalCount: number;
+		orderSource?: string;
 		items: Array<{
 			id: string;
 			name: string;
@@ -200,13 +239,17 @@
 		(data.orders || []).map((order: Order) => {
 			const createdAt = new Date(order.createdAt);
 			const elapsed = Math.floor((now - createdAt.getTime()) / 60000);
-			const items = order.items.map((item: OrderItem) => ({
-				id: item.id,
-				name: item.name,
-				quantity: item.quantity,
-				notes: item.modifiers?.specialInstructions || null,
-				status: item.status
-			}));
+			const items = order.items.map((item: OrderItem) => {
+				const key = `${order.id}-${item.id}`;
+				const optimisticStatus = optimisticStatuses.get(key);
+				return {
+					id: item.id,
+					name: item.name,
+					quantity: item.quantity,
+					notes: item.modifiers?.specialInstructions || null,
+					status: optimisticStatus || item.status
+				};
+			});
 
 			return {
 				id: order.orderNumber,
@@ -220,7 +263,8 @@
 				priorityWeight: getPriorityWeight(order.priority),
 				readyCount: items.filter((i) => i.status === 'ready' || i.status === 'served').length,
 				totalCount: items.length,
-				items
+				items,
+				orderSource: order.orderSource
 			};
 		}).sort((a, b) => {
 			// Sort: urgent first, then by elapsed time (oldest first)
@@ -301,11 +345,19 @@
 		processingItems.add(key);
 		processingItems = new Set(processingItems);
 
+		// Optimistic update — show new status immediately in UI
+		optimisticStatuses.set(key, status);
+		optimisticStatuses = new Map(optimisticStatuses);
+
 		try {
 			await updateItemStatus(data.businessId, orderId, itemId, status);
-			await invalidate('app:orders');
+			// Debounced refetch so rapid clicks batch into one server round-trip
+			debouncedInvalidate();
 			toast.success(`Item marked as ${status}`);
 		} catch (error) {
+			// Revert optimistic update on failure
+			optimisticStatuses.delete(key);
+			optimisticStatuses = new Map(optimisticStatuses);
 			toast.error('Failed to update item status');
 		} finally {
 			processingItems.delete(key);
@@ -317,18 +369,35 @@
 		const pendingItems = order.items.filter((i) => i.status === 'pending');
 		if (pendingItems.length === 0) return;
 
-		try {
-			await bulkUpdateItemStatuses(
-				data.businessId,
-				order.orderId,
-				pendingItems.map((item) => item.id),
-				'preparing'
-			);
-			await invalidate('app:orders');
-			toast.success(`Started all ${pendingItems.length} item${pendingItems.length === 1 ? '' : 's'}`);
-		} catch (error) {
-			toast.error('Failed to start items');
+		// Optimistic update — mark all pending items as preparing immediately
+		for (const item of pendingItems) {
+			const key = `${order.orderId}-${item.id}`;
+			optimisticStatuses.set(key, 'preparing');
 		}
+		optimisticStatuses = new Map(optimisticStatuses);
+
+		const results = await Promise.allSettled(
+			pendingItems.map((item) =>
+				updateItemStatus(data.businessId, order.orderId, item.id, 'preparing')
+			)
+		);
+
+		// Revert optimistic updates for any failed items
+		const failed = results.filter((r) => r.status === 'rejected').length;
+		if (failed > 0) {
+			results.forEach((result, index) => {
+				if (result.status === 'rejected') {
+					const key = `${order.orderId}-${pendingItems[index].id}`;
+					optimisticStatuses.delete(key);
+				}
+			});
+			optimisticStatuses = new Map(optimisticStatuses);
+			toast.error(`Failed to start ${failed} item${failed === 1 ? '' : 's'}`);
+		} else {
+			toast.success(`Started all ${pendingItems.length} item${pendingItems.length === 1 ? '' : 's'}`);
+		}
+
+		debouncedInvalidate();
 	}
 
 	async function completeOrder(orderId: string) {
@@ -470,6 +539,9 @@
 								<div>
 									<Card.Title class="flex items-center gap-2 text-lg">
 										<span class="font-mono font-bold">{order.id}</span>
+										{#if order.orderSource === 'customer_qr'}
+											<span class="inline-flex items-center rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-900 dark:text-violet-200">QR</span>
+										{/if}
 										{#if priorityBadge}
 											<Badge variant={priorityBadge.variant}>
 												{#if priorityBadge.text === 'URGENT'}

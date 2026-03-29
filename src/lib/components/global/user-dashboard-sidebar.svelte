@@ -15,6 +15,7 @@
 	import Bell from '@lucide/svelte/icons/bell';
 	import Shield from '@lucide/svelte/icons/shield';
 	import Receipt from '@lucide/svelte/icons/receipt';
+	import Network from '@lucide/svelte/icons/network';
 
 	let {
 		ref = $bindable(null),
@@ -34,6 +35,11 @@
 			title: 'My Businesses',
 			url: '/dashboard/businesses',
 			icon: Building2
+		},
+		{
+			title: 'Franchises',
+			url: '/franchise',
+			icon: Network
 		},
 		{
 			title: 'Subscriptions',

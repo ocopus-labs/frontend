@@ -1,0 +1,291 @@
+<script lang="ts">
+	import type { PageData } from './$types';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Switch } from '$lib/components/ui/switch';
+	import * as Card from '$lib/components/ui/card';
+	import { IconLoader2 } from '@tabler/icons-svelte';
+	import { toast } from 'svelte-sonner';
+	import PageHeader from '$lib/components/global/page-header.svelte';
+	import {
+		updateUpiSettings,
+		generatePaymentQr,
+		updateOrderingSettings,
+		type UpiSettings,
+		type OrderingSettings
+	} from '$lib/api';
+	import { invalidateAll } from '$app/navigation';
+	import { userFriendlyError } from '$lib/utils/error';
+
+	let { data }: { data: PageData } = $props();
+
+	const settings = $derived((data as any).upiSettings as UpiSettings | null);
+	const orderingSettings = $derived(
+		(data as any).orderingSettings as OrderingSettings | null
+	);
+
+	let enabled = $state(false);
+	let vpa = $state('');
+	let merchantName = $state('');
+
+	let isSaving = $state(false);
+
+	// QR preview state
+	let previewQr = $state<string | null>(null);
+	let isLoadingPreview = $state(false);
+
+	// Self-ordering state
+	let selfOrderEnabled = $state(false);
+	let requirePrepayment = $state(false);
+	let isSavingOrdering = $state(false);
+
+	// Sync state from loaded settings
+	$effect(() => {
+		if (settings) {
+			enabled = settings.enabled;
+			vpa = settings.vpa;
+			merchantName = settings.merchantName;
+		}
+	});
+
+	$effect(() => {
+		if (orderingSettings) {
+			selfOrderEnabled = orderingSettings.selfOrderEnabled;
+			requirePrepayment = orderingSettings.requirePrepayment;
+		}
+	});
+
+	async function handleSave() {
+		isSaving = true;
+		const businessId = (data as any).businessId;
+
+		try {
+			await updateUpiSettings(businessId, {
+				enabled,
+				vpa,
+				merchantName
+			});
+			toast.success('UPI settings saved');
+			await invalidateAll();
+
+			// Refresh QR preview after saving if enabled
+			if (enabled && vpa) {
+				await loadPreviewQr();
+			} else {
+				previewQr = null;
+			}
+		} catch (error) {
+			toast.error(userFriendlyError(error));
+		} finally {
+			isSaving = false;
+		}
+	}
+
+	async function loadPreviewQr() {
+		const businessId = (data as any).businessId;
+		isLoadingPreview = true;
+		try {
+			const result = await generatePaymentQr(businessId, 1.0, 'Test QR');
+			previewQr = result.dataUrl;
+		} catch (error) {
+			previewQr = null;
+		} finally {
+			isLoadingPreview = false;
+		}
+	}
+
+	// Load QR preview on mount if UPI is enabled
+	$effect(() => {
+		if (settings?.enabled && settings?.vpa) {
+			loadPreviewQr();
+		}
+	});
+
+	async function handleSaveOrdering() {
+		isSavingOrdering = true;
+		const businessId = (data as any).businessId;
+
+		try {
+			await updateOrderingSettings(businessId, {
+				selfOrderEnabled,
+				requirePrepayment
+			});
+			toast.success('Self-ordering settings saved');
+			await invalidateAll();
+		} catch (error) {
+			toast.error(userFriendlyError(error));
+		} finally {
+			isSavingOrdering = false;
+		}
+	}
+</script>
+
+<div class="flex flex-col gap-6 p-6">
+	<PageHeader title="UPI Payments" description="Configure UPI QR code payments and customer self-ordering" />
+
+	{#if !settings}
+		<Card.Root>
+			<Card.Content class="p-8 text-center">
+				<p class="text-muted-foreground">Failed to load UPI settings.</p>
+			</Card.Content>
+		</Card.Root>
+	{:else}
+		<!-- Enable/Disable -->
+		<Card.Root>
+			<Card.Header>
+				<Card.Title class="text-base">UPI Status</Card.Title>
+				<Card.Description>Enable or disable UPI QR code payments</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<div class="flex items-center justify-between">
+					<div>
+						<p class="text-sm font-medium">UPI Payments</p>
+						<p class="text-sm text-muted-foreground">
+							{enabled
+								? 'Customers can pay by scanning a UPI QR code'
+								: 'UPI QR payments are disabled'}
+						</p>
+					</div>
+					<Switch bind:checked={enabled} />
+				</div>
+			</Card.Content>
+		</Card.Root>
+
+		{#if enabled}
+			<!-- VPA & Merchant Config -->
+			<Card.Root>
+				<Card.Header>
+					<Card.Title class="text-base">Merchant Details</Card.Title>
+					<Card.Description>Your UPI Virtual Payment Address and display name</Card.Description>
+				</Card.Header>
+				<Card.Content class="grid gap-4">
+					<div class="grid gap-2">
+						<label for="vpa" class="text-sm font-medium">UPI VPA (Virtual Payment Address)</label>
+						<Input
+							id="vpa"
+							type="text"
+							bind:value={vpa}
+							placeholder="merchant@upi"
+						/>
+						<p class="text-xs text-muted-foreground">e.g., yourstore@paytm, shop@ybl, business@oksbi</p>
+					</div>
+					<div class="grid gap-2">
+						<label for="merchantName" class="text-sm font-medium">Merchant Name</label>
+						<Input
+							id="merchantName"
+							type="text"
+							bind:value={merchantName}
+							placeholder="Your Business Name"
+							maxlength={50}
+						/>
+						<p class="text-xs text-muted-foreground">Displayed on UPI payment apps (max 50 characters)</p>
+					</div>
+				</Card.Content>
+			</Card.Root>
+
+			<!-- QR Preview -->
+			<Card.Root>
+				<Card.Header>
+					<Card.Title class="text-base">QR Code Preview</Card.Title>
+					<Card.Description>This is how the payment QR code will look (test amount: 1.00 INR)</Card.Description>
+				</Card.Header>
+				<Card.Content class="flex flex-col items-center gap-4">
+					{#if isLoadingPreview}
+						<div class="flex h-[300px] w-[300px] items-center justify-center rounded-lg border border-dashed border-border">
+							<IconLoader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+						</div>
+					{:else if previewQr}
+						<img
+							src={previewQr}
+							alt="UPI QR Code Preview"
+							class="h-[300px] w-[300px] rounded-lg border border-border"
+						/>
+						<p class="text-xs text-muted-foreground">Save settings to update the preview</p>
+					{:else}
+						<div class="flex h-[300px] w-[300px] items-center justify-center rounded-lg border border-dashed border-border">
+							<p class="text-sm text-muted-foreground">Save settings to generate QR preview</p>
+						</div>
+					{/if}
+				</Card.Content>
+			</Card.Root>
+		{/if}
+
+		<!-- Save Button -->
+		<div class="flex justify-end">
+			<Button onclick={handleSave} disabled={isSaving}>
+				{#if isSaving}
+					<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+				{/if}
+				Save UPI Settings
+			</Button>
+		</div>
+	{/if}
+
+	<!-- Customer Self-Ordering Section -->
+	<div class="border-t pt-6">
+		<PageHeader
+			title="Customer Self-Ordering"
+			description="Let customers scan a table QR code and place orders from their phone"
+		/>
+	</div>
+
+	<Card.Root>
+		<Card.Header>
+			<Card.Title class="text-base">Self-Ordering</Card.Title>
+			<Card.Description>When enabled, customers can browse your menu and order by scanning the table QR code</Card.Description>
+		</Card.Header>
+		<Card.Content class="space-y-4">
+			<div class="flex items-center justify-between">
+				<div>
+					<p class="text-sm font-medium">Enable Self-Ordering</p>
+					<p class="text-sm text-muted-foreground">
+						{selfOrderEnabled
+							? 'Customers can place orders by scanning table QR codes'
+							: 'Self-ordering is disabled'}
+					</p>
+				</div>
+				<Switch bind:checked={selfOrderEnabled} />
+			</div>
+
+			{#if selfOrderEnabled}
+				<div class="border-t pt-4">
+					<div class="flex items-center justify-between">
+						<div>
+							<p class="text-sm font-medium">Require Prepayment</p>
+							<p class="text-sm text-muted-foreground">
+								{requirePrepayment
+									? 'Customers must pay via UPI before the order is sent to kitchen'
+									: 'Customers can pay after being served (postpay)'}
+							</p>
+						</div>
+						<Switch bind:checked={requirePrepayment} />
+					</div>
+				</div>
+
+				<div class="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+					<p class="font-medium text-foreground mb-1">How it works:</p>
+					<ol class="list-decimal list-inside space-y-1">
+						<li>Generate table QR codes from Tables &gt; Layout</li>
+						<li>Customers scan the QR code at their table</li>
+						<li>They browse your menu, add items, and enter their name + phone</li>
+						{#if requirePrepayment}
+							<li>They pay via UPI QR, then the order goes to your POS</li>
+						{:else}
+							<li>The order goes directly to your POS for preparation</li>
+						{/if}
+						<li>Orders appear in real-time with a "QR Order" badge</li>
+					</ol>
+				</div>
+			{/if}
+		</Card.Content>
+	</Card.Root>
+
+	<div class="flex justify-end">
+		<Button onclick={handleSaveOrdering} disabled={isSavingOrdering}>
+			{#if isSavingOrdering}
+				<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+			{/if}
+			Save Ordering Settings
+		</Button>
+	</div>
+</div>

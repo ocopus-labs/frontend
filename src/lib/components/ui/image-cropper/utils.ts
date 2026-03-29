@@ -105,10 +105,9 @@ export const getCroppedImg = async (
 		Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
 	);
 
-	// Convert canvas to blob, then compress with compressor.js
-	const blob = await new Promise<Blob>((resolve) => {
-		canvas.toBlob((b) => resolve(b!), 'image/png');
-	});
-
-	return compressBlob(blob, quality);
+	// Return a data URL (base64) instead of a blob URL so the backend
+	// can detect it via startsWith('data:') and upload to Cloudinary.
+	// Blob URLs (blob:http://localhost/...) are only valid in the current
+	// browser session and cannot be processed server-side.
+	return canvas.toDataURL('image/png');
 };

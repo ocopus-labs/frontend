@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { getUserBusinesses } from '$lib/api';
 import { getMySubscription } from '$lib/api/subscription';
+import { getUserFranchises } from '$lib/api/franchise';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ fetch, locals, url, depends }) => {
@@ -12,14 +13,16 @@ export const load: LayoutServerLoad = async ({ fetch, locals, url, depends }) =>
 	}
 
 	try {
-		const [{ businesses }, subscriptionResponse] = await Promise.all([
+		const [{ businesses }, subscriptionResponse, franchiseResponse] = await Promise.all([
 			getUserBusinesses({ fetch }),
-			getMySubscription({ fetch }).catch(() => ({ subscription: null }))
+			getMySubscription({ fetch }).catch(() => ({ subscription: null })),
+			getUserFranchises({ fetch }).catch(() => ({ franchises: [] }))
 		]);
 
 		return {
 			businesses,
-			subscription: subscriptionResponse.subscription
+			subscription: subscriptionResponse.subscription,
+			franchises: franchiseResponse.franchises
 		};
 	} catch (err) {
 		console.warn('Failed to fetch user businesses:', err);

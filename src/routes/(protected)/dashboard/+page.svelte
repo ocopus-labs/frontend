@@ -35,6 +35,7 @@
 	import Receipt from '@lucide/svelte/icons/receipt';
 	import Zap from '@lucide/svelte/icons/zap';
 	import X from '@lucide/svelte/icons/x';
+	import Network from '@lucide/svelte/icons/network';
 
 	let { data }: { data: PageData } = $props();
 
@@ -259,6 +260,58 @@
 					variant="default"
 					size="sm"
 				/>
+			</div>
+		{/if}
+
+		<!-- Franchises Section -->
+		{#if (data.franchises ?? []).length > 0}
+			<div>
+				<div class="mb-4 flex items-center justify-between">
+					<h2 class="text-xl font-semibold">Your Franchises</h2>
+					<Button variant="outline" size="sm" href="/franchise">
+						View All
+					</Button>
+				</div>
+				<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+					{#each data.franchises ?? [] as franchise (franchise.id)}
+						<Card.Root
+							class="group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
+							onclick={() => goto(`/franchise/${franchise.slug}`)}
+						>
+							<Card.Header class="pb-3">
+								<div class="flex items-start justify-between">
+									<div class="flex items-center gap-3">
+										{#if franchise.logo}
+											<Avatar.Root class="size-12 rounded-xl ring-2 ring-background shadow-sm">
+												<Avatar.Image src={franchise.logo} alt={franchise.name} class="object-cover" />
+												<Avatar.Fallback class="rounded-xl bg-muted">
+													<Network class="size-5 text-muted-foreground" />
+												</Avatar.Fallback>
+											</Avatar.Root>
+										{:else}
+											<div class="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 shadow-sm">
+												<Network class="size-5 text-primary" />
+											</div>
+										{/if}
+										<div class="min-w-0">
+											<Card.Title class="truncate text-base">{franchise.name}</Card.Title>
+											<span class="mt-1 inline-flex rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
+												Franchise
+											</span>
+										</div>
+									</div>
+									<ChevronRight class="size-4 text-muted-foreground opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5" />
+								</div>
+							</Card.Header>
+							<Card.Content class="pt-0">
+								<div class="flex items-center gap-4 text-sm text-muted-foreground">
+									<span>{franchise._count?.businesses ?? 0} locations</span>
+									<span>{franchise._count?.staff ?? 0} staff</span>
+								</div>
+							</Card.Content>
+						</Card.Root>
+					{/each}
+				</div>
 			</div>
 		{/if}
 
