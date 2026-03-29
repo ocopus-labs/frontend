@@ -23,6 +23,14 @@ export class ApiError extends Error {
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Request failed' }));
+
+    // Handle session expiry: clear cache and redirect to login
+    if (response.status === 401 && browser) {
+      clearApiCache();
+      const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
+      window.location.href = `/login?returnTo=${returnTo}&reason=session-expired`;
+    }
+
     throw new ApiError(response.status, error.message || 'Request failed', error);
   }
   return response.json();

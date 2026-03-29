@@ -11,6 +11,7 @@
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { useSidebar } from '$lib/components/ui/sidebar/index.js';
 	import { signOut, useSession } from '$lib/auth';
+	import { clearApiCache } from '$lib/api/client';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import type { Subscription } from '$lib/api/subscription';
@@ -58,6 +59,11 @@
 	async function handleLogout() {
 		try {
 			sessionStorage.removeItem('business-setup-progress');
+			// Clear API caches to prevent stale data after logout
+			clearApiCache();
+			if ('caches' in window) {
+				caches.delete('api-cache');
+			}
 			await signOut();
 			toast.success('Logged out successfully');
 			goto('/login');
