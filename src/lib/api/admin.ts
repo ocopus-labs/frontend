@@ -770,3 +770,52 @@ export async function stopImpersonation(): Promise<{ success: boolean }> {
   const api = getApiClient();
   return api.post('/admin/impersonate/stop');
 }
+
+// ==================== SYSTEM HEALTH & REVENUE ====================
+
+export async function getAdminSystemHealth(
+  options?: { fetch?: typeof fetch }
+): Promise<{
+  status: string;
+  uptime: number;
+  memory: { used: number; total: number; percentage: number };
+  database: { connected: boolean; latencyMs: number };
+  pendingWebhooks: number;
+  failedWebhooks: number;
+}> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get('/admin/health');
+}
+
+export async function getAdminRevenueBreakdown(
+  startDate?: string,
+  endDate?: string,
+  options?: { fetch?: typeof fetch }
+): Promise<{
+  byMethod: Record<string, { count: number; amount: number }>;
+  refundRate: { totalPayments: number; totalRefunds: number; rate: number };
+  byPlan: Array<{ planName: string; revenue: number; subscribers: number }>;
+}> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  const params = new URLSearchParams();
+  if (startDate) params.set('startDate', startDate);
+  if (endDate) params.set('endDate', endDate);
+  const query = params.toString();
+  return api.get(`/admin/revenue-breakdown${query ? `?${query}` : ''}`);
+}
+
+// ==================== PLATFORM SETTINGS ====================
+
+export async function getAdminSettings(
+  options?: { fetch?: typeof fetch }
+): Promise<Record<string, string>> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get('/admin/settings');
+}
+
+export async function updateAdminSettings(
+  settings: Record<string, string>
+): Promise<Record<string, string>> {
+  const api = getApiClient();
+  return api.patch('/admin/settings', settings);
+}
