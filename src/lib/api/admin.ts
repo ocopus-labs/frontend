@@ -819,3 +819,88 @@ export async function updateAdminSettings(
   const api = getApiClient();
   return api.patch('/admin/settings', settings);
 }
+
+// ==================== DEEP USER MANAGEMENT ====================
+
+export async function adminResetPassword(userId: string): Promise<{ temporaryPassword: string }> {
+  const api = getApiClient();
+  return api.post(`/admin/users/${userId}/reset-password`);
+}
+
+export async function adminForceVerifyEmail(userId: string): Promise<any> {
+  const api = getApiClient();
+  return api.post(`/admin/users/${userId}/verify-email`);
+}
+
+export async function adminDisable2FA(userId: string): Promise<{ message: string }> {
+  const api = getApiClient();
+  return api.post(`/admin/users/${userId}/disable-2fa`);
+}
+
+export interface UserSessionInfo {
+  id: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export async function adminGetUserSessions(userId: string): Promise<UserSessionInfo[]> {
+  const api = getApiClient();
+  return api.get(`/admin/users/${userId}/sessions`);
+}
+
+export async function adminRevokeSession(userId: string, sessionId: string): Promise<void> {
+  const api = getApiClient();
+  return api.delete(`/admin/users/${userId}/sessions/${sessionId}`);
+}
+
+export async function adminRevokeAllSessions(userId: string): Promise<{ count: number }> {
+  const api = getApiClient();
+  return api.delete(`/admin/users/${userId}/sessions`);
+}
+
+export async function adminDeleteUser(userId: string): Promise<void> {
+  const api = getApiClient();
+  return api.delete(`/admin/users/${userId}`);
+}
+
+// ==================== DEEP BUSINESS MANAGEMENT ====================
+
+export async function adminTransferOwnership(
+  businessId: string,
+  newOwnerId: string
+): Promise<{ message: string }> {
+  const api = getApiClient();
+  return api.post(`/admin/businesses/${businessId}/transfer-ownership`, { newOwnerId });
+}
+
+export async function adminGetBusinessOrders(
+  businessId: string,
+  page: number = 1,
+  limit: number = 20,
+  status?: string
+): Promise<{ data: any[]; total: number; page: number; totalPages: number }> {
+  const api = getApiClient();
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (status) params.set('status', status);
+  return api.get(`/admin/businesses/${businessId}/orders?${params}`);
+}
+
+export async function adminGetBusinessPayments(
+  businessId: string,
+  page: number = 1,
+  limit: number = 20
+): Promise<{ data: any[]; total: number; page: number; totalPages: number }> {
+  const api = getApiClient();
+  return api.get(`/admin/businesses/${businessId}/payments?page=${page}&limit=${limit}`);
+}
+
+export async function adminGetBusinessAuditLogs(
+  businessId: string,
+  page: number = 1,
+  limit: number = 50
+): Promise<{ data: any[]; total: number; page: number; totalPages: number }> {
+  const api = getApiClient();
+  return api.get(`/admin/businesses/${businessId}/audit-logs?page=${page}&limit=${limit}`);
+}

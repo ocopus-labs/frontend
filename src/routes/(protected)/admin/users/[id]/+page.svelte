@@ -2,12 +2,26 @@
 	import * as Card from '$lib/components/ui/card/index.js';
 	import * as Avatar from '$lib/components/ui/avatar/index.js';
 	import * as Select from '$lib/components/ui/select/index.js';
+	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
+	import { Separator } from '$lib/components/ui/separator/index.js';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
-	import { banAdminUser, unbanAdminUser, updateAdminUserRole } from '$lib/api/admin';
+	import {
+		banAdminUser,
+		unbanAdminUser,
+		updateAdminUserRole,
+		adminForceVerifyEmail,
+		adminDisable2FA,
+		adminGetUserSessions,
+		adminRevokeSession,
+		adminRevokeAllSessions,
+		adminDeleteUser,
+		impersonateUser,
+		type UserSessionInfo
+	} from '$lib/api/admin';
 	import { toast } from 'svelte-sonner';
-	import { invalidate } from '$app/navigation';
+	import { invalidate, goto } from '$app/navigation';
 	import type { PageData } from './$types';
 
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
@@ -19,14 +33,23 @@
 	import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
 	import Ban from '@lucide/svelte/icons/ban';
 	import ShieldCheck from '@lucide/svelte/icons/shield-check';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import KeyRound from '@lucide/svelte/icons/key-round';
+	import Smartphone from '@lucide/svelte/icons/smartphone';
+	import Monitor from '@lucide/svelte/icons/monitor';
+	import LogOut from '@lucide/svelte/icons/log-out';
+	import UserCog from '@lucide/svelte/icons/user-cog';
 
 	let { data }: { data: PageData } = $props();
-
 	let user = $derived(data.user);
 
-	// Action state
 	let banDialogOpen = $state(false);
+	let deleteDialogOpen = $state(false);
+	let disable2FADialogOpen = $state(false);
+	let impersonateDialogOpen = $state(false);
 	let isActioning = $state(false);
+	let sessions = $state<UserSessionInfo[]>([]);
+	let sessionsLoaded = $state(false);
 
 	const ROLES = [
 		{ value: 'user', label: 'User' },
@@ -36,21 +59,19 @@
 
 	function formatDate(dateString: string): string {
 		return new Date(dateString).toLocaleDateString(undefined, {
-			day: 'numeric',
-			month: 'long',
-			year: 'numeric'
+			day: 'numeric', month: 'long', year: 'numeric'
+		});
+	}
+
+	function formatDateTime(dateString: string): string {
+		return new Date(dateString).toLocaleString(undefined, {
+			day: 'numeric', month: 'short', year: 'numeric',
+			hour: '2-digit', minute: '2-digit'
 		});
 	}
 
 	function getInitials(name: string | null, email: string): string {
-		if (name) {
-			return name
-				.split(' ')
-				.map((n) => n[0])
-				.join('')
-				.toUpperCase()
-				.slice(0, 2);
-		}
+		if (name) return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
 		return email[0].toUpperCase();
 	}
 
@@ -60,8 +81,21 @@
 		return 'secondary';
 	}
 
-	function triggerBan() {
-		banDialogOpen = true;
+	function parseUA(ua: string | null): string {
+		if (!ua) return 'Unknown device';
+		if (ua.includes('Mobile')) return 'Mobile';
+		if (ua.includes('Chrome')) return 'Chrome';
+		if (ua.includes('Firefox')) return 'Firefox';
+		if (ua.includes('Safari')) return 'Safari';
+		return 'Browser';
+	}
+
+	async function loadSessions() {
+		if (sessionsLoaded) return;
+		try {
+			sessions = await adminGetUserSessions(user.id);
+			sessionsLoaded = true;
+		} catch { toast.error('Failed to load sessions'); }
 	}
 
 	async function confirmBan(reason?: string) {
@@ -70,11 +104,8 @@
 			await banAdminUser(user.id, { reason: reason || undefined });
 			toast.success('User has been banned');
 			await invalidate('app:admin-users');
-		} catch (error) {
-			toast.error('Failed to ban user');
-		} finally {
-			isActioning = false;
-		}
+		} catch { toast.error('Failed to ban user'); }
+		finally { isActioning = false; }
 	}
 
 	async function handleUnban() {
@@ -83,11 +114,8 @@
 			await unbanAdminUser(user.id);
 			toast.success('User has been unbanned');
 			await invalidate('app:admin-users');
-		} catch (error) {
-			toast.error('Failed to unban user');
-		} finally {
-			isActioning = false;
-		}
+		} catch { toast.error('Failed to unban user'); }
+		finally { isActioning = false; }
 	}
 
 	async function handleRoleChange(newRole: string) {
@@ -97,11 +125,63 @@
 			await updateAdminUserRole(user.id, newRole);
 			toast.success(`Role updated to ${newRole.replace('_', ' ')}`);
 			await invalidate('app:admin-users');
-		} catch (error) {
-			toast.error('Failed to update role');
-		} finally {
-			isActioning = false;
-		}
+		} catch { toast.error('Failed to update role'); }
+		finally { isActioning = false; }
+	}
+
+	async function handleVerifyEmail() {
+		isActioning = true;
+		try {
+			await adminForceVerifyEmail(user.id);
+			toast.success('Email marked as verified');
+			await invalidate('app:admin-users');
+		} catch { toast.error('Failed to verify email'); }
+		finally { isActioning = false; }
+	}
+
+	async function handleDisable2FA() {
+		isActioning = true;
+		try {
+			await adminDisable2FA(user.id);
+			toast.success('2FA has been disabled');
+			await invalidate('app:admin-users');
+		} catch { toast.error('Failed to disable 2FA'); }
+		finally { isActioning = false; }
+	}
+
+	async function handleRevokeSession(sessionId: string) {
+		try {
+			await adminRevokeSession(user.id, sessionId);
+			sessions = sessions.filter((s) => s.id !== sessionId);
+			toast.success('Session revoked');
+		} catch { toast.error('Failed to revoke session'); }
+	}
+
+	async function handleRevokeAll() {
+		try {
+			const result = await adminRevokeAllSessions(user.id);
+			sessions = [];
+			toast.success(`${result.count} session(s) revoked`);
+		} catch { toast.error('Failed to revoke sessions'); }
+	}
+
+	async function handleDelete() {
+		isActioning = true;
+		try {
+			await adminDeleteUser(user.id);
+			toast.success('User deleted');
+			goto('/admin/users');
+		} catch (err: any) {
+			toast.error(err?.message || 'Failed to delete user');
+		} finally { isActioning = false; }
+	}
+
+	async function handleImpersonate() {
+		try {
+			await impersonateUser(user.id);
+			toast.success(`Now impersonating ${user.name || user.email}`);
+			goto('/dashboard');
+		} catch { toast.error('Failed to impersonate user'); }
 	}
 </script>
 
@@ -110,33 +190,43 @@
 </svelte:head>
 
 <div class="space-y-6">
+	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<div class="flex items-center gap-4">
-			<Button variant="ghost" size="icon" href="/admin/users" aria-label="Back to users">
+			<Button variant="ghost" size="icon" href="/admin/users" aria-label="Back">
 				<ArrowLeft class="h-4 w-4" />
 			</Button>
 			<div>
 				<h1 class="text-3xl font-bold tracking-tight">User Details</h1>
-				<p class="text-muted-foreground">View user information and activity</p>
+				<p class="text-muted-foreground">{user.email}</p>
 			</div>
 		</div>
 		<div class="flex items-center gap-2">
+			{#if user.role !== 'super_admin'}
+				<Button variant="outline" size="sm" onclick={() => (impersonateDialogOpen = true)}>
+					<UserCog class="mr-2 h-4 w-4" />
+					Impersonate
+				</Button>
+			{/if}
 			{#if user.banned}
-				<Button variant="outline" onclick={handleUnban} disabled={isActioning}>
-					<ShieldCheck class="mr-2 h-4 w-4" />
-					Unban User
+				<Button variant="outline" size="sm" onclick={handleUnban} disabled={isActioning}>
+					<ShieldCheck class="mr-2 h-4 w-4" />Unban
 				</Button>
 			{:else}
-				<Button variant="destructive" onclick={triggerBan} disabled={isActioning}>
-					<Ban class="mr-2 h-4 w-4" />
-					Ban User
+				<Button variant="destructive" size="sm" onclick={() => (banDialogOpen = true)} disabled={isActioning}>
+					<Ban class="mr-2 h-4 w-4" />Ban
+				</Button>
+			{/if}
+			{#if user.role !== 'super_admin'}
+				<Button variant="destructive" size="sm" onclick={() => (deleteDialogOpen = true)} disabled={isActioning}>
+					<Trash2 class="mr-2 h-4 w-4" />Delete
 				</Button>
 			{/if}
 		</div>
 	</div>
 
+	<!-- Profile + Stats -->
 	<div class="grid gap-6 md:grid-cols-3">
-		<!-- Profile Card -->
 		<Card.Root class="md:col-span-1">
 			<Card.Content class="pt-6">
 				<div class="flex flex-col items-center text-center">
@@ -146,13 +236,11 @@
 					</Avatar.Root>
 					<h2 class="text-xl font-semibold">{user.name || 'Unnamed User'}</h2>
 					<p class="text-muted-foreground text-sm">{user.email}</p>
-					<div class="flex gap-2 mt-4">
+					<div class="flex flex-wrap gap-2 mt-4 justify-center">
 						{#if user.role}
 							<Badge variant={getRoleBadgeVariant(user.role)} class="capitalize">
-								{#if user.role === 'super_admin'}
-									<Shield class="h-3 w-3 mr-1" />
-								{/if}
-								{user.role.replace('_', ' ')}
+								{#if user.role === 'super_admin'}<Shield class="h-3 w-3 mr-1" />{/if}
+								{user.role.replace(/_/g, ' ')}
 							</Badge>
 						{/if}
 						{#if user.banned}
@@ -160,137 +248,222 @@
 						{:else}
 							<Badge variant="outline">Active</Badge>
 						{/if}
+						{#if user.emailVerified}
+							<Badge variant="outline" class="text-green-600"><MailCheck class="h-3 w-3 mr-1" />Verified</Badge>
+						{:else}
+							<Badge variant="secondary"><Mail class="h-3 w-3 mr-1" />Unverified</Badge>
+						{/if}
 					</div>
+					<p class="text-xs text-muted-foreground mt-4">
+						<Calendar class="h-3 w-3 inline mr-1" />Joined {formatDate(user.createdAt)}
+					</p>
 				</div>
 			</Card.Content>
 		</Card.Root>
 
-		<!-- Info Cards -->
 		<Card.Root class="md:col-span-2">
 			<Card.Header>
-				<Card.Title>Account Information</Card.Title>
+				<Card.Title>Quick Stats</Card.Title>
 			</Card.Header>
 			<Card.Content>
-				<div class="grid gap-4 sm:grid-cols-2">
-					<div class="flex items-center gap-3">
-						{#if user.emailVerified}
-							<MailCheck class="h-5 w-5 text-green-600" />
-							<div>
-								<p class="text-sm font-medium">Email Verified</p>
-								<p class="text-xs text-muted-foreground">Email has been confirmed</p>
-							</div>
-						{:else}
-							<Mail class="h-5 w-5 text-muted-foreground" />
-							<div>
-								<p class="text-sm font-medium">Email Not Verified</p>
-								<p class="text-xs text-muted-foreground">Pending verification</p>
-							</div>
-						{/if}
+				<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+					<div class="rounded-lg border p-4 text-center">
+						<p class="text-2xl font-bold">{user._count?.businessUsers ?? 0}</p>
+						<p class="text-xs text-muted-foreground">Memberships</p>
 					</div>
-					<div class="flex items-center gap-3">
-						<Calendar class="h-5 w-5 text-muted-foreground" />
-						<div>
-							<p class="text-sm font-medium">Member Since</p>
-							<p class="text-xs text-muted-foreground">{formatDate(user.createdAt)}</p>
-						</div>
+					<div class="rounded-lg border p-4 text-center">
+						<p class="text-2xl font-bold">{user._count?.ownedRestaurants ?? 0}</p>
+						<p class="text-xs text-muted-foreground">Owned Businesses</p>
 					</div>
-					<div class="flex items-center gap-3">
-						<Building2 class="h-5 w-5 text-muted-foreground" />
-						<div>
-							<p class="text-sm font-medium">Businesses</p>
-							<p class="text-xs text-muted-foreground">{user._count.businessUsers} business memberships</p>
-						</div>
+					<div class="rounded-lg border p-4 text-center">
+						<p class="text-2xl font-bold">{user._count?.orders ?? 0}</p>
+						<p class="text-xs text-muted-foreground">Total Orders</p>
 					</div>
-					<div class="flex items-center gap-3">
-						<ShoppingCart class="h-5 w-5 text-muted-foreground" />
-						<div>
-							<p class="text-sm font-medium">Orders</p>
-							<p class="text-xs text-muted-foreground">{user._count.orders} total orders</p>
-						</div>
+					<div class="rounded-lg border p-4 text-center">
+						<p class="text-2xl font-bold">{user._count?.sessions ?? 0}</p>
+						<p class="text-xs text-muted-foreground">Active Sessions</p>
 					</div>
 				</div>
 			</Card.Content>
 		</Card.Root>
 	</div>
 
-	<!-- Admin Actions -->
-	<Card.Root>
-		<Card.Header>
-			<Card.Title>Admin Actions</Card.Title>
-		</Card.Header>
-		<Card.Content>
-			<div class="flex items-center gap-4">
-				<div>
-					<p class="text-sm font-medium mb-1">Change Role</p>
-					<Select.Root
-						type="single"
-						value={user.role || 'user'}
-						onValueChange={handleRoleChange}
-					>
-						<Select.Trigger class="w-[200px]" disabled={isActioning}>
-							{ROLES.find((r) => r.value === (user.role || 'user'))?.label || 'Select role'}
-						</Select.Trigger>
-						<Select.Content>
-							{#each ROLES as role}
-								<Select.Item value={role.value}>{role.label}</Select.Item>
-							{/each}
-						</Select.Content>
-					</Select.Root>
-				</div>
-			</div>
-		</Card.Content>
-	</Card.Root>
+	<!-- Tabs: Actions, Sessions, Businesses, Subscriptions -->
+	<Tabs.Root value="actions">
+		<Tabs.List>
+			<Tabs.Trigger value="actions">Admin Actions</Tabs.Trigger>
+			<Tabs.Trigger value="sessions" onclick={loadSessions}>Sessions</Tabs.Trigger>
+			<Tabs.Trigger value="businesses">Businesses</Tabs.Trigger>
+			<Tabs.Trigger value="subscriptions">Subscriptions</Tabs.Trigger>
+		</Tabs.List>
 
-	<!-- Statistics Section -->
-	<Card.Root>
-		<Card.Header>
-			<Card.Title>Statistics</Card.Title>
-		</Card.Header>
-		<Card.Content>
-			<div class="grid gap-4 sm:grid-cols-3">
-				<div class="rounded-lg border p-4 text-center">
-					<p class="text-3xl font-bold">{user._count.businessUsers}</p>
-					<p class="text-sm text-muted-foreground">Business Memberships</p>
-				</div>
-				<div class="rounded-lg border p-4 text-center">
-					<p class="text-3xl font-bold">{user._count.ownedRestaurants}</p>
-					<p class="text-sm text-muted-foreground">Owned Businesses</p>
-				</div>
-				<div class="rounded-lg border p-4 text-center">
-					<p class="text-3xl font-bold">{user._count.orders}</p>
-					<p class="text-sm text-muted-foreground">Total Orders</p>
-				</div>
-			</div>
-		</Card.Content>
-	</Card.Root>
-
-	<!-- Subscriptions Section -->
-	{#if user.subscriptions && user.subscriptions.length > 0}
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Subscriptions</Card.Title>
-			</Card.Header>
-			<Card.Content>
-				<div class="space-y-3">
-					{#each user.subscriptions as sub}
-						<div class="flex items-center justify-between rounded-lg border p-4">
-							<div>
-								<p class="font-medium">{sub.plan?.displayName || sub.plan?.name || 'Unknown Plan'}</p>
-								<p class="text-xs text-muted-foreground">
-									Period ends: {formatDate(sub.currentPeriodEnd)}
-								</p>
-							</div>
-							<Badge variant={sub.status === 'active' ? 'default' : sub.status === 'canceled' ? 'destructive' : 'secondary'} class="capitalize">
-								{sub.status}
-							</Badge>
+		<Tabs.Content value="actions">
+			<Card.Root>
+				<Card.Content class="pt-6 space-y-6">
+					<!-- Role -->
+					<div class="flex items-center justify-between">
+						<div>
+							<p class="font-medium">Change Role</p>
+							<p class="text-sm text-muted-foreground">Update the user's platform-wide role</p>
 						</div>
-					{/each}
-				</div>
-			</Card.Content>
-		</Card.Root>
-	{/if}
+						<Select.Root type="single" value={user.role || 'user'} onValueChange={handleRoleChange}>
+							<Select.Trigger class="w-[200px]" disabled={isActioning}>
+								{ROLES.find((r) => r.value === (user.role || 'user'))?.label || 'Select'}
+							</Select.Trigger>
+							<Select.Content>
+								{#each ROLES as role}
+									<Select.Item value={role.value}>{role.label}</Select.Item>
+								{/each}
+							</Select.Content>
+						</Select.Root>
+					</div>
+					<Separator />
+					<!-- Verify Email -->
+					{#if !user.emailVerified}
+						<div class="flex items-center justify-between">
+							<div>
+								<p class="font-medium">Force Verify Email</p>
+								<p class="text-sm text-muted-foreground">Mark email as verified without user confirmation</p>
+							</div>
+							<Button variant="outline" size="sm" onclick={handleVerifyEmail} disabled={isActioning}>
+								<MailCheck class="mr-2 h-4 w-4" />Verify Email
+							</Button>
+						</div>
+						<Separator />
+					{/if}
+					<!-- 2FA -->
+					{#if user.twoFactorEnabled}
+						<div class="flex items-center justify-between">
+							<div>
+								<p class="font-medium">Two-Factor Authentication</p>
+								<p class="text-sm text-muted-foreground">2FA is enabled. Disable if user is locked out.</p>
+							</div>
+							<Button variant="destructive" size="sm" onclick={() => (disable2FADialogOpen = true)} disabled={isActioning}>
+								<Smartphone class="mr-2 h-4 w-4" />Disable 2FA
+							</Button>
+						</div>
+						<Separator />
+					{/if}
+					<!-- Ban Info -->
+					{#if user.banned && user.banReason}
+						<div class="rounded-lg border border-destructive/50 bg-destructive/5 p-4">
+							<p class="font-medium text-destructive">Ban Reason</p>
+							<p class="text-sm mt-1">{user.banReason}</p>
+						</div>
+					{/if}
+				</Card.Content>
+			</Card.Root>
+		</Tabs.Content>
+
+		<Tabs.Content value="sessions">
+			<Card.Root>
+				<Card.Header>
+					<div class="flex items-center justify-between">
+						<Card.Title>Active Sessions ({sessions.length})</Card.Title>
+						{#if sessions.length > 0}
+							<Button variant="destructive" size="sm" onclick={handleRevokeAll}>
+								<LogOut class="mr-2 h-4 w-4" />Revoke All
+							</Button>
+						{/if}
+					</div>
+				</Card.Header>
+				<Card.Content>
+					{#if !sessionsLoaded}
+						<p class="text-muted-foreground text-sm">Loading sessions...</p>
+					{:else if sessions.length === 0}
+						<p class="text-muted-foreground text-sm">No active sessions</p>
+					{:else}
+						<div class="space-y-3">
+							{#each sessions as session}
+								<div class="flex items-center justify-between rounded-lg border p-3">
+									<div class="flex items-center gap-3">
+										<Monitor class="h-5 w-5 text-muted-foreground" />
+										<div>
+											<p class="text-sm font-medium">{parseUA(session.userAgent)}</p>
+											<p class="text-xs text-muted-foreground">
+												IP: {session.ipAddress || 'Unknown'} &middot; {formatDateTime(session.createdAt)}
+											</p>
+											<p class="text-xs text-muted-foreground">
+												Expires: {formatDateTime(session.expiresAt)}
+											</p>
+										</div>
+									</div>
+									<Button variant="ghost" size="sm" onclick={() => handleRevokeSession(session.id)}>
+										<LogOut class="h-4 w-4" />
+									</Button>
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</Card.Content>
+			</Card.Root>
+		</Tabs.Content>
+
+		<Tabs.Content value="businesses">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Business Memberships</Card.Title>
+				</Card.Header>
+				<Card.Content>
+					{#if user.businessUsers && user.businessUsers.length > 0}
+						<div class="space-y-3">
+							{#each user.businessUsers as bu}
+								<a href="/admin/businesses/{bu.restaurant?.id}" class="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors">
+									<div class="flex items-center gap-3">
+										<Building2 class="h-5 w-5 text-muted-foreground" />
+										<div>
+											<p class="text-sm font-medium">{bu.restaurant?.name || 'Unknown'}</p>
+											<p class="text-xs text-muted-foreground">{bu.restaurant?.type} &middot; {bu.restaurant?.slug}</p>
+										</div>
+									</div>
+									<div class="flex items-center gap-2">
+										<Badge variant="outline" class="capitalize">{bu.role?.replace(/_/g, ' ')}</Badge>
+										<Badge variant={bu.restaurant?.status === 'active' ? 'default' : 'secondary'} class="capitalize">
+											{bu.restaurant?.status}
+										</Badge>
+									</div>
+								</a>
+							{/each}
+						</div>
+					{:else}
+						<p class="text-muted-foreground text-sm">No business memberships</p>
+					{/if}
+				</Card.Content>
+			</Card.Root>
+		</Tabs.Content>
+
+		<Tabs.Content value="subscriptions">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Subscriptions</Card.Title>
+				</Card.Header>
+				<Card.Content>
+					{#if user.subscriptions && user.subscriptions.length > 0}
+						<div class="space-y-3">
+							{#each user.subscriptions as sub}
+								<div class="flex items-center justify-between rounded-lg border p-4">
+									<div>
+										<p class="font-medium">{sub.plan?.displayName || sub.plan?.name || 'Unknown Plan'}</p>
+										<p class="text-xs text-muted-foreground">
+											Period ends: {formatDate(sub.currentPeriodEnd)}
+										</p>
+									</div>
+									<Badge variant={sub.status === 'active' ? 'default' : sub.status === 'canceled' ? 'destructive' : 'secondary'} class="capitalize">
+										{sub.status}
+									</Badge>
+								</div>
+							{/each}
+						</div>
+					{:else}
+						<p class="text-muted-foreground text-sm">No subscriptions</p>
+					{/if}
+				</Card.Content>
+			</Card.Root>
+		</Tabs.Content>
+	</Tabs.Root>
 </div>
 
+<!-- Dialogs -->
 <ConfirmDialog
 	bind:open={banDialogOpen}
 	title="Ban User"
@@ -300,4 +473,30 @@
 	showInput={true}
 	inputLabel="Reason (optional)"
 	onConfirm={confirmBan}
+/>
+
+<ConfirmDialog
+	bind:open={deleteDialogOpen}
+	title="Delete User"
+	description="Permanently delete {user.name || user.email}? This will remove all their sessions, accounts, and team memberships. This cannot be undone."
+	confirmLabel="Delete Permanently"
+	variant="destructive"
+	onConfirm={handleDelete}
+/>
+
+<ConfirmDialog
+	bind:open={disable2FADialogOpen}
+	title="Disable 2FA"
+	description="This will remove two-factor authentication for {user.name || user.email}. They will need to re-enable it manually."
+	confirmLabel="Disable 2FA"
+	variant="destructive"
+	onConfirm={handleDisable2FA}
+/>
+
+<ConfirmDialog
+	bind:open={impersonateDialogOpen}
+	title="Impersonate User"
+	description="You will be logged in as {user.name || user.email}. Your admin session will be preserved and you can return to your account."
+	confirmLabel="Start Impersonation"
+	onConfirm={handleImpersonate}
 />
