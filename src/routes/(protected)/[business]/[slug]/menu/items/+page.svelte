@@ -2,6 +2,7 @@
 	import type { PageData } from './$types';
 	import { goto, invalidate } from '$app/navigation';
 	import { clearApiCache } from '$lib/api/client';
+	import { invalidateMenuCache } from '$lib/stores/pos-cache';
 	import type { MenuItem, MenuCategory, MenuItemIngredient } from '$lib/types/menu';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -43,6 +44,7 @@
 
 	function invalidateMenuData() {
 		clearApiCache('/menu');
+		invalidateMenuCache();
 		invalidate('app:menu');
 	}
 

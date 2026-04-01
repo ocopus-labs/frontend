@@ -33,6 +33,7 @@
 	import Download from '@lucide/svelte/icons/download';
 	import { exportAdminUsers } from '$lib/api/admin';
 	import { downloadBlob } from '$lib/utils/export';
+	import { formatDate } from '$lib/utils/formatting';
 
 	let { data }: { data: PageData } = $props();
 
@@ -126,14 +127,6 @@
 		}, 300);
 	});
 
-	function formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleDateString(undefined, {
-			day: 'numeric',
-			month: 'short',
-			year: 'numeric'
-		});
-	}
-
 	function getInitials(name: string | null, email: string): string {
 		if (name) {
 			return name
@@ -206,15 +199,8 @@
 		{ value: 'true', label: 'Banned' }
 	];
 
-	const roleOptions = [
-		{ value: 'super_admin', label: 'Super Admin' },
-		{ value: 'franchise_owner', label: 'Franchise Owner' },
-		{ value: 'restaurant_owner', label: 'Business Owner' },
-		{ value: 'manager', label: 'Manager' },
-		{ value: 'staff', label: 'Staff' },
-		{ value: 'viewer', label: 'Viewer' },
-		{ value: 'accountant', label: 'Accountant' }
-	];
+	import { ALL_ROLE_OPTIONS } from '$lib/constants/domain';
+	const roleOptions = ALL_ROLE_OPTIONS;
 
 	// Active filters for chips
 	const activeFilters = $derived<Filter[]>([

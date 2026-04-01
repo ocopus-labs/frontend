@@ -27,27 +27,21 @@ export const handle: Handle = async ({ event, resolve }) => {
 		pathname.startsWith('/about');
 	const isOrderRoute = pathname.startsWith('/order');
 
-	// Redirect logged-in users away from landing and auth pages
-	if (isLandingPage || isAuthRoute) {
-		const sessionData = await getSession(event.request.headers);
-		if (sessionData) {
-			const target = sessionData?.user?.role === 'super_admin' ? '/admin' : '/dashboard';
-			redirect(307, target);
-		}
-		return resolve(event);
-	}
-
-	// Public and order routes don't require login
+	// Public and order routes don't need session at all
 	if (isPublicRoute || isOrderRoute) {
 		return resolve(event);
 	}
 
-	// Only fetch session for protected routes
+	// Fetch session once for all remaining routes
 	const sessionData = await getSession(event.request.headers);
 
-	if (sessionData) {
-		event.locals.session = sessionData.session;
-		event.locals.user = sessionData.user;
+	// Redirect logged-in users away from landing and auth pages
+	if (isLandingPage || isAuthRoute) {
+		if (sessionData) {
+			const target = sessionData.user?.role === 'super_admin' ? '/admin' : '/dashboard';
+			redirect(307, target);
+		}
+		return resolve(event);
 	}
 
 	// Protected routes require a valid session
@@ -55,6 +49,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 		const returnTo = encodeURIComponent(pathname + event.url.search);
 		redirect(307, `/login?returnTo=${returnTo}`);
 	}
+
+	event.locals.session = sessionData.session;
+	event.locals.user = sessionData.user;
 
 	return resolve(event);
 };

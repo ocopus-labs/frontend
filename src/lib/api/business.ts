@@ -38,12 +38,18 @@ export async function getBusinessById(
   return api.get(`/business/${id}`);
 }
 
-export async function getBusinessBySlug(
+export interface BusinessContext {
+  business: Business;
+  userRole: string;
+  subscription: import('./subscription').Subscription | null;
+}
+
+export async function getBusinessContext(
   slug: string,
   options?: { fetch?: typeof fetch }
-): Promise<{ business: Business; userRole: string }> {
+): Promise<BusinessContext> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.get(`/business/slug/${slug}`);
+  return api.get(`/business/slug/${slug}/context`);
 }
 
 export async function updateBusiness(

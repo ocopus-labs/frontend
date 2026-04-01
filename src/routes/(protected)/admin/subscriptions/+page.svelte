@@ -16,6 +16,7 @@
 	import type { PageData } from './$types';
 
 	import { formatCurrency } from '$lib/utils/i18n';
+	import { formatDate, getStatusBadgeVariant } from '$lib/utils/formatting';
 	import { cancelAdminSubscription, extendAdminTrial, bulkSubscriptionAction } from '$lib/api/admin';
 
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
@@ -92,14 +93,6 @@
 		}
 	}
 
-	function formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleDateString(undefined, {
-			day: 'numeric',
-			month: 'short',
-			year: 'numeric'
-		});
-	}
-
 	function formatCurrencyValue(value: string | number, currency: string = 'USD'): string {
 		return formatCurrency(Number(value), currency as any);
 	}
@@ -174,12 +167,6 @@
 		{ value: 'past_due', label: 'Past Due' },
 		{ value: 'trialing', label: 'Trialing' }
 	];
-
-	function getStatusBadgeVariant(status: string): 'default' | 'destructive' | 'secondary' | 'outline' {
-		if (status === 'active') return 'default';
-		if (status === 'canceled' || status === 'past_due') return 'destructive';
-		return 'secondary';
-	}
 
 	async function handleExportSubscriptions() {
 		try {

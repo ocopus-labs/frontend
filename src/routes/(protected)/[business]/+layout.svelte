@@ -39,7 +39,7 @@
 	Skip to main content
 </a>
 <Sidebar.Provider>
-	<AppSidebar businesses={data.businesses} subscription={data.subscription} />
+	<AppSidebar businesses={data.businesses} subscription={$page.data.subscription} />
 	<Sidebar.Inset id="main-content">
 		<AnnouncementBanner />
 		<header

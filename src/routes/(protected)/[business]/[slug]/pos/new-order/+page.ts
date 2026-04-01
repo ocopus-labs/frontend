@@ -1,10 +1,8 @@
 import type { PageLoad } from './$types';
-import { getMenu } from '$lib/api/menu';
-import { getTables } from '$lib/api/table';
+import { getCachedMenu, getCachedTables } from '$lib/stores/pos-cache';
 import { BUSINESS_TYPE_CONFIG } from '$lib/types/business';
-import { error } from '@sveltejs/kit';
 
-export const load: PageLoad = async ({ params, parent, fetch, depends }) => {
+export const load: PageLoad = async ({ parent, depends }) => {
   depends('app:menu');
   const { business } = await parent();
 
@@ -13,11 +11,11 @@ export const load: PageLoad = async ({ params, parent, fetch, depends }) => {
   const supportsTable = businessConfig?.features?.includes('tables') ?? false;
 
   try {
-    // Load menu and tables in parallel
+    // Load menu and tables in parallel (uses client-side cache if available)
     const [menuData, tablesData] = await Promise.all([
-      getMenu(business.id, { fetch }),
+      getCachedMenu(business.id),
       supportsTable
-        ? getTables(business.id, undefined, { fetch }).catch((e) => {
+        ? getCachedTables(business.id).catch((e) => {
             console.warn('Failed to load tables:', e);
             return { tables: [] };
           })

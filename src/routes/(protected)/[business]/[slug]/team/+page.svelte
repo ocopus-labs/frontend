@@ -41,6 +41,7 @@
 	} from '$lib/api';
 	import { downloadBlob } from '$lib/utils/export';
 	import { userFriendlyError } from '$lib/utils/error';
+	import { formatDate } from '$lib/utils/formatting';
 	import * as Select from '$lib/components/ui/select';
 
 	let { data }: { data: PageData } = $props();
@@ -136,15 +137,6 @@
 			default:
 				return { variant: 'outline' as const, text: status, class: '' };
 		}
-	}
-
-	function formatDate(dateString?: string): string {
-		if (!dateString) return '-';
-		return new Date(dateString).toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric'
-		});
 	}
 
 	async function sendInvite() {

@@ -29,6 +29,7 @@
 	} from '$lib/api';
 	import { createI18nUtils, currencyToRegion } from '$lib/utils/i18n';
 	import { userFriendlyError } from '$lib/utils/error';
+	import { formatOrderType } from '$lib/utils/formatting';
 
 	let { data }: { data: PageData } = $props();
 
@@ -64,21 +65,6 @@
 			showReceiptDialog = true;
 		}
 	});
-
-	function formatOrderType(type: string): string {
-		switch (type) {
-			case 'dine_in':
-				return 'Dine-In';
-			case 'takeaway':
-				return 'Takeaway';
-			case 'delivery':
-				return 'Delivery';
-			case 'online':
-				return 'Online';
-			default:
-				return type;
-		}
-	}
 
 	function getStatusBadge(status: string) {
 		switch (status) {

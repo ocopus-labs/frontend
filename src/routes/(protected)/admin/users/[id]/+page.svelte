@@ -22,6 +22,7 @@
 	} from '$lib/api/admin';
 	import { toast } from 'svelte-sonner';
 	import { invalidate, goto } from '$app/navigation';
+	import { formatDate, formatDateTime } from '$lib/utils/formatting';
 	import type { PageData } from './$types';
 
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
@@ -51,24 +52,8 @@
 	let sessions = $state<UserSessionInfo[]>([]);
 	let sessionsLoaded = $state(false);
 
-	const ROLES = [
-		{ value: 'user', label: 'User' },
-		{ value: 'franchise_owner', label: 'Franchise Owner' },
-		{ value: 'super_admin', label: 'Super Admin' }
-	];
-
-	function formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleDateString(undefined, {
-			day: 'numeric', month: 'long', year: 'numeric'
-		});
-	}
-
-	function formatDateTime(dateString: string): string {
-		return new Date(dateString).toLocaleString(undefined, {
-			day: 'numeric', month: 'short', year: 'numeric',
-			hour: '2-digit', minute: '2-digit'
-		});
-	}
+	import { ADMIN_ROLE_OPTIONS } from '$lib/constants/domain';
+	const ROLES = ADMIN_ROLE_OPTIONS;
 
 	function getInitials(name: string | null, email: string): string {
 		if (name) return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);

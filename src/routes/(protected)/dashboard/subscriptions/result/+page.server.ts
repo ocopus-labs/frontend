@@ -1,21 +1,18 @@
 import type { PageServerLoad } from './$types';
-import { getMySubscription, getSubscriptionUsage } from '$lib/api/subscription';
+import { getSubscriptionUsage } from '$lib/api/subscription';
 
-export const load: PageServerLoad = async ({ fetch }) => {
+export const load: PageServerLoad = async ({ fetch, parent }) => {
+	const parentData = await parent();
 	try {
-		const [subscriptionResult, usageResult] = await Promise.all([
-			getMySubscription({ fetch }),
-			getSubscriptionUsage({ fetch }).catch(() => null)
-		]);
-
+		const usageResult = await getSubscriptionUsage({ fetch }).catch(() => null);
 		return {
-			subscription: subscriptionResult.subscription,
+			subscription: parentData.subscription,
 			usage: usageResult?.usage ?? null
 		};
 	} catch (error) {
 		console.error('Failed to load subscription:', error);
 		return {
-			subscription: null,
+			subscription: parentData.subscription,
 			usage: null
 		};
 	}

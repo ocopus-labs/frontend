@@ -17,6 +17,7 @@
 	import { toast } from 'svelte-sonner';
 	import { invalidate } from '$app/navigation';
 	import { formatCurrency } from '$lib/utils/i18n';
+	import { formatDate, formatDateTime, getStatusBadgeVariant } from '$lib/utils/formatting';
 	import type { PageData } from './$types';
 
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
@@ -58,19 +59,8 @@
 	let auditPage = $state(1);
 	let auditLoaded = $state(false);
 
-	function formatDate(d: string): string {
-		return new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-	}
-	function formatDateTime(d: string): string {
-		return new Date(d).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-	}
 	function fmt(amount: number): string {
 		return formatCurrency(amount, ((business as any).settings?.currency || 'USD') as any);
-	}
-	function statusVariant(s: string): 'default' | 'destructive' | 'secondary' | 'outline' {
-		if (s === 'completed' || s === 'active' || s === 'paid') return 'default';
-		if (s === 'cancelled' || s === 'refunded' || s === 'failed' || s === 'suspended') return 'destructive';
-		return 'secondary';
 	}
 
 	async function loadOrders(page = 1) {
@@ -170,7 +160,7 @@
 					</div>
 					<div class="flex gap-2 mb-2">
 						<Badge variant="outline" class="capitalize">{business.type}</Badge>
-						<Badge variant={statusVariant(business.status)} class="capitalize">{business.status}</Badge>
+						<Badge variant={getStatusBadgeVariant(business.status)} class="capitalize">{business.status}</Badge>
 					</div>
 					<a href="/admin/users/{business.owner?.id}" class="text-sm text-primary hover:underline mt-2">
 						<User class="h-3 w-3 inline mr-1" />{business.owner?.name || business.owner?.email}
@@ -288,8 +278,8 @@
 								{#each orders as order}
 									<Table.Row>
 										<Table.Cell class="font-mono text-sm">{order.orderNumber || order.id?.slice(0, 8)}</Table.Cell>
-										<Table.Cell><Badge variant={statusVariant(order.status)} class="capitalize">{order.status}</Badge></Table.Cell>
-										<Table.Cell><Badge variant={statusVariant(order.paymentStatus)} class="capitalize">{order.paymentStatus}</Badge></Table.Cell>
+										<Table.Cell><Badge variant={getStatusBadgeVariant(order.status)} class="capitalize">{order.status}</Badge></Table.Cell>
+										<Table.Cell><Badge variant={getStatusBadgeVariant(order.paymentStatus)} class="capitalize">{order.paymentStatus}</Badge></Table.Cell>
 										<Table.Cell class="text-right font-medium">{fmt(Number(order.pricing?.total || 0))}</Table.Cell>
 										<Table.Cell class="text-sm text-muted-foreground">{formatDateTime(order.createdAt)}</Table.Cell>
 									</Table.Row>
@@ -336,7 +326,7 @@
 										<Table.Cell class="font-mono text-sm">{payment.paymentNumber}</Table.Cell>
 										<Table.Cell class="text-sm">{payment.order?.orderNumber || '-'}</Table.Cell>
 										<Table.Cell><Badge variant="outline" class="capitalize">{payment.method}</Badge></Table.Cell>
-										<Table.Cell><Badge variant={statusVariant(payment.status)} class="capitalize">{payment.status}</Badge></Table.Cell>
+										<Table.Cell><Badge variant={getStatusBadgeVariant(payment.status)} class="capitalize">{payment.status}</Badge></Table.Cell>
 										<Table.Cell class="text-right font-medium">{fmt(Number(payment.amount))}</Table.Cell>
 										<Table.Cell class="text-sm text-muted-foreground">{formatDateTime(payment.createdAt)}</Table.Cell>
 									</Table.Row>

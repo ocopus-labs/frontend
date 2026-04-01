@@ -35,6 +35,7 @@
 		type CreateReservationPayload
 	} from '$lib/api';
 	import { userFriendlyError } from '$lib/utils/error';
+	import { formatDate } from '$lib/utils/formatting';
 
 	let { data }: { data: PageData } = $props();
 
@@ -140,14 +141,6 @@
 			default:
 				return { variant: 'outline' as const, text: status };
 		}
-	}
-
-	function formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleDateString('en-US', {
-			month: 'short',
-			day: 'numeric',
-			year: 'numeric'
-		});
 	}
 
 	async function addReservation() {

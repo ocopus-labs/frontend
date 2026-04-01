@@ -43,38 +43,7 @@
 	const region = $derived(currencyToRegion((data.business as any)?.settings?.currency || 'USD'));
 	const i18n = $derived(createI18nUtils(region));
 
-	// Extended order item type with API fields
-	interface ExtendedOrderItem extends OrderItemType {
-		menuItemId: string;
-		basePrice: number;
-		_modifierPrices?: {
-			sizePrice?: number;
-			spiceLevelPrice?: number;
-			addOnPrices?: Record<string, number>;
-		};
-	}
-
-	interface POSMenuItem {
-		id: string;
-		menuItemId: string;
-		categoryId: string;
-		name: string;
-		description?: string;
-		price: number;
-		image: string;
-		available: boolean;
-		isVegetarian?: boolean;
-		isVegan?: boolean;
-		isGlutenFree?: boolean;
-		preparationTime?: number;
-		modifiers?: {
-			sizes?: { id: string; name: string; price: number }[];
-			spiceLevels?: { id: string; name: string; price: number }[];
-			preparation?: string[];
-			addOns?: { id: string; name: string; price: number }[];
-			removals?: string[];
-		};
-	}
+	import type { ExtendedOrderItem, POSMenuItem } from '$lib/types/pos';
 
 	// State variables
 	let selectedCategory = $state('All Items');

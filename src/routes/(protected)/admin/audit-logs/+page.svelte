@@ -19,6 +19,7 @@
 	import { toast } from 'svelte-sonner';
 	import { exportAdminAuditLogs } from '$lib/api/admin';
 	import { downloadBlob } from '$lib/utils/export';
+	import { formatDateTime } from '$lib/utils/formatting';
 
 	let { data }: { data: PageData } = $props();
 
@@ -32,16 +33,6 @@
 	let detailDialogOpen = $state(false);
 	let selectedLogDetails: Record<string, unknown> | null = $state(null);
 	let selectedLogAction = $state('');
-
-	function formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleString(undefined, {
-			day: 'numeric',
-			month: 'short',
-			year: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-	}
 
 	function updateFilters(updates: Record<string, string | undefined>) {
 		const params = new URLSearchParams($page.url.searchParams);
@@ -245,7 +236,7 @@
 				{#each data.data as log}
 					<Table.Row>
 						<Table.Cell class="text-muted-foreground text-sm whitespace-nowrap">
-							{formatDate(log.createdAt)}
+							{formatDateTime(log.createdAt)}
 						</Table.Cell>
 						<Table.Cell>
 							{#if log.user}

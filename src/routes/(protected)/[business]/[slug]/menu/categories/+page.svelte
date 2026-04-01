@@ -28,6 +28,7 @@
 	import { userFriendlyError } from '$lib/utils/error';
 	import { invalidate } from '$app/navigation';
 	import { clearApiCache } from '$lib/api/client';
+	import { invalidateMenuCache } from '$lib/stores/pos-cache';
 
 	let { data }: { data: PageData } = $props();
 
@@ -35,6 +36,7 @@
 
 	function invalidateMenuData() {
 		clearApiCache('/menu');
+		invalidateMenuCache();
 		invalidate('app:menu');
 	}
 

@@ -21,6 +21,7 @@
 		deleteAdminAnnouncement,
 		toggleAdminAnnouncementPublish
 	} from '$lib/api/admin';
+	import { formatDate, getStatusBadgeVariant } from '$lib/utils/formatting';
 
 	import Plus from '@lucide/svelte/icons/plus';
 	import Pencil from '@lucide/svelte/icons/pencil';
@@ -185,23 +186,6 @@
 		if (announcement.publishAt && new Date(announcement.publishAt) > now) return 'Scheduled';
 		if (announcement.expiresAt && new Date(announcement.expiresAt) <= now) return 'Expired';
 		return 'Active';
-	}
-
-	function getStatusBadgeVariant(
-		status: string
-	): 'default' | 'destructive' | 'secondary' | 'outline' {
-		if (status === 'Active') return 'default';
-		if (status === 'Scheduled') return 'secondary';
-		if (status === 'Expired') return 'outline';
-		return 'destructive';
-	}
-
-	function formatDate(dateStr: string): string {
-		return new Date(dateStr).toLocaleDateString('en-US', {
-			month: 'short',
-			day: 'numeric',
-			year: 'numeric'
-		});
 	}
 
 	function getTargetLabel(target: string): string {

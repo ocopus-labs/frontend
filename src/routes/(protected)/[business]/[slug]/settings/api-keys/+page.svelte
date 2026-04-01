@@ -14,6 +14,7 @@
 	import { EmptyState } from '$lib/components/data-display';
 	import { toast } from 'svelte-sonner';
 	import { userFriendlyError } from '$lib/utils/error';
+	import { formatDate } from '$lib/utils/formatting';
 	import {
 		IconPlus,
 		IconKey,
@@ -280,15 +281,6 @@
 		} catch {
 			toast.error('Failed to copy');
 		}
-	}
-
-	function formatDate(dateString?: string | null): string {
-		if (!dateString) return '-';
-		return new Date(dateString).toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric'
-		});
 	}
 
 	function formatRelativeTime(dateString?: string | null): string {

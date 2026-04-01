@@ -203,36 +203,12 @@
 		if (invalidateTimer) clearTimeout(invalidateTimer);
 	});
 
-	// Transform API orders to kitchen display format
-	interface KitchenOrder {
-		id: string;
-		orderId: string;
-		table: string;
-		type: string;
-		createdAt: string;
-		rawCreatedAt: number;
-		elapsed: number;
-		priority: string;
-		priorityWeight: number;
-		readyCount: number;
-		totalCount: number;
-		orderSource?: string;
-		items: Array<{
-			id: string;
-			name: string;
-			quantity: number;
-			notes: string | null;
-			status: string;
-		}>;
-	}
+	import type { KitchenOrder } from '$lib/types/pos';
+	import { PRIORITY_WEIGHTS } from '$lib/constants/domain';
+	import { formatOrderType } from '$lib/utils/formatting';
 
 	function getPriorityWeight(priority: string): number {
-		switch (priority) {
-			case 'urgent': return 3;
-			case 'high': return 2;
-			case 'normal': return 1;
-			default: return 0;
-		}
+		return PRIORITY_WEIGHTS[priority] ?? 0;
 	}
 
 	let allOrders = $derived<KitchenOrder[]>(
@@ -287,21 +263,6 @@
 	let pendingCount = $derived(allOrders.filter((o) => o.items.some((i) => i.status === 'pending')).length);
 	let preparingCount = $derived(allOrders.filter((o) => o.items.some((i) => i.status === 'preparing')).length);
 	let readyCount = $derived(allOrders.filter((o) => o.items.every((i) => i.status === 'ready' || i.status === 'served')).length);
-
-	function formatOrderType(type: string): string {
-		switch (type) {
-			case 'dine_in':
-				return 'Dine-In';
-			case 'takeaway':
-				return 'Takeaway';
-			case 'delivery':
-				return 'Delivery';
-			case 'online':
-				return 'Online';
-			default:
-				return type;
-		}
-	}
 
 	function getElapsedColor(elapsed: number) {
 		if (elapsed >= 15) return 'text-red-500';

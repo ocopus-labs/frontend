@@ -33,6 +33,7 @@
 	import Download from '@lucide/svelte/icons/download';
 	import { exportAdminBusinesses } from '$lib/api/admin';
 	import { downloadBlob } from '$lib/utils/export';
+	import { formatDate } from '$lib/utils/formatting';
 
 	let { data }: { data: PageData } = $props();
 
@@ -99,14 +100,6 @@
 			updateFilters({ search: searchQuery || undefined });
 		}, 300);
 	});
-
-	function formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleDateString(undefined, {
-			day: 'numeric',
-			month: 'short',
-			year: 'numeric'
-		});
-	}
 
 	function updateFilters(updates: Record<string, string | undefined>) {
 		const params = new URLSearchParams($page.url.searchParams);

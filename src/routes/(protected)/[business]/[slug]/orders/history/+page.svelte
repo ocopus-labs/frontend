@@ -24,6 +24,7 @@
 	import { userFriendlyError } from '$lib/utils/error';
 	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
 	import type { CurrencyCode } from '$lib/utils/i18n';
+	import { formatOrderType } from '$lib/utils/formatting';
 
 	let { data }: { data: PageData } = $props();
 
@@ -48,16 +49,6 @@
 			orderSource: order.orderSource
 		}))
 	);
-
-	function formatOrderType(type: string): string {
-		switch (type) {
-			case 'dine_in': return 'Dine-In';
-			case 'takeaway': return 'Takeaway';
-			case 'delivery': return 'Delivery';
-			case 'online': return 'Online';
-			default: return type;
-		}
-	}
 
 	let searchQuery = $state('');
 	let statusFilter = $state('all');

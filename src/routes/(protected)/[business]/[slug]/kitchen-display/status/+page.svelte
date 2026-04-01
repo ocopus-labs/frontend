@@ -13,6 +13,7 @@
 	} from '@tabler/icons-svelte';
 	import { invalidate } from '$app/navigation';
 	import type { Order, OrderItem } from '$lib/api';
+	import { formatOrderType } from '$lib/utils/formatting';
 	import { onMount, onDestroy } from 'svelte';
 	import {
 		connectSocket,
@@ -205,21 +206,6 @@
 			document.removeEventListener('touchstart', pauseScroll);
 		}
 	});
-
-	function formatOrderType(type: string): string {
-		switch (type) {
-			case 'dine_in':
-				return 'Dine-In';
-			case 'takeaway':
-				return 'Takeaway';
-			case 'delivery':
-				return 'Delivery';
-			case 'online':
-				return 'Online';
-			default:
-				return type;
-		}
-	}
 
 	function getElapsed(createdAt: string): number {
 		return Math.floor((now - new Date(createdAt).getTime()) / 60000);

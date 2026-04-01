@@ -29,6 +29,7 @@
 		type CreateSupplierPayload
 	} from '$lib/api';
 	import { userFriendlyError } from '$lib/utils/error';
+	import { formatDate } from '$lib/utils/formatting';
 	import * as Select from '$lib/components/ui/select';
 
 	let { data }: { data: PageData } = $props();
@@ -79,15 +80,6 @@
 		active: suppliers.filter((s) => s.status === 'active').length,
 		totalOrders: suppliers.reduce((sum, s) => sum + s.totalOrders, 0)
 	});
-
-	function formatDate(dateString?: string): string {
-		if (!dateString) return '-';
-		return new Date(dateString).toLocaleDateString('en-US', {
-			month: 'short',
-			day: 'numeric',
-			year: 'numeric'
-		});
-	}
 
 	async function addSupplier() {
 		if (!newSupplier.name.trim()) {

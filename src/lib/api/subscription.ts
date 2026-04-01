@@ -85,17 +85,6 @@ export async function getMySubscription(
 }
 
 /**
- * Get subscription for a business (returns the owner's subscription)
- */
-export async function getBusinessSubscription(
-  businessId: string,
-  options?: FetchOption
-): Promise<{ subscription: Subscription | null }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.get(`/subscription/business/${businessId}`);
-}
-
-/**
  * Get current usage stats
  */
 export async function getSubscriptionUsage(

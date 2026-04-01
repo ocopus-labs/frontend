@@ -9,6 +9,7 @@
 	import type { PageData } from './$types';
 
 	import { formatCurrency } from '$lib/utils/i18n';
+	import { formatDateShort } from '$lib/utils/formatting';
 
 	import BarChart from '$lib/components/chart/lazy-bar-chart.svelte';
 
@@ -26,13 +27,6 @@
 
 	function formatCurrencyValue(value: number): string {
 		return formatCurrency(value, 'USD');
-	}
-
-	function formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleDateString(undefined, {
-			day: 'numeric',
-			month: 'short'
-		});
 	}
 
 	function applyDateFilter() {
@@ -61,7 +55,7 @@
 	// Chart data transformations
 	const dailyChartData = $derived(
 		data.analytics.dailyStats.map((d: any) => ({
-			date: formatDate(d.date),
+			date: formatDateShort(d.date),
 			orders: Number(d.orders_count),
 			revenue: Number(d.revenue)
 		}))
@@ -69,14 +63,14 @@
 
 	const userGrowthChartData = $derived(
 		data.analytics.userGrowth.map((d: any) => ({
-			date: formatDate(d.date),
+			date: formatDateShort(d.date),
 			users: Number(d.new_users)
 		}))
 	);
 
 	const businessGrowthChartData = $derived(
 		data.analytics.businessGrowth.map((d: any) => ({
-			date: formatDate(d.date),
+			date: formatDateShort(d.date),
 			businesses: Number(d.new_businesses)
 		}))
 	);
@@ -90,7 +84,7 @@
 	<div>
 		<h1 class="text-3xl font-bold tracking-tight">Platform Analytics</h1>
 		<p class="text-muted-foreground">
-			{formatDate(data.analytics.period.start)} - {formatDate(data.analytics.period.end)}
+			{formatDateShort(data.analytics.period.start)} - {formatDateShort(data.analytics.period.end)}
 		</p>
 	</div>
 

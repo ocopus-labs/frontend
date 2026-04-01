@@ -15,6 +15,7 @@
 	import type { PageData } from './$types';
 	import type { AdminWebhookDetail } from '$lib/api/admin';
 	import { getAdminWebhookDetail, retryAdminWebhook } from '$lib/api/admin';
+	import { formatDateTime, getStatusBadgeVariant } from '$lib/utils/formatting';
 
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
@@ -41,16 +42,6 @@
 	let retryTargetId = $state('');
 	let retryTargetEventId = $state('');
 	let isRetrying = $state(false);
-
-	function formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleString(undefined, {
-			day: 'numeric',
-			month: 'short',
-			year: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-	}
 
 	function updateFilters(updates: Record<string, string | undefined>) {
 		const params = new URLSearchParams($page.url.searchParams);
@@ -135,15 +126,6 @@
 		} finally {
 			isRetrying = false;
 		}
-	}
-
-	function getStatusBadgeVariant(
-		status: string
-	): 'default' | 'destructive' | 'secondary' | 'outline' {
-		if (status === 'processed') return 'default';
-		if (status === 'failed') return 'destructive';
-		if (status === 'pending') return 'secondary';
-		return 'outline';
 	}
 
 	const providerOptions = [
@@ -294,11 +276,11 @@
 								{/if}
 							</Table.Cell>
 							<Table.Cell class="text-muted-foreground text-sm whitespace-nowrap">
-								{formatDate(webhook.createdAt)}
+								{formatDateTime(webhook.createdAt)}
 							</Table.Cell>
 							<Table.Cell class="text-muted-foreground text-sm whitespace-nowrap">
 								{#if webhook.processedAt}
-									{formatDate(webhook.processedAt)}
+									{formatDateTime(webhook.processedAt)}
 								{:else}
 									<span class="text-muted-foreground">-</span>
 								{/if}
@@ -425,12 +407,12 @@
 					</div>
 					<div class="space-y-1">
 						<p class="text-xs text-muted-foreground font-medium">Created</p>
-						<p class="text-sm">{formatDate(selectedEvent.createdAt)}</p>
+						<p class="text-sm">{formatDateTime(selectedEvent.createdAt)}</p>
 					</div>
 					<div class="space-y-1">
 						<p class="text-xs text-muted-foreground font-medium">Processed</p>
 						<p class="text-sm">
-							{selectedEvent.processedAt ? formatDate(selectedEvent.processedAt) : 'Not yet'}
+							{selectedEvent.processedAt ? formatDateTime(selectedEvent.processedAt) : 'Not yet'}
 						</p>
 					</div>
 				</div>

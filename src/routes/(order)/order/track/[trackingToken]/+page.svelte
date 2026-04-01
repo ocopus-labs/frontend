@@ -2,6 +2,7 @@
 	import type { PageData } from './$types';
 	import { Button } from '$lib/components/ui/button';
 	import { getOrderTracking, createDodoPaymentCheckout } from '$lib/api';
+	import { formatDate, formatTime } from '$lib/utils/formatting';
 	import CheckCircle2Icon from '@lucide/svelte/icons/check-circle-2';
 	import ClockIcon from '@lucide/svelte/icons/clock';
 	import CookingPotIcon from '@lucide/svelte/icons/cooking-pot';
@@ -41,21 +42,6 @@
 			minimumFractionDigits: 0,
 			maximumFractionDigits: 2
 		}).format(amount);
-	}
-
-	function formatTime(dateStr: string) {
-		return new Date(dateStr).toLocaleTimeString('en-IN', {
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-	}
-
-	function formatDate(dateStr: string) {
-		return new Date(dateStr).toLocaleDateString('en-IN', {
-			day: 'numeric',
-			month: 'short',
-			year: 'numeric'
-		});
 	}
 
 	const statusSteps = [
