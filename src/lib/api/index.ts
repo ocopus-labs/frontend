@@ -399,6 +399,15 @@ export {
   type KitchenStation
 } from './kitchen-station';
 
+// Features API
+export {
+  getBusinessFeatures,
+  enableFeature,
+  disableFeature,
+  type FeatureInfo,
+  type BusinessFeatures
+} from './features';
+
 // Customer Self-Ordering API
 export {
   getPublicBusinessInfo,

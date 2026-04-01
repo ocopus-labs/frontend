@@ -13,11 +13,13 @@
 	let {
 		items,
 		subscription = null,
-		userRole = null
+		userRole = null,
+		enabledFeatures = null
 	}: {
 		items: NavItem[];
 		subscription?: Subscription | null;
 		userRole?: string | null;
+		enabledFeatures?: string[] | null;
 	} = $props();
 
 	// State for upgrade dialog
@@ -32,7 +34,7 @@
 		!userRole || userRole === 'owner' || userRole === 'restaurant_owner'
 	);
 
-	// Filter items based on user role and subscription
+	// Filter items based on user role, subscription, and enabled features
 	const visibleItems = $derived(
 		items.filter((item) => {
 			// Role-based filtering: hide management pages from non-permitted roles
@@ -41,6 +43,16 @@
 					return false;
 				}
 			}
+
+			// Dynamic feature filtering: if the business has an enabledFeatures list,
+			// hide items whose requiredFeature is not in that list.
+			// This applies to all roles — if a feature is off, the nav item is hidden.
+			if (enabledFeatures !== null && item.requiredFeature) {
+				if (!enabledFeatures.includes(item.requiredFeature as string)) {
+					return false;
+				}
+			}
+
 			// Subscription-based filtering for non-owners:
 			// If a feature is locked and user can't manage subscription, hide it entirely
 			// (no point showing upgrade prompts to staff who can't upgrade)
