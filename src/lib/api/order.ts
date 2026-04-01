@@ -31,6 +31,7 @@ export interface OrderItem {
   cancellationNote?: string;
   cancelledBy?: string;
   cancelledAt?: string;
+  categoryId?: string;
 }
 
 export interface OrderPricing {
