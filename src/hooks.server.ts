@@ -74,5 +74,15 @@ export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
 		request.headers.set('cookie', event.request.headers.get('cookie') || '');
 	}
 
-	return fetch(request);
+	const response = await fetch(request);
+
+	// Redirect to maintenance page on 503 from API during SSR
+	if (response.status === 503) {
+		const body = await response.clone().json().catch(() => null);
+		if (body?.maintenance) {
+			redirect(307, '/maintenance');
+		}
+	}
+
+	return response;
 };
