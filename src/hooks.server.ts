@@ -6,7 +6,7 @@ import { env } from '$env/dynamic/public';
 let maintenanceCache: { value: boolean; checked: number } = { value: false, checked: 0 };
 const MAINTENANCE_CACHE_TTL = 15_000; // 15 seconds
 
-async function isMaintenanceMode(cookie: string): Promise<boolean> {
+async function isMaintenanceMode(): Promise<boolean> {
 	const now = Date.now();
 	if (now - maintenanceCache.checked < MAINTENANCE_CACHE_TTL) {
 		return maintenanceCache.value;
@@ -14,19 +14,12 @@ async function isMaintenanceMode(cookie: string): Promise<boolean> {
 
 	try {
 		const baseUrl = env.PUBLIC_API_BASE || 'http://localhost:3000/api';
-		// Hit any authenticated endpoint — if backend is in maintenance, it returns 503
-		const res = await fetch(`${baseUrl}/business`, {
-			headers: { cookie },
+		const res = await fetch(`${baseUrl}/ping`, {
 			signal: AbortSignal.timeout(3000),
 		}).catch(() => null);
 
-		if (res?.status === 503) {
-			const body = await res.json().catch(() => null);
-			maintenanceCache = { value: !!body?.maintenance, checked: now };
-			return maintenanceCache.value;
-		}
-
-		maintenanceCache = { value: false, checked: now };
+		// 503 = maintenance on, 200 = maintenance off
+		maintenanceCache = { value: res?.status === 503, checked: now };
 	} catch {
 		maintenanceCache = { value: false, checked: now };
 	}
@@ -92,8 +85,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// Check maintenance mode for non-admin users on protected routes
 	if (sessionData.user?.role !== 'super_admin' && !pathname.startsWith('/admin')) {
-		const cookie = event.request.headers.get('cookie') || '';
-		const inMaintenance = await isMaintenanceMode(cookie);
+		const inMaintenance = await isMaintenanceMode();
 		if (inMaintenance) {
 			redirect(307, '/maintenance');
 		}
