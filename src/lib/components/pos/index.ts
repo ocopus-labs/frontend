@@ -11,7 +11,11 @@ export { default as FloorPlanTable } from './FloorPlanTable.svelte';
 export { default as Receipt } from './Receipt.svelte';
 export { default as ReceiptDialog } from './ReceiptDialog.svelte';
 export { default as RefundDialog } from './RefundDialog.svelte';
+export { default as CancelItemDialog } from './CancelItemDialog.svelte';
 export { default as CustomerPicker } from './customer-picker.svelte';
+export { default as TableTransferDialog } from './TableTransferDialog.svelte';
+export { default as TableMergeDialog } from './TableMergeDialog.svelte';
+export { default as TableSplitDialog } from './TableSplitDialog.svelte';
 
 export type { Category } from './MenuCategories.svelte';
 export type { MenuItem } from './MenuItemCard.svelte';
