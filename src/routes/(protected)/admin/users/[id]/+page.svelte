@@ -3,8 +3,10 @@
 	import * as Avatar from '$lib/components/ui/avatar/index.js';
 	import * as Select from '$lib/components/ui/select/index.js';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
+	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import {
@@ -17,7 +19,10 @@
 		adminRevokeSession,
 		adminRevokeAllSessions,
 		adminDeleteUser,
+		adminResetPassword,
+		adminUpdateUserProfile,
 		impersonateUser,
+		getAdminAuditLogs,
 		type UserSessionInfo
 	} from '$lib/api/admin';
 	import { toast } from 'svelte-sonner';
@@ -31,26 +36,46 @@
 	import MailCheck from '@lucide/svelte/icons/mail-check';
 	import Calendar from '@lucide/svelte/icons/calendar';
 	import Building2 from '@lucide/svelte/icons/building-2';
-	import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
 	import Ban from '@lucide/svelte/icons/ban';
 	import ShieldCheck from '@lucide/svelte/icons/shield-check';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
-	import KeyRound from '@lucide/svelte/icons/key-round';
 	import Smartphone from '@lucide/svelte/icons/smartphone';
 	import Monitor from '@lucide/svelte/icons/monitor';
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import UserCog from '@lucide/svelte/icons/user-cog';
+	import KeyRound from '@lucide/svelte/icons/key-round';
+	import Pencil from '@lucide/svelte/icons/pencil';
+	import Clock from '@lucide/svelte/icons/clock';
+	import Activity from '@lucide/svelte/icons/activity';
+	import Copy from '@lucide/svelte/icons/copy';
 
 	let { data }: { data: PageData } = $props();
 	let user = $derived(data.user);
 
+	// Dialog states
 	let banDialogOpen = $state(false);
 	let deleteDialogOpen = $state(false);
 	let disable2FADialogOpen = $state(false);
 	let impersonateDialogOpen = $state(false);
+	let resetPasswordDialogOpen = $state(false);
+	let editProfileOpen = $state(false);
+
 	let isActioning = $state(false);
+
+	// Sessions
 	let sessions = $state<UserSessionInfo[]>([]);
 	let sessionsLoaded = $state(false);
+
+	// Audit logs
+	let auditLogs = $state<any[]>([]);
+	let auditLogsLoaded = $state(false);
+
+	// Edit profile state
+	let editName = $state('');
+	let editEmail = $state('');
+
+	// Reset password result
+	let tempPassword = $state('');
 
 	import { ADMIN_ROLE_OPTIONS } from '$lib/constants/domain';
 	const ROLES = ADMIN_ROLE_OPTIONS;
@@ -75,12 +100,38 @@
 		return 'Browser';
 	}
 
+	function openEditProfile() {
+		editName = user.name || '';
+		editEmail = user.email || '';
+		editProfileOpen = true;
+	}
+
+	async function saveProfile() {
+		isActioning = true;
+		try {
+			await adminUpdateUserProfile(user.id, { name: editName, email: editEmail });
+			toast.success('Profile updated');
+			editProfileOpen = false;
+			await invalidate('app:admin-users');
+		} catch (e: any) { toast.error(e?.message || 'Failed to update'); }
+		finally { isActioning = false; }
+	}
+
 	async function loadSessions() {
 		if (sessionsLoaded) return;
 		try {
 			sessions = await adminGetUserSessions(user.id);
 			sessionsLoaded = true;
 		} catch { toast.error('Failed to load sessions'); }
+	}
+
+	async function loadAuditLogs() {
+		if (auditLogsLoaded) return;
+		try {
+			const result = await getAdminAuditLogs({ userId: user.id, limit: 20 });
+			auditLogs = result.logs;
+			auditLogsLoaded = true;
+		} catch { toast.error('Failed to load activity'); }
 	}
 
 	async function confirmBan(reason?: string) {
@@ -108,7 +159,7 @@
 		isActioning = true;
 		try {
 			await updateAdminUserRole(user.id, newRole);
-			toast.success(`Role updated to ${newRole.replace('_', ' ')}`);
+			toast.success(`Role updated to ${newRole.replace(/_/g, ' ')}`);
 			await invalidate('app:admin-users');
 		} catch { toast.error('Failed to update role'); }
 		finally { isActioning = false; }
@@ -132,6 +183,21 @@
 			await invalidate('app:admin-users');
 		} catch { toast.error('Failed to disable 2FA'); }
 		finally { isActioning = false; }
+	}
+
+	async function handleResetPassword() {
+		isActioning = true;
+		try {
+			const result = await adminResetPassword(user.id);
+			tempPassword = result.temporaryPassword;
+			resetPasswordDialogOpen = true;
+		} catch { toast.error('Failed to reset password'); }
+		finally { isActioning = false; }
+	}
+
+	async function copyTempPassword() {
+		await navigator.clipboard.writeText(tempPassword);
+		toast.success('Password copied to clipboard');
 	}
 
 	async function handleRevokeSession(sessionId: string) {
@@ -221,6 +287,11 @@
 					</Avatar.Root>
 					<h2 class="text-xl font-semibold">{user.name || 'Unnamed User'}</h2>
 					<p class="text-muted-foreground text-sm">{user.email}</p>
+
+					<Button variant="ghost" size="sm" class="mt-2" onclick={openEditProfile}>
+						<Pencil class="mr-1 h-3 w-3" />Edit
+					</Button>
+
 					<div class="flex flex-wrap gap-2 mt-4 justify-center">
 						{#if user.role}
 							<Badge variant={getRoleBadgeVariant(user.role)} class="capitalize">
@@ -239,9 +310,33 @@
 							<Badge variant="secondary"><Mail class="h-3 w-3 mr-1" />Unverified</Badge>
 						{/if}
 					</div>
-					<p class="text-xs text-muted-foreground mt-4">
-						<Calendar class="h-3 w-3 inline mr-1" />Joined {formatDate(user.createdAt)}
-					</p>
+
+					<Separator class="my-4" />
+
+					<div class="w-full space-y-2 text-left text-sm">
+						<div class="flex justify-between">
+							<span class="text-muted-foreground">Joined</span>
+							<span>{formatDate(user.createdAt)}</span>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-muted-foreground">Last login</span>
+							<span>{user.lastLogin ? formatDateTime(user.lastLogin) : 'Never'}</span>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-muted-foreground">Auth method</span>
+							<span class="capitalize">{user.authMethods?.length ? user.authMethods.join(', ') : 'email'}</span>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-muted-foreground">2FA</span>
+							<span>{user.twoFactorEnabled ? 'Enabled' : 'Disabled'}</span>
+						</div>
+						{#if user.banned && user.banReason}
+							<div class="flex justify-between">
+								<span class="text-muted-foreground">Ban reason</span>
+								<span class="text-destructive text-right max-w-[60%]">{user.banReason}</span>
+							</div>
+						{/if}
+					</div>
 				</div>
 			</Card.Content>
 		</Card.Root>
@@ -273,13 +368,14 @@
 		</Card.Root>
 	</div>
 
-	<!-- Tabs: Actions, Sessions, Businesses, Subscriptions -->
+	<!-- Tabs -->
 	<Tabs.Root value="actions">
 		<Tabs.List>
 			<Tabs.Trigger value="actions">Admin Actions</Tabs.Trigger>
 			<Tabs.Trigger value="sessions" onclick={loadSessions}>Sessions</Tabs.Trigger>
 			<Tabs.Trigger value="businesses">Businesses</Tabs.Trigger>
 			<Tabs.Trigger value="subscriptions">Subscriptions</Tabs.Trigger>
+			<Tabs.Trigger value="activity" onclick={loadAuditLogs}>Activity</Tabs.Trigger>
 		</Tabs.List>
 
 		<Tabs.Content value="actions">
@@ -303,6 +399,19 @@
 						</Select.Root>
 					</div>
 					<Separator />
+
+					<!-- Reset Password -->
+					<div class="flex items-center justify-between">
+						<div>
+							<p class="font-medium">Reset Password</p>
+							<p class="text-sm text-muted-foreground">Generate a temporary password for this user</p>
+						</div>
+						<Button variant="outline" size="sm" onclick={handleResetPassword} disabled={isActioning}>
+							<KeyRound class="mr-2 h-4 w-4" />Reset Password
+						</Button>
+					</div>
+					<Separator />
+
 					<!-- Verify Email -->
 					{#if !user.emailVerified}
 						<div class="flex items-center justify-between">
@@ -316,6 +425,7 @@
 						</div>
 						<Separator />
 					{/if}
+
 					<!-- 2FA -->
 					{#if user.twoFactorEnabled}
 						<div class="flex items-center justify-between">
@@ -326,14 +436,6 @@
 							<Button variant="destructive" size="sm" onclick={() => (disable2FADialogOpen = true)} disabled={isActioning}>
 								<Smartphone class="mr-2 h-4 w-4" />Disable 2FA
 							</Button>
-						</div>
-						<Separator />
-					{/if}
-					<!-- Ban Info -->
-					{#if user.banned && user.banReason}
-						<div class="rounded-lg border border-destructive/50 bg-destructive/5 p-4">
-							<p class="font-medium text-destructive">Ban Reason</p>
-							<p class="text-sm mt-1">{user.banReason}</p>
 						</div>
 					{/if}
 				</Card.Content>
@@ -430,7 +532,7 @@
 									<div>
 										<p class="font-medium">{sub.plan?.displayName || sub.plan?.name || 'Unknown Plan'}</p>
 										<p class="text-xs text-muted-foreground">
-											Period ends: {formatDate(sub.currentPeriodEnd)}
+											Period: {formatDate(sub.currentPeriodStart)} — {formatDate(sub.currentPeriodEnd)}
 										</p>
 									</div>
 									<Badge variant={sub.status === 'active' ? 'default' : sub.status === 'canceled' ? 'destructive' : 'secondary'} class="capitalize">
@@ -445,10 +547,93 @@
 				</Card.Content>
 			</Card.Root>
 		</Tabs.Content>
+
+		<Tabs.Content value="activity">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Recent Activity</Card.Title>
+				</Card.Header>
+				<Card.Content>
+					{#if !auditLogsLoaded}
+						<p class="text-muted-foreground text-sm">Loading activity...</p>
+					{:else if auditLogs.length === 0}
+						<p class="text-muted-foreground text-sm">No activity recorded</p>
+					{:else}
+						<div class="space-y-2">
+							{#each auditLogs as log}
+								<div class="flex items-start gap-3 rounded-lg border p-3">
+									<Activity class="mt-0.5 h-4 w-4 text-muted-foreground shrink-0" />
+									<div class="flex-1 min-w-0">
+										<p class="text-sm font-medium">{log.action}</p>
+										<p class="text-xs text-muted-foreground">
+											{log.resource}{log.resourceId ? ` / ${log.resourceId.slice(0, 8)}...` : ''}
+										</p>
+										{#if log.details && Object.keys(log.details).length > 0}
+											<p class="text-xs text-muted-foreground mt-0.5 truncate">
+												{JSON.stringify(log.details).slice(0, 100)}
+											</p>
+										{/if}
+									</div>
+									<span class="text-xs text-muted-foreground shrink-0">{formatDateTime(log.createdAt)}</span>
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</Card.Content>
+			</Card.Root>
+		</Tabs.Content>
 	</Tabs.Root>
 </div>
 
-<!-- Dialogs -->
+<!-- Edit Profile Dialog -->
+<Dialog.Root bind:open={editProfileOpen}>
+	<Dialog.Content class="sm:max-w-md">
+		<Dialog.Header>
+			<Dialog.Title>Edit User Profile</Dialog.Title>
+			<Dialog.Description>Update the user's name and email address.</Dialog.Description>
+		</Dialog.Header>
+		<div class="space-y-4 py-4">
+			<div class="space-y-2">
+				<label for="edit-name" class="text-sm font-medium">Name</label>
+				<Input id="edit-name" bind:value={editName} placeholder="Full name" />
+			</div>
+			<div class="space-y-2">
+				<label for="edit-email" class="text-sm font-medium">Email</label>
+				<Input id="edit-email" type="email" bind:value={editEmail} placeholder="email@example.com" />
+			</div>
+		</div>
+		<Dialog.Footer>
+			<Button variant="outline" onclick={() => (editProfileOpen = false)}>Cancel</Button>
+			<Button onclick={saveProfile} disabled={isActioning}>
+				{isActioning ? 'Saving...' : 'Save Changes'}
+			</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>
+
+<!-- Reset Password Result Dialog -->
+<Dialog.Root bind:open={resetPasswordDialogOpen}>
+	<Dialog.Content class="sm:max-w-md">
+		<Dialog.Header>
+			<Dialog.Title>Password Reset</Dialog.Title>
+			<Dialog.Description>A temporary password has been generated. Share it securely with the user.</Dialog.Description>
+		</Dialog.Header>
+		<div class="py-4">
+			<div class="flex items-center gap-2 rounded-lg border bg-muted p-3">
+				<code class="flex-1 text-sm font-mono">{tempPassword}</code>
+				<Button variant="ghost" size="sm" onclick={copyTempPassword}>
+					<Copy class="h-4 w-4" />
+				</Button>
+			</div>
+			<p class="mt-2 text-xs text-muted-foreground">The user will be required to change this password on next login.</p>
+		</div>
+		<Dialog.Footer>
+			<Button onclick={() => { resetPasswordDialogOpen = false; tempPassword = ''; }}>Done</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>
+
+<!-- Confirm Dialogs -->
 <ConfirmDialog
 	bind:open={banDialogOpen}
 	title="Ban User"

@@ -822,6 +822,14 @@ export async function updateAdminSettings(
 
 // ==================== DEEP USER MANAGEMENT ====================
 
+export async function adminUpdateUserProfile(
+  userId: string,
+  data: { name?: string; email?: string }
+): Promise<{ message: string; user: any }> {
+  const api = getApiClient();
+  return api.patch(`/admin/users/${userId}/profile`, data);
+}
+
 export async function adminResetPassword(userId: string): Promise<{ temporaryPassword: string }> {
   const api = getApiClient();
   return api.post(`/admin/users/${userId}/reset-password`);
