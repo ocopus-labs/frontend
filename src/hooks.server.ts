@@ -14,13 +14,19 @@ async function isMaintenanceMode(): Promise<boolean> {
 
 	try {
 		const baseUrl = env.PUBLIC_API_BASE || 'http://localhost:3000/api';
-		const res = await fetch(`${baseUrl}/ping`, {
+		const pingUrl = `${baseUrl}/ping`;
+		const res = await fetch(pingUrl, {
 			signal: AbortSignal.timeout(3000),
-		}).catch(() => null);
+		}).catch((err) => {
+			console.error('[maintenance-check] fetch failed:', pingUrl, err?.message);
+			return null;
+		});
 
-		// 503 = maintenance on, 200 = maintenance off
-		maintenanceCache = { value: res?.status === 503, checked: now };
-	} catch {
+		const result = res?.status === 503;
+		console.log(`[maintenance-check] ${pingUrl} -> ${res?.status} -> maintenance=${result}`);
+		maintenanceCache = { value: result, checked: now };
+	} catch (err) {
+		console.error('[maintenance-check] error:', err);
 		maintenanceCache = { value: false, checked: now };
 	}
 
@@ -68,8 +74,15 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Redirect logged-in users away from landing and auth pages
 	if (isLandingPage || isAuthRoute) {
 		if (sessionData) {
-			const target = sessionData.user?.role === 'super_admin' ? '/admin' : '/dashboard';
-			redirect(307, target);
+			if (sessionData.user?.role === 'super_admin') {
+				redirect(307, '/admin');
+			}
+			// For non-admin users, check maintenance before redirecting
+			const inMaintenance = await isMaintenanceMode();
+			if (inMaintenance) {
+				redirect(307, '/maintenance');
+			}
+			redirect(307, '/dashboard');
 		}
 		return resolve(event);
 	}
@@ -84,7 +97,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.user = sessionData.user;
 
 	// Check maintenance mode for non-admin users on protected routes
-	if (sessionData.user?.role !== 'super_admin' && !pathname.startsWith('/admin')) {
+	// Skip for auth routes so users can log out / switch accounts
+	if (sessionData.user?.role !== 'super_admin' && !pathname.startsWith('/admin') && !isAuthRoute && !isLandingPage) {
 		const inMaintenance = await isMaintenanceMode();
 		if (inMaintenance) {
 			redirect(307, '/maintenance');
