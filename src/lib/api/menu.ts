@@ -236,6 +236,24 @@ export async function seedDefaultCategories(
   return api.post(`/business/${businessId}/menu/seed-categories`);
 }
 
+export async function seedMenuTemplate(
+  businessId: string,
+  template: string,
+  options?: FetchOption
+): Promise<{ message: string; categoriesCreated: number; itemsCreated: number }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/business/${businessId}/menu/seed-template`, { template });
+}
+
+export async function bulkImportMenuItems(
+  businessId: string,
+  items: { name: string; price: number; category: string; description?: string }[],
+  options?: FetchOption
+): Promise<{ message: string; categoriesCreated: number; itemsCreated: number }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/business/${businessId}/menu/import`, { items });
+}
+
 // ==================== MODIFIER GROUPS ====================
 
 export async function getModifierGroups(

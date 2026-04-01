@@ -3,22 +3,32 @@
 	import { cn } from '$lib/utils';
 	import { toast } from 'svelte-sonner';
 	import { createBusiness, type CreateBusinessPayload, type BusinessType } from '$lib/api';
+	import { BUSINESS_TYPE_CONFIG } from '$lib/types/business';
 
 	import Building2 from '@lucide/svelte/icons/building-2';
-	import MapPin from '@lucide/svelte/icons/map-pin';
+	import UtensilsCrossed from '@lucide/svelte/icons/utensils-crossed';
+	import Grid3x3 from '@lucide/svelte/icons/grid-3x3';
+	import CreditCard from '@lucide/svelte/icons/credit-card';
+	import Rocket from '@lucide/svelte/icons/rocket';
 	import CheckCircle2 from '@lucide/svelte/icons/check-circle-2';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
+	import LogOut from '@lucide/svelte/icons/log-out';
 
-	// Import step components
 	import BusinessEssentialsStep from '$lib/components/business-setup/business-essentials-step.svelte';
 	import FirstStoreStep from '$lib/components/business-setup/first-store-step.svelte';
+	import MenuSetupStep from '$lib/components/business-setup/menu-setup-step.svelte';
+	import TablesSetupStep from '$lib/components/business-setup/tables-setup-step.svelte';
+	import PaymentTaxStep from '$lib/components/business-setup/payment-tax-step.svelte';
+	import ReviewLaunchStep from '$lib/components/business-setup/review-launch-step.svelte';
+
 	import { goto } from '$app/navigation';
 	import { tick } from 'svelte';
 	import { useSession, signOut } from '$lib/auth';
 	import * as Avatar from '$lib/components/ui/avatar';
-	import LogOut from '@lucide/svelte/icons/log-out';
+
+	const STORAGE_KEY = 'onboarding-wizard';
 
 	// Session
 	const session = useSession();
@@ -26,45 +36,42 @@
 
 	async function handleLogout() {
 		try {
-			sessionStorage.removeItem('business-setup-progress');
+			clearProgress();
 			await signOut();
 			toast.success('Logged out successfully');
 			goto('/login');
 		} catch (error) {
-			console.error('Logout error:', error);
 			toast.error('Failed to logout');
 		}
 	}
 
-	// Step navigation
-	type Step = {
+	// Step definitions
+	type StepDef = {
 		id: string;
 		name: string;
 		icon: any;
 		description: string;
-		status: 'completed' | 'current' | 'upcoming';
 	};
 
+	const allSteps: StepDef[] = [
+		{ id: 'essentials', name: 'Business Info', icon: Building2, description: 'Name, type, and details' },
+		{ id: 'menu', name: 'Menu', icon: UtensilsCrossed, description: 'Add items to sell' },
+		{ id: 'tables', name: 'Tables', icon: Grid3x3, description: 'Set up your layout' },
+		{ id: 'payment', name: 'Payment & Tax', icon: CreditCard, description: 'How you get paid' },
+		{ id: 'launch', name: 'Launch', icon: Rocket, description: 'Review and go live' },
+	];
+
+	// State
 	let currentStep = $state(0);
+	let highestStepReached = $state(0);
+	let isSubmitting = $state(false);
 
-	let steps: Step[] = $state([
-		{
-			id: 'business-essentials',
-			name: 'Business Essentials',
-			icon: Building2,
-			description: 'Basic information about your business',
-			status: 'current'
-		},
-		{
-			id: 'location-details',
-			name: 'Location & Details',
-			icon: MapPin,
-			description: 'Address, phone, and tax rate',
-			status: 'upcoming'
-		}
-	]);
+	// Business data (created in Step 1)
+	let businessId = $state('');
+	let businessSlug = $state('');
+	let businessTypeResult = $state('');
 
-	// Form data - Step 1: Business Essentials
+	// Step 1 form data
 	let businessName = $state('');
 	let businessType = $state('');
 	let restaurantSubType = $state('');
@@ -75,37 +82,53 @@
 	let timezone = $state('');
 	let currency = $state('');
 	let step1Errors = $state({});
-
-	// Form data - Step 2: Location & Details
 	let address = $state('');
 	let phone = $state('');
 	let taxRate = $state('');
 	let step2Errors = $state({});
 
-	// Loading state for form submission
-	let isSubmitting = $state(false);
+	// Step completion tracking
+	let menuCompleted = $state(false);
+	let tablesCompleted = $state(false);
+	let paymentCompleted = $state(false);
 
-	// Accessibility: live region announcement
-	let stepAnnouncement = $state('');
+	// Summary text for review
+	let menuSummary = $state('');
+	let tablesSummary = $state('');
+	let paymentSummary = $state('');
 
-	// Component refs for validation
+	// Component refs
 	let step1Component = $state<any>(null);
 	let step2Component = $state<any>(null);
 
-	// Track highest step reached (for navigation)
-	let highestStepReached = $state(0);
+	// Check if tables step should be shown
+	const supportsTable = $derived(() => {
+		const config = BUSINESS_TYPE_CONFIG[businessType as keyof typeof BUSINESS_TYPE_CONFIG];
+		return config?.features?.includes('tables') ?? false;
+	});
 
-	// Flag to prevent effect loops
+	// Steps visible to user (may skip tables)
+	const visibleSteps = $derived(
+		supportsTable()
+			? allSteps
+			: allSteps.filter((s) => s.id !== 'tables')
+	);
+
+	const totalSteps = $derived(visibleSteps.length);
+	let stepAnnouncement = $state('');
 	let isInitialized = $state(false);
 
-	// Load saved progress on mount (runs once)
+	// Load saved progress from localStorage
 	if (typeof window !== 'undefined') {
-		const saved = sessionStorage.getItem('business-setup-progress');
+		const saved = localStorage.getItem(STORAGE_KEY);
 		if (saved) {
 			try {
 				const data = JSON.parse(saved);
-				currentStep = Math.min(data.currentStep ?? 0, 1);
-				highestStepReached = Math.min(data.highestStepReached ?? 0, 1);
+				businessId = data.businessId ?? '';
+				businessSlug = data.businessSlug ?? '';
+				businessTypeResult = data.businessTypeResult ?? '';
+				currentStep = data.currentStep ?? 0;
+				highestStepReached = data.highestStepReached ?? 0;
 				businessName = data.businessName ?? '';
 				businessType = data.businessType ?? '';
 				restaurantSubType = data.restaurantSubType ?? '';
@@ -115,107 +138,130 @@
 				city = data.city ?? '';
 				timezone = data.timezone ?? '';
 				currency = data.currency ?? '';
-				address = data.address ?? data.storeAddress ?? '';
-				phone = data.phone ?? data.storePhone ?? '';
+				address = data.address ?? '';
+				phone = data.phone ?? '';
 				taxRate = data.taxRate ?? '';
+				menuCompleted = data.menuCompleted ?? false;
+				tablesCompleted = data.tablesCompleted ?? false;
+				paymentCompleted = data.paymentCompleted ?? false;
+				menuSummary = data.menuSummary ?? '';
+				tablesSummary = data.tablesSummary ?? '';
+				paymentSummary = data.paymentSummary ?? '';
 			} catch (e) {
-				console.error('Failed to load saved progress:', e);
+				console.error('Failed to load wizard progress:', e);
 			}
 		}
 		isInitialized = true;
 	}
 
-	// Save form data to sessionStorage (with debounce)
+	// Save progress (debounced)
 	let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 	$effect(() => {
-		// Only save after initialization to avoid loops
 		if (!isInitialized) return;
+		if (typeof window === 'undefined') return;
 
-		if (typeof window !== 'undefined') {
-			// Clear existing timeout
-			if (saveTimeout) {
-				clearTimeout(saveTimeout);
-			}
-
-			// Debounce save
-			saveTimeout = setTimeout(() => {
-				const formData = {
-					currentStep,
-					highestStepReached,
-					businessName,
-					businessType,
-					restaurantSubType,
-					businessDescription,
-					businessLogo,
-					country,
-					city,
-					timezone,
-					currency,
-					address,
-					phone,
-					taxRate
-				};
-				sessionStorage.setItem('business-setup-progress', JSON.stringify(formData));
-			}, 500);
-		}
+		if (saveTimeout) clearTimeout(saveTimeout);
+		saveTimeout = setTimeout(() => {
+			localStorage.setItem(STORAGE_KEY, JSON.stringify({
+				businessId, businessSlug, businessTypeResult,
+				currentStep, highestStepReached,
+				businessName, businessType, restaurantSubType,
+				businessDescription, businessLogo,
+				country, city, timezone, currency,
+				address, phone, taxRate,
+				menuCompleted, tablesCompleted, paymentCompleted,
+				menuSummary, tablesSummary, paymentSummary,
+			}));
+		}, 500);
 	});
 
-	// Validate current step
-	function validateCurrentStep(): boolean {
-		switch (currentStep) {
-			case 0:
-				return step1Component?.validate() ?? false;
-			case 1:
-				return step2Component?.validate() ?? false;
-			default:
-				return true;
+	function clearProgress() {
+		if (typeof window !== 'undefined') {
+			localStorage.removeItem(STORAGE_KEY);
+			sessionStorage.removeItem('business-setup-progress');
 		}
 	}
 
-	// Update step status based on progress
-	function updateStepStatuses() {
-		steps = steps.map((step, index) => {
-			if (index < currentStep) {
-				return { ...step, status: 'completed' as const };
-			} else if (index === currentStep) {
-				return { ...step, status: 'current' as const };
-			} else {
-				return { ...step, status: 'upcoming' as const };
-			}
-		});
+	// Get the real step index (accounting for hidden tables step)
+	function getStepId(visibleIndex: number): string {
+		return visibleSteps[visibleIndex]?.id ?? '';
 	}
 
-	// Navigation functions
+	// Navigation
+	function updateStepStatuses() {
+		stepAnnouncement = `Step ${currentStep + 1} of ${totalSteps}: ${visibleSteps[currentStep]?.name}`;
+	}
+
+	async function focusStepHeading() {
+		await tick();
+		if (typeof document !== 'undefined') {
+			const heading = document.querySelector<HTMLElement>('.step-heading');
+			if (heading) heading.focus();
+		}
+	}
+
 	async function goToNextStep() {
-		// Validate current step before proceeding
-		if (!validateCurrentStep()) {
-			toast.error('Please fix the errors before continuing');
-			// Focus first invalid field
-			await tick();
-			if (typeof document !== 'undefined') {
-				const invalidEl = document.querySelector<HTMLElement>('[aria-invalid="true"]');
-				if (invalidEl) {
-					invalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-					invalidEl.focus();
+		const stepId = getStepId(currentStep);
+
+		// Step 1: validate form and create business
+		if (stepId === 'essentials') {
+			// Validate essentials
+			if (!(step1Component?.validate() ?? false)) {
+				toast.error('Please fix the errors before continuing');
+				return;
+			}
+
+			// If business not yet created, create it
+			if (!businessId) {
+				isSubmitting = true;
+				try {
+					const payload: CreateBusinessPayload = {
+						name: businessName,
+						type: businessType as BusinessType,
+						description: businessDescription || undefined,
+						logo: businessLogo || undefined,
+						subType: restaurantSubType || undefined,
+						address: {
+							street: address || undefined,
+							city: city || undefined,
+							country: country,
+						},
+						contact: {
+							email: user?.email || undefined,
+							phone: phone || undefined,
+						},
+						settings: {
+							timezone,
+							currency,
+							taxRate: taxRate || '0',
+						},
+					};
+					const result = await createBusiness(payload);
+					businessId = result.business.id;
+					businessSlug = result.business.slug;
+					businessTypeResult = result.business.type;
+					toast.success('Business created!');
+				} catch (error: any) {
+					const msg = error?.message || '';
+					if (msg.toLowerCase().includes('duplicate') || msg.toLowerCase().includes('already exists')) {
+						toast.error('A business with this name already exists.');
+					} else {
+						toast.error(msg || 'Failed to create business');
+					}
+					isSubmitting = false;
+					return;
+				} finally {
+					isSubmitting = false;
 				}
 			}
-			return;
 		}
 
-		if (currentStep === 0) {
-			currentStep = 1;
-			if (1 > highestStepReached) {
-				highestStepReached = 1;
-			}
+		// Advance
+		if (currentStep < totalSteps - 1) {
+			currentStep++;
+			if (currentStep > highestStepReached) highestStepReached = currentStep;
 			updateStepStatuses();
-			stepAnnouncement = `Step 2 of 2: ${steps[1].name}`;
-			await tick();
-			if (typeof document !== 'undefined') {
-				const heading = document.querySelector<HTMLElement>('.step-heading');
-				if (heading) heading.focus();
-			}
-		} else if (currentStep === 1) {
-			await completeSetup();
+			await focusStepHeading();
 		}
 	}
 
@@ -223,12 +269,7 @@
 		if (currentStep > 0) {
 			currentStep--;
 			updateStepStatuses();
-			stepAnnouncement = `Step ${currentStep + 1} of 2: ${steps[currentStep].name}`;
-			await tick();
-			if (typeof document !== 'undefined') {
-				const heading = document.querySelector<HTMLElement>('.step-heading');
-				if (heading) heading.focus();
-			}
+			await focusStepHeading();
 		}
 	}
 
@@ -236,76 +277,16 @@
 		if (index <= highestStepReached) {
 			currentStep = index;
 			updateStepStatuses();
-			stepAnnouncement = `Step ${currentStep + 1} of 2: ${steps[currentStep].name}`;
-			await tick();
-			if (typeof document !== 'undefined') {
-				const heading = document.querySelector<HTMLElement>('.step-heading');
-				if (heading) heading.focus();
-			}
+			await focusStepHeading();
 		}
 	}
 
-	async function skipAndCreate() {
-		await completeSetup();
-	}
-
-	async function completeSetup() {
-		if (isSubmitting) return;
-		isSubmitting = true;
-
-		try {
-			// Build the business payload
-			const payload: CreateBusinessPayload = {
-				name: businessName,
-				type: businessType as BusinessType,
-				description: businessDescription || undefined,
-				logo: businessLogo || undefined,
-				subType: restaurantSubType || undefined,
-				address: {
-					street: address || undefined,
-					city: city || undefined,
-					state: undefined,
-					country: country,
-					postalCode: undefined
-				},
-				contact: {
-					email: user?.email || undefined,
-					phone: phone || undefined
-				},
-				settings: {
-					timezone: timezone,
-					currency: currency,
-					taxRate: taxRate || '0'
-				}
-			};
-
-			// Create the business
-			const result = await createBusiness(payload);
-
-			// Clear saved progress
-			if (typeof window !== 'undefined') {
-				sessionStorage.removeItem('business-setup-progress');
-			}
-
-			toast.success('Business created successfully!');
-
-			// Navigate to the new business dashboard
-			goto(`/${result.business.type}/${result.business.slug}/dashboard`);
-		} catch (error: any) {
-			console.error('Setup failed:', error);
-			const message = error?.message || '';
-			if (message.toLowerCase().includes('duplicate') || message.toLowerCase().includes('already exists')) {
-				toast.error('A business with this name already exists. Please choose a different name.');
-			} else if (message.toLowerCase().includes('network') || message.toLowerCase().includes('fetch')) {
-				toast.error('Network error. Please check your connection and try again.');
-			} else if (error?.status === 401 || message.toLowerCase().includes('unauthorized')) {
-				toast.error('Session expired. Please log in again.');
-				goto('/login');
-			} else {
-				toast.error(message || 'Failed to create business. Please try again.');
-			}
-		} finally {
-			isSubmitting = false;
+	function skipStep() {
+		if (currentStep < totalSteps - 1) {
+			currentStep++;
+			if (currentStep > highestStepReached) highestStepReached = currentStep;
+			updateStepStatuses();
+			focusStepHeading();
 		}
 	}
 </script>
@@ -314,11 +295,10 @@
 	Skip to content
 </a>
 
-<!-- Visually-hidden live region for step announcements -->
 <div aria-live="polite" aria-atomic="true" class="sr-only">{stepAnnouncement}</div>
 
 <div class="flex h-dvh w-full bg-background">
-	<!-- Left Sidebar - Steps Navigation -->
+	<!-- Left Sidebar -->
 	<aside aria-label="Setup progress" class="hidden w-72 flex-col border-r bg-card px-6 py-8 lg:flex">
 		<div class="mb-8">
 			<h2 class="text-2xl font-bold">Business Setup</h2>
@@ -326,28 +306,30 @@
 		</div>
 
 		<nav aria-label="Setup steps" class="space-y-2">
-			{#each steps as step, index (step.id)}
+			{#each visibleSteps as step, index (step.id)}
 				{@const isClickable = index <= highestStepReached}
+				{@const isCurrent = index === currentStep}
+				{@const isCompleted = index < currentStep}
 				<button
 					class={cn(
 						'flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors',
-						step.status === 'current' && 'bg-muted text-foreground',
-						step.status === 'completed' && 'text-muted-foreground hover:bg-muted/50',
+						isCurrent && 'bg-muted text-foreground',
+						isCompleted && 'text-muted-foreground hover:bg-muted/50',
 						!isClickable && 'cursor-not-allowed text-muted-foreground/60'
 					)}
-					aria-current={step.status === 'current' ? 'step' : undefined}
+					aria-current={isCurrent ? 'step' : undefined}
 					disabled={!isClickable}
 					onclick={() => goToStep(index)}
 				>
 					<div
 						class={cn(
 							'mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
-							step.status === 'completed' && 'border-primary bg-primary text-primary-foreground',
-							step.status === 'current' && 'border-primary bg-background text-primary',
+							isCompleted && 'border-primary bg-primary text-primary-foreground',
+							isCurrent && 'border-primary bg-background text-primary',
 							!isClickable && 'border-muted-foreground/30'
 						)}
 					>
-						{#if step.status === 'completed'}
+						{#if isCompleted}
 							<CheckCircle2 class="size-4" />
 						{:else}
 							{@const Icon = step.icon}
@@ -362,7 +344,7 @@
 			{/each}
 		</nav>
 
-		<!-- Profile Section -->
+		<!-- Profile -->
 		<div class="mt-auto border-t pt-4">
 			{#if user}
 				<div class="flex items-center gap-3 rounded-lg px-3 py-2">
@@ -399,39 +381,31 @@
 			<!-- Mobile Progress -->
 			<div class="mb-6 lg:hidden">
 				<div class="mb-2 flex items-center justify-between text-sm text-muted-foreground">
-					<span>Step {currentStep + 1} of {steps.length}</span>
-					<span>{Math.round(((currentStep + 1) / steps.length) * 100)}%</span>
+					<span>Step {currentStep + 1} of {totalSteps}</span>
+					<span>{Math.round(((currentStep + 1) / totalSteps) * 100)}%</span>
 				</div>
 				<div
 					class="h-2 w-full overflow-hidden rounded-full bg-muted"
 					role="progressbar"
 					aria-valuenow={currentStep + 1}
 					aria-valuemin={1}
-					aria-valuemax={steps.length}
-					aria-label="Setup progress: Step {currentStep + 1} of {steps.length}"
+					aria-valuemax={totalSteps}
 				>
-					<div
-						class="h-full bg-primary transition-all duration-300"
-						style="width: {((currentStep + 1) / steps.length) * 100}%"
-					></div>
+					<div class="h-full bg-primary transition-all duration-300" style="width: {((currentStep + 1) / totalSteps) * 100}%"></div>
 				</div>
-				<p class="mt-2 text-sm font-medium">{steps[currentStep].name}</p>
+				<p class="mt-2 text-sm font-medium">{visibleSteps[currentStep]?.name}</p>
 				<div class="mt-1 flex justify-center gap-1.5" aria-hidden="true">
-					{#each steps as _, i}
-						<div
-							class="size-2 rounded-full transition-colors {i === currentStep
-								? 'bg-primary'
-								: i < currentStep
-									? 'bg-primary/40'
-									: 'bg-muted-foreground/30'}"
-						></div>
+					{#each visibleSteps as _, i}
+						<div class="size-2 rounded-full transition-colors {i === currentStep ? 'bg-primary' : i < currentStep ? 'bg-primary/40' : 'bg-muted-foreground/30'}"></div>
 					{/each}
 				</div>
 			</div>
 
 			<!-- Step Content -->
 			<div id="step-content" class="space-y-6">
-				{#if currentStep === 0}
+				{@const stepId = getStepId(currentStep)}
+
+				{#if stepId === 'essentials'}
 					<BusinessEssentialsStep
 						bind:this={step1Component}
 						bind:businessName
@@ -445,7 +419,7 @@
 						bind:currency
 						bind:errors={step1Errors}
 					/>
-				{:else if currentStep === 1}
+					<!-- Inline location fields (merged from old Step 2) -->
 					<FirstStoreStep
 						bind:this={step2Component}
 						bind:address
@@ -453,42 +427,72 @@
 						bind:taxRate
 						bind:errors={step2Errors}
 					/>
+				{:else if stepId === 'menu'}
+					<MenuSetupStep
+						{businessId}
+						businessType={businessTypeResult}
+						bind:completed={menuCompleted}
+					/>
+				{:else if stepId === 'tables'}
+					<TablesSetupStep
+						{businessId}
+						bind:completed={tablesCompleted}
+					/>
+				{:else if stepId === 'payment'}
+					<PaymentTaxStep
+						{businessId}
+						businessType={businessTypeResult}
+						bind:completed={paymentCompleted}
+					/>
+				{:else if stepId === 'launch'}
+					<ReviewLaunchStep
+						businessType={businessTypeResult}
+						businessSlug={businessSlug}
+						{menuCompleted}
+						{tablesCompleted}
+						{paymentCompleted}
+						{menuSummary}
+						tablesSummary={tablesCompleted ? tablesSummary : ''}
+						paymentSummary={paymentCompleted ? paymentSummary : ''}
+					/>
 				{/if}
 
 				<!-- Navigation Buttons -->
-				<div class="flex items-center justify-between border-t pt-6">
-					<div>
-						{#if currentStep === 0}
-							<Button variant="ghost" onclick={() => goto('/dashboard')}>Cancel</Button>
-						{:else}
-							<Button variant="ghost" onclick={goToPreviousStep}>
-								<ChevronLeft class="mr-1 size-4" />
-								Back
-							</Button>
-						{/if}
-					</div>
+				{#if stepId !== 'launch'}
+					<div class="flex items-center justify-between border-t pt-6">
+						<div>
+							{#if currentStep === 0}
+								<Button variant="ghost" onclick={() => goto('/dashboard')}>Cancel</Button>
+							{:else}
+								<Button variant="ghost" onclick={goToPreviousStep}>
+									<ChevronLeft class="mr-1 size-4" />
+									Back
+								</Button>
+							{/if}
+						</div>
 
-					<div class="flex items-center gap-3">
-						{#if currentStep === 0}
-							<Button onclick={goToNextStep}>
-								Continue
-								<ChevronRight class="ml-1 size-4" />
-							</Button>
-						{:else}
-							<Button variant="outline" onclick={skipAndCreate} disabled={isSubmitting}>
-								Skip & Create Business
-							</Button>
+						<div class="flex items-center gap-3">
+							{#if stepId !== 'essentials' && stepId !== 'payment'}
+								<Button variant="ghost" onclick={skipStep}>
+									Skip for now
+								</Button>
+							{/if}
+
 							<Button onclick={goToNextStep} disabled={isSubmitting}>
 								{#if isSubmitting}
 									<Loader2 class="mr-2 size-4 animate-spin" />
-									Creating...
+									Creating business...
+								{:else if stepId === 'essentials'}
+									{businessId ? 'Next' : 'Create & Continue'}
+									<ChevronRight class="ml-1 size-4" />
 								{:else}
-									Create Business
+									Next
+									<ChevronRight class="ml-1 size-4" />
 								{/if}
 							</Button>
-						{/if}
+						</div>
 					</div>
-				</div>
+				{/if}
 			</div>
 		</div>
 	</main>

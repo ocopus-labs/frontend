@@ -66,8 +66,8 @@
 					description: result.error.message
 				});
 			} else {
-				toast.success('Email verified! You can now log in.');
-				window.location.href = '/login';
+				toast.success('Email verified! Redirecting to dashboard...');
+				window.location.href = '/dashboard';
 			}
 		} catch {
 			toast.error('Verification failed');

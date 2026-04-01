@@ -205,6 +205,16 @@ export async function createTable(
   return api.post(`/business/${businessId}/tables`, data);
 }
 
+export async function bulkCreateTables(
+  businessId: string,
+  count: number,
+  defaultCapacity?: number,
+  options?: FetchOption
+): Promise<{ message: string; tables: Table[] }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/business/${businessId}/tables/bulk`, { count, defaultCapacity });
+}
+
 export async function updateTable(
   businessId: string,
   tableId: string,

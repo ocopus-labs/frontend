@@ -35,6 +35,8 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
+	import PosTour from '$lib/components/pos/pos-tour.svelte';
+	import confetti from 'canvas-confetti';
 
 	// Get data from load function
 	let { data } = $props();
@@ -554,6 +556,14 @@
 			const result = await createOrder(businessId, orderPayload);
 			toast.success(`Order ${result.order.orderNumber} created successfully!`);
 
+			// First order celebration
+			const firstOrderKey = `first-order:${businessId}`;
+			if (typeof window !== 'undefined' && !localStorage.getItem(firstOrderKey)) {
+				localStorage.setItem(firstOrderKey, 'true');
+				confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+				setTimeout(() => toast.success('Your first order is live!', { duration: 5000 }), 500);
+			}
+
 			// Auto-start table session for dine-in orders (Issue 3.2)
 			if (orderType === 'dine_in' && selectedTable) {
 				try {
@@ -745,7 +755,7 @@
 		<!-- Header -->
 		<div class="flex flex-1 flex-col overflow-hidden lg:flex-row">
 			<!-- Menu Section -->
-			<div class="flex flex-1 flex-col overflow-hidden lg:min-w-0">
+			<div class="flex flex-1 flex-col overflow-hidden lg:min-w-0" data-tour="menu-grid">
 				<!-- Category Tabs & Search -->
 				<div class="border-b border-border p-2 md:p-4 lg:p-6">
 					<div class="mb-2 md:mb-3 lg:mb-4">
@@ -798,6 +808,7 @@
 			<!-- Order Summary Section - Desktop: Sidebar -->
 			<div
 				class="hidden lg:flex lg:w-[380px] lg:shrink-0 lg:flex-col lg:border-l lg:border-border xl:w-[420px]"
+				data-tour="table-selector"
 			>
 				<div class="border-b border-border p-4">
 					<CustomerPicker businessId={(data.business as any)?.id} bind:selectedCustomer />
@@ -839,7 +850,7 @@
 					{region}
 				/>
 				</div>
-				<div class="shrink-0 border-t border-border p-4">
+				<div class="shrink-0 border-t border-border p-4" data-tour="send-order">
 					<Button
 						class="w-full"
 						size="lg"
@@ -1048,3 +1059,5 @@
 	onClose={handleReceiptClose}
 	{region}
 />
+
+<PosTour businessId={(data.business as any)?.id} hasTables={data.supportsTable} />
