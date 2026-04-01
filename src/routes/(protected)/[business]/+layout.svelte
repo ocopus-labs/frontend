@@ -8,6 +8,10 @@
 	import { Separator } from '$lib/components/ui/separator/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { page } from '$app/stores';
+	import { onMount, onDestroy } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
+	import { toast } from 'svelte-sonner';
+	import { connectSocket, joinBusiness, leaveBusiness, onSubscriptionPlanChanged } from '$lib/socket';
 	import type { LayoutData } from './$types';
 
 	let { children, data }: { children: any; data: LayoutData } = $props();
@@ -15,6 +19,39 @@
 	// Derive businessId from page data (populated by [slug]/+layout.server.ts)
 	const businessId = $derived($page.data.businessId as string | undefined);
 	const basePath = $derived(`/${$page.params.business}/${$page.params.slug}`);
+
+	// WebSocket: listen for subscription plan changes and notify the user
+	let subscriptionCleanup: (() => void) | null = null;
+
+	onMount(async () => {
+		const socket = await connectSocket();
+		if (!socket) return;
+
+		socket.on('connect', async () => {
+			const bid = $page.data.businessId as string | undefined;
+			if (bid) await joinBusiness(bid);
+		});
+
+		if (socket.connected) {
+			const bid = $page.data.businessId as string | undefined;
+			if (bid) await joinBusiness(bid);
+		}
+
+		subscriptionCleanup = await onSubscriptionPlanChanged(async (event) => {
+			if (event.isUpgrade) {
+				toast.success(`Your plan has been upgraded to ${event.newPlan}! Enjoy the new features.`);
+			} else {
+				toast.info(`Your plan has been changed to ${event.newPlan}.`);
+			}
+			await invalidateAll();
+		});
+	});
+
+	onDestroy(() => {
+		subscriptionCleanup?.();
+		const bid = $page.data.businessId as string | undefined;
+		if (bid) leaveBusiness(bid);
+	});
 
 	// Generate breadcrumbs from current path
 	const breadcrumbs = $derived(

@@ -17,7 +17,7 @@
 
 	import { formatCurrency } from '$lib/utils/i18n';
 	import { formatDate, getStatusBadgeVariant } from '$lib/utils/formatting';
-	import { cancelAdminSubscription, extendAdminTrial, bulkSubscriptionAction } from '$lib/api/admin';
+	import { cancelAdminSubscription, extendAdminTrial, bulkSubscriptionAction, changeSubscriptionPlan, getAdminPlans, type AdminPlan } from '$lib/api/admin';
 
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
@@ -25,6 +25,7 @@
 	import XCircle from '@lucide/svelte/icons/x-circle';
 	import CalendarPlus from '@lucide/svelte/icons/calendar-plus';
 	import Download from '@lucide/svelte/icons/download';
+	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 	import { exportAdminSubscriptions } from '$lib/api/admin';
 	import { downloadBlob } from '$lib/utils/export';
 
@@ -44,6 +45,16 @@
 	let extendDays = $state(7);
 
 	let isActioning = $state(false);
+
+	// Change Plan dialog state
+	let changePlanDialogOpen = $state(false);
+	let changePlanTargetId = $state('');
+	let changePlanTargetName = $state('');
+	let changePlanCurrentPlanId = $state('');
+	let changePlanSelectedPlanId = $state('');
+	let changePlanReason = $state('');
+	let availablePlans = $state<AdminPlan[]>([]);
+	let isLoadingPlans = $state(false);
 
 	// Bulk selection state
 	let selectedIds = $state<Set<string>>(new Set());
@@ -145,6 +156,44 @@
 		extendTargetName = userName;
 		extendDays = 7;
 		extendDialogOpen = true;
+	}
+
+	async function triggerChangePlan(id: string, userName: string, currentPlanId: string) {
+		changePlanTargetId = id;
+		changePlanTargetName = userName;
+		changePlanCurrentPlanId = currentPlanId;
+		changePlanSelectedPlanId = currentPlanId;
+		changePlanReason = '';
+		changePlanDialogOpen = true;
+		if (availablePlans.length === 0) {
+			isLoadingPlans = true;
+			try {
+				const result = await getAdminPlans();
+				availablePlans = result.plans;
+			} catch {
+				toast.error('Failed to load plans');
+			} finally {
+				isLoadingPlans = false;
+			}
+		}
+	}
+
+	async function confirmChangePlan() {
+		if (!changePlanSelectedPlanId || changePlanSelectedPlanId === changePlanCurrentPlanId) {
+			changePlanDialogOpen = false;
+			return;
+		}
+		isActioning = true;
+		try {
+			await changeSubscriptionPlan(changePlanTargetId, changePlanSelectedPlanId, changePlanReason || undefined);
+			toast.success('Subscription plan changed successfully');
+			changePlanDialogOpen = false;
+			await invalidate('app:subscriptions');
+		} catch {
+			toast.error('Failed to change subscription plan');
+		} finally {
+			isActioning = false;
+		}
 	}
 
 	async function confirmExtendTrial() {
@@ -289,6 +338,18 @@
 							</Table.Cell>
 							<Table.Cell>
 								<div class="flex items-center gap-1">
+									{#if subscription.status === 'active' || subscription.status === 'trialing'}
+										<Button
+											variant="ghost"
+											size="sm"
+											onclick={() => triggerChangePlan(subscription.id, subscription.user.name || subscription.user.email, subscription.plan.id)}
+											disabled={isActioning}
+											aria-label="Change plan"
+											title="Change plan"
+										>
+											<ArrowLeftRight class="h-4 w-4" />
+										</Button>
+									{/if}
 									{#if subscription.status === 'active' && !subscription.cancelAtPeriodEnd}
 										<Button
 											variant="ghost"
@@ -403,3 +464,76 @@
 	inputPlaceholder="7"
 	onConfirm={(val) => { extendDays = Number(val) || 7; confirmExtendTrial(); }}
 />
+
+<!-- Change Plan Dialog -->
+{#if changePlanDialogOpen}
+	<div class="fixed inset-0 z-50 flex items-center justify-center">
+		<!-- Overlay -->
+		<div
+			class="fixed inset-0 bg-black/50"
+			role="button"
+			tabindex="-1"
+			aria-label="Close dialog"
+			onclick={() => { changePlanDialogOpen = false; }}
+			onkeydown={(e) => { if (e.key === 'Escape') changePlanDialogOpen = false; }}
+		></div>
+		<!-- Dialog -->
+		<div class="relative z-50 w-full max-w-md rounded-lg border bg-background p-6 shadow-lg">
+			<h2 class="text-lg font-semibold">Change Plan</h2>
+			<p class="mt-1 text-sm text-muted-foreground">
+				Change the subscription plan for <span class="font-medium">{changePlanTargetName}</span>.
+			</p>
+
+			<div class="mt-4 space-y-4">
+				<div class="space-y-1.5">
+					<Label for="change-plan-select">New Plan</Label>
+					{#if isLoadingPlans}
+						<p class="text-sm text-muted-foreground">Loading plans...</p>
+					{:else}
+						<Select.Root
+							type="single"
+							value={changePlanSelectedPlanId}
+							onValueChange={(v) => { changePlanSelectedPlanId = v; }}
+						>
+							<Select.Trigger id="change-plan-select" class="w-full">
+								{availablePlans.find(p => p.id === changePlanSelectedPlanId)?.displayName || 'Select a plan'}
+							</Select.Trigger>
+							<Select.Content>
+								{#each availablePlans as plan}
+									<Select.Item value={plan.id}>
+										{plan.displayName}
+										{#if plan.id === changePlanCurrentPlanId}
+											<span class="ml-2 text-xs text-muted-foreground">(current)</span>
+										{/if}
+									</Select.Item>
+								{/each}
+							</Select.Content>
+						</Select.Root>
+					{/if}
+				</div>
+
+				<div class="space-y-1.5">
+					<Label for="change-plan-reason">Reason <span class="text-muted-foreground">(optional)</span></Label>
+					<Input
+						id="change-plan-reason"
+						type="text"
+						placeholder="e.g. Admin override, promotional upgrade..."
+						bind:value={changePlanReason}
+					/>
+				</div>
+			</div>
+
+			<div class="mt-6 flex justify-end gap-2">
+				<Button variant="outline" onclick={() => { changePlanDialogOpen = false; }}>
+					Cancel
+				</Button>
+				<Button
+					onclick={confirmChangePlan}
+					disabled={isActioning || isLoadingPlans || !changePlanSelectedPlanId || changePlanSelectedPlanId === changePlanCurrentPlanId}
+				>
+					{isActioning ? 'Changing...' : 'Change Plan'}
+				</Button>
+			</div>
+		</div>
+	</div>
+{/if}

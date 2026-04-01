@@ -10,6 +10,13 @@ export interface OrderSocketEvents {
 	'order:updated': (order: any) => void;
 	'order:completed': (data: { orderId: string }) => void;
 	'item:status': (data: { orderId: string; itemId: string; status: string; order: any }) => void;
+	'subscription:plan_changed': (data: {
+		businessId: string;
+		userId: string;
+		previousPlan: string;
+		newPlan: string;
+		isUpgrade: boolean;
+	}) => void;
 }
 
 async function loadSocketIO() {
@@ -112,6 +119,17 @@ export async function onItemStatus(callback: OrderSocketEvents['item:status']): 
 	if (sock) {
 		sock.on('item:status', callback);
 		return () => sock.off('item:status', callback);
+	}
+	return () => {};
+}
+
+export async function onSubscriptionPlanChanged(
+	callback: OrderSocketEvents['subscription:plan_changed']
+): Promise<() => void> {
+	const sock = await getSocket();
+	if (sock) {
+		sock.on('subscription:plan_changed', callback);
+		return () => sock.off('subscription:plan_changed', callback);
 	}
 	return () => {};
 }

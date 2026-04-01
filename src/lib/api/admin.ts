@@ -467,6 +467,20 @@ export async function extendAdminTrial(
   return api.patch(`/admin/subscriptions/${id}/extend-trial`, { days });
 }
 
+export interface FetchOption {
+  fetch?: typeof fetch;
+}
+
+export async function changeSubscriptionPlan(
+  subscriptionId: string,
+  planId: string,
+  reason?: string,
+  options?: FetchOption
+): Promise<{ message: string }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.patch(`/admin/subscriptions/${subscriptionId}/change-plan`, { planId, reason });
+}
+
 export async function getAdminWebhooks(
   params?: {
     page?: number;
