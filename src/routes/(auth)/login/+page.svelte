@@ -5,13 +5,14 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import * as InputGroup from '$lib/components/ui/input-group/index.js';
 	import type { HTMLAttributes } from 'svelte/elements';
-	import { signIn, emailOtp, authClient } from '$lib/auth';
+	import { signIn, emailOtp, authClient, twoFactor } from '$lib/auth';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
 	import { env } from '$env/dynamic/public';
 	import Eye from '@lucide/svelte/icons/eye';
 	import EyeOff from '@lucide/svelte/icons/eye-off';
+	import ShieldCheck from '@lucide/svelte/icons/shield-check';
 
 	let { class: className, ...restProps }: HTMLAttributes<HTMLFormElement> = $props();
 
@@ -26,6 +27,11 @@
 	let isSendingOtp = $state(false);
 	let cooldown = $state(0);
 	let cooldownInterval: ReturnType<typeof setInterval> | null = null;
+
+	// 2FA challenge state
+	let show2FAChallenge = $state(false);
+	let totpCode = $state('');
+	let isVerifying2FA = $state(false);
 
 	function startCooldown() {
 		cooldown = 60;
@@ -69,7 +75,11 @@
 
 			if (result.error) {
 				const errorMsg = result.error.message?.toLowerCase() || '';
-				if (errorMsg.includes('email') && errorMsg.includes('verified')) {
+				const errorCode = (result.error as any).code || '';
+				if (errorCode === 'TWO_FACTOR_REQUIRED' || errorMsg.includes('two factor') || errorMsg.includes('two-factor') || errorMsg.includes('2fa')) {
+					// User has 2FA enabled — show the TOTP challenge screen
+					show2FAChallenge = true;
+				} else if (errorMsg.includes('email') && errorMsg.includes('verified')) {
 					showVerification = true;
 					toast.error('Email not verified', {
 						description: 'Please verify your email to continue.'
@@ -91,6 +101,32 @@
 			});
 		} finally {
 			isLoading = false;
+		}
+	}
+
+	async function handle2FAVerify() {
+		if (totpCode.length !== 6) {
+			toast.error('Please enter a 6-digit code');
+			return;
+		}
+		isVerifying2FA = true;
+		try {
+			const result = await twoFactor.verifyTotp({ code: totpCode });
+			if (result.error) {
+				toast.error('Invalid code', {
+					description: result.error.message || 'Please check your authenticator app and try again.'
+				});
+			} else {
+				toast.success('Login successful!');
+				goto(redirectTo);
+			}
+		} catch (error) {
+			toast.error('Verification failed', {
+				description: 'An unexpected error occurred. Please try again.'
+			});
+		} finally {
+			isVerifying2FA = false;
+			totpCode = '';
 		}
 	}
 
@@ -147,6 +183,51 @@
 				Fill in the form below to log in to your account
 			</p>
 		</div>
+
+		{#if show2FAChallenge}
+			<!-- Two-Factor Authentication Challenge -->
+			<div class="flex flex-col items-center gap-2 text-center">
+				<ShieldCheck class="size-10 text-primary" />
+				<h2 class="text-lg font-semibold">Two-Factor Authentication</h2>
+				<p class="text-sm text-muted-foreground">
+					Enter the 6-digit code from your authenticator app to continue.
+				</p>
+			</div>
+			<Field.Field>
+				<Field.Label for="totp-code">Authentication Code</Field.Label>
+				<Input
+					id="totp-code"
+					type="text"
+					inputmode="numeric"
+					pattern="[0-9]*"
+					placeholder="000000"
+					bind:value={totpCode}
+					maxlength={6}
+					autocomplete="one-time-code"
+					oninput={() => { totpCode = totpCode.replace(/\D/g, ''); }}
+					disabled={isVerifying2FA}
+				/>
+			</Field.Field>
+			<Field.Field>
+				<Button
+					type="button"
+					onclick={handle2FAVerify}
+					disabled={isVerifying2FA || totpCode.length !== 6}
+				>
+					{isVerifying2FA ? 'Verifying...' : 'Verify Code'}
+				</Button>
+			</Field.Field>
+			<Field.Field>
+				<Button
+					type="button"
+					variant="ghost"
+					onclick={() => { show2FAChallenge = false; totpCode = ''; }}
+				>
+					Back to Login
+				</Button>
+			</Field.Field>
+		{:else}
+
 		<Field.Field>
 			<Field.Label for="email">Email</Field.Label>
 			<Input
@@ -270,5 +351,7 @@
 				Don't have an account? <a href="/register">Sign up</a>
 			</Field.Description>
 		</Field.Field>
+
+		{/if}
 	</Field.Group>
 </form>
