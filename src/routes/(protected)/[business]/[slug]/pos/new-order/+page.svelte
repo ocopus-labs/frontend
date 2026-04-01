@@ -38,6 +38,8 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
+	import { browser } from '$app/environment';
+	import { queueOfflineOrder, cacheMenu } from '$lib/utils/offline-store';
 	import PosTour from '$lib/components/pos/pos-tour.svelte';
 	import confetti from 'canvas-confetti';
 
@@ -171,6 +173,18 @@
 			try { sessionStorage.removeItem(`pos-cart-${businessId}`); } catch {}
 		}
 	}
+
+	// Cache menu data to IndexedDB for offline access (Part 5)
+	$effect(() => {
+		if (browser && data.categories) {
+			const businessId = (data.business as any)?.id;
+			if (businessId) {
+				cacheMenu(businessId, { categories: data.categories, menuItems: data.menuItems }).catch(() => {
+					// Silently ignore — menu cache is best-effort
+				});
+			}
+		}
+	});
 
 	// Customization dialog state
 	let showCustomizationDialog = $state(false);
@@ -555,6 +569,26 @@
 					value: discountValue
 				} : undefined
 			};
+
+			// --- Offline queue (Part 4) ---
+			if (!navigator.onLine) {
+				await queueOfflineOrder({
+					id: crypto.randomUUID(),
+					businessId,
+					data: orderPayload,
+					createdAt: new Date().toISOString(),
+					status: 'pending'
+				});
+				toast.info('Order saved offline — will sync when connected');
+				orderItems = [];
+				clearCartStorage();
+				selectedCustomer = null;
+				customerLoyalty = null;
+				loyaltyDiscount = 0;
+				showOrderConfirmation = false;
+				return;
+			}
+			// --- End offline queue ---
 
 			const result = await createOrder(businessId, orderPayload);
 			toast.success(`Order ${result.order.orderNumber} created successfully!`);
