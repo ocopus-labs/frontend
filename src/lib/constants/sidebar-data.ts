@@ -265,6 +265,10 @@ export const sidebarData: Record<string, SidebarData> = {
 					{
 						title: 'API Keys',
 						url: '/[business]/[slug]/settings/api-keys'
+					},
+					{
+						title: 'Kitchen Stations',
+						url: '/[business]/[slug]/settings/kitchen-stations'
 					}
 				]
 			}

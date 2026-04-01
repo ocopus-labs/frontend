@@ -389,6 +389,16 @@ export {
 // Cash Drawer API
 export * from './cash-drawer';
 
+// Kitchen Station API
+export {
+  getKitchenStations,
+  createKitchenStation,
+  updateKitchenStation,
+  deleteKitchenStation,
+  getUnassignedCategories,
+  type KitchenStation
+} from './kitchen-station';
+
 // Customer Self-Ordering API
 export {
   getPublicBusinessInfo,
