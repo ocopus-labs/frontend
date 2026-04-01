@@ -18,7 +18,7 @@
 		IconVolumeOff,
 		IconFilter
 	} from '@tabler/icons-svelte';
-	import { invalidate } from '$app/navigation';
+	import { invalidate, goto } from '$app/navigation';
 	import { updateItemStatus, bulkUpdateItemStatuses, updateOrderStatus, type Order, type OrderItem } from '$lib/api';
 	import { toast } from 'svelte-sonner';
 	import { onMount, onDestroy } from 'svelte';
@@ -377,6 +377,39 @@
 		await invalidate('app:orders');
 		isRefreshing = false;
 	}
+
+	let currentStationId = $state(data.currentStationId);
+
+	function handleStationChange(stationId: string) {
+		currentStationId = stationId || null;
+		const url = new URL(window.location.href);
+		if (stationId) {
+			url.searchParams.set('stationId', stationId);
+		} else {
+			url.searchParams.delete('stationId');
+		}
+		goto(url.pathname + url.search, { replaceState: true, invalidateAll: true });
+	}
+
+	async function markStationReady(order: KitchenOrder) {
+		try {
+			const readyItemIds = order.items
+				.filter((i) => i.status !== 'ready' && i.status !== 'served' && i.status !== 'cancelled')
+				.map((i) => i.id);
+
+			if (readyItemIds.length === 0) {
+				// All items already ready — nothing left to do for this station
+				toast.success('Station items already ready');
+				return;
+			}
+
+			await bulkUpdateItemStatuses(data.businessId, order.orderId, readyItemIds, 'ready');
+			toast.success('Station items marked ready');
+			await invalidate('app:orders');
+		} catch (error: any) {
+			toast.error(error?.message || 'Failed to update');
+		}
+	}
 </script>
 
 <div class="flex flex-1 flex-col bg-muted/30">
@@ -405,6 +438,18 @@
 					</div>
 				</div>
 				<div class="flex items-center gap-2" aria-live="polite">
+					{#if data.stations && data.stations.length > 0}
+						<select
+							class="rounded-md border bg-background px-3 py-1.5 text-sm"
+							value={currentStationId || ''}
+							onchange={(e) => handleStationChange(e.currentTarget.value)}
+						>
+							<option value="">All Stations</option>
+							{#each data.stations as station}
+								<option value={station.id}>{station.name}</option>
+							{/each}
+						</select>
+					{/if}
 					<Button
 						variant="ghost"
 						size="icon"
@@ -437,6 +482,17 @@
 					</Button>
 				</div>
 			</div>
+
+			<!-- Station color indicator -->
+			{#if currentStationId}
+				{@const station = data.stations?.find((s) => s.id === currentStationId)}
+				{#if station}
+					<div class="flex items-center gap-2 px-6 py-1 text-sm" style="background-color: {station.displayColor}20">
+						<div class="h-3 w-3 rounded-full" style="background-color: {station.displayColor}"></div>
+						<span class="font-medium">{station.name}</span>
+					</div>
+				{/if}
+			{/if}
 
 			<!-- Filter tabs -->
 			<div class="flex gap-2 px-6 overflow-x-auto">
@@ -607,10 +663,23 @@
 
 						<Card.Footer class="flex-col gap-2">
 							{#if allReady}
-								<Button class="w-full bg-green-600 hover:bg-green-700" onclick={() => completeOrder(order.orderId)}>
-									<IconCheck class="mr-2 h-4 w-4" />
-									Complete Order
-								</Button>
+								{#if currentStationId}
+									<!-- Station mode: mark this station's items ready without completing the whole order -->
+									<Button class="w-full bg-green-600 hover:bg-green-700" onclick={() => markStationReady(order)}>
+										<IconCheck class="mr-2 h-4 w-4" />
+										Station Ready
+									</Button>
+									{#if (order._stationMeta?.otherPendingItems ?? 0) > 0}
+										<p class="text-xs text-muted-foreground text-center mt-1">
+											Waiting on other stations ({order._stationMeta?.otherPendingItems} items)
+										</p>
+									{/if}
+								{:else}
+									<Button class="w-full bg-green-600 hover:bg-green-700" onclick={() => completeOrder(order.orderId)}>
+										<IconCheck class="mr-2 h-4 w-4" />
+										Complete Order
+									</Button>
+								{/if}
 							{:else}
 								<div class="flex w-full items-center justify-between">
 									<span class="text-sm text-muted-foreground">

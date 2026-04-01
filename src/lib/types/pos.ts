@@ -61,4 +61,8 @@ export interface KitchenOrder {
 		status: string;
 		cancellationReason?: string;
 	}>;
+	/** Populated by backend when filtering by stationId */
+	_stationMeta?: {
+		otherPendingItems: number;
+	};
 }

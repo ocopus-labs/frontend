@@ -200,10 +200,11 @@ export async function getOrders(
 
 export async function getActiveOrders(
   businessId: string,
-  options?: FetchOption
+  options?: FetchOption & { stationId?: string }
 ): Promise<{ orders: Order[] }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.get(`/business/${businessId}/orders/active`);
+  const query = options?.stationId ? `?stationId=${options.stationId}` : '';
+  return api.get(`/business/${businessId}/orders/active${query}`);
 }
 
 export async function getOrderStats(
