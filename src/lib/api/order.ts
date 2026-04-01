@@ -27,6 +27,10 @@ export interface OrderItem {
   taxCategory?: string;
   taxRate?: number;
   status: 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
+  cancellationReason?: 'customer_changed_mind' | 'out_of_stock' | 'wrong_item' | 'kitchen_error' | 'other';
+  cancellationNote?: string;
+  cancelledBy?: string;
+  cancelledAt?: string;
 }
 
 export interface OrderPricing {
@@ -76,7 +80,7 @@ export interface Order {
   discountsApplied: OrderDiscount[];
   paymentStatus: 'pending' | 'partial' | 'paid' | 'refunded';
   balanceDue: number;
-  status: 'active' | 'completed' | 'cancelled' | 'refunded';
+  status: 'active' | 'preparing' | 'ready' | 'serving' | 'completed' | 'cancelled' | 'refunded';
   priority: 'low' | 'normal' | 'high' | 'urgent';
   estimatedCompletionTime?: string;
   actualCompletionTime?: string;
@@ -324,6 +328,51 @@ export async function deleteOrder(
 ): Promise<{ message: string; order: Order }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.delete(`/business/${businessId}/orders/${orderId}`);
+}
+
+// ==================== TABLE OPERATIONS ====================
+
+export type CancellationReason = 'customer_changed_mind' | 'out_of_stock' | 'wrong_item' | 'kitchen_error' | 'other';
+
+export async function cancelItem(
+  businessId: string,
+  orderId: string,
+  itemId: string,
+  data: { reason: CancellationReason; note?: string },
+  options?: FetchOption
+): Promise<{ message: string; order: Order }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.patch(`/business/${businessId}/orders/${orderId}/items/${itemId}/cancel`, data);
+}
+
+export async function transferOrder(
+  businessId: string,
+  orderId: string,
+  targetTableId: string,
+  options?: FetchOption
+): Promise<{ message: string; order: Order }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/business/${businessId}/orders/${orderId}/transfer`, { targetTableId });
+}
+
+export async function mergeOrders(
+  businessId: string,
+  targetOrderId: string,
+  sourceOrderId: string,
+  options?: FetchOption
+): Promise<{ message: string; order: Order }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/business/${businessId}/orders/${targetOrderId}/merge`, { sourceOrderId });
+}
+
+export async function splitOrder(
+  businessId: string,
+  orderId: string,
+  data: { itemIds: string[]; targetTableId: string },
+  options?: FetchOption
+): Promise<{ message: string; sourceOrder: Order; newOrder: Order }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/business/${businessId}/orders/${orderId}/split`, data);
 }
 
 // ==================== EXPORT ====================

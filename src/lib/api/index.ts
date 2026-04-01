@@ -68,6 +68,10 @@ export {
   applyDiscount,
   deleteOrder,
   exportOrders,
+  cancelItem,
+  transferOrder,
+  mergeOrders,
+  splitOrder,
   type Order,
   type OrderItem,
   type OrderPricing,
@@ -75,7 +79,8 @@ export {
   type OrderStats,
   type CreateOrderPayload,
   type CreateOrderItemPayload,
-  type OrderItemModifier as OrderItemModifierType
+  type OrderItemModifier as OrderItemModifierType,
+  type CancellationReason
 } from './order';
 export {
   createPayment,
@@ -377,6 +382,9 @@ export {
   type QrCodeResult,
   type TableQrCode
 } from './qr';
+
+// Cash Drawer API
+export * from './cash-drawer';
 
 // Customer Self-Ordering API
 export {
