@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount, onDestroy } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
@@ -27,8 +28,10 @@
 	} from '$lib/components/pos';
 
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
+	import ShortcutHelpDialog from '$lib/components/global/shortcut-help-dialog.svelte';
 	import { EmptyState } from '$lib/components/data-display';
 	import type { Table } from '$lib/api/table';
+	import { createShortcutHandler } from '$lib/utils/keyboard-shortcuts';
 
 	import { createOrder, createPayment, createSplitPayment, startTableSession, getLoyaltyAccount, getLoyaltySettings, redeemLoyaltyPoints, type CreateOrderPayload, type CreateOrderItemPayload, type PaymentMethod, type Customer, type LoyaltyAccount, type LoyaltySettings } from '$lib/api';
 	import { currencyToRegion, createI18nUtils } from '$lib/utils/i18n';
@@ -747,6 +750,95 @@
 	function handleAddToOrderFromCard(item: any) {
 		addToOrder(item._original);
 	}
+
+	// Keyboard shortcuts
+	let showShortcutHelp = $state(false);
+
+	const shortcutsList = [
+		{ key: 'F1', description: 'Show shortcuts' },
+		{ key: 'F2', description: 'Focus search' },
+		{ key: 'F3', description: 'Cycle category' },
+		{ key: 'F5', description: 'Clear cart' },
+		{ key: 'F8', description: 'Open payment' },
+		{ key: 'F10', description: 'Place order' },
+		{ key: 'Escape', description: 'Close dialog' }
+	];
+
+	const handleKeyboard = createShortcutHandler([
+		{
+			key: 'F1',
+			description: 'Show shortcuts',
+			handler: () => {
+				showShortcutHelp = true;
+			}
+		},
+		{
+			key: 'F2',
+			description: 'Focus search',
+			handler: () => {
+				const searchInput = document.querySelector(
+					'input[placeholder="Search menu items..."]'
+				) as HTMLInputElement | null;
+				searchInput?.focus();
+			}
+		},
+		{
+			key: 'F3',
+			description: 'Cycle category',
+			handler: () => {
+				const categories = data.categories as { id: string; name: string; count: number }[];
+				if (categories.length === 0) return;
+				const categoryNames = categories.map((c) => c.name);
+				const currentIndex = categoryNames.indexOf(selectedCategory);
+				const nextIndex = (currentIndex + 1) % categoryNames.length;
+				selectedCategory = categoryNames[nextIndex];
+			}
+		},
+		{
+			key: 'F5',
+			description: 'Clear cart',
+			handler: () => {
+				if (orderItems.length === 0) return;
+				orderItems = [];
+				clearCartStorage();
+			}
+		},
+		{
+			key: 'F8',
+			description: 'Open payment',
+			handler: () => {
+				if (currentOrderId) {
+					showPaymentDialog = true;
+				}
+			}
+		},
+		{
+			key: 'F10',
+			description: 'Place order',
+			handler: () => {
+				handlePlaceOrder();
+			}
+		},
+		{
+			key: 'Escape',
+			description: 'Close dialog',
+			handler: () => {
+				showShortcutHelp = false;
+				showCustomizationDialog = false;
+				showOrderConfirmation = false;
+				showTableSelector = false;
+				showRedeemDialog = false;
+			}
+		}
+	]);
+
+	onMount(() => {
+		window.addEventListener('keydown', handleKeyboard);
+	});
+
+	onDestroy(() => {
+		window.removeEventListener('keydown', handleKeyboard);
+	});
 </script>
 
 <div class="flex h-[100dvh] overflow-hidden bg-background">
@@ -1061,3 +1153,15 @@
 />
 
 <PosTour businessId={(data.business as any)?.id} hasTables={data.supportsTable} />
+
+<!-- Keyboard Shortcut Help Dialog -->
+<ShortcutHelpDialog
+	open={showShortcutHelp}
+	onClose={() => (showShortcutHelp = false)}
+	shortcuts={shortcutsList}
+/>
+
+<!-- Shortcut hint -->
+<div class="fixed right-2 bottom-2 z-10 text-xs text-muted-foreground opacity-50 pointer-events-none select-none">
+	Press F1 for shortcuts
+</div>
