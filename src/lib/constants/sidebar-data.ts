@@ -12,6 +12,7 @@ import DollarSignIcon from '@lucide/svelte/icons/dollar-sign';
 import MonitorIcon from '@lucide/svelte/icons/monitor';
 import UsersIcon from '@lucide/svelte/icons/users';
 import SettingsIcon from '@lucide/svelte/icons/settings';
+import LandmarkIcon from '@lucide/svelte/icons/landmark';
 import type { FeatureKey } from '$lib/utils/plan-features';
 
 export interface NavSubItem {
@@ -106,6 +107,12 @@ export const sidebarData: Record<string, SidebarData> = {
 						url: '/[business]/[slug]/pos/transactions'
 					}
 				]
+			},
+			{
+				title: 'Cash Drawer',
+				url: '/[business]/[slug]/cash-drawer',
+				icon: LandmarkIcon,
+				allowedRoles: ['owner', 'restaurant_owner', 'manager', 'staff'],
 			},
 			{
 				title: 'Menu',
