@@ -129,7 +129,7 @@
 		if (auditLogsLoaded) return;
 		try {
 			const result = await getAdminAuditLogs({ userId: user.id, limit: 20 });
-			auditLogs = result.logs;
+			auditLogs = result.data;
 			auditLogsLoaded = true;
 		} catch { toast.error('Failed to load activity'); }
 	}
