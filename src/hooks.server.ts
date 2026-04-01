@@ -72,17 +72,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const sessionData = await getSession(event.request.headers);
 
 	// Redirect logged-in users away from landing and auth pages
+	// During maintenance: let non-admin users stay on login page so they can switch accounts
 	if (isLandingPage || isAuthRoute) {
 		if (sessionData) {
 			if (sessionData.user?.role === 'super_admin') {
 				redirect(307, '/admin');
 			}
-			// For non-admin users, check maintenance before redirecting
 			const inMaintenance = await isMaintenanceMode();
-			if (inMaintenance) {
-				redirect(307, '/maintenance');
+			if (!inMaintenance) {
+				redirect(307, '/dashboard');
 			}
-			redirect(307, '/dashboard');
+			// During maintenance, let them stay on auth pages (don't redirect)
 		}
 		return resolve(event);
 	}

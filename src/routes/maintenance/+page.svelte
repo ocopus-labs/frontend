@@ -2,9 +2,7 @@
 	import { onMount } from 'svelte';
 	import Wrench from '@lucide/svelte/icons/wrench';
 	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
-	import LogOut from '@lucide/svelte/icons/log-out';
 	import { Button } from '$lib/components/ui/button';
-	import { signOut } from '$lib/auth';
 
 	let checking = $state(false);
 
@@ -58,10 +56,5 @@
 		<p class="mt-6 text-xs text-muted-foreground">
 			Auto-checking every 30 seconds
 		</p>
-
-		<Button variant="ghost" class="mt-4 text-muted-foreground" onclick={() => { signOut(); window.location.href = '/login'; }}>
-			<LogOut class="mr-2 size-4" />
-			Sign in as admin
-		</Button>
 	</div>
 </div>
