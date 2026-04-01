@@ -2,6 +2,38 @@ import { redirect, type Handle, type HandleFetch } from '@sveltejs/kit';
 import { getSession } from '$lib/auth.server';
 import { env } from '$env/dynamic/public';
 
+// Maintenance mode check with cache
+let maintenanceCache: { value: boolean; checked: number } = { value: false, checked: 0 };
+const MAINTENANCE_CACHE_TTL = 15_000; // 15 seconds
+
+async function isMaintenanceMode(cookie: string): Promise<boolean> {
+	const now = Date.now();
+	if (now - maintenanceCache.checked < MAINTENANCE_CACHE_TTL) {
+		return maintenanceCache.value;
+	}
+
+	try {
+		const baseUrl = env.PUBLIC_API_BASE || 'http://localhost:3000/api';
+		// Hit any authenticated endpoint — if backend is in maintenance, it returns 503
+		const res = await fetch(`${baseUrl}/business`, {
+			headers: { cookie },
+			signal: AbortSignal.timeout(3000),
+		}).catch(() => null);
+
+		if (res?.status === 503) {
+			const body = await res.json().catch(() => null);
+			maintenanceCache = { value: !!body?.maintenance, checked: now };
+			return maintenanceCache.value;
+		}
+
+		maintenanceCache = { value: false, checked: now };
+	} catch {
+		maintenanceCache = { value: false, checked: now };
+	}
+
+	return maintenanceCache.value;
+}
+
 export const handle: Handle = async ({ event, resolve }) => {
 	const { pathname } = event.url;
 
@@ -10,6 +42,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// Static assets and API routes don't need session
 	if (isStaticAsset || isApiRoute) {
+		return resolve(event);
+	}
+
+	// Maintenance page is always accessible
+	if (pathname === '/maintenance') {
 		return resolve(event);
 	}
 
@@ -26,11 +63,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 		pathname.startsWith('/pricing') ||
 		pathname.startsWith('/about');
 	const isOrderRoute = pathname.startsWith('/order');
-
-	// Maintenance page is always accessible
-	if (pathname === '/maintenance') {
-		return resolve(event);
-	}
 
 	// Public and order routes don't need session at all
 	if (isPublicRoute || isOrderRoute) {
@@ -58,6 +90,15 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.session = sessionData.session;
 	event.locals.user = sessionData.user;
 
+	// Check maintenance mode for non-admin users on protected routes
+	if (sessionData.user?.role !== 'super_admin' && !pathname.startsWith('/admin')) {
+		const cookie = event.request.headers.get('cookie') || '';
+		const inMaintenance = await isMaintenanceMode(cookie);
+		if (inMaintenance) {
+			redirect(307, '/maintenance');
+		}
+	}
+
 	return resolve(event);
 };
 
@@ -74,15 +115,5 @@ export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
 		request.headers.set('cookie', event.request.headers.get('cookie') || '');
 	}
 
-	const response = await fetch(request);
-
-	// Redirect to maintenance page on 503 from API during SSR
-	if (response.status === 503) {
-		const body = await response.clone().json().catch(() => null);
-		if (body?.maintenance) {
-			redirect(307, '/maintenance');
-		}
-	}
-
-	return response;
+	return fetch(request);
 };
