@@ -223,7 +223,8 @@
 					name: item.name,
 					quantity: item.quantity,
 					notes: item.modifiers?.specialInstructions || null,
-					status: optimisticStatus || item.status
+					status: optimisticStatus || item.status,
+					cancellationReason: item.cancellationReason
 				};
 			});
 
@@ -543,51 +544,64 @@
 						<Card.Content class="space-y-2">
 							{#each order.items as item}
 								{@const isProcessing = processingItems.has(`${order.orderId}-${item.id}`)}
-								<div
-									class="flex items-center justify-between rounded-md p-2 transition-colors {getItemStatusColor(
-										item.status
-									)}"
-								>
-									<div class="flex-1">
-										<div class="flex items-center gap-2">
+								{#if item.status === 'cancelled'}
+									<div class="flex items-center rounded-md p-2 bg-gray-100 dark:bg-gray-800/50">
+										<div class="flex-1 line-through text-muted-foreground">
 											<span class="font-medium">
 												{item.quantity}x {item.name}
 											</span>
-											{#if item.status === 'preparing'}
-												<span class="inline-block h-2 w-2 animate-pulse rounded-full bg-yellow-500"></span>
+											{#if item.cancellationReason}
+												<span class="text-xs text-red-500 ml-1 no-underline">({item.cancellationReason.replace(/_/g, ' ')})</span>
 											{/if}
 										</div>
-										{#if item.notes}
-											<p class="mt-1 text-xs font-medium opacity-75">
-												<IconAlertTriangle class="mr-1 inline h-3 w-3" />
-												{item.notes}
-											</p>
-										{/if}
 									</div>
-									<div class="ml-2">
-										{#if item.status === 'pending'}
-											<Button
-												size="sm"
-												variant="outline"
-												disabled={isProcessing}
-												onclick={() => updateItem(order.orderId, item.id, 'preparing')}
-											>
-												{isProcessing ? 'Starting...' : 'Start'}
-											</Button>
-										{:else if item.status === 'preparing'}
-											<Button
-												size="sm"
-												disabled={isProcessing}
-												onclick={() => updateItem(order.orderId, item.id, 'ready')}
-											>
-												<IconCheck class="mr-1 h-3 w-3" />
-												{isProcessing ? 'Saving...' : 'Done'}
-											</Button>
-										{:else}
-											<IconCheck class="h-5 w-5 text-green-600" />
-										{/if}
+								{:else}
+									<div
+										class="flex items-center justify-between rounded-md p-2 transition-colors {getItemStatusColor(
+											item.status
+										)}"
+									>
+										<div class="flex-1">
+											<div class="flex items-center gap-2">
+												<span class="font-medium">
+													{item.quantity}x {item.name}
+												</span>
+												{#if item.status === 'preparing'}
+													<span class="inline-block h-2 w-2 animate-pulse rounded-full bg-yellow-500"></span>
+												{/if}
+											</div>
+											{#if item.notes}
+												<p class="mt-1 text-xs font-medium opacity-75">
+													<IconAlertTriangle class="mr-1 inline h-3 w-3" />
+													{item.notes}
+												</p>
+											{/if}
+										</div>
+										<div class="ml-2">
+											{#if item.status === 'pending'}
+												<Button
+													size="sm"
+													variant="outline"
+													disabled={isProcessing}
+													onclick={() => updateItem(order.orderId, item.id, 'preparing')}
+												>
+													{isProcessing ? 'Starting...' : 'Start'}
+												</Button>
+											{:else if item.status === 'preparing'}
+												<Button
+													size="sm"
+													disabled={isProcessing}
+													onclick={() => updateItem(order.orderId, item.id, 'ready')}
+												>
+													<IconCheck class="mr-1 h-3 w-3" />
+													{isProcessing ? 'Saving...' : 'Done'}
+												</Button>
+											{:else}
+												<IconCheck class="h-5 w-5 text-green-600" />
+											{/if}
+										</div>
 									</div>
-								</div>
+								{/if}
 							{/each}
 						</Card.Content>
 

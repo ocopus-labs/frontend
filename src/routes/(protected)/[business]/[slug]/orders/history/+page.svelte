@@ -81,8 +81,11 @@
 	function getStatusPillStatus(status: string): 'success' | 'warning' | 'error' | 'info' | 'neutral' {
 		switch (status) {
 			case 'completed': return 'success';
+			case 'ready': return 'success';
+			case 'serving': return 'success';
 			case 'cancelled': return 'error';
-			case 'refunded': return 'warning';
+			case 'refunded': return 'error';
+			case 'preparing': return 'warning';
 			case 'active': return 'info';
 			default: return 'neutral';
 		}
@@ -204,6 +207,10 @@
 							placeholder="All Status"
 							allOptionLabel="All Status"
 							options={[
+								{ value: 'active', label: 'Active' },
+								{ value: 'preparing', label: 'Preparing' },
+								{ value: 'ready', label: 'Ready' },
+								{ value: 'serving', label: 'Serving' },
 								{ value: 'completed', label: 'Completed' },
 								{ value: 'cancelled', label: 'Cancelled' },
 								{ value: 'refunded', label: 'Refunded' }

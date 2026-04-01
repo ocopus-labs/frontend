@@ -59,5 +59,6 @@ export interface KitchenOrder {
 		quantity: number;
 		notes: string | null;
 		status: string;
+		cancellationReason?: string;
 	}>;
 }

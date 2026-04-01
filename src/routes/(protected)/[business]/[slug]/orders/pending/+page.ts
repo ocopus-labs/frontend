@@ -1,22 +1,18 @@
 import type { PageLoad } from './$types';
-import { getOrders } from '$lib/api';
+import { getActiveOrders } from '$lib/api';
 
 export const load: PageLoad = async ({ parent, fetch }) => {
 	const parentData = await parent();
 	const businessId = parentData.businessId;
 
 	try {
-		// Fetch active orders (pending, preparing status)
-		const { orders, total } = await getOrders(
-			businessId,
-			{ status: 'active' },
-			{ fetch }
-		);
+		// Fetch all active orders (active, preparing, ready, serving)
+		const { orders } = await getActiveOrders(businessId, { fetch });
 
 		return {
 			...parentData,
 			orders,
-			total,
+			total: orders.length,
 			ordersError: null
 		};
 	} catch (error) {

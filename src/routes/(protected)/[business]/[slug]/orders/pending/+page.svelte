@@ -64,10 +64,13 @@
 	function getStatusPillStatus(status: string): 'success' | 'warning' | 'error' | 'info' | 'neutral' {
 		switch (status) {
 			case 'completed': return 'success';
+			case 'ready': return 'success';
+			case 'serving': return 'success';
 			case 'preparing': return 'warning';
 			case 'active': return 'info';
 			case 'pending': return 'neutral';
 			case 'cancelled': return 'error';
+			case 'refunded': return 'error';
 			default: return 'neutral';
 		}
 	}
@@ -141,8 +144,8 @@
 						options={[
 							{ value: 'active', label: 'Active' },
 							{ value: 'preparing', label: 'Preparing' },
-							{ value: 'completed', label: 'Completed' },
-							{ value: 'cancelled', label: 'Cancelled' }
+							{ value: 'ready', label: 'Ready' },
+							{ value: 'serving', label: 'Serving' }
 						]}
 					/>
 					<FilterDropdown
@@ -202,7 +205,7 @@
 								</Table.Cell>
 								<Table.Cell class="text-right">
 									<div class="flex justify-end gap-2">
-										{#if order.status === 'active'}
+										{#if order.status && !['completed', 'cancelled', 'refunded'].includes(order.status)}
 											<Button variant="ghost" size="icon" onclick={() => triggerCompleteOrder(order.orderId)} aria-label="Mark order complete" title="Mark Complete">
 												<IconCheck class="h-4 w-4 text-green-600" />
 											</Button>

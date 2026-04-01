@@ -330,7 +330,7 @@
 						<IconPrinter class="mr-2 h-4 w-4" />
 						Print
 					</Button>
-					{#if order?.status === 'active'}
+					{#if order?.status && !['completed', 'cancelled', 'refunded'].includes(order.status)}
 						<Button variant="outline" onclick={triggerCompleteOrder}>
 							<IconCheck class="mr-2 h-4 w-4" />
 							Mark Complete
