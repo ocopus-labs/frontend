@@ -375,6 +375,15 @@ export async function splitOrder(
   return api.post(`/business/${businessId}/orders/${orderId}/split`, data);
 }
 
+export async function reprintKot(
+  businessId: string,
+  orderId: string,
+  options?: FetchOption
+): Promise<{ message: string; kot: any }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/business/${businessId}/orders/${orderId}/reprint-kot`);
+}
+
 // ==================== EXPORT ====================
 
 export async function exportOrders(

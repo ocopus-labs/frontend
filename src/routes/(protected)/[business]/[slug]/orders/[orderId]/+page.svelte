@@ -24,6 +24,7 @@
 		createSplitPayment,
 		processRefund,
 		updateOrderStatus,
+		reprintKot,
 		type PaymentMethod,
 		type Payment
 	} from '$lib/api';
@@ -290,6 +291,22 @@
 		}
 	}
 
+	// Reprint KOT state
+	let reprintLoading = $state(false);
+
+	async function handleReprintKot() {
+		if (!order) return;
+		reprintLoading = true;
+		try {
+			await reprintKot($page.data.business.id, order.id);
+			toast.success('KOT reprint logged');
+		} catch (err: any) {
+			toast.error(err.message || 'Failed to reprint KOT');
+		} finally {
+			reprintLoading = false;
+		}
+	}
+
 	// Format relative time for audit trail
 	function formatRelativeTime(dateStr: string): string {
 		const date = new Date(dateStr);
@@ -330,6 +347,12 @@
 						<IconPrinter class="mr-2 h-4 w-4" />
 						Print
 					</Button>
+					{#if order?.status && !['cancelled', 'refunded'].includes(order.status)}
+						<Button variant="outline" size="sm" onclick={handleReprintKot} disabled={reprintLoading}>
+							<IconPrinter class="mr-2 h-4 w-4" />
+							{reprintLoading ? 'Reprinting...' : 'Reprint KOT'}
+						</Button>
+					{/if}
 					{#if order?.status && !['completed', 'cancelled', 'refunded'].includes(order.status)}
 						<Button variant="outline" onclick={triggerCompleteOrder}>
 							<IconCheck class="mr-2 h-4 w-4" />

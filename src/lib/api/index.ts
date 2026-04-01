@@ -72,6 +72,7 @@ export {
   transferOrder,
   mergeOrders,
   splitOrder,
+  reprintKot,
   type Order,
   type OrderItem,
   type OrderPricing,
