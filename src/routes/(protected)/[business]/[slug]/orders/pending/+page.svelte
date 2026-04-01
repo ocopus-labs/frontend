@@ -18,8 +18,11 @@
 	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
 	import type { CurrencyCode } from '$lib/utils/i18n';
 	import { formatOrderType } from '$lib/utils/formatting';
+	import { canModify } from '$lib/utils/permissions';
 
 	let { data }: { data: PageData } = $props();
+
+	const userRole = $derived((data as any).userRole as string ?? '');
 
 	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
 
@@ -205,7 +208,7 @@
 								</Table.Cell>
 								<Table.Cell class="text-right">
 									<div class="flex justify-end gap-2">
-										{#if order.status && !['completed', 'cancelled', 'refunded'].includes(order.status)}
+										{#if canModify(userRole) && order.status && !['completed', 'cancelled', 'refunded'].includes(order.status)}
 											<Button variant="ghost" size="icon" onclick={() => triggerCompleteOrder(order.orderId)} aria-label="Mark order complete" title="Mark Complete">
 												<IconCheck class="h-4 w-4 text-green-600" />
 											</Button>

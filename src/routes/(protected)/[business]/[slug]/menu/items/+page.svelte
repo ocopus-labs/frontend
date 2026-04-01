@@ -29,8 +29,11 @@
 	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
 	import type { CurrencyCode } from '$lib/utils/i18n';
 	import { userFriendlyError } from '$lib/utils/error';
+	import { canModify } from '$lib/utils/permissions';
 
 	let { data }: { data: PageData } = $props();
+
+	const userRole = $derived((data as any).userRole as string ?? '');
 
 	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
 
@@ -469,16 +472,18 @@
 					</Select.Root>
 				</div>
 
-				<div class="flex gap-2">
-					<Button variant="outline" onclick={() => (showAddCategoryDialog = true)}>
-						<IconPlus class="mr-2 h-4 w-4" />
-						Add Category
-					</Button>
-					<Button onclick={openAddDialog}>
-						<IconPlus class="mr-2 h-4 w-4" />
-						Add {businessType === 'retail' ? 'Product' : 'Item'}
-					</Button>
-				</div>
+				{#if canModify(userRole)}
+					<div class="flex gap-2">
+						<Button variant="outline" onclick={() => (showAddCategoryDialog = true)}>
+							<IconPlus class="mr-2 h-4 w-4" />
+							Add Category
+						</Button>
+						<Button onclick={openAddDialog}>
+							<IconPlus class="mr-2 h-4 w-4" />
+							Add {businessType === 'retail' ? 'Product' : 'Item'}
+						</Button>
+					</div>
+				{/if}
 			</div>
 
 			<!-- Items Table -->
@@ -541,22 +546,24 @@
 								</Table.Cell>
 								<Table.Cell class="text-right">
 									<div class="flex justify-end gap-2">
-										<Button variant="ghost" size="icon" onclick={() => toggleAvailability(item.id)} title={item.isAvailable ? 'Hide item' : 'Show item'}>
-											{#if item.isAvailable}
-												<IconEyeOff class="h-4 w-4" />
-											{:else}
-												<IconEye class="h-4 w-4" />
-											{/if}
-										</Button>
-										<Button variant="ghost" size="icon" onclick={() => duplicateItem(item)} title="Duplicate item">
-											<IconCopy class="h-4 w-4" />
-										</Button>
-										<Button variant="ghost" size="icon" onclick={() => openEditDialog(item)} title="Edit item">
-											<IconEdit class="h-4 w-4" />
-										</Button>
-										<Button variant="ghost" size="icon" onclick={() => deleteItem(item.id)} title="Delete item">
-											<IconTrash class="h-4 w-4" />
-										</Button>
+										{#if canModify(userRole)}
+											<Button variant="ghost" size="icon" onclick={() => toggleAvailability(item.id)} title={item.isAvailable ? 'Hide item' : 'Show item'}>
+												{#if item.isAvailable}
+													<IconEyeOff class="h-4 w-4" />
+												{:else}
+													<IconEye class="h-4 w-4" />
+												{/if}
+											</Button>
+											<Button variant="ghost" size="icon" onclick={() => duplicateItem(item)} title="Duplicate item">
+												<IconCopy class="h-4 w-4" />
+											</Button>
+											<Button variant="ghost" size="icon" onclick={() => openEditDialog(item)} title="Edit item">
+												<IconEdit class="h-4 w-4" />
+											</Button>
+											<Button variant="ghost" size="icon" onclick={() => deleteItem(item.id)} title="Delete item">
+												<IconTrash class="h-4 w-4" />
+											</Button>
+										{/if}
 									</div>
 								</Table.Cell>
 							</Table.Row>

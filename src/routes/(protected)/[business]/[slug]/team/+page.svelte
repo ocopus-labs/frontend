@@ -43,6 +43,7 @@
 	import { userFriendlyError } from '$lib/utils/error';
 	import { formatDate } from '$lib/utils/formatting';
 	import * as Select from '$lib/components/ui/select';
+	import { canModify } from '$lib/utils/permissions';
 
 	let { data }: { data: PageData } = $props();
 
@@ -249,10 +250,12 @@
 						<IconDownload class="mr-2 h-4 w-4" />
 						Export
 					</Button>
-					<Button onclick={() => (showInviteDialog = true)}>
-						<IconPlus class="mr-2 h-4 w-4" />
-						Invite Member
-					</Button>
+					{#if canModify(data.userRole)}
+						<Button onclick={() => (showInviteDialog = true)}>
+							<IconPlus class="mr-2 h-4 w-4" />
+							Invite Member
+						</Button>
+					{/if}
 				{/snippet}
 			</PageHeader>
 
@@ -393,49 +396,51 @@
 										</Table.Cell>
 										<Table.Cell class="text-right">
 											<div class="flex justify-end gap-1">
-												{#if canManagePermissions && member.role !== 'restaurant_owner'}
+												{#if canModify(data.userRole)}
+													{#if canManagePermissions && member.role !== 'restaurant_owner'}
+														<Button
+															variant="ghost"
+															size="icon"
+															onclick={() => openPermissionEditor(member)}
+															aria-label="Edit permissions"
+														>
+															<IconShield class="h-4 w-4" />
+														</Button>
+													{/if}
+													<Button variant="ghost" size="sm" onclick={() => editMember(member)}>
+														Edit
+													</Button>
+													{#if member.status === 'suspended'}
+														<Button
+															variant="ghost"
+															size="icon"
+															class="text-success"
+															onclick={() => handleReactivate(member.id)}
+															aria-label="Reactivate member"
+														>
+															<IconPlayerPlay class="h-4 w-4" />
+														</Button>
+													{:else if member.status === 'active'}
+														<Button
+															variant="ghost"
+															size="icon"
+															class="text-warning"
+															onclick={() => handleSuspend(member.id)}
+															aria-label="Suspend member"
+														>
+															<IconPlayerPause class="h-4 w-4" />
+														</Button>
+													{/if}
 													<Button
 														variant="ghost"
 														size="icon"
-														onclick={() => openPermissionEditor(member)}
-														aria-label="Edit permissions"
+														class="text-destructive hover:text-destructive"
+														onclick={() => handleRemove(member.id)}
+														aria-label="Remove member"
 													>
-														<IconShield class="h-4 w-4" />
+														<IconTrash class="h-4 w-4" />
 													</Button>
 												{/if}
-												<Button variant="ghost" size="sm" onclick={() => editMember(member)}>
-													Edit
-												</Button>
-												{#if member.status === 'suspended'}
-													<Button
-														variant="ghost"
-														size="icon"
-														class="text-success"
-														onclick={() => handleReactivate(member.id)}
-													aria-label="Reactivate member"
-													>
-														<IconPlayerPlay class="h-4 w-4" />
-													</Button>
-												{:else if member.status === 'active'}
-													<Button
-														variant="ghost"
-														size="icon"
-														class="text-warning"
-														onclick={() => handleSuspend(member.id)}
-													aria-label="Suspend member"
-													>
-														<IconPlayerPause class="h-4 w-4" />
-													</Button>
-												{/if}
-												<Button
-													variant="ghost"
-													size="icon"
-													class="text-destructive hover:text-destructive"
-													onclick={() => handleRemove(member.id)}
-												aria-label="Remove member"
-												>
-													<IconTrash class="h-4 w-4" />
-												</Button>
 											</div>
 										</Table.Cell>
 									</Table.Row>
@@ -449,8 +454,8 @@
 					type={members.length === 0 ? 'empty' : 'no-results'}
 					title={members.length === 0 ? 'No team members yet' : 'No members found'}
 					description={members.length === 0 ? 'Invite your first team member to get started.' : 'Try adjusting your search or filters.'}
-					actionLabel="Invite Member"
-					onAction={() => (showInviteDialog = true)}
+					actionLabel={canModify(data.userRole) ? 'Invite Member' : undefined}
+					onAction={canModify(data.userRole) ? () => (showInviteDialog = true) : undefined}
 				/>
 			{/if}
 			<div class="px-6">

@@ -44,8 +44,11 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 	import { userFriendlyError } from '$lib/utils/error';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import * as Select from '$lib/components/ui/select';
+	import { canModify } from '$lib/utils/permissions';
 
 	let { data }: { data: PageData } = $props();
+
+	const userRole = $derived((data as any).userRole as string ?? '');
 
 	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
 
@@ -370,10 +373,12 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 						<IconDownload class="mr-2 h-4 w-4" />
 						Export
 					</Button>
-					<Button onclick={openAddDialog}>
-						<IconPlus class="mr-2 h-4 w-4" />
-						Add Item
-					</Button>
+					{#if canModify(userRole)}
+						<Button onclick={openAddDialog}>
+							<IconPlus class="mr-2 h-4 w-4" />
+							Add Item
+						</Button>
+					{/if}
 				{/snippet}
 			</PageHeader>
 
@@ -478,32 +483,34 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 										<Table.Cell>{formatCurrency(item.costPerUnit)}</Table.Cell>
 										<Table.Cell class="text-right">
 											<div class="flex justify-end gap-1">
-												<Button
-													variant="ghost"
-													size="sm"
-													class="h-8"
-													onclick={() => openStockAdjustment(item)}
-													title="Adjust stock"
-												>
-													<IconTrendingUp class="mr-1 h-4 w-4" />
-													Adjust
-												</Button>
 												<Button variant="ghost" size="icon" onclick={() => openHistory(item)} title="Transaction history" aria-label="Transaction history">
 													<IconHistory class="h-4 w-4" />
 												</Button>
-												<Button variant="ghost" size="icon" onclick={() => editItem(item)} title="Edit item" aria-label="Edit item">
-													<IconPencil class="h-4 w-4" />
-												</Button>
-												<Button
-													variant="ghost"
-													size="icon"
-													class="text-destructive hover:text-destructive"
-													onclick={() => triggerDeleteItem(item.id)}
-													title="Delete item"
-												aria-label="Delete item"
-												>
-													<IconTrash class="h-4 w-4" />
-												</Button>
+												{#if canModify(userRole)}
+													<Button
+														variant="ghost"
+														size="sm"
+														class="h-8"
+														onclick={() => openStockAdjustment(item)}
+														title="Adjust stock"
+													>
+														<IconTrendingUp class="mr-1 h-4 w-4" />
+														Adjust
+													</Button>
+													<Button variant="ghost" size="icon" onclick={() => editItem(item)} title="Edit item" aria-label="Edit item">
+														<IconPencil class="h-4 w-4" />
+													</Button>
+													<Button
+														variant="ghost"
+														size="icon"
+														class="text-destructive hover:text-destructive"
+														onclick={() => triggerDeleteItem(item.id)}
+														title="Delete item"
+														aria-label="Delete item"
+													>
+														<IconTrash class="h-4 w-4" />
+													</Button>
+												{/if}
 											</div>
 										</Table.Cell>
 									</Table.Row>
