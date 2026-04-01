@@ -115,6 +115,7 @@
 	);
 
 	const totalSteps = $derived(visibleSteps.length);
+	const currentStepId = $derived(visibleSteps[currentStep]?.id ?? '');
 	let stepAnnouncement = $state('');
 	let isInitialized = $state(false);
 
@@ -403,9 +404,7 @@
 
 			<!-- Step Content -->
 			<div id="step-content" class="space-y-6">
-				{@const stepId = getStepId(currentStep)}
-
-				{#if stepId === 'essentials'}
+				{#if currentStepId === 'essentials'}
 					<BusinessEssentialsStep
 						bind:this={step1Component}
 						bind:businessName
@@ -427,24 +426,24 @@
 						bind:taxRate
 						bind:errors={step2Errors}
 					/>
-				{:else if stepId === 'menu'}
+				{:else if currentStepId === 'menu'}
 					<MenuSetupStep
 						{businessId}
 						businessType={businessTypeResult}
 						bind:completed={menuCompleted}
 					/>
-				{:else if stepId === 'tables'}
+				{:else if currentStepId === 'tables'}
 					<TablesSetupStep
 						{businessId}
 						bind:completed={tablesCompleted}
 					/>
-				{:else if stepId === 'payment'}
+				{:else if currentStepId === 'payment'}
 					<PaymentTaxStep
 						{businessId}
 						businessType={businessTypeResult}
 						bind:completed={paymentCompleted}
 					/>
-				{:else if stepId === 'launch'}
+				{:else if currentStepId === 'launch'}
 					<ReviewLaunchStep
 						businessType={businessTypeResult}
 						businessSlug={businessSlug}
@@ -458,7 +457,7 @@
 				{/if}
 
 				<!-- Navigation Buttons -->
-				{#if stepId !== 'launch'}
+				{#if currentStepId !== 'launch'}
 					<div class="flex items-center justify-between border-t pt-6">
 						<div>
 							{#if currentStep === 0}
@@ -472,7 +471,7 @@
 						</div>
 
 						<div class="flex items-center gap-3">
-							{#if stepId !== 'essentials' && stepId !== 'payment'}
+							{#if currentStepId !== 'essentials' && currentStepId !== 'payment'}
 								<Button variant="ghost" onclick={skipStep}>
 									Skip for now
 								</Button>
@@ -482,7 +481,7 @@
 								{#if isSubmitting}
 									<Loader2 class="mr-2 size-4 animate-spin" />
 									Creating business...
-								{:else if stepId === 'essentials'}
+								{:else if currentStepId === 'essentials'}
 									{businessId ? 'Next' : 'Create & Continue'}
 									<ChevronRight class="ml-1 size-4" />
 								{:else}
