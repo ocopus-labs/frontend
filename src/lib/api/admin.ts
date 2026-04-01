@@ -230,6 +230,19 @@ export async function getAdminBusinessDetails(
   return api.get(`/admin/businesses/${id}`);
 }
 
+export async function adminUpdateBusiness(
+  id: string,
+  data: { name?: string; description?: string; address?: any; contact?: any; settings?: any }
+): Promise<{ message: string; business: AdminBusiness }> {
+  const api = getApiClient();
+  return api.patch(`/admin/businesses/${id}`, data);
+}
+
+export async function adminDeleteBusiness(id: string): Promise<{ message: string }> {
+  const api = getApiClient();
+  return api.delete(`/admin/businesses/${id}`);
+}
+
 export async function updateAdminBusinessStatus(
   id: string,
   status: string,
