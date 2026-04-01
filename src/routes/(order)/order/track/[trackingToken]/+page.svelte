@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { Button } from '$lib/components/ui/button';
-	import { getOrderTracking, createDodoPaymentCheckout } from '$lib/api';
+	import { getOrderTracking, createDodoPaymentCheckout, submitOrderFeedback } from '$lib/api';
 	import { formatDate, formatTime } from '$lib/utils/formatting';
 	import CheckCircle2Icon from '@lucide/svelte/icons/check-circle-2';
 	import ClockIcon from '@lucide/svelte/icons/clock';
@@ -97,6 +97,33 @@
 			// Dodo not available
 		} finally {
 			isPayingNow = false;
+		}
+	}
+
+	// Feedback state
+	let feedbackRating = $state(0);
+	let feedbackComment = $state('');
+	let feedbackSubmitted = $state(!!order.feedback);
+	let isSubmittingFeedback = $state(false);
+
+	const showFeedback = $derived(
+		['completed', 'serving', 'ready'].includes(order.status) && !feedbackSubmitted
+	);
+
+	async function submitFeedback() {
+		if (feedbackRating < 1) return;
+		isSubmittingFeedback = true;
+		try {
+			await submitOrderFeedback(trackingToken, {
+				rating: feedbackRating,
+				comment: feedbackComment.trim() || undefined,
+			});
+			feedbackSubmitted = true;
+		} catch {
+			// ignore — may already be submitted
+			feedbackSubmitted = true;
+		} finally {
+			isSubmittingFeedback = false;
 		}
 	}
 
@@ -317,6 +344,44 @@
 				</div>
 			{/if}
 		</div>
+
+		<!-- Feedback / Thank You -->
+		{#if feedbackSubmitted}
+			<div class="mx-4 mb-4 rounded-xl bg-green-50 p-4 text-center dark:bg-green-950">
+				<p class="text-lg font-semibold text-green-800 dark:text-green-200">Thank you for dining with us!</p>
+				<p class="mt-1 text-sm text-green-600 dark:text-green-400">We appreciate your feedback.</p>
+			</div>
+		{:else if showFeedback}
+			<div class="mx-4 mb-4 rounded-xl border bg-white p-4 dark:bg-card">
+				<p class="text-center text-sm font-medium">How was your experience?</p>
+				<div class="mt-3 flex justify-center gap-2">
+					{#each [1, 2, 3, 4, 5] as star}
+						<button
+							class="text-2xl transition-transform hover:scale-110 {feedbackRating >= star ? 'grayscale-0' : 'grayscale'}"
+							onclick={() => (feedbackRating = star)}
+							aria-label="{star} star{star > 1 ? 's' : ''}"
+						>
+							{feedbackRating >= star ? '⭐' : '☆'}
+						</button>
+					{/each}
+				</div>
+				{#if feedbackRating > 0}
+					<textarea
+						class="mt-3 w-full rounded-lg border bg-transparent p-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+						placeholder="Any comments? (optional)"
+						rows="2"
+						bind:value={feedbackComment}
+					></textarea>
+					<button
+						class="mt-2 w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
+						onclick={submitFeedback}
+						disabled={isSubmittingFeedback}
+					>
+						{isSubmittingFeedback ? 'Submitting...' : 'Submit Feedback'}
+					</button>
+				{/if}
+			</div>
+		{/if}
 
 		<!-- Auto-refresh notice -->
 		<div class="flex items-center justify-center gap-1.5 pb-4">

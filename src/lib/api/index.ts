@@ -395,5 +395,6 @@ export {
   type CustomerOrderResult,
   type OrderTracking,
   type CustomerPlaceOrderPayload,
-  type OrderingSettings
+  type OrderingSettings,
+  submitOrderFeedback
 } from './customer-order';

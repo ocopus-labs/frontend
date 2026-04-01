@@ -2,6 +2,7 @@
 	import UserDashboardSidebar from '$lib/components/global/user-dashboard-sidebar.svelte';
 	import ImpersonationBanner from '$lib/components/global/impersonation-banner.svelte';
 	import AnnouncementBanner from '$lib/components/global/announcement-banner.svelte';
+	import SubscriptionBanner from '$lib/components/global/subscription-banner.svelte';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
@@ -34,6 +35,7 @@
 	<UserDashboardSidebar businesses={data.businesses} subscription={data.subscription} />
 	<Sidebar.Inset id="main-content">
 		<AnnouncementBanner />
+		<SubscriptionBanner />
 		<header
 			class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12"
 		>

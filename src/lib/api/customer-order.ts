@@ -181,3 +181,12 @@ export async function updateOrderingSettings(
 	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
 	return api.put(`/business/${businessId}/ordering/settings`, data);
 }
+
+export async function submitOrderFeedback(
+	trackingToken: string,
+	feedback: { rating: number; comment?: string },
+	options?: FetchOption
+): Promise<{ message: string }> {
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.post(`/public/order/track/${trackingToken}/feedback`, feedback);
+}
