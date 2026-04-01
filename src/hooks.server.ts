@@ -27,6 +27,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 		pathname.startsWith('/about');
 	const isOrderRoute = pathname.startsWith('/order');
 
+	// Maintenance page is always accessible
+	if (pathname === '/maintenance') {
+		return resolve(event);
+	}
+
 	// Public and order routes don't need session at all
 	if (isPublicRoute || isOrderRoute) {
 		return resolve(event);

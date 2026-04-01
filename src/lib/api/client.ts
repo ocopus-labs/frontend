@@ -24,6 +24,12 @@ async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Request failed' }));
 
+    // Handle maintenance mode
+    if (response.status === 503 && error.maintenance && browser) {
+      window.location.href = '/maintenance';
+      throw new ApiError(503, 'Platform is under maintenance', error);
+    }
+
     // Handle session expiry: clear cache and redirect to login
     if (response.status === 401 && browser) {
       clearApiCache();
