@@ -73,6 +73,8 @@ export {
   mergeOrders,
   splitOrder,
   reprintKot,
+  acceptQrOrder,
+  rejectQrOrder,
   type Order,
   type OrderItem,
   type OrderPricing,

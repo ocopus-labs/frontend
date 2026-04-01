@@ -9,10 +9,10 @@
 	import { EmptyState, StatusPill } from '$lib/components/data-display';
 	import PageHeader from '$lib/components/global/page-header.svelte';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
-	import { invalidate, goto } from '$app/navigation';
+	import { invalidate, invalidateAll, goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
-	import { updateOrderStatus } from '$lib/api';
+	import { updateOrderStatus, acceptQrOrder, rejectQrOrder } from '$lib/api';
 	import { userFriendlyError } from '$lib/utils/error';
 	import type { Order } from '$lib/api/order';
 	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
@@ -71,6 +71,7 @@
 			case 'serving': return 'success';
 			case 'preparing': return 'warning';
 			case 'active': return 'info';
+			case 'pending_approval': return 'warning';
 			case 'pending': return 'neutral';
 			case 'cancelled': return 'error';
 			case 'refunded': return 'error';
@@ -115,6 +116,29 @@
 			toast.error(userFriendlyError(error, 'Failed to complete order.'));
 		}
 	}
+
+	async function handleAccept(orderId: string) {
+		try {
+			const businessId = ($page.data.business as any).id;
+			await acceptQrOrder(businessId, orderId);
+			toast.success('QR order accepted');
+			await invalidateAll();
+		} catch (err: any) {
+			toast.error(err.message || 'Failed to accept order');
+		}
+	}
+
+	async function handleReject(orderId: string) {
+		const reason = prompt('Rejection reason (optional):');
+		try {
+			const businessId = ($page.data.business as any).id;
+			await rejectQrOrder(businessId, orderId, reason || undefined);
+			toast.success('QR order rejected');
+			await invalidateAll();
+		} catch (err: any) {
+			toast.error(err.message || 'Failed to reject order');
+		}
+	}
 </script>
 
 <div class="flex flex-1 flex-col">
@@ -145,6 +169,7 @@
 						placeholder="All Status"
 						allOptionLabel="All Status"
 						options={[
+							{ value: 'pending_approval', label: 'Pending Approval' },
 							{ value: 'active', label: 'Active' },
 							{ value: 'preparing', label: 'Preparing' },
 							{ value: 'ready', label: 'Ready' },
@@ -208,7 +233,14 @@
 								</Table.Cell>
 								<Table.Cell class="text-right">
 									<div class="flex justify-end gap-2">
-										{#if canModify(userRole) && order.status && !['completed', 'cancelled', 'refunded'].includes(order.status)}
+										{#if order.status === 'pending_approval' && order.orderSource === 'customer_qr'}
+											<Button size="sm" variant="default" onclick={() => handleAccept(order.orderId)}>
+												Accept
+											</Button>
+											<Button size="sm" variant="destructive" onclick={() => handleReject(order.orderId)}>
+												Reject
+											</Button>
+										{:else if canModify(userRole) && order.status && !['completed', 'cancelled', 'refunded'].includes(order.status)}
 											<Button variant="ghost" size="icon" onclick={() => triggerCompleteOrder(order.orderId)} aria-label="Mark order complete" title="Mark Complete">
 												<IconCheck class="h-4 w-4 text-green-600" />
 											</Button>

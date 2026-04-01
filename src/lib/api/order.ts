@@ -80,7 +80,7 @@ export interface Order {
   discountsApplied: OrderDiscount[];
   paymentStatus: 'pending' | 'partial' | 'paid' | 'refunded';
   balanceDue: number;
-  status: 'active' | 'preparing' | 'ready' | 'serving' | 'completed' | 'cancelled' | 'refunded';
+  status: 'active' | 'pending_approval' | 'preparing' | 'ready' | 'serving' | 'completed' | 'cancelled' | 'refunded';
   priority: 'low' | 'normal' | 'high' | 'urgent';
   estimatedCompletionTime?: string;
   actualCompletionTime?: string;
@@ -382,6 +382,25 @@ export async function reprintKot(
 ): Promise<{ message: string; kot: any }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.post(`/business/${businessId}/orders/${orderId}/reprint-kot`);
+}
+
+export async function acceptQrOrder(
+  businessId: string,
+  orderId: string,
+  options?: FetchOption
+): Promise<{ message: string; order: Order }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/business/${businessId}/orders/${orderId}/accept`);
+}
+
+export async function rejectQrOrder(
+  businessId: string,
+  orderId: string,
+  reason?: string,
+  options?: FetchOption
+): Promise<{ message: string; order: Order }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/business/${businessId}/orders/${orderId}/reject`, { reason });
 }
 
 // ==================== EXPORT ====================
