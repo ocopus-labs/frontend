@@ -30,6 +30,7 @@
 		type Customer,
 		type CreateCustomerPayload,
 		type UpdateCustomerPayload,
+		type CustomerInsights,
 		type LoyaltySettings,
 		type LoyaltyLeaderboardEntry
 	} from '$lib/api';
@@ -80,6 +81,7 @@
 	);
 
 	const stats = $derived((data as any).stats || { total: 0, active: 0, inactive: 0, newThisMonth: 0 });
+	const insights = $derived((data as any).insights as CustomerInsights | null);
 	const pagination = $derived((data as any).pagination || { limit: 25, offset: 0 });
 	const total = $derived((data as any).total || 0);
 	const totalPages = $derived(Math.max(1, Math.ceil(total / pagination.limit)));
@@ -305,6 +307,96 @@
 			</Card.Content>
 		</Card.Root>
 	</div>
+
+	<!-- Customer Insights Panel -->
+	{#if insights}
+		<div class="grid gap-4">
+			<!-- CLV & Retention Metrics -->
+			<div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+				<Card.Root>
+					<Card.Content class="p-4">
+						<p class="text-sm text-muted-foreground">Avg. Lifetime Value</p>
+						<p class="text-2xl font-bold text-violet-600">
+							{new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Number(insights.avgClv))}
+						</p>
+						<p class="mt-1 text-xs text-muted-foreground">per customer</p>
+					</Card.Content>
+				</Card.Root>
+				<Card.Root>
+					<Card.Content class="p-4">
+						<p class="text-sm text-muted-foreground">Max Lifetime Value</p>
+						<p class="text-2xl font-bold text-indigo-600">
+							{new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Number(insights.maxClv))}
+						</p>
+						<p class="mt-1 text-xs text-muted-foreground">top spender</p>
+					</Card.Content>
+				</Card.Root>
+				<Card.Root>
+					<Card.Content class="p-4">
+						<p class="text-sm text-muted-foreground">Retention Rate</p>
+						<p class="text-2xl font-bold text-emerald-600">{insights.retentionRate}%</p>
+						<p class="mt-1 text-xs text-muted-foreground">last 90 days</p>
+					</Card.Content>
+				</Card.Root>
+				<Card.Root>
+					<Card.Content class="p-4">
+						<p class="text-sm text-muted-foreground">Repeat Customers</p>
+						<p class="text-2xl font-bold text-amber-600">{insights.repeatCustomers}</p>
+						<p class="mt-1 text-xs text-muted-foreground">2+ orders in 90d</p>
+					</Card.Content>
+				</Card.Root>
+			</div>
+
+			<!-- Top 10 Customers Table -->
+			{#if insights.topCustomers.length > 0}
+				<Card.Root>
+					<Card.Header class="pb-2">
+						<Card.Title class="text-base">Top Customers by Spending</Card.Title>
+						<Card.Description>Top 10 customers ranked by total completed order value</Card.Description>
+					</Card.Header>
+					<Table.Root>
+						<Table.Header>
+							<Table.Row>
+								<Table.Head class="w-8">#</Table.Head>
+								<Table.Head>Name</Table.Head>
+								<Table.Head>Phone</Table.Head>
+								<Table.Head class="text-right">Orders</Table.Head>
+								<Table.Head class="text-right">Total Spent</Table.Head>
+								<Table.Head class="hidden sm:table-cell text-right">Last Order</Table.Head>
+								<Table.Head class="text-right">Actions</Table.Head>
+							</Table.Row>
+						</Table.Header>
+						<Table.Body>
+							{#each insights.topCustomers as customer, i}
+								<Table.Row>
+									<Table.Cell class="text-muted-foreground font-medium">{i + 1}</Table.Cell>
+									<Table.Cell class="font-medium">{customer.name}</Table.Cell>
+									<Table.Cell>{customer.phone}</Table.Cell>
+									<Table.Cell class="text-right">{customer.orderCount}</Table.Cell>
+									<Table.Cell class="text-right font-medium">
+										{new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(customer.totalSpent)}
+									</Table.Cell>
+									<Table.Cell class="hidden sm:table-cell text-right text-muted-foreground">
+										{customer.lastOrderDate ? new Date(customer.lastOrderDate).toLocaleDateString() : '-'}
+									</Table.Cell>
+									<Table.Cell class="text-right">
+										<Button
+											variant="ghost"
+											size="icon"
+											class="h-8 w-8"
+											onclick={() => viewCustomer(customer.id)}
+										>
+											<IconEye class="h-4 w-4" />
+										</Button>
+									</Table.Cell>
+								</Table.Row>
+							{/each}
+						</Table.Body>
+					</Table.Root>
+				</Card.Root>
+			{/if}
+		</div>
+	{/if}
 
 	<!-- Search & Filters -->
 	<div class="flex flex-col gap-3 sm:flex-row sm:items-center">
