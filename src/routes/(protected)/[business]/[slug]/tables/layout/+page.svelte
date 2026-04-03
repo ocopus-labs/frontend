@@ -509,6 +509,11 @@
 					onTablePositionChange={handlePositionChange}
 					onOpenOrder={handleOpenOrder}
 					onStatusChange={handleStatusChange}
+					onEditModeChange={(editing) => {
+						if (!editing && hasPendingChanges) {
+							saveLayout();
+						}
+					}}
 				/>
 			</div>
 		{/if}
