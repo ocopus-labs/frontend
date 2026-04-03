@@ -3,7 +3,11 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import { StatusPill, EmptyState } from '$lib/components/data-display';
-	import { getFranchiseBusinesses, removeBusinessFromFranchise } from '$lib/api/franchise';
+	import {
+		getFranchiseBusinesses,
+		removeBusinessFromFranchise,
+		pushMenuToLocations,
+	} from '$lib/api/franchise';
 	import type { Business } from '$lib/api/types';
 
 	import Plus from '@lucide/svelte/icons/plus';
@@ -11,6 +15,7 @@
 	import Store from '@lucide/svelte/icons/store';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
+	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 
 	import type { PageData } from './$types';
 
@@ -22,6 +27,8 @@
 
 	let businesses = $state<Business[]>([]);
 	let loading = $state(true);
+	let syncingMenu = $state(false);
+	let syncMessage = $state<string | null>(null);
 
 	$effect(() => {
 		if (franchise?.id) {
@@ -49,6 +56,25 @@
 			console.error('Failed to remove business:', err);
 		}
 	}
+
+	async function handleSyncMenu() {
+		if (!franchise?.id) return;
+		if (!confirm('Push the franchise menu template to all locations? This will overwrite location menu categories.')) return;
+
+		syncingMenu = true;
+		syncMessage = null;
+		try {
+			const result = await pushMenuToLocations(franchise.id);
+			syncMessage = result.message;
+		} catch (err: any) {
+			syncMessage = err?.message ?? 'Menu sync failed';
+		} finally {
+			syncingMenu = false;
+			setTimeout(() => {
+				syncMessage = null;
+			}, 4000);
+		}
+	}
 </script>
 
 <svelte:head>
@@ -64,12 +90,28 @@
 			</p>
 		</div>
 		{#if isOwner}
-			<Button onclick={() => goto('/business/setup')}>
-				<Plus class="mr-2 h-4 w-4" />
-				Add Location
-			</Button>
+			<div class="flex items-center gap-2">
+				<Button
+					variant="outline"
+					disabled={syncingMenu}
+					onclick={handleSyncMenu}
+				>
+					<RefreshCw class="mr-2 h-4 w-4 {syncingMenu ? 'animate-spin' : ''}" />
+					Sync Menu
+				</Button>
+				<Button onclick={() => goto('/business/setup')}>
+					<Plus class="mr-2 h-4 w-4" />
+					Add Location
+				</Button>
+			</div>
 		{/if}
 	</div>
+
+	{#if syncMessage}
+		<div class="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">
+			{syncMessage}
+		</div>
+	{/if}
 
 	{#if loading}
 		<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

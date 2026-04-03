@@ -164,3 +164,29 @@ export async function syncFranchiseSettings(
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.post(`/franchise/${franchiseId}/sync-settings`);
 }
+
+// ==================== AUDIT TRAIL ====================
+
+export async function getFranchiseAuditTrail(
+  franchiseId: string,
+  params?: { limit?: number; offset?: number },
+  options?: { fetch?: typeof fetch },
+): Promise<{ logs: import('./types').FranchiseAuditLog[]; total: number }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  const query = new URLSearchParams();
+  if (params?.limit !== undefined) query.set('limit', String(params.limit));
+  if (params?.offset !== undefined) query.set('offset', String(params.offset));
+  const qs = query.toString();
+  return api.get(`/franchise/${franchiseId}/audit-trail${qs ? `?${qs}` : ''}`);
+}
+
+// ==================== MENU SYNC ====================
+
+export async function pushMenuToLocations(
+  franchiseId: string,
+  locationIds?: string[],
+  options?: { fetch?: typeof fetch },
+): Promise<{ message: string; synced: number }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/franchise/${franchiseId}/sync-menu`, { locationIds });
+}

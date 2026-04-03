@@ -120,3 +120,22 @@ export interface FranchiseAnalytics {
     orders: number;
   }[];
 }
+
+export interface FranchiseAuditLog {
+  id: string;
+  restaurantId: string;
+  userId: string | null;
+  action: string;
+  resource: string;
+  resourceId: string | null;
+  details: Record<string, unknown> | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+  businessName: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+  } | null;
+}
