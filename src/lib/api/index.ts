@@ -314,6 +314,10 @@ export {
   reactivateTeamMember,
   removeTeamMember,
   exportTeamMembers,
+  clockIn,
+  clockOut,
+  getCurrentShift,
+  getShiftHistory,
   type TeamMember,
   type TeamMemberStatus,
   type TeamRole,
@@ -327,7 +331,9 @@ export {
   type UpdateTeamMemberPayload,
   type UpdateMemberRolePayload,
   type UpdateMemberPermissionsPayload,
-  type SuspendMemberPayload
+  type SuspendMemberPayload,
+  type StaffShift,
+  type ClockOutPayload
 } from './team';
 
 // Loyalty API

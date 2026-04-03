@@ -21,7 +21,8 @@
 		IconClipboardList,
 		IconCircleCheck,
 		IconCircleX,
-		IconActivity
+		IconActivity,
+		IconUsersGroup
 	} from '@tabler/icons-svelte';
 
 	let { data } = $props();
@@ -194,6 +195,9 @@
 		`/${(data.business as any)?.type}/${(data.business as any)?.slug}`
 	);
 
+	// Shift stats
+	const onDutyCount = $derived((data as any).onDutyCount ?? 0);
+
 	// Table stats
 	const tableStats = $derived((data as any).tableStats);
 	const tableOccupancyPercent = $derived(
@@ -306,7 +310,7 @@
 				<StatsCard {stats} {basePath} />
 
 				<!-- Live Operations Strip -->
-				<div class="grid grid-cols-1 gap-3 px-4 sm:grid-cols-3 lg:px-6">
+				<div class="grid grid-cols-1 gap-3 px-4 sm:grid-cols-2 lg:grid-cols-4 lg:px-6">
 					<!-- Table Occupancy -->
 					<Card.Root class="p-4">
 						<div class="flex items-center gap-3">
@@ -396,6 +400,24 @@
 										</div>
 									{/if}
 								</div>
+							</div>
+						</div>
+					</Card.Root>
+
+					<!-- On Duty -->
+					<Card.Root class="p-4">
+						<div class="flex items-center gap-3">
+							<div
+								class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-500/10"
+							>
+								<IconUsersGroup class="h-5 w-5 text-violet-500" />
+							</div>
+							<div class="min-w-0 flex-1">
+								<p class="text-xs font-medium text-muted-foreground">On Duty</p>
+								<p class="text-lg font-bold tabular-nums">
+									{onDutyCount}
+									<span class="text-xs font-normal text-muted-foreground">staff</span>
+								</p>
 							</div>
 						</div>
 					</Card.Root>

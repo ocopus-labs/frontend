@@ -21,7 +21,10 @@
 		IconPlayerPlay,
 		IconPlayerPause,
 		IconDownload,
-		IconShield
+		IconShield,
+		IconClockPlay,
+		IconClockStop,
+		IconClock
 	} from '@tabler/icons-svelte';
 	import { SearchInput, FilterDropdown } from '$lib/components/search';
 	import { toast } from 'svelte-sonner';
@@ -33,11 +36,14 @@
 		reactivateTeamMember,
 		removeTeamMember,
 		exportTeamMembers,
+		clockIn,
+		clockOut,
 		type TeamMember,
 		type TeamMemberStatus,
 		type TeamRole,
 		type RoleInfo,
-		type PermissionTree
+		type PermissionTree,
+		type StaffShift
 	} from '$lib/api';
 	import { downloadBlob } from '$lib/utils/export';
 	import { userFriendlyError } from '$lib/utils/error';
@@ -46,6 +52,56 @@
 	import { canModify } from '$lib/utils/permissions';
 
 	let { data }: { data: PageData } = $props();
+
+	// Shift state
+	let currentShift = $state<StaffShift | null>(data.currentShift ?? null);
+	let isClockingIn = $state(false);
+	let isClockingOut = $state(false);
+
+	// Elapsed time for active shift
+	let elapsedMins = $state(0);
+	$effect(() => {
+		if (!currentShift) { elapsedMins = 0; return; }
+		const update = () => {
+			elapsedMins = Math.floor((Date.now() - new Date(currentShift!.clockInAt).getTime()) / 60000);
+		};
+		update();
+		const timer = setInterval(update, 30000);
+		return () => clearInterval(timer);
+	});
+
+	function formatElapsed(mins: number): string {
+		if (mins < 60) return `${mins}m`;
+		const h = Math.floor(mins / 60);
+		const m = mins % 60;
+		return m > 0 ? `${h}h ${m}m` : `${h}h`;
+	}
+
+	async function handleClockIn() {
+		isClockingIn = true;
+		try {
+			const result = await clockIn(data.businessId);
+			currentShift = result.shift;
+			toast.success('Clocked in successfully');
+		} catch (err) {
+			toast.error(userFriendlyError(err, 'Failed to clock in'));
+		} finally {
+			isClockingIn = false;
+		}
+	}
+
+	async function handleClockOut() {
+		isClockingOut = true;
+		try {
+			const result = await clockOut(data.businessId);
+			currentShift = null;
+			toast.success(`Clocked out — shift duration: ${formatElapsed(result.shift.durationMins ?? 0)}`);
+		} catch (err) {
+			toast.error(userFriendlyError(err, 'Failed to clock out'));
+		} finally {
+			isClockingOut = false;
+		}
+	}
 
 	let members = $state<TeamMember[]>(data.members || []);
 	let roles = $state<RoleInfo[]>(data.roles || []);
@@ -258,6 +314,58 @@
 					{/if}
 				{/snippet}
 			</PageHeader>
+
+			<!-- My Shift -->
+			<div class="px-6">
+				<Card.Root class="border-l-4 {currentShift ? 'border-l-success' : 'border-l-muted'}">
+					<Card.Content class="flex items-center justify-between gap-4 py-4">
+						<div class="flex items-center gap-3">
+							<div class="flex h-10 w-10 items-center justify-center rounded-full {currentShift ? 'bg-success/10' : 'bg-muted'}">
+								<IconClock class="h-5 w-5 {currentShift ? 'text-success' : 'text-muted-foreground'}" />
+							</div>
+							<div>
+								<p class="text-sm font-medium">My Shift</p>
+								{#if currentShift}
+									<p class="text-xs text-muted-foreground">
+										On duty &middot; {formatElapsed(elapsedMins)} elapsed
+									</p>
+								{:else}
+									<p class="text-xs text-muted-foreground">Not clocked in</p>
+								{/if}
+							</div>
+						</div>
+						{#if currentShift}
+							<Button
+								variant="outline"
+								class="border-destructive text-destructive hover:bg-destructive/10"
+								onclick={handleClockOut}
+								disabled={isClockingOut}
+							>
+								{#if isClockingOut}
+									<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+								{:else}
+									<IconClockStop class="mr-2 h-4 w-4" />
+								{/if}
+								Clock Out
+							</Button>
+						{:else}
+							<Button
+								variant="outline"
+								class="border-success text-success hover:bg-success/10"
+								onclick={handleClockIn}
+								disabled={isClockingIn}
+							>
+								{#if isClockingIn}
+									<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+								{:else}
+									<IconClockPlay class="mr-2 h-4 w-4" />
+								{/if}
+								Clock In
+							</Button>
+						{/if}
+					</Card.Content>
+				</Card.Root>
+			</div>
 
 			<!-- Stats -->
 			<div class="grid grid-cols-2 gap-4 px-6 sm:grid-cols-4">

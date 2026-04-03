@@ -235,3 +235,70 @@ export async function exportTeamMembers(
   if (!res.ok) throw new Error('Export failed');
   return res.blob();
 }
+
+// ==================== SHIFTS ====================
+
+export interface StaffShift {
+  id: string;
+  restaurantId: string;
+  userId: string;
+  status: 'active' | 'completed';
+  clockInAt: string;
+  clockOutAt?: string;
+  durationMins?: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+  };
+}
+
+export interface ClockOutPayload {
+  notes?: string;
+}
+
+export async function clockIn(
+  businessId: string,
+  options?: FetchOption
+): Promise<{ message: string; shift: StaffShift }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/business/${businessId}/team/shifts/clock-in`, {});
+}
+
+export async function clockOut(
+  businessId: string,
+  data?: ClockOutPayload,
+  options?: FetchOption
+): Promise<{ message: string; shift: StaffShift }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/business/${businessId}/team/shifts/clock-out`, data || {});
+}
+
+export async function getCurrentShift(
+  businessId: string,
+  options?: FetchOption
+): Promise<{ shift: StaffShift | null }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get(`/business/${businessId}/team/shifts/current`);
+}
+
+export async function getShiftHistory(
+  businessId: string,
+  params?: { userId?: string; limit?: number; offset?: number },
+  options?: FetchOption
+): Promise<{ shifts: StaffShift[]; total: number }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  const searchParams = new URLSearchParams();
+  if (params?.userId) searchParams.set('userId', params.userId);
+  if (params?.limit !== undefined) searchParams.set('limit', String(params.limit));
+  if (params?.offset !== undefined) searchParams.set('offset', String(params.offset));
+  const query = searchParams.toString();
+  const url = query
+    ? `/business/${businessId}/team/shifts/history?${query}`
+    : `/business/${businessId}/team/shifts/history`;
+  return api.get(url);
+}

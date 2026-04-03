@@ -6,7 +6,8 @@ import {
 	getRevenueTrends,
 	getHourlyBreakdown,
 	getTopSellingItems,
-	getTableStats
+	getTableStats,
+	getShiftHistory
 } from '$lib/api';
 import { getOrders } from '$lib/api/order';
 
@@ -43,7 +44,8 @@ export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 			hourlyData,
 			topItems,
 			recentOrdersData,
-			tableStats
+			tableStats,
+			activeShiftsData
 		] = await Promise.all([
 			getDashboardStats(businessId, undefined, { fetch, period: analyticsPeriod }),
 			getAnalyticsDashboard(businessId, { fetch }).catch(() => null),
@@ -54,8 +56,13 @@ export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 			getHourlyBreakdown(businessId, undefined, { fetch }).catch(() => null),
 			getTopSellingItems(businessId, { limit: 5, days }, { fetch }).catch(() => null),
 			getOrders(businessId, { limit: 10 }, { fetch }).catch(() => null),
-			getTableStats(businessId, { fetch }).catch(() => null)
+			getTableStats(businessId, { fetch }).catch(() => null),
+			getShiftHistory(businessId, { limit: 100 }, { fetch }).catch(() => null)
 		]);
+
+		const onDutyCount = activeShiftsData
+			? activeShiftsData.shifts.filter((s: any) => s.status === 'active').length
+			: 0;
 
 		return {
 			...parentData,
@@ -69,6 +76,7 @@ export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 			recentOrders: recentOrdersData?.orders || [],
 			tableStats: tableStats?.stats || null,
 			orderStats: stats?.orders || null,
+			onDutyCount,
 			statsError: null
 		};
 	} catch (error) {
@@ -85,6 +93,7 @@ export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 			recentOrders: [],
 			tableStats: null,
 			orderStats: null,
+			onDutyCount: 0,
 			statsError: error instanceof Error ? error.message : 'Failed to load stats'
 		};
 	}
