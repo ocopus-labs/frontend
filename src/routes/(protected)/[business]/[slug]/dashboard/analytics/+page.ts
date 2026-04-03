@@ -9,6 +9,16 @@ import {
 } from '$lib/api';
 import { getOrderStats } from '$lib/api/order';
 
+/** Returns the ISO date string (YYYY-MM-DD) for `daysAgo` days before today. */
+function dateStringDaysAgo(daysAgo: number): string {
+	const d = new Date();
+	d.setDate(d.getDate() - daysAgo);
+	return d.toISOString().split('T')[0];
+}
+
+/** Day-of-week short label matching the heatmap component's DAYS array (Sun..Sat). */
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 function getDaysFromRange(range: string): number {
 	switch (range) {
 		case '7d':
@@ -46,6 +56,9 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 	const days = getDaysFromRange(dateRange);
 	const period = getRangePeriod(dateRange);
 
+	// Fetch 7 individual days for the revenue heatmap (last 7 days including today)
+	const heatmapDateStrings = Array.from({ length: 7 }, (_, i) => dateStringDaysAgo(6 - i));
+
 	try {
 		const [
 			stats,
@@ -54,7 +67,8 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 			analyticsData,
 			paymentData,
 			hourlyData,
-			orderStats
+			orderStats,
+			...heatmapDayResults
 		] = await Promise.all([
 			getDashboardStats(businessId, undefined, { fetch, period }),
 			getTopSellingItems(businessId, { limit: 10, days }, { fetch }),
@@ -64,8 +78,24 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 				() => null
 			),
 			getHourlyBreakdown(businessId, undefined, { fetch }).catch(() => null),
-			getOrderStats(businessId, undefined, { fetch }).catch(() => null)
+			getOrderStats(businessId, undefined, { fetch }).catch(() => null),
+			...heatmapDateStrings.map((dateStr) =>
+				getHourlyBreakdown(businessId, dateStr, { fetch }).catch(() => null)
+			)
 		]);
+
+		// Build heatmap data: { day, hour, revenue }[]
+		const revenueHeatmapData: { day: string; hour: number; revenue: number }[] = [];
+		heatmapDateStrings.forEach((dateStr, idx) => {
+			const result = heatmapDayResults[idx];
+			if (!result?.breakdown) return;
+			const dayLabel = DAY_LABELS[new Date(dateStr + 'T12:00:00').getDay()];
+			for (const h of result.breakdown) {
+				if (h.revenue > 0) {
+					revenueHeatmapData.push({ day: dayLabel, hour: h.hour, revenue: h.revenue });
+				}
+			}
+		});
 
 		return {
 			...parentData,
@@ -77,6 +107,7 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 			paymentBreakdown: paymentData?.breakdown || [],
 			hourlyBreakdown: hourlyData?.breakdown || [],
 			orderStats: orderStats?.stats || null,
+			revenueHeatmapData,
 			analyticsError: null
 		};
 	} catch (error) {
@@ -91,6 +122,7 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 			paymentBreakdown: [],
 			hourlyBreakdown: [],
 			orderStats: null,
+			revenueHeatmapData: [],
 			analyticsError: error instanceof Error ? error.message : 'Failed to load analytics'
 		};
 	}

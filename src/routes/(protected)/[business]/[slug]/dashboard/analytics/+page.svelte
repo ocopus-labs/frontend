@@ -3,6 +3,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import BarChart from '$lib/components/chart/lazy-bar-chart.svelte';
 	import PieChart from '$lib/components/chart/lazy-pie-chart.svelte';
+	import RevenueHeatmap from '$lib/components/chart/revenue-heatmap.svelte';
 	import {
 		IconTrendingUp,
 		IconShoppingCart,
@@ -322,6 +323,28 @@
 						</Card.Content>
 					</Card.Root>
 				{/if}
+			</div>
+
+			<!-- Revenue Heatmap (7-day grid) -->
+			<div class="px-4 lg:px-6">
+				<Card.Root>
+					<Card.Header>
+						<Card.Title>Revenue Heatmap</Card.Title>
+						<Card.Description>Revenue by hour across the last 7 days</Card.Description>
+					</Card.Header>
+					<Card.Content>
+						{#if data.revenueHeatmapData && data.revenueHeatmapData.length > 0}
+							<RevenueHeatmap
+								data={data.revenueHeatmapData}
+								formatRevenue={formatCurrency}
+							/>
+						{:else}
+							<div class="flex flex-col items-center justify-center py-16 text-muted-foreground">
+								<p class="text-sm">No revenue data for the last 7 days</p>
+							</div>
+						{/if}
+					</Card.Content>
+				</Card.Root>
 			</div>
 
 			<!-- Bottom Row: Top Selling Items + Payment Methods -->
