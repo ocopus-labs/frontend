@@ -17,7 +17,8 @@
 		deleteMenuItem as deleteMenuItemApi,
 		toggleItemAvailability,
 		createCategory,
-		seedDefaultCategories
+		seedDefaultCategories,
+		bulkUpdatePrices
 	} from '$lib/api';
 	import { IconSearch, IconPlus, IconEdit, IconTrash, IconEye, IconEyeOff, IconCopy, IconX } from '@tabler/icons-svelte';
 	import * as Select from '$lib/components/ui/select';
@@ -293,6 +294,68 @@
 		showAddDialog = true;
 	}
 
+	// Bulk price update state
+	let showBulkPriceDialog = $state(false);
+	let bulkPriceUpdates = $state<{ itemId: string; name: string; currentPrice: number; newPrice: number }[]>([]);
+	let bulkPricePercent = $state('');
+	let isBulkSubmitting = $state(false);
+
+	function openBulkPriceDialog() {
+		bulkPriceUpdates = filteredItems.map((item) => ({
+			itemId: item.id,
+			name: item.name,
+			currentPrice: item.price,
+			newPrice: item.price
+		}));
+		bulkPricePercent = '';
+		showBulkPriceDialog = true;
+	}
+
+	function applyPercentageChange() {
+		const pct = parseFloat(bulkPricePercent);
+		if (isNaN(pct)) {
+			toast.error('Please enter a valid percentage');
+			return;
+		}
+		bulkPriceUpdates = bulkPriceUpdates.map((u) => ({
+			...u,
+			newPrice: Math.max(0, Math.round(u.currentPrice * (1 + pct / 100) * 100) / 100)
+		}));
+	}
+
+	async function submitBulkPriceUpdate() {
+		const changed = bulkPriceUpdates.filter((u) => u.newPrice !== u.currentPrice);
+		if (changed.length === 0) {
+			toast.error('No prices have changed');
+			return;
+		}
+
+		isBulkSubmitting = true;
+		try {
+			const result = await bulkUpdatePrices(
+				businessId,
+				changed.map((u) => ({ itemId: u.itemId, newPrice: u.newPrice }))
+			);
+
+			// Update local state
+			for (const update of changed) {
+				const idx = menuItems.findIndex((i) => i.id === update.itemId);
+				if (idx !== -1) {
+					menuItems[idx] = { ...menuItems[idx], price: update.newPrice };
+				}
+			}
+			menuItems = [...menuItems];
+
+			showBulkPriceDialog = false;
+			toast.success(result.message);
+			invalidateMenuData();
+		} catch (error) {
+			toast.error(userFriendlyError(error, 'Failed to update prices'));
+		} finally {
+			isBulkSubmitting = false;
+		}
+	}
+
 	async function addCategory() {
 		if (!newCategoryName.trim()) {
 			toast.error('Please enter a category name');
@@ -477,6 +540,9 @@
 						<Button variant="outline" onclick={() => (showAddCategoryDialog = true)}>
 							<IconPlus class="mr-2 h-4 w-4" />
 							Add Category
+						</Button>
+						<Button variant="outline" onclick={openBulkPriceDialog} disabled={filteredItems.length === 0}>
+							Bulk Price Update
 						</Button>
 						<Button onclick={openAddDialog}>
 							<IconPlus class="mr-2 h-4 w-4" />
@@ -874,6 +940,85 @@
 					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
 				{/if}
 				Add Category
+			</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>
+
+<!-- Bulk Price Update Dialog -->
+<Dialog.Root bind:open={showBulkPriceDialog}>
+	<Dialog.Content class="max-h-[90vh] w-full max-w-2xl overflow-y-auto">
+		<Dialog.Header>
+			<Dialog.Title>Bulk Price Update</Dialog.Title>
+			<Dialog.Description>
+				Update prices for multiple items at once. You can apply a percentage change to all items or edit individual prices.
+			</Dialog.Description>
+		</Dialog.Header>
+
+		<div class="space-y-4 py-4">
+			<!-- Percentage adjustment row -->
+			<div class="flex items-end gap-2">
+				<div class="flex-1">
+					<label class="mb-1 block text-sm font-medium">Apply % change to all items</label>
+					<Input
+						type="number"
+						step="0.1"
+						placeholder="e.g. 10 for +10%, -5 for -5%"
+						bind:value={bulkPricePercent}
+					/>
+				</div>
+				<Button variant="outline" onclick={applyPercentageChange}>Apply</Button>
+			</div>
+
+			<!-- Items table -->
+			<div class="overflow-x-auto rounded-md border">
+				<Table.Root>
+					<Table.Header>
+						<Table.Row>
+							<Table.Head>Item Name</Table.Head>
+							<Table.Head class="w-32">Current Price</Table.Head>
+							<Table.Head class="w-36">New Price</Table.Head>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						{#each bulkPriceUpdates as row, idx (row.itemId)}
+							<Table.Row class={row.newPrice !== row.currentPrice ? 'bg-muted/40' : ''}>
+								<Table.Cell class="font-medium">{row.name}</Table.Cell>
+								<Table.Cell class="text-muted-foreground">{formatCurrency(row.currentPrice)}</Table.Cell>
+								<Table.Cell>
+									<Input
+										type="number"
+										step="0.01"
+										min="0"
+										value={row.newPrice}
+										class="w-28"
+										onchange={(e) => {
+											const val = parseFloat((e.currentTarget as HTMLInputElement).value);
+											if (!isNaN(val) && val >= 0) {
+												bulkPriceUpdates[idx] = { ...bulkPriceUpdates[idx], newPrice: val };
+												bulkPriceUpdates = [...bulkPriceUpdates];
+											}
+										}}
+									/>
+								</Table.Cell>
+							</Table.Row>
+						{/each}
+					</Table.Body>
+				</Table.Root>
+			</div>
+
+			<p class="text-sm text-muted-foreground">
+				{bulkPriceUpdates.filter((u) => u.newPrice !== u.currentPrice).length} item(s) will be updated.
+			</p>
+		</div>
+
+		<Dialog.Footer>
+			<Button variant="outline" onclick={() => (showBulkPriceDialog = false)}>Cancel</Button>
+			<Button onclick={submitBulkPriceUpdate} disabled={isBulkSubmitting}>
+				{#if isBulkSubmitting}
+					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+				{/if}
+				Apply Price Updates
 			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>

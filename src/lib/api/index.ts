@@ -36,6 +36,7 @@ export {
   deleteMenuItem,
   toggleItemAvailability,
   bulkUpdateAvailability,
+  bulkUpdatePrices,
   seedDefaultCategories,
   seedMenuTemplate,
   bulkImportMenuItems,
@@ -127,6 +128,7 @@ export {
 export {
   getCustomers,
   getCustomerStats,
+  getCustomerInsights,
   getCustomerById,
   getCustomerWithOrders,
   findCustomerByPhone,
@@ -138,6 +140,8 @@ export {
   type CustomerAddress,
   type CustomerStats,
   type CustomerOrderStats,
+  type CustomerInsights,
+  type CustomerInsightsTopCustomer,
   type CreateCustomerPayload,
   type UpdateCustomerPayload
 } from './customer';

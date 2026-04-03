@@ -245,6 +245,15 @@ export async function seedMenuTemplate(
   return api.post(`/business/${businessId}/menu/seed-template`, { template });
 }
 
+export async function bulkUpdatePrices(
+  businessId: string,
+  updates: { itemId: string; newPrice: number }[],
+  options?: FetchOption
+): Promise<{ message: string; updatedCount: number }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.patch(`/business/${businessId}/menu/items/bulk-price`, { updates });
+}
+
 export async function bulkImportMenuItems(
   businessId: string,
   items: { name: string; price: number; category: string; description?: string }[],
