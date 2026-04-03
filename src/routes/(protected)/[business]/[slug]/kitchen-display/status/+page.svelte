@@ -248,6 +248,12 @@
 		return [...activeReady, ...recentCompleted].slice(0, 12);
 	});
 
+	// Extract short display ID from order number (e.g., "ORD-k1a2b3-xY4z" → "#xY4z")
+	function shortOrderId(orderNumber: string): string {
+		const parts = orderNumber.split('-');
+		return '#' + (parts.length >= 3 ? parts[parts.length - 1] : parts[parts.length - 1] || orderNumber).toUpperCase();
+	}
+
 	let clockTime = $derived(
 		new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 	);
@@ -313,9 +319,9 @@
 	<div class="flex flex-1 flex-col pt-14 md:flex-row">
 		<!-- PREPARING column -->
 		<div class="flex flex-1 flex-col">
-			<div class="bg-gradient-to-r from-amber-600 to-amber-700 px-6 py-4 text-center shadow-lg">
-				<h2 class="text-3xl font-black tracking-wider">PREPARING</h2>
-				<p class="mt-1 text-amber-100/80">{preparingOrders.length} {preparingOrders.length === 1 ? 'order' : 'orders'}</p>
+			<div class="bg-gradient-to-r from-amber-600 to-amber-700 px-4 py-2.5 flex items-center justify-between shadow-lg">
+				<h2 class="text-lg font-bold tracking-wide">PREPARING</h2>
+				<span class="text-sm text-amber-100/80">{preparingOrders.length}</span>
 			</div>
 			<div
 				bind:this={preparingCol}
@@ -328,7 +334,7 @@
 						{@const elapsed = getElapsed(order.createdAt)}
 						{@const progress = getProgress(order)}
 						<div
-							class="relative overflow-hidden rounded-xl border-2 bg-gray-900 p-5 transition-all duration-300 {getElapsedBg(elapsed)} {order.priority === 'urgent'
+							class="relative overflow-hidden rounded-lg border bg-gray-900 p-3.5 transition-all duration-300 {getElapsedBg(elapsed)} {order.priority === 'urgent'
 								? 'ring-2 ring-red-500 animate-pulse'
 								: order.priority === 'high'
 									? 'ring-2 ring-yellow-500'
@@ -341,62 +347,45 @@
 								<div class="absolute top-0 left-0 right-0 h-1 bg-yellow-500"></div>
 							{/if}
 
-							<div class="flex items-start justify-between">
-								<div>
-									<span class="font-mono text-5xl font-black text-white tracking-tight">
-										{order.orderNumber}
-									</span>
-									<div class="mt-2 flex flex-wrap items-center gap-1.5">
-										<Badge variant="secondary" class="text-xs font-medium">
+							<div class="flex items-center justify-between gap-3">
+								<div class="min-w-0">
+									<div class="flex items-baseline gap-2">
+										<span class="font-mono text-2xl font-bold text-white">
+											{shortOrderId(order.orderNumber)}
+										</span>
+										<span class="font-mono text-lg font-bold {getElapsedColor(elapsed)}">
+											{elapsed}m
+										</span>
+									</div>
+									<div class="mt-1.5 flex flex-wrap items-center gap-1">
+										<Badge variant="secondary" class="text-[10px] px-1.5 py-0">
 											{formatOrderType(order.orderType)}
 										</Badge>
 										{#if order.orderType === 'dine_in' && order.tableNumber}
-											<Badge variant="outline" class="text-xs border-blue-500/50 text-blue-400">
-												Table {order.tableNumber}
+											<Badge variant="outline" class="text-[10px] px-1.5 py-0 border-blue-500/50 text-blue-400">
+												T{order.tableNumber}
 											</Badge>
 										{/if}
 										{#if order.priority === 'urgent'}
-											<Badge variant="destructive" class="text-xs animate-pulse">URGENT</Badge>
+											<Badge variant="destructive" class="text-[10px] px-1.5 py-0 animate-pulse">URGENT</Badge>
 										{:else if order.priority === 'high'}
-											<Badge class="bg-yellow-600 text-xs text-white">HIGH</Badge>
+											<Badge class="bg-yellow-600 text-[10px] px-1.5 py-0 text-white">HIGH</Badge>
 										{/if}
 									</div>
 								</div>
-								<div class="text-right">
-									<span class="font-mono text-3xl font-bold {getElapsedColor(elapsed)}">
-										{elapsed}<span class="text-lg">m</span>
-									</span>
+								<div class="text-right text-xs text-gray-500 shrink-0">
+									{order.items.filter((i: OrderItem) => i.status === 'ready' || i.status === 'served').length}/{order.items.length}
 								</div>
 							</div>
 
 							<!-- Progress bar -->
-							<div class="mt-4">
-								<div class="flex justify-between text-xs text-gray-500 mb-1">
-									<span>{order.items.filter((i: OrderItem) => i.status === 'ready' || i.status === 'served').length}/{order.items.length} items</span>
-									<span>{progress}%</span>
-								</div>
-								<div class="h-2 w-full overflow-hidden rounded-full bg-gray-800">
+							<div class="mt-3">
+								<div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-800">
 									<div
 										class="h-full rounded-full transition-all duration-700 ease-out {progress === 100 ? 'bg-green-500' : progress > 0 ? 'bg-amber-500' : 'bg-gray-700'}"
 										style="width: {progress}%"
 									></div>
 								</div>
-							</div>
-
-							<!-- Item dots -->
-							<div class="mt-3 flex gap-1.5">
-								{#each order.items as item}
-									<div
-										class="h-3 w-3 rounded-full transition-colors duration-300 {item.status === 'ready' || item.status === 'served'
-											? 'bg-green-500'
-											: item.status === 'preparing'
-												? 'bg-amber-500 animate-pulse'
-												: item.status === 'cancelled'
-													? 'bg-red-500/50'
-													: 'bg-gray-700'}"
-										title="{item.name}: {item.status}"
-									></div>
-								{/each}
 							</div>
 						</div>
 					{/each}
@@ -417,9 +406,9 @@
 
 		<!-- READY column -->
 		<div class="flex flex-1 flex-col">
-			<div class="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4 text-center shadow-lg">
-				<h2 class="text-3xl font-black tracking-wider">READY</h2>
-				<p class="mt-1 text-green-100/80">{readyOrders().length} {readyOrders().length === 1 ? 'order' : 'orders'}</p>
+			<div class="bg-gradient-to-r from-green-600 to-green-700 px-4 py-2.5 flex items-center justify-between shadow-lg">
+				<h2 class="text-lg font-bold tracking-wide">READY</h2>
+				<span class="text-sm text-green-100/80">{readyOrders().length}</span>
 			</div>
 			<div
 				bind:this={readyCol}
@@ -431,31 +420,31 @@
 					{#each readyOrders() as order (order.id)}
 						{@const isNew = newlyReadyIds.has(order.id)}
 						<div
-							class="rounded-xl border-2 border-green-600/50 bg-gray-900 p-5 transition-all duration-500 {isNew ? 'ring-4 ring-green-400 scale-105' : ''} {order.status === 'completed' ? 'opacity-60' : ''}"
+							class="rounded-lg border border-green-600/40 bg-gray-900 p-3.5 transition-all duration-500 {isNew ? 'ring-4 ring-green-400 scale-105' : ''} {order.status === 'completed' ? 'opacity-60' : ''}"
 						>
-							<div class="flex items-center justify-between">
-								<div>
-									<span class="font-mono text-5xl font-black text-green-400 tracking-tight {isNew ? 'animate-bounce' : ''}">
-										{order.orderNumber}
+							<div class="flex items-center justify-between gap-3">
+								<div class="min-w-0">
+									<span class="font-mono text-2xl font-bold text-green-400 {isNew ? 'animate-bounce' : ''}">
+										{shortOrderId(order.orderNumber)}
 									</span>
-									<div class="mt-2 flex items-center gap-1.5">
-										<Badge variant="secondary" class="text-xs font-medium">
+									<div class="mt-1 flex items-center gap-1">
+										<Badge variant="secondary" class="text-[10px] px-1.5 py-0">
 											{formatOrderType(order.orderType)}
 										</Badge>
 										{#if order.orderType === 'dine_in' && order.tableNumber}
-											<Badge variant="outline" class="text-xs border-blue-500/50 text-blue-400">
-												Table {order.tableNumber}
+											<Badge variant="outline" class="text-[10px] px-1.5 py-0 border-blue-500/50 text-blue-400">
+												T{order.tableNumber}
 											</Badge>
 										{/if}
 									</div>
 								</div>
-								<div>
+								<div class="shrink-0">
 									{#if order.status === 'completed'}
-										<Badge class="bg-green-800 text-green-200 text-xs">PICKED UP</Badge>
+										<Badge class="bg-green-800 text-green-200 text-[10px] px-1.5 py-0">PICKED UP</Badge>
 									{:else}
-										<div class="flex items-center gap-1 text-green-400">
-											<div class="h-3 w-3 rounded-full bg-green-400 animate-ping"></div>
-											<span class="text-sm font-medium">READY</span>
+										<div class="flex items-center gap-1.5 text-green-400">
+											<div class="h-2.5 w-2.5 rounded-full bg-green-400 animate-ping"></div>
+											<span class="text-xs font-semibold">READY</span>
 										</div>
 									{/if}
 								</div>
