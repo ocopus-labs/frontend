@@ -11,6 +11,7 @@
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import PermissionEditor from '$lib/components/team/permission-editor.svelte';
 	import PageHeader from '$lib/components/global/page-header.svelte';
+	import StatCard from '$lib/components/global/stat-card.svelte';
 	import {
 		IconPlus,
 		IconUsers,
@@ -369,47 +370,34 @@
 
 			<!-- Stats -->
 			<div class="grid grid-cols-2 gap-4 px-6 sm:grid-cols-4">
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Total Members</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="flex items-center gap-2">
-							<IconUsers class="h-5 w-5 text-muted-foreground" />
-							<span class="text-2xl font-bold">{stats.total}</span>
-						</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Active</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="flex items-center gap-2">
-							<IconUserCheck class="h-5 w-5 text-success" />
-							<span class="text-2xl font-bold text-success">{stats.active}</span>
-						</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Inactive</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="flex items-center gap-2">
-							<IconUserOff class="h-5 w-5 text-gray-500" />
-							<span class="text-2xl font-bold text-gray-600">{stats.inactive}</span>
-						</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Suspended</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold text-destructive">{stats.suspended}</div>
-					</Card.Content>
-				</Card.Root>
+				<StatCard
+					label="Total Members"
+					value={stats.total}
+					icon={IconUsers}
+					iconColor="text-blue-500"
+					iconBg="bg-blue-500/10"
+				/>
+				<StatCard
+					label="Active"
+					value={stats.active}
+					icon={IconUserCheck}
+					iconColor="text-emerald-500"
+					iconBg="bg-emerald-500/10"
+				/>
+				<StatCard
+					label="Inactive"
+					value={stats.inactive}
+					icon={IconUserOff}
+					iconColor="text-gray-500"
+					iconBg="bg-gray-500/10"
+				/>
+				<StatCard
+					label="Suspended"
+					value={stats.suspended}
+					icon={IconShield}
+					iconColor="text-red-500"
+					iconBg="bg-red-500/10"
+				/>
 			</div>
 
 			<!-- Filters -->

@@ -17,8 +17,13 @@
 		IconEdit,
 		IconTrash,
 		IconEye,
-		IconLoader2
+		IconLoader2,
+		IconUsers,
+		IconUserCheck,
+		IconUserOff,
+		IconCalendar
 	} from '@tabler/icons-svelte';
+	import StatCard from '$lib/components/global/stat-card.svelte';
 	import { SearchInput, FilterDropdown } from '$lib/components/search';
 	import { toast } from 'svelte-sonner';
 	import { EmptyState, StatusPill } from '$lib/components/data-display';
@@ -282,30 +287,34 @@
 
 	<!-- Stats Cards -->
 	<div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-		<Card.Root>
-			<Card.Content class="p-4">
-				<p class="text-sm text-muted-foreground">Total</p>
-				<p class="text-2xl font-bold">{stats.total}</p>
-			</Card.Content>
-		</Card.Root>
-		<Card.Root>
-			<Card.Content class="p-4">
-				<p class="text-sm text-muted-foreground">Active</p>
-				<p class="text-2xl font-bold text-green-600">{stats.active}</p>
-			</Card.Content>
-		</Card.Root>
-		<Card.Root>
-			<Card.Content class="p-4">
-				<p class="text-sm text-muted-foreground">Inactive</p>
-				<p class="text-2xl font-bold text-gray-500">{stats.inactive}</p>
-			</Card.Content>
-		</Card.Root>
-		<Card.Root>
-			<Card.Content class="p-4">
-				<p class="text-sm text-muted-foreground">New This Month</p>
-				<p class="text-2xl font-bold text-blue-600">{stats.newThisMonth}</p>
-			</Card.Content>
-		</Card.Root>
+		<StatCard
+			label="Total"
+			value={stats.total}
+			icon={IconUsers}
+			iconColor="text-blue-500"
+			iconBg="bg-blue-500/10"
+		/>
+		<StatCard
+			label="Active"
+			value={stats.active}
+			icon={IconUserCheck}
+			iconColor="text-emerald-500"
+			iconBg="bg-emerald-500/10"
+		/>
+		<StatCard
+			label="Inactive"
+			value={stats.inactive}
+			icon={IconUserOff}
+			iconColor="text-gray-500"
+			iconBg="bg-gray-500/10"
+		/>
+		<StatCard
+			label="New This Month"
+			value={stats.newThisMonth}
+			icon={IconCalendar}
+			iconColor="text-blue-500"
+			iconBg="bg-blue-500/10"
+		/>
 	</div>
 
 	<!-- Customer Insights Panel -->

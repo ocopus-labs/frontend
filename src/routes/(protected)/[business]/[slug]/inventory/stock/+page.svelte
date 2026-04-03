@@ -19,8 +19,10 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 		IconChevronLeft,
 		IconChevronRight,
 		IconLoader2,
-		IconDownload
+		IconDownload,
+		IconCurrencyDollar
 	} from '@tabler/icons-svelte';
+	import StatCard from '$lib/components/global/stat-card.svelte';
 	import { SearchInput, FilterDropdown } from '$lib/components/search';
 	import { EmptyState, StatusPill } from '$lib/components/data-display';
 	import { toast } from 'svelte-sonner';
@@ -384,36 +386,27 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 
 			<!-- Stats -->
 			<div class="grid grid-cols-1 gap-4 px-6 sm:grid-cols-3">
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Total Items</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="flex items-center gap-2">
-							<IconPackage class="h-5 w-5 text-muted-foreground" />
-							<span class="text-2xl font-bold">{stats.totalItems}</span>
-						</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Low Stock Items</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="flex items-center gap-2">
-							<IconAlertTriangle class="h-5 w-5 text-warning" />
-							<span class="text-2xl font-bold text-warning">{stats.lowStock}</span>
-						</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Total Value</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold">{formatCurrency(stats.totalValue)}</div>
-					</Card.Content>
-				</Card.Root>
+				<StatCard
+					label="Total Items"
+					value={stats.totalItems}
+					icon={IconPackage}
+					iconColor="text-blue-500"
+					iconBg="bg-blue-500/10"
+				/>
+				<StatCard
+					label="Low Stock Items"
+					value={stats.lowStock}
+					icon={IconAlertTriangle}
+					iconColor="text-amber-500"
+					iconBg="bg-amber-500/10"
+				/>
+				<StatCard
+					label="Total Value"
+					value={formatCurrency(stats.totalValue)}
+					icon={IconCurrencyDollar}
+					iconColor="text-green-500"
+					iconBg="bg-green-500/10"
+				/>
 			</div>
 
 			<!-- Filters -->
