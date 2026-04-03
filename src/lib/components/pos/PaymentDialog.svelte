@@ -144,7 +144,7 @@
 	const isValidSinglePayment = $derived(() => {
 		if (paymentAmount <= 0 || paymentAmount > balanceDue) return false;
 		if (paymentMethod === 'cash' && cashReceived < paymentAmount) return false;
-		if ((paymentMethod === 'card' || paymentMethod === 'upi') && !transactionReference.trim()) {
+		if (paymentMethod === 'card' && !transactionReference.trim()) {
 			return false;
 		}
 		return true;
@@ -173,8 +173,8 @@
 
 	function handleSubmit() {
 		if (mode === 'single') {
-			if ((paymentMethod === 'card' || paymentMethod === 'upi') && !transactionReference.trim()) {
-				transactionRefError = 'Transaction reference is required for card/UPI payments';
+			if (paymentMethod === 'card' && !transactionReference.trim()) {
+				transactionRefError = 'Transaction reference is required for card payments';
 				return;
 			}
 			if (!isValidSinglePayment()) return;
@@ -425,8 +425,8 @@
 					</div>
 				{/if}
 
-				<!-- Card/UPI Transaction Reference -->
-				{#if paymentMethod === 'card' || paymentMethod === 'upi'}
+				<!-- Card Transaction Reference (required) -->
+				{#if paymentMethod === 'card'}
 					<div class="space-y-2">
 						<Label for="transactionRef"
 							>Transaction Reference <span class="text-destructive">*</span></Label
@@ -435,7 +435,7 @@
 							id="transactionRef"
 							type="text"
 							bind:value={transactionReference}
-							placeholder="Enter transaction ID or reference"
+							placeholder="Enter card transaction ID"
 							class={transactionRefError ? 'border-destructive' : ''}
 							oninput={() => {
 								transactionRefError = '';
@@ -444,6 +444,22 @@
 						{#if transactionRefError}
 							<p class="text-xs text-destructive">{transactionRefError}</p>
 						{/if}
+					</div>
+				{/if}
+
+				<!-- UPI Reference (optional) -->
+				{#if paymentMethod === 'upi'}
+					<div class="space-y-2">
+						<Label for="upiRef" class="text-sm">UTR / Reference Number <span class="text-muted-foreground font-normal">(optional)</span></Label>
+						<Input
+							id="upiRef"
+							type="text"
+							bind:value={transactionReference}
+							placeholder="Enter UTR if available"
+						/>
+						<p class="text-xs text-muted-foreground">
+							Not required — just confirm you received the payment
+						</p>
 					</div>
 				{/if}
 
