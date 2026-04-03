@@ -4,7 +4,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
-	import { PaymentDialog, ReceiptDialog, RefundDialog } from '$lib/components/pos';
+	import { PaymentDialog, ReceiptDialog, RefundDialog, KotPrintView } from '$lib/components/pos';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import {
 		IconArrowLeft,
@@ -293,13 +293,46 @@
 
 	// Reprint KOT state
 	let reprintLoading = $state(false);
+	let kotPrintContainer = $state<HTMLElement | null>(null);
 
 	async function handleReprintKot() {
 		if (!order) return;
 		reprintLoading = true;
 		try {
+			// Log the reprint to the backend
 			await reprintKot($page.data.business.id, order.id);
-			toast.success('KOT reprint logged');
+
+			// Open a dedicated print window for the KOT
+			const printWindow = window.open('', '_blank', 'width=320,height=600');
+			if (printWindow && kotPrintContainer) {
+				const doc = printWindow.document;
+				doc.title = `KOT #${order.orderNumber}`;
+
+				const meta = doc.createElement('meta');
+				meta.setAttribute('charset', 'utf-8');
+				doc.head.appendChild(meta);
+
+				const style = doc.createElement('style');
+				style.textContent =
+					'* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: monospace; font-size: 12px; } @media print { body { margin: 0; } }';
+				doc.head.appendChild(style);
+
+				// Safely deep-clone our own rendered KOT DOM nodes into the print window
+				for (const child of Array.from(kotPrintContainer.childNodes)) {
+					doc.body.appendChild(doc.importNode(child, true));
+				}
+
+				doc.close();
+				printWindow.focus();
+				setTimeout(() => {
+					printWindow.print();
+					printWindow.close();
+				}, 200);
+			} else if (!printWindow) {
+				toast.warning('Popup blocked — allow popups to print KOT');
+			}
+
+			toast.success('KOT sent to printer');
 		} catch (err: any) {
 			toast.error(err.message || 'Failed to reprint KOT');
 		} finally {
@@ -677,3 +710,18 @@
 	onConfirm={confirmCompleteOrder}
 	onCancel={() => (showCompleteDialog = false)}
 />
+
+<!-- Hidden KOT print container — rendered off-screen, cloned into print window -->
+{#if order}
+	<div bind:this={kotPrintContainer} style="position: absolute; left: -9999px; top: -9999px; visibility: hidden;" aria-hidden="true">
+		<KotPrintView
+			orderNumber={order.orderNumber}
+			tableNumber={order.tableNumber}
+			staffName={order.staffName}
+			orderType={order.orderType}
+			items={order.items}
+			createdAt={order.createdAt}
+			isReprint={true}
+		/>
+	</div>
+{/if}

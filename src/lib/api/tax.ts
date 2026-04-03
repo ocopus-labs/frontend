@@ -121,6 +121,52 @@ export async function getTaxRegimes(
   return api.get(`/business/${businessId}/tax/regimes`);
 }
 
+// ==================== GST SUMMARY ====================
+
+export interface GstHsnSummaryEntry {
+  hsnCode: string;
+  description: string;
+  quantity: number;
+  taxableValue: number;
+  rate: number;
+  cgst: number;
+  sgst: number;
+  igst: number;
+  totalTax: number;
+}
+
+export interface GstSummary {
+  period: { startDate: string; endDate: string };
+  orderCount: number;
+  totalTaxableValue: number;
+  cgstCollected: number;
+  sgstCollected: number;
+  igstCollected: number;
+  totalTaxCollected: number;
+  rateSummary: Array<{
+    rate: number;
+    taxableValue: number;
+    cgst: number;
+    sgst: number;
+    igst: number;
+    totalTax: number;
+    orderCount: number;
+  }>;
+  hsnSummary: GstHsnSummaryEntry[];
+}
+
+export async function getGstSummary(
+  businessId: string,
+  params: { startDate: string; endDate: string },
+  options?: FetchOption
+): Promise<{ summary: GstSummary }> {
+  const searchParams = new URLSearchParams();
+  searchParams.set('startDate', params.startDate);
+  searchParams.set('endDate', params.endDate);
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get(`/business/${businessId}/tax/gst-summary?${searchParams.toString()}`);
+}
+
 export async function exportTaxReport(
   businessId: string,
   params: { from: string; to: string; format?: 'json' | 'csv' }

@@ -358,6 +358,7 @@ export {
   validateTaxNumber,
   getTaxRegimes,
   exportTaxReport,
+  getGstSummary,
   type TaxSettings,
   type TaxRegime,
   type TaxCategoryConfig,
@@ -367,7 +368,9 @@ export {
   type TaxBreakdown,
   type GstConfig,
   type VatConfig,
-  type SalesTaxConfig
+  type SalesTaxConfig,
+  type GstSummary,
+  type GstHsnSummaryEntry
 } from './tax';
 
 // API Keys
