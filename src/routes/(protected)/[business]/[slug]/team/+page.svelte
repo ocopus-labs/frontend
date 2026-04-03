@@ -14,9 +14,6 @@
 	import StatCard from '$lib/components/global/stat-card.svelte';
 	import {
 		IconPlus,
-		IconUsers,
-		IconUserCheck,
-		IconUserOff,
 		IconMail,
 		IconTrash,
 		IconPlayerPlay,
@@ -373,30 +370,18 @@
 				<StatCard
 					label="Total Members"
 					value={stats.total}
-					icon={IconUsers}
-					iconColor="text-blue-500"
-					iconBg="bg-blue-500/10"
 				/>
 				<StatCard
 					label="Active"
 					value={stats.active}
-					icon={IconUserCheck}
-					iconColor="text-emerald-500"
-					iconBg="bg-emerald-500/10"
 				/>
 				<StatCard
 					label="Inactive"
 					value={stats.inactive}
-					icon={IconUserOff}
-					iconColor="text-gray-500"
-					iconBg="bg-gray-500/10"
 				/>
 				<StatCard
 					label="Suspended"
 					value={stats.suspended}
-					icon={IconShield}
-					iconColor="text-red-500"
-					iconBg="bg-red-500/10"
 				/>
 			</div>
 

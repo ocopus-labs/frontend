@@ -10,11 +10,7 @@
 		IconDownload,
 		IconRefresh,
 		IconChevronLeft,
-		IconChevronRight,
-		IconShoppingCart,
-		IconCircleCheck,
-		IconCircleX,
-		IconCurrencyDollar
+		IconChevronRight
 	} from '@tabler/icons-svelte';
 	import StatCard from '$lib/components/global/stat-card.svelte';
 	import { SearchInput, FilterDropdown } from '$lib/components/search';
@@ -166,30 +162,18 @@
 				<StatCard
 					label="Total Orders"
 					value={stats.total}
-					icon={IconShoppingCart}
-					iconColor="text-blue-500"
-					iconBg="bg-blue-500/10"
 				/>
 				<StatCard
 					label="Completed"
 					value={stats.completed}
-					icon={IconCircleCheck}
-					iconColor="text-emerald-500"
-					iconBg="bg-emerald-500/10"
 				/>
 				<StatCard
 					label="Cancelled/Refunded"
 					value={stats.cancelled + stats.refunded}
-					icon={IconCircleX}
-					iconColor="text-red-500"
-					iconBg="bg-red-500/10"
 				/>
 				<StatCard
 					label="Revenue"
 					value={formatCurrency(stats.revenue)}
-					icon={IconCurrencyDollar}
-					iconColor="text-green-500"
-					iconBg="bg-green-500/10"
 				/>
 			</div>
 

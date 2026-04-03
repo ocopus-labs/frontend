@@ -17,11 +17,7 @@
 		IconEdit,
 		IconTrash,
 		IconEye,
-		IconLoader2,
-		IconUsers,
-		IconUserCheck,
-		IconUserOff,
-		IconCalendar
+		IconLoader2
 	} from '@tabler/icons-svelte';
 	import StatCard from '$lib/components/global/stat-card.svelte';
 	import { SearchInput, FilterDropdown } from '$lib/components/search';
@@ -290,30 +286,18 @@
 		<StatCard
 			label="Total"
 			value={stats.total}
-			icon={IconUsers}
-			iconColor="text-blue-500"
-			iconBg="bg-blue-500/10"
 		/>
 		<StatCard
 			label="Active"
 			value={stats.active}
-			icon={IconUserCheck}
-			iconColor="text-emerald-500"
-			iconBg="bg-emerald-500/10"
 		/>
 		<StatCard
 			label="Inactive"
 			value={stats.inactive}
-			icon={IconUserOff}
-			iconColor="text-gray-500"
-			iconBg="bg-gray-500/10"
 		/>
 		<StatCard
 			label="New This Month"
 			value={stats.newThisMonth}
-			icon={IconCalendar}
-			iconColor="text-blue-500"
-			iconBg="bg-blue-500/10"
 		/>
 	</div>
 

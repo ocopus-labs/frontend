@@ -9,15 +9,10 @@
 	import { goto } from '$app/navigation';
 	import {
 		IconDownload,
-		IconCalendar,
 		IconTrendingUp,
 		IconTrendingDown,
 		IconFileSpreadsheet,
-		IconFileTypePdf,
-		IconCurrencyDollar,
-		IconChartBar,
-		IconArrowUp,
-		IconArrowDown
+		IconFileTypePdf
 	} from '@tabler/icons-svelte';
 	import StatCard from '$lib/components/global/stat-card.svelte';
 	import { toast } from 'svelte-sonner';
@@ -238,34 +233,22 @@
 				<StatCard
 					label="Total Expenses"
 					value={formatCurrency(summary.totalAmount)}
-					icon={IconCurrencyDollar}
-					iconColor="text-green-500"
-					iconBg="bg-green-500/10"
 					trend={{ value: Number(overallTrend().toFixed(1)), label: "vs previous period" }}
 				/>
 				<StatCard
 					label="Monthly Average"
 					value={formatCurrency(avgMonthly())}
 					subtitle="per month"
-					icon={IconChartBar}
-					iconColor="text-blue-500"
-					iconBg="bg-blue-500/10"
 				/>
 				<StatCard
 					label="Highest Month"
 					value={formatCurrency(highestMonth().amount)}
 					subtitle={formatMonth(highestMonth().month)}
-					icon={IconArrowUp}
-					iconColor="text-red-500"
-					iconBg="bg-red-500/10"
 				/>
 				<StatCard
 					label="Lowest Month"
 					value={formatCurrency(lowestMonth().amount)}
 					subtitle={formatMonth(lowestMonth().month)}
-					icon={IconArrowDown}
-					iconColor="text-emerald-500"
-					iconBg="bg-emerald-500/10"
 				/>
 			</div>
 

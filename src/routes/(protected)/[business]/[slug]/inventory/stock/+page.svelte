@@ -11,16 +11,13 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 	import {
 		IconPlus,
 		IconPencil,
-		IconAlertTriangle,
-		IconPackage,
 		IconTrendingUp,
 		IconTrash,
 		IconHistory,
 		IconChevronLeft,
 		IconChevronRight,
 		IconLoader2,
-		IconDownload,
-		IconCurrencyDollar
+		IconDownload
 	} from '@tabler/icons-svelte';
 	import StatCard from '$lib/components/global/stat-card.svelte';
 	import { SearchInput, FilterDropdown } from '$lib/components/search';
@@ -389,23 +386,14 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 				<StatCard
 					label="Total Items"
 					value={stats.totalItems}
-					icon={IconPackage}
-					iconColor="text-blue-500"
-					iconBg="bg-blue-500/10"
 				/>
 				<StatCard
 					label="Low Stock Items"
 					value={stats.lowStock}
-					icon={IconAlertTriangle}
-					iconColor="text-amber-500"
-					iconBg="bg-amber-500/10"
 				/>
 				<StatCard
 					label="Total Value"
 					value={formatCurrency(stats.totalValue)}
-					icon={IconCurrencyDollar}
-					iconColor="text-green-500"
-					iconBg="bg-green-500/10"
 				/>
 			</div>
 

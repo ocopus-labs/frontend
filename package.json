@@ -15,7 +15,8 @@
 		"test:e2e": "playwright test",
 		"test": "npm run test:e2e",
 		"storybook": "storybook dev -p 6006",
-		"build-storybook": "storybook build"
+		"build-storybook": "storybook build",
+		"build-preview": "vite build && vite preview --port 5173"
 	},
 	"devDependencies": {
 		"@chromatic-com/storybook": "^4.1.2",
