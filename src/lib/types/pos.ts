@@ -30,6 +30,7 @@ export interface POSMenuItem {
 	isVegan?: boolean;
 	isGlutenFree?: boolean;
 	preparationTime?: number;
+	requiresKitchen: boolean;
 	modifiers?: {
 		sizes?: { id: string; name: string; price: number }[];
 		spiceLevels?: { id: string; name: string; price: number }[];
