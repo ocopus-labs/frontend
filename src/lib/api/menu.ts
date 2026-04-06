@@ -9,6 +9,7 @@ export interface CreateCategoryPayload {
   image?: string;
   sortOrder?: number;
   isActive?: boolean;
+  requiresKitchen?: boolean;
 }
 
 export interface MenuItemModifier {
@@ -35,6 +36,7 @@ export interface CreateMenuItemPayload {
   isVegetarian?: boolean;
   isVegan?: boolean;
   isGlutenFree?: boolean;
+  requiresKitchen?: boolean | null;
   preparationTime?: number;
   sortOrder?: number;
   modifiers?: {
