@@ -78,6 +78,7 @@
 	let formAvailable = $state(true);
 	let formImage = $state('');
 	let formIsVegetarian = $state(false);
+	let formRequiresKitchen: boolean | null = $state(null);
 	let useImageUrl = $state(false); // Toggle between upload and URL input
 
 	// Ingredient state
@@ -150,6 +151,7 @@
 		formAvailable = true;
 		formImage = '';
 		formIsVegetarian = false;
+		formRequiresKitchen = null;
 		useImageUrl = false;
 		formIngredients = [];
 		ingredientSearch = '';
@@ -165,6 +167,7 @@
 		formAvailable = item.isAvailable;
 		formImage = item.image || '';
 		formIsVegetarian = item.isVegetarian || false;
+		formRequiresKitchen = item.requiresKitchen ?? null;
 		// If existing image is a URL (not base64), show URL input mode
 		useImageUrl = item.image ? !item.image.startsWith('data:') : false;
 		// Populate ingredients from item
@@ -195,6 +198,7 @@
 				isAvailable: formAvailable,
 				image: formImage || undefined,
 				isVegetarian: formIsVegetarian,
+				requiresKitchen: formRequiresKitchen,
 				ingredients: formIngredients.length > 0
 					? formIngredients.map((i) => ({ inventoryItemId: i.inventoryItemId, quantityUsed: i.quantityUsed, unit: i.unit }))
 					: undefined
@@ -224,6 +228,7 @@
 				isAvailable: formAvailable,
 				image: formImage || undefined,
 				isVegetarian: formIsVegetarian,
+				requiresKitchen: formRequiresKitchen,
 				ingredients: formIngredients.map((i) => ({ inventoryItemId: i.inventoryItemId, quantityUsed: i.quantityUsed, unit: i.unit }))
 			});
 
@@ -785,6 +790,22 @@
 					<span class="text-sm text-muted-foreground">Mark as vegetarian</span>
 				</div>
 			</div>
+			<div class="grid grid-cols-4 items-center gap-4">
+				<!-- svelte-ignore a11y_label_has_associated_control -->
+				<label class="text-right">Kitchen prep</label>
+				<div class="col-span-3">
+					<Select.Root type="single" value={formRequiresKitchen === null ? 'inherit' : formRequiresKitchen ? 'yes' : 'no'} onValueChange={(v) => { formRequiresKitchen = v === 'inherit' ? null : v === 'yes'; }}>
+						<Select.Trigger class="w-full">
+							{formRequiresKitchen === null ? 'Use category default' : formRequiresKitchen ? 'Yes' : 'No (instant)'}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="inherit">Use category default</Select.Item>
+							<Select.Item value="yes">Yes</Select.Item>
+							<Select.Item value="no">No (instant)</Select.Item>
+						</Select.Content>
+					</Select.Root>
+				</div>
+			</div>
 
 			{@render ingredientPicker()}
 		</div>
@@ -900,6 +921,22 @@
 				<div class="col-span-3">
 					<Checkbox bind:checked={formIsVegetarian} class="mr-2" />
 					<span class="text-sm text-muted-foreground">Mark as vegetarian</span>
+				</div>
+			</div>
+			<div class="grid grid-cols-4 items-center gap-4">
+				<!-- svelte-ignore a11y_label_has_associated_control -->
+				<label class="text-right">Kitchen prep</label>
+				<div class="col-span-3">
+					<Select.Root type="single" value={formRequiresKitchen === null ? 'inherit' : formRequiresKitchen ? 'yes' : 'no'} onValueChange={(v) => { formRequiresKitchen = v === 'inherit' ? null : v === 'yes'; }}>
+						<Select.Trigger class="w-full">
+							{formRequiresKitchen === null ? 'Use category default' : formRequiresKitchen ? 'Yes' : 'No (instant)'}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="inherit">Use category default</Select.Item>
+							<Select.Item value="yes">Yes</Select.Item>
+							<Select.Item value="no">No (instant)</Select.Item>
+						</Select.Content>
+					</Select.Root>
 				</div>
 			</div>
 
