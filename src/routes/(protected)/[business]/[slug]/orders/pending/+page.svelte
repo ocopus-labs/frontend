@@ -189,8 +189,43 @@
 				</div>
 			</div>
 
-			<!-- Orders Table -->
-			<div class="overflow-x-auto rounded-md border">
+			<!-- Mobile: Card list -->
+			<div class="flex flex-col gap-2 md:hidden">
+				{#each filteredOrders as order (order.id)}
+					<button
+						type="button"
+						class="block w-full rounded-lg border bg-card p-3 text-left active:scale-[0.99] transition-transform"
+						onclick={() => viewOrder(order.orderId)}
+					>
+						<div class="flex items-center justify-between">
+							<span class="font-medium">
+								{order.id}
+								{#if order.orderSource === 'customer_qr'}
+									<span class="inline-flex items-center rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-900 dark:text-violet-200">QR</span>
+								{/if}
+							</span>
+							<StatusPill
+								label={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+								status={getStatusPillStatus(order.status)}
+							/>
+						</div>
+						<div class="mt-1 flex items-center justify-between text-sm text-muted-foreground">
+							<span>{order.customer} · {order.items} items · {order.table}</span>
+							<span class="font-medium text-foreground">{formatCurrency(order.total)}</span>
+						</div>
+						<div class="mt-1 text-xs text-muted-foreground">{order.time}</div>
+						{#if order.status === 'pending_approval' && order.orderSource === 'customer_qr'}
+							<div class="mt-2 flex gap-2">
+								<Button size="sm" variant="default" class="flex-1" onclick={(e: MouseEvent) => { e.stopPropagation(); handleAccept(order.orderId); }}>Accept</Button>
+								<Button size="sm" variant="destructive" class="flex-1" onclick={(e: MouseEvent) => { e.stopPropagation(); handleReject(order.orderId); }}>Reject</Button>
+							</div>
+						{/if}
+					</button>
+				{/each}
+			</div>
+
+			<!-- Desktop: Table -->
+			<div class="hidden md:block overflow-x-auto rounded-md border">
 				<Table.Root>
 					<Table.Header>
 						<Table.Row>

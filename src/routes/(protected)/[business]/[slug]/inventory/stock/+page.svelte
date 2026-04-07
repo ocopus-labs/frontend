@@ -424,9 +424,35 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 				</div>
 			</div>
 
-			<!-- Inventory Table -->
+			<!-- Inventory List -->
 			{#if filteredInventory.length > 0}
-				<div class="px-6">
+				<!-- Mobile: Card list -->
+				<div class="flex flex-col gap-2 px-4 md:hidden">
+					{#each filteredInventory as item (item.id)}
+						<div class="rounded-lg border bg-card p-3 {item.currentStock < item.minimumStock ? 'border-amber-300 dark:border-amber-800' : ''}">
+							<div class="flex items-center justify-between">
+								<span class="font-medium text-sm">{item.name}</span>
+								<StatusPill
+									label={getStockStatus(item).text}
+									status={getStockStatus(item).status}
+								/>
+							</div>
+							<div class="mt-1 flex items-center justify-between text-sm text-muted-foreground">
+								<span>{item.sku} · {getCategoryLabel(item.category)}</span>
+								<span class="font-medium text-foreground">{item.currentStock} {item.unit}</span>
+							</div>
+							{#if canModify(userRole)}
+								<div class="mt-2 flex gap-1">
+									<Button variant="outline" size="sm" class="h-7 flex-1 text-xs" onclick={() => openStockAdjustment(item)}>Adjust</Button>
+									<Button variant="ghost" size="icon" class="h-7 w-7" onclick={() => editItem(item)}><IconPencil class="h-3.5 w-3.5" /></Button>
+								</div>
+							{/if}
+						</div>
+					{/each}
+				</div>
+
+				<!-- Desktop: Table -->
+				<div class="hidden md:block px-6">
 					<div class="overflow-x-auto rounded-md border">
 						<Table.Root>
 							<Table.Header>

@@ -6,7 +6,7 @@
 	import { page } from '$app/stores';
 	import { browser } from '$app/environment';
 
-	export let data: LayoutData;
+	let { data, children }: { data: LayoutData; children: any } = $props();
 
 	// Show toast when redirected from a disabled feature route
 	$effect(() => {
@@ -21,13 +21,13 @@
 	});
 
 	// Pass business context down to child pages
-	$: businessContext = {
+	const businessContext = $derived({
 		businessType: data.businessType,
 		business: data.business,
 		config: data.config
-	};
+	});
 </script>
 
 <ReadOnlyBanner role={data.userRole} />
 <OfflineIndicator businessId={(data.business as any)?.id ?? ''} />
-<slot {businessContext} />
+{@render children()}

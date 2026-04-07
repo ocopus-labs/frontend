@@ -418,9 +418,50 @@
 				</div>
 			</div>
 
-			<!-- Team Table -->
+			<!-- Team List -->
 			{#if filteredMembers.length > 0}
-				<div class="px-6">
+				<!-- Mobile: Card list -->
+				<div class="flex flex-col gap-2 px-4 md:hidden">
+					{#each filteredMembers as member (member.id)}
+						<div class="rounded-lg border bg-card p-3 {member.status === 'suspended' ? 'bg-destructive/5' : ''}">
+							<div class="flex items-center justify-between">
+								<div class="flex items-center gap-2.5">
+									<div class="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-medium">
+										{#if member.user.image}
+											<img src={member.user.image} alt={member.user.name} class="h-8 w-8 rounded-full object-cover" loading="lazy" />
+										{:else}
+											{member.user.name.charAt(0).toUpperCase()}
+										{/if}
+									</div>
+									<div>
+										<p class="text-sm font-medium">{member.user.name}</p>
+										<p class="text-xs text-muted-foreground">{member.user.email}</p>
+									</div>
+								</div>
+								<StatusPill
+									label={getStatusBadge(member.status).text}
+									status={member.status === "active" ? "success" : member.status === "suspended" ? "error" : "info"}
+								/>
+							</div>
+							<div class="mt-2 flex items-center justify-between">
+								<Badge variant={getRoleBadge(member.role).variant} class="text-xs">
+									{getRoleBadge(member.role).text}
+								</Badge>
+								{#if canModify(data.userRole)}
+									<div class="flex gap-1">
+										<Button variant="ghost" size="sm" class="h-7 text-xs" onclick={() => editMember(member)}>Edit</Button>
+										<Button variant="ghost" size="icon" class="h-7 w-7 text-destructive" onclick={() => handleRemove(member.id)} aria-label="Remove">
+											<IconTrash class="h-3.5 w-3.5" />
+										</Button>
+									</div>
+								{/if}
+							</div>
+						</div>
+					{/each}
+				</div>
+
+				<!-- Desktop: Table -->
+				<div class="hidden md:block px-6">
 					<div class="overflow-x-auto rounded-md border">
 						<Table.Root>
 							<Table.Header>
