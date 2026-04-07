@@ -20,7 +20,7 @@
 		showBanner = false;
 
 		// Fire-and-forget to backend
-		fetch('/api/users/consent', {
+		fetch('/api/v1/users/consent', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			credentials: 'include',

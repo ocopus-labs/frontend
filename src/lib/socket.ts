@@ -123,6 +123,15 @@ export async function onItemStatus(callback: OrderSocketEvents['item:status']): 
 	return () => {};
 }
 
+export async function onMenuPublished(callback: (data: { businessId: string }) => void): Promise<() => void> {
+	const sock = await getSocket();
+	if (sock) {
+		sock.on('menu:published', callback);
+		return () => sock.off('menu:published', callback);
+	}
+	return () => {};
+}
+
 export async function onSubscriptionPlanChanged(
 	callback: OrderSocketEvents['subscription:plan_changed']
 ): Promise<() => void> {

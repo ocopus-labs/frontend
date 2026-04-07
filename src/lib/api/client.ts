@@ -103,7 +103,7 @@ export function clearApiCache(pattern?: string) {
  */
 export function createApiClient(options: ApiClientOptions = {}) {
   const fetchFn = options.fetch || fetch;
-  const baseUrl = env.PUBLIC_API_BASE || '/api';
+  const baseUrl = env.PUBLIC_API_BASE || '/api/v1';
   // Only use client-side cache when using browser fetch (not SSR's fetch)
   const useCache = browser && !options.fetch;
 

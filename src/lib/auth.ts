@@ -4,7 +4,7 @@ import { dodopaymentsClient } from '@dodopayments/better-auth';
 import { env } from '$env/dynamic/public';
 
 export const authClient = createAuthClient({
-	baseURL: env.PUBLIC_API_BASE?.replace('/api', '') || 'http://localhost:3000',
+	baseURL: env.PUBLIC_API_BASE?.replace(/\/api(\/v\d+)?$/, '') || 'http://localhost:3000',
 	credentials: 'include',
 	plugins: [emailOTPClient(), dodopaymentsClient(), twoFactorClient()]
 });

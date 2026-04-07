@@ -43,6 +43,9 @@
 	import { toast } from 'svelte-sonner';
 	import { browser } from '$app/environment';
 	import { queueOfflineOrder } from '$lib/utils/offline-store';
+	import { onMenuPublished } from '$lib/socket';
+	import { invalidateMenuCache } from '$lib/stores/pos-cache';
+	import { invalidate } from '$app/navigation';
 	import PosTour from '$lib/components/pos/pos-tour.svelte';
 	import confetti from 'canvas-confetti';
 
@@ -200,6 +203,8 @@
 	let favoriteIds = $state<string[]>([]);
 
 	// Load favorites on mount
+	let menuCleanup: (() => void) | null = null;
+
 	onMount(async () => {
 		try {
 			const bid = (data as any).business?.id;
@@ -208,6 +213,16 @@
 				favoriteIds = res.favorites;
 			}
 		} catch { /* non-critical */ }
+
+		// Listen for menu publishes to invalidate cache
+		menuCleanup = await onMenuPublished(() => {
+			invalidateMenuCache();
+			invalidate('app:menu');
+		});
+	});
+
+	onDestroy(() => {
+		menuCleanup?.();
 	});
 
 	async function toggleFavorite(itemId: string | number) {
