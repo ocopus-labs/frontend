@@ -93,6 +93,27 @@
 		isRefreshing = false;
 	}
 
+	// Pull-to-refresh on mobile
+	let pullStartY = 0;
+	let pulling = $state(false);
+	function onPullStart(e: TouchEvent) {
+		const el = e.currentTarget as HTMLElement;
+		if (el.scrollTop === 0) pullStartY = e.touches[0].clientY;
+		else pullStartY = 0;
+	}
+	function onPullMove(e: TouchEvent) {
+		if (pullStartY === 0 || isRefreshing) return;
+		const dy = e.touches[0].clientY - pullStartY;
+		if (dy > 80) pulling = true;
+	}
+	async function onPullEnd() {
+		if (pulling) {
+			pulling = false;
+			await refreshOrders();
+		}
+		pullStartY = 0;
+	}
+
 	// Mark Complete state
 	let completeDialogOpen = $state(false);
 	let completeTargetId = $state('');
@@ -141,7 +162,13 @@
 	}
 </script>
 
-<div class="flex flex-1 flex-col">
+<div class="flex flex-1 flex-col" ontouchstart={onPullStart} ontouchmove={onPullMove} ontouchend={onPullEnd}>
+	{#if pulling || isRefreshing}
+		<div class="flex items-center justify-center py-3 text-muted-foreground md:hidden">
+			<IconRefresh class="h-4 w-4 animate-spin" />
+			<span class="ml-2 text-sm">{isRefreshing ? 'Refreshing...' : 'Release to refresh'}</span>
+		</div>
+	{/if}
 	<div class="@container/main flex flex-1 flex-col gap-4">
 		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
 			<PageHeader title="Orders" description="Manage and track all your restaurant orders">

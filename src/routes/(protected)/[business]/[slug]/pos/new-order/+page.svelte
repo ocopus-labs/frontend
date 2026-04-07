@@ -832,6 +832,41 @@
 	// Keyboard shortcuts
 	let showShortcutHelp = $state(false);
 
+	// Swipe to cycle tabs on mobile
+	let menuTouchStartX = 0;
+	function onMenuTouchStart(e: TouchEvent) {
+		menuTouchStartX = e.touches[0].clientX;
+	}
+	function onMenuTouchEnd(e: TouchEvent) {
+		const dx = e.changedTouches[0].clientX - menuTouchStartX;
+		if (Math.abs(dx) < 100) return;
+		// Find current tab index in POSTabBar resolved tabs by selectedTabId
+		// Simple approach: just use data.categories + groups as fallback
+		const allCatIds = (data.rawCategories ?? []).filter((c: any) => c.isActive).map((c: any) => c.id);
+		const allGroupIds = (data.groups ?? []).filter((g: any) => g.isActive).map((g: any) => g.id);
+		const tabIds = ['all', ...(favoriteIds.length > 0 ? ['favorites'] : []), ...allCatIds.map((id: string) => `cat-${id}`), ...allGroupIds.map((id: string) => `grp-${id}`)];
+		const currentIdx = tabIds.indexOf(selectedTabId);
+		if (currentIdx === -1) return;
+		const nextIdx = dx < 0
+			? Math.min(currentIdx + 1, tabIds.length - 1)
+			: Math.max(currentIdx - 1, 0);
+		if (nextIdx === currentIdx) return;
+		const nextId = tabIds[nextIdx];
+		if (nextId === 'all') {
+			selectedTabId = 'all'; selectedTab = null;
+		} else if (nextId === 'favorites') {
+			selectedTabId = 'favorites'; selectedTab = { id: 'favorites', type: 'favorites', referenceId: 'favorites', name: 'Favorites', count: favoriteIds.length };
+		} else if (nextId.startsWith('cat-')) {
+			const catId = nextId.slice(4);
+			const cat = (data.rawCategories ?? []).find((c: any) => c.id === catId);
+			if (cat) { selectedTabId = nextId; selectedTab = { id: nextId, type: 'category', referenceId: catId, name: cat.name, count: 0 }; }
+		} else if (nextId.startsWith('grp-')) {
+			const grpId = nextId.slice(4);
+			const grp = (data.groups ?? []).find((g: any) => g.id === grpId);
+			if (grp) { selectedTabId = nextId; selectedTab = { id: nextId, type: 'group', referenceId: grpId, name: grp.name, count: grp.itemIds.length }; }
+		}
+	}
+
 	const shortcutsList = [
 		{ key: 'F1', description: 'Show shortcuts' },
 		{ key: 'F2', description: 'Focus search' },
@@ -958,7 +993,7 @@
 				</div>
 
 				<!-- Menu Grid -->
-				<div class="flex-1 overflow-y-auto pb-24 lg:pb-0">
+				<div class="flex-1 overflow-y-auto pb-24 lg:pb-0" ontouchstart={onMenuTouchStart} ontouchend={onMenuTouchEnd}>
 					{#if displayMenuItems.length === 0}
 						<EmptyState type="no-results" title="No items found" description="Try a different search term." size="sm" />
 					{:else}

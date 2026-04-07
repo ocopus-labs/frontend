@@ -1,6 +1,7 @@
 <script lang="ts">
 	import AppSidebar from '$lib/components/global/dashboard-sidebar.svelte';
 	import BottomNav from '$lib/components/global/bottom-nav.svelte';
+	import SwipeSidebar from '$lib/components/global/swipe-sidebar.svelte';
 	import ImpersonationBanner from '$lib/components/global/impersonation-banner.svelte';
 	import AnnouncementBanner from '$lib/components/global/announcement-banner.svelte';
 	import SubscriptionBanner from '$lib/components/global/subscription-banner.svelte';
@@ -10,6 +11,7 @@
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { page } from '$app/stores';
 	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 	import { invalidateAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { connectSocket, joinBusiness, leaveBusiness, onSubscriptionPlanChanged } from '$lib/socket';
@@ -78,6 +80,7 @@
 	Skip to main content
 </a>
 <Sidebar.Provider>
+	<SwipeSidebar />
 	<AppSidebar businesses={data.businesses} subscription={$page.data.subscription} />
 	<Sidebar.Inset id="main-content">
 		<AnnouncementBanner />
