@@ -6,8 +6,10 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { Button } from '$lib/components/ui/button';
 	import PageHeader from '$lib/components/global/page-header.svelte';
+	import MobilePageHeader from '$lib/components/global/mobile-page-header.svelte';
 	import { toast } from 'svelte-sonner';
 	import { invalidate } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { enableFeature, disableFeature, type FeatureInfo } from '$lib/api';
 	import { userFriendlyError } from '$lib/utils/error';
 	import LockIcon from '@lucide/svelte/icons/lock';
@@ -108,6 +110,7 @@
 	}
 </script>
 
+<MobilePageHeader title="Features" backHref={`/${$page.params.business}/${$page.params.slug}/settings`} />
 <div class="flex flex-col gap-6 p-6">
 	{#if !features}
 		<PageHeader title="Features" description="Manage optional features for your business" />

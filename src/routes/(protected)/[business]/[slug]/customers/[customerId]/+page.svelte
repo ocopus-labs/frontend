@@ -2,6 +2,7 @@
 	import type { PageData } from './$types';
 	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
+	import MobilePageHeader from '$lib/components/global/mobile-page-header.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
@@ -180,6 +181,7 @@
 	}
 </script>
 
+<MobilePageHeader title="Customer Details" backHref={`/${$page.params.business}/${$page.params.slug}/customers`} />
 {#if !customer}
 	<div class="flex flex-col items-center justify-center gap-4 p-12">
 		<p class="text-muted-foreground">Customer not found</p>

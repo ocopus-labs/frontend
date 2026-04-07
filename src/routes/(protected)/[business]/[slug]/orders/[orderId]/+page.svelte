@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import MobilePageHeader from '$lib/components/global/mobile-page-header.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Card from '$lib/components/ui/card';
@@ -354,6 +355,7 @@
 	}
 </script>
 
+<MobilePageHeader title="Order Details" backHref={`/${$page.params.business}/${$page.params.slug}/orders/pending`} />
 <div class="flex flex-1 flex-col p-4 pt-0! md:p-6 lg:p-8">
 	<div class="@container/main flex flex-1 flex-col gap-4">
 		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">

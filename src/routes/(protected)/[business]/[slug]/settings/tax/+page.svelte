@@ -1,5 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import MobilePageHeader from '$lib/components/global/mobile-page-header.svelte';
+	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Switch } from '$lib/components/ui/switch';
@@ -178,6 +180,7 @@
 	];
 </script>
 
+<MobilePageHeader title="Tax & Invoicing" backHref={`/${$page.params.business}/${$page.params.slug}/settings`} />
 <div class="flex flex-col gap-6 p-6">
 	<PageHeader
 		title="Tax & Invoicing"
