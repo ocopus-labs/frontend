@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
+	import { Badge } from '$lib/components/ui/badge';
 	import { cn } from '$lib/utils';
 	import { toast } from 'svelte-sonner';
-	import { createBusiness, type CreateBusinessPayload, type BusinessType } from '$lib/api';
+	import { createBusiness, enableFeature, disableFeature, type CreateBusinessPayload, type BusinessType } from '$lib/api';
 	import { BUSINESS_TYPE_CONFIG } from '$lib/types/business';
 
 	import Building2 from '@lucide/svelte/icons/building-2';
+	import Puzzle from '@lucide/svelte/icons/puzzle';
 	import UtensilsCrossed from '@lucide/svelte/icons/utensils-crossed';
 	import Grid3x3 from '@lucide/svelte/icons/grid-3x3';
 	import CreditCard from '@lucide/svelte/icons/credit-card';
@@ -55,6 +57,7 @@
 
 	const allSteps: StepDef[] = [
 		{ id: 'essentials', name: 'Business Info', icon: Building2, description: 'Name, type, and details' },
+		{ id: 'features', name: 'Features', icon: Puzzle, description: 'Choose your features' },
 		{ id: 'menu', name: 'Menu', icon: UtensilsCrossed, description: 'Add items to sell' },
 		{ id: 'tables', name: 'Tables', icon: Grid3x3, description: 'Set up your layout' },
 		{ id: 'payment', name: 'Payment & Tax', icon: CreditCard, description: 'How you get paid' },
@@ -86,6 +89,39 @@
 	let phone = $state('');
 	let taxRate = $state('');
 	let step2Errors = $state({});
+
+	// Feature selection (Step 2)
+	let selectedExtras = $state<string[]>([]);
+
+	// Get available extras and slot limit for the selected business type
+	const featureConfig = $derived(() => {
+		const type = businessType || 'restaurant';
+		const configs: Record<string, { available: { slug: string; label: string }[]; defaults: string[]; slots: number }> = {
+			restaurant: { available: [{ slug: 'tables', label: 'Tables' }, { slug: 'menu', label: 'Menu' }, { slug: 'inventory', label: 'Inventory' }, { slug: 'expenses', label: 'Expenses' }, { slug: 'loyalty', label: 'Loyalty' }, { slug: 'team', label: 'Team' }], defaults: ['tables', 'menu'], slots: 3 },
+			cafe: { available: [{ slug: 'tables', label: 'Tables' }, { slug: 'menu', label: 'Menu' }, { slug: 'inventory', label: 'Inventory' }, { slug: 'expenses', label: 'Expenses' }, { slug: 'loyalty', label: 'Loyalty' }, { slug: 'team', label: 'Team' }], defaults: ['menu'], slots: 2 },
+			bar: { available: [{ slug: 'tables', label: 'Tables' }, { slug: 'menu', label: 'Menu' }, { slug: 'inventory', label: 'Inventory' }, { slug: 'expenses', label: 'Expenses' }, { slug: 'loyalty', label: 'Loyalty' }, { slug: 'team', label: 'Team' }], defaults: ['tables', 'menu'], slots: 3 },
+			salon: { available: [{ slug: 'appointments', label: 'Appointments' }, { slug: 'services', label: 'Services' }, { slug: 'inventory', label: 'Inventory' }, { slug: 'expenses', label: 'Expenses' }, { slug: 'loyalty', label: 'Loyalty' }, { slug: 'team', label: 'Team' }], defaults: ['appointments', 'services'], slots: 3 },
+			gym: { available: [{ slug: 'memberships', label: 'Memberships' }, { slug: 'classes', label: 'Classes' }, { slug: 'inventory', label: 'Inventory' }, { slug: 'expenses', label: 'Expenses' }, { slug: 'loyalty', label: 'Loyalty' }, { slug: 'team', label: 'Team' }], defaults: ['memberships', 'classes'], slots: 3 },
+			clinic: { available: [{ slug: 'appointments', label: 'Appointments' }, { slug: 'services', label: 'Services' }, { slug: 'inventory', label: 'Inventory' }, { slug: 'expenses', label: 'Expenses' }, { slug: 'team', label: 'Team' }], defaults: ['appointments', 'services'], slots: 3 },
+			retail: { available: [{ slug: 'inventory', label: 'Inventory' }, { slug: 'loyalty', label: 'Loyalty' }, { slug: 'expenses', label: 'Expenses' }, { slug: 'team', label: 'Team' }], defaults: ['inventory'], slots: 2 },
+		};
+		return configs[type] ?? { available: [{ slug: 'inventory', label: 'Inventory' }, { slug: 'expenses', label: 'Expenses' }, { slug: 'team', label: 'Team' }], defaults: [], slots: 2 };
+	});
+
+	// Initialize defaults when business type changes
+	$effect(() => {
+		if (businessType && selectedExtras.length === 0) {
+			selectedExtras = [...featureConfig().defaults];
+		}
+	});
+
+	function toggleExtra(slug: string) {
+		if (selectedExtras.includes(slug)) {
+			selectedExtras = selectedExtras.filter(s => s !== slug);
+		} else if (selectedExtras.length < featureConfig().slots) {
+			selectedExtras = [...selectedExtras, slug];
+		}
+	}
 
 	// Step completion tracking
 	let menuCompleted = $state(false);
@@ -145,6 +181,7 @@
 				menuCompleted = data.menuCompleted ?? false;
 				tablesCompleted = data.tablesCompleted ?? false;
 				paymentCompleted = data.paymentCompleted ?? false;
+				selectedExtras = data.selectedExtras ?? [];
 				menuSummary = data.menuSummary ?? '';
 				tablesSummary = data.tablesSummary ?? '';
 				paymentSummary = data.paymentSummary ?? '';
@@ -172,6 +209,7 @@
 				address, phone, taxRate,
 				menuCompleted, tablesCompleted, paymentCompleted,
 				menuSummary, tablesSummary, paymentSummary,
+				selectedExtras,
 			}));
 		}, 500);
 	});
@@ -254,6 +292,19 @@
 				} finally {
 					isSubmitting = false;
 				}
+			}
+		}
+
+		// Features step: sync selected extras with the backend
+		if (stepId === 'features' && businessId) {
+			const defaults = featureConfig().defaults;
+			const toEnable = selectedExtras.filter(s => !defaults.includes(s));
+			const toDisable = defaults.filter(s => !selectedExtras.includes(s));
+			try {
+				for (const slug of toEnable) await enableFeature(businessId, slug);
+				for (const slug of toDisable) await disableFeature(businessId, slug);
+			} catch {
+				// Non-critical — defaults are already reasonable
 			}
 		}
 
@@ -426,6 +477,44 @@
 						bind:taxRate
 						bind:errors={step2Errors}
 					/>
+				{:else if currentStepId === 'features'}
+					<div class="space-y-4">
+						<div>
+							<h2 class="text-lg font-semibold">Choose Your Features</h2>
+							<p class="text-sm text-muted-foreground">
+								Core features (POS, Orders, Customers) are always included. Pick up to
+								<strong>{featureConfig().slots}</strong> extras for your free plan.
+							</p>
+						</div>
+						<div class="flex items-center gap-2">
+							<Badge variant="outline">{selectedExtras.length}/{featureConfig().slots} slots used</Badge>
+						</div>
+						<div class="grid gap-2 sm:grid-cols-2">
+							{#each featureConfig().available as feat}
+								{@const selected = selectedExtras.includes(feat.slug)}
+								{@const disabled = !selected && selectedExtras.length >= featureConfig().slots}
+								<button
+									type="button"
+									class={cn(
+										'flex items-center gap-3 rounded-lg border p-3 text-left transition-colors',
+										selected ? 'border-primary bg-primary/5' : disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-accent'
+									)}
+									onclick={() => !disabled && toggleExtra(feat.slug)}
+								>
+									<span class={cn(
+										'flex h-5 w-5 shrink-0 items-center justify-center rounded border-2',
+										selected ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground'
+									)}>
+										{#if selected}
+											<CheckCircle2 class="h-3.5 w-3.5" />
+										{/if}
+									</span>
+									<span class="text-sm font-medium">{feat.label}</span>
+								</button>
+							{/each}
+						</div>
+						<p class="text-xs text-muted-foreground">You can change these anytime in Settings &gt; Features.</p>
+					</div>
 				{:else if currentStepId === 'menu'}
 					<MenuSetupStep
 						{businessId}
