@@ -25,7 +25,25 @@
 		IconUsersGroup
 	} from '@tabler/icons-svelte';
 
+	import { toast } from 'svelte-sonner';
+	import { browser } from '$app/environment';
+
 	let { data } = $props();
+
+	// Show toast when redirected from a disabled feature route
+	$effect(() => {
+		if (!browser) return;
+		const params = new URLSearchParams(window.location.search);
+		const disabledFeature = params.get('feature_disabled');
+		if (disabledFeature) {
+			toast.error(`The "${disabledFeature}" feature is not enabled. Enable it in Settings > Features.`);
+			// Clean up the URL
+			params.delete('feature_disabled');
+			const clean = params.toString();
+			const newUrl = window.location.pathname + (clean ? `?${clean}` : '');
+			window.history.replaceState({}, '', newUrl);
+		}
+	});
 
 	const config = data.config ?? {
 		label: 'Dashboard',

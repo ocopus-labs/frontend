@@ -27,9 +27,11 @@
 	// Get userRole from nested [slug] layout data
 	const userRole = $derived(($page.data.userRole as string) || null);
 
-	// Get enabled features from page data (loaded by features page or layout enrichment)
+	// Get enabled features from layout data (loaded in [slug]/+layout.server.ts)
 	const enabledFeatures = $derived(
-		($page.data.features?.enabledFeatures as string[] | undefined) ?? null
+		($page.data.enabledFeatures as string[] | undefined) ??
+		($page.data.features?.enabledFeatures as string[] | undefined) ??
+		null
 	);
 
 	// Use business-level subscription from [slug] layout (owner's subscription)

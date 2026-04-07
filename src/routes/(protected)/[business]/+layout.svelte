@@ -119,7 +119,7 @@
 	</Sidebar.Inset>
 	<BottomNav
 		userRole={$page.data.userRole}
-		enabledFeatures={$page.data.features?.enabledFeatures ?? []}
+		enabledFeatures={$page.data.enabledFeatures ?? $page.data.features?.enabledFeatures ?? []}
 		businessBase={basePath}
 	/>
 </Sidebar.Provider>

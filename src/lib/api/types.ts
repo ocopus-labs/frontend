@@ -43,6 +43,7 @@ export interface Business {
   address: BusinessAddress;
   contact: BusinessContact;
   settings: BusinessSettings;
+  enabledFeatures?: string[];
   status: string;
   franchiseId?: string;
   configSource?: string;
