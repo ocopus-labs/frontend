@@ -19,6 +19,8 @@ export interface BusinessFeatures {
   extraSlots: number;
   extraSlotsUsed: number;
   extraSlotsRemaining: number;
+  graceExpiresAt: string | null;
+  graceActive: boolean;
   tier: string;
   businessType: string;
 }

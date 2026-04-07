@@ -140,6 +140,17 @@
 			</div>
 		</div>
 
+		<!-- Grace period banner -->
+		{#if features.graceActive}
+			<div class="flex items-start gap-3 rounded-lg border border-orange-200 bg-orange-50 p-4 dark:border-orange-900/40 dark:bg-orange-900/20">
+				<AlertCircleIcon class="mt-0.5 size-4 shrink-0 text-orange-600 dark:text-orange-400" />
+				<div class="text-sm text-orange-700 dark:text-orange-300">
+					<p class="font-medium">Grace period active</p>
+					<p>Your plan was downgraded. Extra features are read-only until {new Date(features.graceExpiresAt!).toLocaleDateString()}. Upgrade to restore full access or they will be disabled automatically.</p>
+				</div>
+			</div>
+		{/if}
+
 		<!-- Warning: no extra slots remaining -->
 		{#if slotsFullAndFree}
 			<div class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-900/20">
