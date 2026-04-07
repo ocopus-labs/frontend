@@ -79,6 +79,9 @@
 	let formImage = $state('');
 	let formIsVegetarian = $state(false);
 	let formRequiresKitchen: boolean | null = $state(null);
+	let formIsCombo = $state(false);
+	let formComboComponents = $state<{ menuItemId: string; name: string; quantity: number }[]>([]);
+	let comboSearch = $state('');
 	let useImageUrl = $state(false); // Toggle between upload and URL input
 
 	// Ingredient state
@@ -152,6 +155,9 @@
 		formImage = '';
 		formIsVegetarian = false;
 		formRequiresKitchen = null;
+		formIsCombo = false;
+		formComboComponents = [];
+		comboSearch = '';
 		useImageUrl = false;
 		formIngredients = [];
 		ingredientSearch = '';
@@ -168,6 +174,9 @@
 		formImage = item.image || '';
 		formIsVegetarian = item.isVegetarian || false;
 		formRequiresKitchen = item.requiresKitchen ?? null;
+		formIsCombo = item.isCombo || false;
+		formComboComponents = item.comboComponents ? [...item.comboComponents] : [];
+		comboSearch = '';
 		// If existing image is a URL (not base64), show URL input mode
 		useImageUrl = item.image ? !item.image.startsWith('data:') : false;
 		// Populate ingredients from item
@@ -199,6 +208,8 @@
 				image: formImage || undefined,
 				isVegetarian: formIsVegetarian,
 				requiresKitchen: formRequiresKitchen,
+				isCombo: formIsCombo || undefined,
+				comboComponents: formIsCombo && formComboComponents.length > 0 ? formComboComponents : undefined,
 				ingredients: formIngredients.length > 0
 					? formIngredients.map((i) => ({ inventoryItemId: i.inventoryItemId, quantityUsed: i.quantityUsed, unit: i.unit }))
 					: undefined
@@ -229,6 +240,8 @@
 				image: formImage || undefined,
 				isVegetarian: formIsVegetarian,
 				requiresKitchen: formRequiresKitchen,
+				isCombo: formIsCombo || undefined,
+				comboComponents: formIsCombo && formComboComponents.length > 0 ? formComboComponents : undefined,
 				ingredients: formIngredients.map((i) => ({ inventoryItemId: i.inventoryItemId, quantityUsed: i.quantityUsed, unit: i.unit }))
 			});
 
@@ -418,6 +431,47 @@
 		}
 	};
 </script>
+
+{#snippet comboPicker()}
+	<div class="grid grid-cols-4 items-start gap-4">
+		<!-- svelte-ignore a11y_label_has_associated_control -->
+		<label class="pt-2 text-right text-sm font-medium">Components</label>
+		<div class="col-span-3 space-y-2">
+			{#each formComboComponents as comp, i}
+				<div class="flex items-center gap-2 rounded border p-2 text-sm">
+					<span class="flex-1">{comp.name}</span>
+					<Input
+						type="number"
+						min="1"
+						class="h-7 w-16 text-center text-sm"
+						value={comp.quantity}
+						oninput={(e) => { formComboComponents[i].quantity = parseInt((e.target as HTMLInputElement).value) || 1; }}
+					/>
+					<Button variant="ghost" size="icon" class="h-6 w-6 shrink-0" onclick={() => { formComboComponents = formComboComponents.filter((_, idx) => idx !== i); }}>
+						<span class="text-xs">x</span>
+					</Button>
+				</div>
+			{/each}
+			<Input placeholder="Search items to add..." bind:value={comboSearch} class="text-sm" />
+			{#if comboSearch}
+				<div class="max-h-32 overflow-y-auto rounded border p-1">
+					{#each menuItems.filter((it) => it.name.toLowerCase().includes(comboSearch.toLowerCase()) && !formComboComponents.some(c => c.menuItemId === it.id)) as it}
+						<button
+							type="button"
+							class="flex w-full items-center gap-2 rounded px-2 py-1 text-sm hover:bg-accent text-left"
+							onclick={() => { formComboComponents = [...formComboComponents, { menuItemId: it.id, name: it.name, quantity: 1 }]; comboSearch = ''; }}
+						>
+							{it.name}
+						</button>
+					{/each}
+				</div>
+			{/if}
+			{#if formComboComponents.length === 0}
+				<p class="text-xs text-muted-foreground">Search and add items that make up this combo.</p>
+			{/if}
+		</div>
+	</div>
+{/snippet}
 
 {#snippet ingredientPicker()}
 	<div class="grid grid-cols-4 items-start gap-4">
@@ -807,6 +861,18 @@
 				</div>
 			</div>
 
+			<!-- Combo toggle -->
+			<div class="grid grid-cols-4 items-center gap-4">
+				<label for="combo-create" class="text-right">Combo</label>
+				<div class="col-span-3 flex items-center gap-2">
+					<Switch id="combo-create" checked={formIsCombo} onCheckedChange={(v) => formIsCombo = v} />
+					<span class="text-sm text-muted-foreground">{formIsCombo ? 'This is a combo item' : 'Regular item'}</span>
+				</div>
+			</div>
+			{#if formIsCombo}
+				{@render comboPicker()}
+			{/if}
+
 			{@render ingredientPicker()}
 		</div>
 
@@ -939,6 +1005,18 @@
 					</Select.Root>
 				</div>
 			</div>
+
+			<!-- Combo toggle -->
+			<div class="grid grid-cols-4 items-center gap-4">
+				<label for="combo-edit" class="text-right">Combo</label>
+				<div class="col-span-3 flex items-center gap-2">
+					<Switch id="combo-edit" checked={formIsCombo} onCheckedChange={(v) => formIsCombo = v} />
+					<span class="text-sm text-muted-foreground">{formIsCombo ? 'This is a combo item' : 'Regular item'}</span>
+				</div>
+			</div>
+			{#if formIsCombo}
+				{@render comboPicker()}
+			{/if}
 
 			{@render ingredientPicker()}
 		</div>

@@ -37,6 +37,8 @@ export interface CreateMenuItemPayload {
   isVegan?: boolean;
   isGlutenFree?: boolean;
   requiresKitchen?: boolean | null;
+  isCombo?: boolean;
+  comboComponents?: { menuItemId: string; name: string; quantity: number }[];
   preparationTime?: number;
   sortOrder?: number;
   modifiers?: {
