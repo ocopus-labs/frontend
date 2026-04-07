@@ -9,7 +9,8 @@
 		IconUser,
 		IconBuilding,
 		IconSettings,
-		IconCreditCard
+		IconCreditCard,
+		IconBell
 	} from '@tabler/icons-svelte';
 	import { updateBusiness } from '$lib/api/business';
 	import { invalidate } from '$app/navigation';
@@ -19,6 +20,8 @@
 	import type { CurrencyCode } from '$lib/utils/i18n';
 	import * as Select from '$lib/components/ui/select';
 import { Checkbox } from '$lib/components/ui/checkbox';
+	import { Switch } from '$lib/components/ui/switch';
+	import { browser } from '$app/environment';
 
 	let { data } = $props();
 
@@ -100,6 +103,57 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 		savedPaymentMethods ? savedPaymentMethods.includes('digital') : false
 	);
 
+	// Notification preferences (stored locally for now; full backend integration later)
+	let emailNotifications = $state(
+		browser ? localStorage.getItem('pref:emailNotifications') !== 'false' : true
+	);
+	let smsNotifications = $state(
+		browser ? localStorage.getItem('pref:smsNotifications') === 'true' : false
+	);
+	let pushNotifications = $state(
+		browser ? localStorage.getItem('pref:pushNotifications') === 'true' : false
+	);
+	let pushPermissionStatus = $state<NotificationPermission | 'unsupported'>(
+		browser && 'Notification' in window ? Notification.permission : 'unsupported'
+	);
+
+	async function togglePushNotifications(enabled: boolean) {
+		if (!browser) return;
+
+		if (enabled) {
+			if (!('Notification' in window)) {
+				toast.error('Push notifications are not supported in this browser.');
+				pushNotifications = false;
+				return;
+			}
+
+			const permission = await Notification.requestPermission();
+			pushPermissionStatus = permission;
+
+			if (permission === 'granted') {
+				pushNotifications = true;
+				localStorage.setItem('pref:pushNotifications', 'true');
+				toast.success('Push notifications enabled.');
+			} else if (permission === 'denied') {
+				pushNotifications = false;
+				localStorage.setItem('pref:pushNotifications', 'false');
+				toast.error('Notification permission was denied. Please enable it in browser settings.');
+			} else {
+				pushNotifications = false;
+				localStorage.setItem('pref:pushNotifications', 'false');
+			}
+		} else {
+			pushNotifications = false;
+			localStorage.setItem('pref:pushNotifications', 'false');
+			toast.success('Push notifications disabled.');
+		}
+	}
+
+	function saveNotificationPreference(key: string, value: boolean) {
+		if (!browser) return;
+		localStorage.setItem(`pref:${key}`, String(value));
+	}
+
 	let saving = $state(false);
 
 	async function saveSettings() {
@@ -174,7 +228,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 			</div>
 
 			<Tabs.Root value="restaurant" class="w-full">
-				<Tabs.List class="grid w-full grid-cols-4">
+				<Tabs.List class="grid w-full grid-cols-5">
 					<Tabs.Trigger value="restaurant">
 						<IconBuilding class="mr-2 h-4 w-4" />
 						Business Info
@@ -190,6 +244,10 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 					<Tabs.Trigger value="payment">
 						<IconCreditCard class="mr-2 h-4 w-4" />
 						Payment
+					</Tabs.Trigger>
+					<Tabs.Trigger value="notifications">
+						<IconBell class="mr-2 h-4 w-4" />
+						Notifications
 					</Tabs.Trigger>
 				</Tabs.List>
 
@@ -356,6 +414,82 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 										<label for="digital" class="text-sm">Digital Wallets</label>
 									</div>
 								</div>
+							</div>
+						</Card.Content>
+					</Card.Root>
+				</Tabs.Content>
+
+				<Tabs.Content value="notifications" class="space-y-4">
+					<Card.Root>
+						<Card.Header>
+							<Card.Title>Notification Preferences</Card.Title>
+							<Card.Description>Choose how you want to receive notifications</Card.Description>
+						</Card.Header>
+						<Card.Content class="space-y-6">
+							<div class="flex items-center justify-between">
+								<div class="space-y-0.5">
+									<label for="email-notifications" class="text-sm font-medium"
+										>Email Notifications</label
+									>
+									<p class="text-muted-foreground text-xs">
+										Receive order updates and reports via email
+									</p>
+								</div>
+								<Switch
+									id="email-notifications"
+									bind:checked={emailNotifications}
+									onCheckedChange={(checked) => {
+										saveNotificationPreference('emailNotifications', checked);
+										toast.success(
+											checked ? 'Email notifications enabled.' : 'Email notifications disabled.'
+										);
+									}}
+								/>
+							</div>
+
+							<div class="flex items-center justify-between">
+								<div class="space-y-0.5">
+									<label for="sms-notifications" class="text-sm font-medium"
+										>SMS Notifications</label
+									>
+									<p class="text-muted-foreground text-xs">
+										Receive critical alerts via text message
+									</p>
+								</div>
+								<Switch
+									id="sms-notifications"
+									bind:checked={smsNotifications}
+									onCheckedChange={(checked) => {
+										saveNotificationPreference('smsNotifications', checked);
+										toast.success(
+											checked ? 'SMS notifications enabled.' : 'SMS notifications disabled.'
+										);
+									}}
+								/>
+							</div>
+
+							<div class="flex items-center justify-between">
+								<div class="space-y-0.5">
+									<label for="push-notifications" class="text-sm font-medium"
+										>Push Notifications</label
+									>
+									<p class="text-muted-foreground text-xs">
+										{#if pushPermissionStatus === 'unsupported'}
+											Push notifications are not supported in this browser
+										{:else if pushPermissionStatus === 'denied'}
+											Permission denied — enable in browser settings
+										{:else}
+											Get real-time alerts in your browser
+										{/if}
+									</p>
+								</div>
+								<Switch
+									id="push-notifications"
+									checked={pushNotifications}
+									disabled={pushPermissionStatus === 'unsupported' ||
+										pushPermissionStatus === 'denied'}
+									onCheckedChange={(checked) => togglePushNotifications(checked)}
+								/>
 							</div>
 						</Card.Content>
 					</Card.Root>

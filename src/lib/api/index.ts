@@ -450,3 +450,10 @@ export {
   type OrderingSettings,
   submitOrderFeedback
 } from './customer-order';
+
+// Notification API
+export {
+  registerDeviceToken,
+  removeDeviceToken,
+  getNotificationHistory
+} from './notification';
