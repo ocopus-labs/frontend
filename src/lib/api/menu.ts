@@ -9,6 +9,7 @@ export interface CreateCategoryPayload {
   image?: string;
   sortOrder?: number;
   isActive?: boolean;
+  requiresKitchen?: boolean;
 }
 
 export interface MenuItemModifier {
@@ -35,6 +36,7 @@ export interface CreateMenuItemPayload {
   isVegetarian?: boolean;
   isVegan?: boolean;
   isGlutenFree?: boolean;
+  requiresKitchen?: boolean | null;
   preparationTime?: number;
   sortOrder?: number;
   modifiers?: {
@@ -243,6 +245,15 @@ export async function seedMenuTemplate(
 ): Promise<{ message: string; categoriesCreated: number; itemsCreated: number }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.post(`/business/${businessId}/menu/seed-template`, { template });
+}
+
+export async function bulkUpdatePrices(
+  businessId: string,
+  updates: { itemId: string; newPrice: number }[],
+  options?: FetchOption
+): Promise<{ message: string; updatedCount: number }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.patch(`/business/${businessId}/menu/items/bulk-price`, { updates });
 }
 
 export async function bulkImportMenuItems(

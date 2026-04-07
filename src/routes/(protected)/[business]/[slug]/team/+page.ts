@@ -1,5 +1,5 @@
 import type { PageLoad } from './$types';
-import { getTeamMembers, getTeamStats, getAvailableRoles, getPermissionTree } from '$lib/api';
+import { getTeamMembers, getTeamStats, getAvailableRoles, getPermissionTree, getCurrentShift } from '$lib/api';
 
 export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 	depends('app:team');
@@ -11,11 +11,12 @@ export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 	const offset = (page - 1) * limit;
 
 	try {
-		const [membersData, statsData, rolesData, permissionTreeData] = await Promise.all([
+		const [membersData, statsData, rolesData, permissionTreeData, currentShiftData] = await Promise.all([
 			getTeamMembers(businessId, { limit, offset }, { fetch }),
 			getTeamStats(businessId, { fetch }),
 			getAvailableRoles(businessId, { fetch }),
-			getPermissionTree(businessId, { fetch }).catch(() => null)
+			getPermissionTree(businessId, { fetch }).catch(() => null),
+			getCurrentShift(businessId, { fetch }).catch(() => null)
 		]);
 
 		const total = membersData.total;
@@ -27,6 +28,7 @@ export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 			stats: statsData.stats,
 			roles: rolesData.roles,
 			permissionTree: permissionTreeData,
+			currentShift: currentShiftData?.shift ?? null,
 			page,
 			limit,
 			total,
@@ -46,6 +48,7 @@ export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 			},
 			roles: [],
 			permissionTree: null,
+			currentShift: null,
 			page: 1,
 			limit,
 			total: 0,

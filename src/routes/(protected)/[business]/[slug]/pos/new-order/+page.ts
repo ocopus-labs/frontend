@@ -39,6 +39,12 @@ export const load: PageLoad = async ({ parent, depends }) => {
       count: menuData.items.length
     });
 
+    // Build category requiresKitchen lookup
+    const categoryMap = new Map<string, boolean>();
+    for (const cat of menuData.categories) {
+      categoryMap.set(cat.id, cat.requiresKitchen ?? true);
+    }
+
     // Transform menu items
     const menuItems = menuData.items
       .filter(item => item.isAvailable)
@@ -56,6 +62,7 @@ export const load: PageLoad = async ({ parent, depends }) => {
         isVegan: item.isVegan,
         isGlutenFree: item.isGlutenFree,
         preparationTime: item.preparationTime,
+        requiresKitchen: item.requiresKitchen ?? categoryMap.get(item.categoryId) ?? true,
         modifiers: item.modifiers ? {
           sizes: item.modifiers.sizes?.map(s => ({
             id: s.id,

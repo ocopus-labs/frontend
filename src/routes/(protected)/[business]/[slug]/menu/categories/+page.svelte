@@ -3,6 +3,7 @@
 	import type { MenuCategory } from '$lib/types/menu';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
+	import { Switch } from '$lib/components/ui/switch';
 	import * as Card from '$lib/components/ui/card';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
@@ -50,7 +51,7 @@
 	let deleteCategoryTarget = $state<MenuCategory | null>(null);
 	let isSubmitting = $state(false);
 
-	let newCategory = $state({ name: '', description: '' });
+	let newCategory = $state({ name: '', description: '', requiresKitchen: true });
 
 	const filteredCategories = $derived(
 		categories
@@ -72,13 +73,14 @@
 		try {
 			const result = await createCategory(businessId, {
 				name: newCategory.name.trim(),
-				description: newCategory.description.trim() || undefined
+				description: newCategory.description.trim() || undefined,
+				requiresKitchen: newCategory.requiresKitchen
 			});
 			categories = [...categories, result.category];
 			toast.success('Category added successfully');
 			invalidateMenuData();
 			showAddDialog = false;
-			newCategory = { name: '', description: '' };
+			newCategory = { name: '', description: '', requiresKitchen: true };
 		} catch (error) {
 			toast.error(userFriendlyError(error, 'Failed to add category'));
 		} finally {
@@ -97,7 +99,8 @@
 		try {
 			const result = await updateCategory(businessId, editingCategory.id, {
 				name: editingCategory.name,
-				description: editingCategory.description || undefined
+				description: editingCategory.description || undefined,
+				requiresKitchen: editingCategory.requiresKitchen
 			});
 			categories = categories.map((cat) =>
 				cat.id === result.category.id ? result.category : cat
@@ -278,6 +281,15 @@
 					placeholder="Category description"
 				/>
 			</div>
+			<div class="grid gap-2">
+				<label class="text-sm font-medium">Kitchen preparation</label>
+				<div class="flex items-center gap-2">
+					<Switch bind:checked={newCategory.requiresKitchen} />
+					<span class="text-sm text-muted-foreground">
+						{newCategory.requiresKitchen ? 'Items require kitchen preparation' : 'Items served instantly (skip kitchen)'}
+					</span>
+				</div>
+			</div>
 		</div>
 		<Dialog.Footer>
 			<Button variant="outline" onclick={() => (showAddDialog = false)}>Cancel</Button>
@@ -316,6 +328,15 @@
 						bind:value={editingCategory.description}
 						placeholder="Category description"
 					/>
+				</div>
+				<div class="grid gap-2">
+					<label class="text-sm font-medium">Kitchen preparation</label>
+					<div class="flex items-center gap-2">
+						<Switch bind:checked={editingCategory.requiresKitchen} />
+						<span class="text-sm text-muted-foreground">
+							{editingCategory.requiresKitchen ? 'Items require kitchen preparation' : 'Items served instantly (skip kitchen)'}
+						</span>
+					</div>
 				</div>
 			</div>
 			<Dialog.Footer>

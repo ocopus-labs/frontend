@@ -41,7 +41,7 @@
 
 	$effect(() => {
 		if (showCloseDialog) {
-			actualAmount = 0;
+			actualAmount = expectedAmount;
 			closeNotes = '';
 			denomCounts = {};
 		}
@@ -319,6 +319,11 @@
 					class="mt-1"
 				/>
 				<p class="text-xs text-muted-foreground mt-1">Expected: {formatCurrency(expectedAmount)}</p>
+				{#if actualAmount === 0 && expectedAmount > 0}
+					<p class="text-sm mt-1 text-orange-600 font-medium">
+						Did you count the cash? Expected amount is {formatCurrency(expectedAmount)}
+					</p>
+				{/if}
 				{#if actualAmount > 0}
 					{@const diff = actualAmount - expectedAmount}
 					<p class="text-sm mt-1 {diff >= 0 ? 'text-green-600' : 'text-red-600'}">

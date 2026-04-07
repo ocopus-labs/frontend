@@ -24,6 +24,12 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import {
+		playNewOrderSound,
+		playPriorityOrderSound,
+		playCancelledSound,
+		playAllReadySound
+	} from '$lib/utils/kds-sounds';
+	import {
 		connectSocket,
 		disconnectSocket,
 		joinBusiness,
@@ -82,35 +88,11 @@
 	});
 
 	let tickInterval: ReturnType<typeof setInterval> | null = null;
-	let audioCtx: AudioContext | null = null;
 
-	function playBeep() {
+	/** Play a KDS sound only when sound is enabled and running in the browser. */
+	function playSound(fn: () => void) {
 		if (!soundEnabled || !browser) return;
-		try {
-			if (!audioCtx) audioCtx = new AudioContext();
-			const osc = audioCtx.createOscillator();
-			const gain = audioCtx.createGain();
-			osc.connect(gain);
-			gain.connect(audioCtx.destination);
-			osc.frequency.value = 660;
-			osc.type = 'sine';
-			gain.gain.value = 0.3;
-			osc.start();
-			osc.stop(audioCtx.currentTime + 0.15);
-			setTimeout(() => {
-				const osc2 = audioCtx!.createOscillator();
-				const gain2 = audioCtx!.createGain();
-				osc2.connect(gain2);
-				gain2.connect(audioCtx!.destination);
-				osc2.frequency.value = 880;
-				osc2.type = 'sine';
-				gain2.gain.value = 0.3;
-				osc2.start();
-				osc2.stop(audioCtx!.currentTime + 0.15);
-			}, 180);
-		} catch {
-			// AudioContext may not be available
-		}
+		fn();
 	}
 
 	function toggleSound() {
@@ -167,7 +149,8 @@
 				// Listen for new orders
 				const unsubOrderCreated = await onOrderCreated((order) => {
 					invalidate('app:orders');
-					playBeep();
+					const isPriority = order.priority === 'urgent' || order.priority === 'high';
+					playSound(isPriority ? playPriorityOrderSound : playNewOrderSound);
 					const source = order.orderSource === 'customer_qr' ? 'QR Order' : 'New order';
 					toast.info(`${source}: ${order.orderNumber}${order.tableNumber ? ` (Table ${order.tableNumber})` : ''}`);
 				});
@@ -182,13 +165,17 @@
 				// Listen for completed orders
 				const unsubOrderCompleted = await onOrderCompleted(() => {
 					debouncedInvalidate();
+					playSound(playAllReadySound);
 					toast.success('Order completed');
 				});
 				cleanupFns.push(unsubOrderCompleted);
 
 				// Listen for item status changes (debounced to avoid conflicts with optimistic updates)
-				const unsubItemStatus = await onItemStatus(() => {
+				const unsubItemStatus = await onItemStatus((payload) => {
 					debouncedInvalidate();
+					if (payload?.status === 'cancelled') {
+						playSound(playCancelledSound);
+					}
 				});
 				cleanupFns.push(unsubItemStatus);
 			}
@@ -365,6 +352,7 @@
 	async function completeOrder(orderId: string) {
 		try {
 			await updateOrderStatus(data.businessId, orderId, 'completed');
+			playSound(playAllReadySound);
 			await invalidate('app:orders');
 			toast.success('Order completed!');
 		} catch (error) {

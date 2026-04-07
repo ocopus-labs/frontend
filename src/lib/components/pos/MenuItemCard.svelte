@@ -2,7 +2,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Card from '$lib/components/ui/card';
-	import { IconPlus, IconMinus } from '@tabler/icons-svelte';
+	import { IconPlus, IconMinus, IconBolt } from '@tabler/icons-svelte';
 	import { createI18nUtils } from '$lib/utils/i18n';
 
 	export interface MenuItem {
@@ -11,6 +11,7 @@
 		price: number;
 		image: string;
 		available: boolean;
+		requiresKitchen?: boolean;
 		modifiers?: {
 			sizes?: { name: string; price: number }[];
 			spiceLevels?: { name: string; price: number }[];
@@ -56,6 +57,13 @@
 				N/A
 			</Badge>
 		{/if}
+		{#if item.available && item.requiresKitchen === false}
+			<Badge
+				class="absolute bottom-0.5 left-0.5 text-[9px] px-1 py-0 bg-amber-500 text-white"
+			>
+				<IconBolt class="h-2.5 w-2.5 mr-0.5" />Instant
+			</Badge>
+		{/if}
 	</div>
 	<div class="flex min-w-0 flex-1 flex-col gap-0.5">
 		<h3 class="line-clamp-1 text-sm font-medium leading-tight">
@@ -97,6 +105,13 @@
 			<div class="absolute right-2 bottom-2 flex h-7 min-w-7 items-center justify-center rounded-full bg-primary px-2 text-xs font-bold text-primary-foreground shadow-md">
 				{cartQuantity}
 			</div>
+		{/if}
+		{#if item.available && item.requiresKitchen === false}
+			<Badge
+				class="absolute top-2 left-2 text-xs bg-amber-500 text-white"
+			>
+				<IconBolt class="h-3 w-3 mr-0.5" />Instant
+			</Badge>
 		{/if}
 	</div>
 	<div class="p-2.5 pt-0">

@@ -38,6 +38,25 @@ export interface CustomerOrderStats {
   lastOrderDate: string | null;
 }
 
+export interface CustomerInsightsTopCustomer {
+  id: string;
+  name: string;
+  phone: string;
+  orderCount: number;
+  totalSpent: number;
+  lastOrderDate: string | null;
+}
+
+export interface CustomerInsights {
+  totalCustomers: number;
+  newThisMonth: number;
+  avgClv: number;
+  maxClv: number;
+  retentionRate: number;
+  repeatCustomers: number;
+  topCustomers: CustomerInsightsTopCustomer[];
+}
+
 export interface CreateCustomerPayload {
   name: string;
   phone: string;
@@ -143,6 +162,14 @@ export async function deleteCustomer(
 ): Promise<{ message: string }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.delete(`/business/${businessId}/customers/${customerId}`);
+}
+
+export async function getCustomerInsights(
+  businessId: string,
+  options?: FetchOption
+): Promise<CustomerInsights> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get(`/business/${businessId}/customers/insights`);
 }
 
 export async function exportCustomers(

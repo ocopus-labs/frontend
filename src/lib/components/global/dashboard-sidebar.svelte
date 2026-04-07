@@ -27,6 +27,11 @@
 	// Get userRole from nested [slug] layout data
 	const userRole = $derived(($page.data.userRole as string) || null);
 
+	// Get enabled features from page data (loaded by features page or layout enrichment)
+	const enabledFeatures = $derived(
+		($page.data.features?.enabledFeatures as string[] | undefined) ?? null
+	);
+
 	// Use business-level subscription from [slug] layout (owner's subscription)
 	// instead of the user's personal subscription from parent layout
 	const businessSubscription = $derived(
@@ -64,7 +69,7 @@
 		<BusinessSwitcher {businesses} {currentBusiness} />
 	</Sidebar.Header>
 	<Sidebar.Content>
-		<NavMain items={navMainItems} subscription={businessSubscription} {userRole} />
+		<NavMain items={navMainItems} subscription={businessSubscription} {userRole} {enabledFeatures} />
 	</Sidebar.Content>
 	<Sidebar.Footer>
 		<NavUser subscription={businessSubscription} />

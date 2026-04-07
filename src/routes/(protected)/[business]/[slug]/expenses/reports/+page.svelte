@@ -9,12 +9,12 @@
 	import { goto } from '$app/navigation';
 	import {
 		IconDownload,
-		IconCalendar,
 		IconTrendingUp,
 		IconTrendingDown,
 		IconFileSpreadsheet,
 		IconFileTypePdf
 	} from '@tabler/icons-svelte';
+	import StatCard from '$lib/components/global/stat-card.svelte';
 	import { toast } from 'svelte-sonner';
 	import * as Select from '$lib/components/ui/select';
 	import type { ExpenseSummary, ExpenseCategory } from '$lib/api';
@@ -230,58 +230,26 @@
 			<div bind:this={reportContentEl} class="report-content">
 			<!-- Summary Cards -->
 			<div class="grid grid-cols-1 gap-4 px-6 sm:grid-cols-2 lg:grid-cols-4">
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Total Expenses</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold">{formatCurrency(summary.totalAmount)}</div>
-						<div class="flex items-center gap-1 text-sm">
-							{#if overallTrend() < 0}
-								<IconTrendingDown class="h-4 w-4 text-success" />
-								<span class="text-success">{overallTrend().toFixed(1)}%</span>
-							{:else}
-								<IconTrendingUp class="h-4 w-4 text-destructive" />
-								<span class="text-destructive">+{overallTrend().toFixed(1)}%</span>
-							{/if}
-							<span class="text-muted-foreground">vs previous period</span>
-						</div>
-					</Card.Content>
-				</Card.Root>
-
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Monthly Average</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold">{formatCurrency(avgMonthly())}</div>
-						<p class="text-sm text-muted-foreground">per month</p>
-					</Card.Content>
-				</Card.Root>
-
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Highest Month</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold text-destructive">
-							{formatCurrency(highestMonth().amount)}
-						</div>
-						<p class="text-sm text-muted-foreground">{formatMonth(highestMonth().month)}</p>
-					</Card.Content>
-				</Card.Root>
-
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Lowest Month</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold text-success">
-							{formatCurrency(lowestMonth().amount)}
-						</div>
-						<p class="text-sm text-muted-foreground">{formatMonth(lowestMonth().month)}</p>
-					</Card.Content>
-				</Card.Root>
+				<StatCard
+					label="Total Expenses"
+					value={formatCurrency(summary.totalAmount)}
+					trend={{ value: Number(overallTrend().toFixed(1)), label: "vs previous period" }}
+				/>
+				<StatCard
+					label="Monthly Average"
+					value={formatCurrency(avgMonthly())}
+					subtitle="per month"
+				/>
+				<StatCard
+					label="Highest Month"
+					value={formatCurrency(highestMonth().amount)}
+					subtitle={formatMonth(highestMonth().month)}
+				/>
+				<StatCard
+					label="Lowest Month"
+					value={formatCurrency(lowestMonth().amount)}
+					subtitle={formatMonth(lowestMonth().month)}
+				/>
 			</div>
 
 			<!-- Trend Chart -->

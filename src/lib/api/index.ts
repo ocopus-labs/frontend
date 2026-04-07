@@ -36,6 +36,7 @@ export {
   deleteMenuItem,
   toggleItemAvailability,
   bulkUpdateAvailability,
+  bulkUpdatePrices,
   seedDefaultCategories,
   seedMenuTemplate,
   bulkImportMenuItems,
@@ -127,6 +128,7 @@ export {
 export {
   getCustomers,
   getCustomerStats,
+  getCustomerInsights,
   getCustomerById,
   getCustomerWithOrders,
   findCustomerByPhone,
@@ -138,6 +140,8 @@ export {
   type CustomerAddress,
   type CustomerStats,
   type CustomerOrderStats,
+  type CustomerInsights,
+  type CustomerInsightsTopCustomer,
   type CreateCustomerPayload,
   type UpdateCustomerPayload
 } from './customer';
@@ -310,6 +314,10 @@ export {
   reactivateTeamMember,
   removeTeamMember,
   exportTeamMembers,
+  clockIn,
+  clockOut,
+  getCurrentShift,
+  getShiftHistory,
   type TeamMember,
   type TeamMemberStatus,
   type TeamRole,
@@ -323,7 +331,9 @@ export {
   type UpdateTeamMemberPayload,
   type UpdateMemberRolePayload,
   type UpdateMemberPermissionsPayload,
-  type SuspendMemberPayload
+  type SuspendMemberPayload,
+  type StaffShift,
+  type ClockOutPayload
 } from './team';
 
 // Loyalty API
@@ -348,6 +358,7 @@ export {
   validateTaxNumber,
   getTaxRegimes,
   exportTaxReport,
+  getGstSummary,
   type TaxSettings,
   type TaxRegime,
   type TaxCategoryConfig,
@@ -357,7 +368,9 @@ export {
   type TaxBreakdown,
   type GstConfig,
   type VatConfig,
-  type SalesTaxConfig
+  type SalesTaxConfig,
+  type GstSummary,
+  type GstHsnSummaryEntry
 } from './tax';
 
 // API Keys
@@ -398,6 +411,15 @@ export {
   getUnassignedCategories,
   type KitchenStation
 } from './kitchen-station';
+
+// Features API
+export {
+  getBusinessFeatures,
+  enableFeature,
+  disableFeature,
+  type FeatureInfo,
+  type BusinessFeatures
+} from './features';
 
 // Customer Self-Ordering API
 export {

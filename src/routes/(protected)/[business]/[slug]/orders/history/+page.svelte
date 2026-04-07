@@ -12,6 +12,7 @@
 		IconChevronLeft,
 		IconChevronRight
 	} from '@tabler/icons-svelte';
+	import StatCard from '$lib/components/global/stat-card.svelte';
 	import { SearchInput, FilterDropdown } from '$lib/components/search';
 	import { EmptyState, StatusPill } from '$lib/components/data-display';
 	import PageHeader from '$lib/components/global/page-header.svelte';
@@ -158,38 +159,22 @@
 
 			<!-- Stats Cards -->
 			<div class="grid grid-cols-2 gap-4 px-6 sm:grid-cols-4">
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Total Orders</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold">{stats.total}</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Completed</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold text-success">{stats.completed}</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Cancelled/Refunded</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold text-destructive">{stats.cancelled + stats.refunded}</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Revenue</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold">{formatCurrency(stats.revenue)}</div>
-					</Card.Content>
-				</Card.Root>
+				<StatCard
+					label="Total Orders"
+					value={stats.total}
+				/>
+				<StatCard
+					label="Completed"
+					value={stats.completed}
+				/>
+				<StatCard
+					label="Cancelled/Refunded"
+					value={stats.cancelled + stats.refunded}
+				/>
+				<StatCard
+					label="Revenue"
+					value={formatCurrency(stats.revenue)}
+				/>
 			</div>
 
 			<!-- Filters -->

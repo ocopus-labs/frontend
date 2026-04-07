@@ -6,6 +6,7 @@ export interface MenuCategory {
 	image?: string;
 	sortOrder: number;
 	isActive: boolean;
+	requiresKitchen?: boolean;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -37,6 +38,7 @@ export interface MenuItem {
 	isVegetarian?: boolean;
 	isVegan?: boolean;
 	isGlutenFree?: boolean;
+	requiresKitchen?: boolean | null;
 	preparationTime?: number; // in minutes
 	sortOrder: number;
 	modifiers?: {
