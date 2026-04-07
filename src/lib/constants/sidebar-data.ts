@@ -13,8 +13,6 @@ import MonitorIcon from '@lucide/svelte/icons/monitor';
 import UsersIcon from '@lucide/svelte/icons/users';
 import SettingsIcon from '@lucide/svelte/icons/settings';
 import LandmarkIcon from '@lucide/svelte/icons/landmark';
-import type { FeatureKey } from '$lib/utils/plan-features';
-
 export interface NavSubItem {
 	title: string;
 	url: string;
@@ -27,7 +25,9 @@ export interface NavItem {
 	url: string;
 	icon?: any;
 	isActive?: boolean;
-	requiredFeature?: FeatureKey;
+	/** Business-level feature gate — item hidden if feature not in enabledFeatures */
+	requiredFeature?: string;
+	/** Tier-level plan gate — item shows lock icon if plan insufficient */
 	requiredPlan?: 'PRO' | 'ENTERPRISE';
 	/** Roles that can see this item. If omitted, visible to all roles. */
 	allowedRoles?: SidebarRole[];
@@ -118,6 +118,7 @@ export const sidebarData: Record<string, SidebarData> = {
 				title: 'Menu',
 				url: '/[business]/[slug]/menu',
 				icon: UtensilsIcon,
+				requiredFeature: 'menu',
 				allowedRoles: ['owner', 'restaurant_owner', 'manager'],
 				items: [
 					{
@@ -157,7 +158,7 @@ export const sidebarData: Record<string, SidebarData> = {
 				title: 'Kitchen Display',
 				url: '/[business]/[slug]/kitchen-display',
 				icon: MonitorIcon,
-				requiredFeature: 'kitchenDisplay',
+				requiredFeature: 'kds',
 				requiredPlan: 'PRO',
 				items: [
 					{
@@ -174,6 +175,7 @@ export const sidebarData: Record<string, SidebarData> = {
 				title: 'Tables',
 				url: '/[business]/[slug]/tables',
 				icon: TableIcon,
+				requiredFeature: 'tables',
 				items: [
 					{
 						title: 'Layout',
@@ -201,7 +203,6 @@ export const sidebarData: Record<string, SidebarData> = {
 				url: '/[business]/[slug]/inventory',
 				icon: PackageIcon,
 				requiredFeature: 'inventory',
-				requiredPlan: 'PRO',
 				items: [
 					{
 						title: 'Stock',
@@ -218,7 +219,6 @@ export const sidebarData: Record<string, SidebarData> = {
 				url: '/[business]/[slug]/expenses',
 				icon: DollarSignIcon,
 				requiredFeature: 'expenses',
-				requiredPlan: 'PRO',
 				items: [
 					{
 						title: 'Daily',
@@ -238,6 +238,7 @@ export const sidebarData: Record<string, SidebarData> = {
 				title: 'Team',
 				url: '/[business]/[slug]/team',
 				icon: UsersIcon,
+				requiredFeature: 'team',
 				allowedRoles: ['owner', 'restaurant_owner', 'manager']
 			},
 			{

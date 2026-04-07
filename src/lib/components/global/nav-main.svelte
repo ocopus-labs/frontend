@@ -6,7 +6,6 @@
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import type { Subscription } from '$lib/api/subscription';
 	import type { NavItem, SidebarRole } from '$lib/constants/sidebar-data';
-	import { hasFeatureAccess } from '$lib/utils/plan-features';
 	import UpgradePromptDialog from './upgrade-prompt-dialog.svelte';
 	import { page } from '$app/stores';
 
@@ -54,10 +53,10 @@
 			}
 
 			// Subscription-based filtering for non-owners:
-			// If a feature is locked and user can't manage subscription, hide it entirely
+			// If a plan-locked feature and user can't manage subscription, hide it entirely
 			// (no point showing upgrade prompts to staff who can't upgrade)
-			if (!canManageSubscription && item.requiredFeature) {
-				return hasFeatureAccess(subscription, item.requiredFeature);
+			if (!canManageSubscription && item.requiredPlan) {
+				return !isItemLocked(item);
 			}
 			return true;
 		})
@@ -73,10 +72,13 @@
 		return pathname === subItem.url;
 	}
 
-	// Check if a nav item is locked based on subscription (only relevant for owners)
+	// Check if a nav item is locked based on subscription tier (only relevant for owners)
 	function isItemLocked(item: NavItem): boolean {
-		if (!item.requiredFeature) return false;
-		return !hasFeatureAccess(subscription, item.requiredFeature);
+		if (!item.requiredPlan) return false;
+		if (item.requiredPlan === 'ENTERPRISE') {
+			return !subscription?.plan || subscription.plan.slug !== 'enterprise';
+		}
+		return !subscription?.plan || subscription.plan.slug === 'free';
 	}
 
 	// Handle clicking on a locked item
