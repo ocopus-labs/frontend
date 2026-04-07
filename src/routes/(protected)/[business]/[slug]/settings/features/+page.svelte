@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import * as Card from '$lib/components/ui/card';
+	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Switch } from '$lib/components/ui/switch';
 	import { Button } from '$lib/components/ui/button';
@@ -11,14 +12,26 @@
 	import { userFriendlyError } from '$lib/utils/error';
 	import LockIcon from '@lucide/svelte/icons/lock';
 	import AlertCircleIcon from '@lucide/svelte/icons/alert-circle';
+	import Loader2 from '@lucide/svelte/icons/loader-2';
 
 	let { data }: { data: PageData } = $props();
 
 	const features = $derived((data as any).features);
 	const businessId = $derived((data as any).businessId as string);
 
-	// Track which features are currently being toggled
 	let togglingKeys = $state<Set<string>>(new Set());
+
+	// Swap flow state
+	let swapDialogOpen = $state(false);
+	let swapTarget = $state<FeatureInfo | null>(null);
+	let swapSelection = $state<string | null>(null);
+	let isSwapping = $state(false);
+
+	const enabledExtras = $derived(
+		features?.availableFeatures?.filter(
+			(f: FeatureInfo) => f.isEnabled && !f.isCore
+		) ?? []
+	);
 
 	const tierOrder: Record<string, number> = { FREE: 0, PRO: 1, ENTERPRISE: 2 };
 
@@ -32,6 +45,10 @@
 		return tierOrder[featureMinTier] > tierOrder[currentTier];
 	}
 
+	const slotsFullAndFree = $derived(
+		features && features.extraSlots > 0 && features.extraSlotsRemaining === 0
+	);
+
 	async function handleToggle(feature: FeatureInfo, newChecked: boolean) {
 		if (feature.isCore) return;
 		if (!features) return;
@@ -39,14 +56,23 @@
 		const locked = isTierLocked(feature.minimumTier, features.tier);
 		if (locked) return;
 
-		togglingKeys = new Set([...togglingKeys, feature.key]);
+		// If enabling and slots are full, open swap dialog instead
+		if (newChecked && slotsFullAndFree) {
+			swapTarget = feature;
+			swapSelection = null;
+			swapDialogOpen = true;
+			return;
+		}
+
+		const key = feature.slug || feature.key;
+		togglingKeys = new Set([...togglingKeys, key]);
 
 		try {
 			if (newChecked) {
-				await enableFeature(businessId, feature.key);
+				await enableFeature(businessId, key);
 				toast.success(`${feature.label} enabled`);
 			} else {
-				await disableFeature(businessId, feature.key);
+				await disableFeature(businessId, key);
 				toast.success(`${feature.label} disabled`);
 			}
 			await invalidate('app:business-features');
@@ -54,8 +80,30 @@
 			toast.error(userFriendlyError(err));
 		} finally {
 			const next = new Set(togglingKeys);
-			next.delete(feature.key);
+			next.delete(key);
 			togglingKeys = next;
+		}
+	}
+
+	async function handleSwap() {
+		if (!swapTarget || !swapSelection) return;
+		isSwapping = true;
+
+		const targetKey = swapTarget.slug || swapTarget.key;
+
+		try {
+			// Disable the selected extra first, then enable the target
+			await disableFeature(businessId, swapSelection);
+			await enableFeature(businessId, targetKey);
+			toast.success(`Swapped: enabled ${swapTarget.label}`);
+			swapDialogOpen = false;
+			swapTarget = null;
+			swapSelection = null;
+			await invalidate('app:business-features');
+		} catch (err) {
+			toast.error(userFriendlyError(err));
+		} finally {
+			isSwapping = false;
 		}
 	}
 </script>
@@ -90,11 +138,11 @@
 		</div>
 
 		<!-- Warning: no extra slots remaining -->
-		{#if features.extraSlots > 0 && features.extraSlotsRemaining === 0}
+		{#if slotsFullAndFree}
 			<div class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-900/20">
 				<AlertCircleIcon class="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
 				<p class="text-sm text-amber-700 dark:text-amber-300">
-					You have used all your extra feature slots. Disable a feature before enabling a new one,
+					All feature slots used. Click enable on a feature to swap it with an existing one,
 					or upgrade your plan for more slots.
 				</p>
 			</div>
@@ -102,9 +150,10 @@
 
 		<!-- Feature cards grid -->
 		<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-			{#each features.availableFeatures as feature (feature.key)}
+			{#each features.availableFeatures as feature (feature.slug || feature.key)}
+				{@const featureKey = feature.slug || feature.key}
 				{@const locked = isTierLocked(feature.minimumTier, features.tier)}
-				{@const isToggling = togglingKeys.has(feature.key)}
+				{@const isToggling = togglingKeys.has(featureKey)}
 
 				<Card.Root class={locked ? 'opacity-70' : ''}>
 					<Card.Header class="pb-3">
@@ -119,15 +168,11 @@
 								{#if locked}
 									<LockIcon class="size-4 text-muted-foreground" />
 								{:else if feature.isCore}
-									<!-- Core features always on; show static checked switch -->
 									<Switch checked={true} disabled={true} />
 								{:else}
 									<Switch
 										checked={feature.isEnabled}
-										disabled={isToggling ||
-											(!feature.isEnabled &&
-												features.extraSlotsRemaining === 0 &&
-												features.extraSlots > 0)}
+										disabled={isToggling}
 										onCheckedChange={(checked) => handleToggle(feature, checked)}
 									/>
 								{/if}
@@ -136,6 +181,12 @@
 					</Card.Header>
 					<Card.Content class="pt-0">
 						<p class="text-xs text-muted-foreground">{feature.description}</p>
+
+						{#if feature.dependsOn?.length}
+							<p class="mt-1 text-[10px] text-muted-foreground">
+								Requires: {feature.dependsOn.join(', ')}
+							</p>
+						{/if}
 
 						<div class="mt-3 flex flex-wrap items-center gap-2">
 							<Badge variant={getTierBadgeVariant(feature.minimumTier)} class="text-[10px] px-1.5 py-0">
@@ -166,3 +217,50 @@
 		</div>
 	{/if}
 </div>
+
+<!-- Swap Feature Dialog -->
+<Dialog.Root bind:open={swapDialogOpen}>
+	<Dialog.Content class="max-w-sm">
+		<Dialog.Header>
+			<Dialog.Title>All feature slots used ({features?.extraSlotsUsed}/{features?.extraSlots})</Dialog.Title>
+			<Dialog.Description>
+				Disable one to make room for <strong>{swapTarget?.label}</strong>:
+			</Dialog.Description>
+		</Dialog.Header>
+
+		<div class="flex flex-col gap-1 py-4">
+			{#each enabledExtras as extra (extra.slug || extra.key)}
+				{@const extraKey = extra.slug || extra.key}
+				<button
+					type="button"
+					class="flex items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm hover:bg-accent transition-colors
+						{swapSelection === extraKey ? 'bg-accent ring-1 ring-primary' : ''}"
+					onclick={() => swapSelection = extraKey}
+				>
+					<span class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 {swapSelection === extraKey ? 'border-primary' : 'border-muted-foreground'}">
+						{#if swapSelection === extraKey}
+							<span class="h-2 w-2 rounded-full bg-primary"></span>
+						{/if}
+					</span>
+					<span>{extra.label}</span>
+				</button>
+			{/each}
+		</div>
+
+		<Dialog.Footer class="flex-col gap-2 sm:flex-row">
+			<Button
+				onclick={handleSwap}
+				disabled={!swapSelection || isSwapping}
+				class="flex-1"
+			>
+				{#if isSwapping}
+					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+				{/if}
+				Swap
+			</Button>
+			<Button variant="outline" class="flex-1" href="/billing">
+				Upgrade to Pro
+			</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>

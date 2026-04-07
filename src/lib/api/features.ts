@@ -1,10 +1,13 @@
 import { createApiClient, getApiClient } from './client';
 
 export interface FeatureInfo {
+  slug: string;
   key: string;
   label: string;
   description: string;
+  icon: string;
   minimumTier: 'FREE' | 'PRO' | 'ENTERPRISE';
+  dependsOn: string[];
   isCore: boolean;
   isEnabled: boolean;
 }
