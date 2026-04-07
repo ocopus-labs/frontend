@@ -871,7 +871,7 @@
 			<!-- Menu Section -->
 			<div class="flex flex-1 flex-col overflow-hidden lg:min-w-0" data-tour="menu-grid">
 				<!-- Category Tabs & Search -->
-				<div class="border-b border-border p-2 md:p-4 lg:p-6">
+				<div class="sticky top-0 z-30 border-b border-border bg-background p-2 md:static md:p-4 lg:p-6">
 					<div class="mb-2 md:mb-3 lg:mb-4">
 						<MenuCategories
 							categories={data.categories.map((c: { id: string; name: string; count: number }) => ({

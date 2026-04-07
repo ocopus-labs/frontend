@@ -2,7 +2,8 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Card from '$lib/components/ui/card';
-	import { IconPlus, IconMinus, IconBolt } from '@tabler/icons-svelte';
+	import * as ContextMenu from '$lib/components/ui/context-menu';
+	import { IconPlus, IconMinus, IconBolt, IconHeart, IconHeartFilled } from '@tabler/icons-svelte';
 	import { createI18nUtils } from '$lib/utils/i18n';
 
 	export interface MenuItem {
@@ -12,6 +13,8 @@
 		image: string;
 		available: boolean;
 		requiresKitchen?: boolean;
+		isCombo?: boolean;
+		comboComponents?: { menuItemId: string; name: string; quantity: number }[];
 		modifiers?: {
 			sizes?: { name: string; price: number }[];
 			spiceLevels?: { name: string; price: number }[];
@@ -27,12 +30,23 @@
 		onAddToOrder: (item: MenuItem) => void;
 		cartQuantity?: number;
 		region?: string;
+		isFavorite?: boolean;
+		onToggleFavorite?: (itemId: string | number) => void;
 	}
 
-	let { item, onAddToOrder, cartQuantity = 0, region = 'in' }: Props = $props();
+	let { item, onAddToOrder, cartQuantity = 0, region = 'in', isFavorite = false, onToggleFavorite }: Props = $props();
+
+	const comboLabel = $derived(
+		item.isCombo && item.comboComponents?.length
+			? item.comboComponents.map(c => c.quantity > 1 ? `${c.quantity}x ${c.name}` : c.name).join(' + ')
+			: ''
+	);
 
 	const i18n = createI18nUtils(region);
 </script>
+
+<ContextMenu.Root>
+<ContextMenu.Trigger class="contents">
 
 <!-- Mobile: horizontal card (hidden on sm+) -->
 <button
@@ -64,11 +78,21 @@
 				<IconBolt class="h-2.5 w-2.5 mr-0.5" />Instant
 			</Badge>
 		{/if}
+		{#if item.isCombo}
+			<Badge
+				class="absolute top-0.5 left-0.5 text-[9px] px-1 py-0 bg-violet-500 text-white"
+			>
+				Combo
+			</Badge>
+		{/if}
 	</div>
 	<div class="flex min-w-0 flex-1 flex-col gap-0.5">
 		<h3 class="line-clamp-1 text-sm font-medium leading-tight">
 			{item.name}
 		</h3>
+		{#if comboLabel}
+			<span class="line-clamp-1 text-[10px] text-muted-foreground">{comboLabel}</span>
+		{/if}
 		<span class="text-sm font-bold text-primary">
 			{i18n.formatCurrency(item.price)}
 		</span>
@@ -113,11 +137,21 @@
 				<IconBolt class="h-3 w-3 mr-0.5" />Instant
 			</Badge>
 		{/if}
+		{#if item.isCombo}
+			<Badge
+				class="absolute top-2 {item.requiresKitchen === false ? 'left-20' : 'left-2'} text-xs bg-violet-500 text-white"
+			>
+				Combo
+			</Badge>
+		{/if}
 	</div>
 	<div class="p-2.5 pt-0">
 		<h3 class="line-clamp-2 min-h-8 text-sm font-semibold md:text-base">
 			{item.name}
 		</h3>
+		{#if comboLabel}
+			<p class="line-clamp-1 text-xs text-muted-foreground -mt-1 mb-1">{comboLabel}</p>
+		{/if}
 		<div class="flex items-center justify-between">
 			<span class="text-base font-bold md:text-lg">
 				{i18n.formatCurrency(item.price)}
@@ -144,3 +178,19 @@
 		{/if}
 	</div>
 </Card.Root>
+
+</ContextMenu.Trigger>
+{#if onToggleFavorite}
+<ContextMenu.Content class="w-48">
+	<ContextMenu.Item onclick={() => onToggleFavorite(item.id)}>
+		{#if isFavorite}
+			<IconHeartFilled class="mr-2 h-4 w-4 text-red-500" />
+			Remove from Favorites
+		{:else}
+			<IconHeart class="mr-2 h-4 w-4" />
+			Add to Favorites
+		{/if}
+	</ContextMenu.Item>
+</ContextMenu.Content>
+{/if}
+</ContextMenu.Root>
