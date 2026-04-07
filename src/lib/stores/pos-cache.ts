@@ -12,6 +12,7 @@
 import { writable, get } from 'svelte/store';
 import { getMenu } from '$lib/api/menu';
 import { getTables } from '$lib/api/table';
+import { cacheMenu as persistMenuToIDB, getCachedMenu as getMenuFromIDB } from '$lib/utils/offline-store';
 import type { MenuResponse } from '$lib/types/menu';
 
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -37,9 +38,18 @@ export async function getCachedMenu(businessId: string): Promise<MenuResponse> {
 	const current = get(menuCache);
 	if (isValid(current, businessId)) return current.data;
 
-	const data = await getMenu(businessId);
-	menuCache.set({ data, businessId, timestamp: Date.now() });
-	return data;
+	try {
+		const data = await getMenu(businessId);
+		menuCache.set({ data, businessId, timestamp: Date.now() });
+		// Persist to IndexedDB for offline fallback
+		persistMenuToIDB(businessId, data).catch(() => {});
+		return data;
+	} catch {
+		// Network failed — try IndexedDB offline cache
+		const cached = await getMenuFromIDB(businessId);
+		if (cached) return cached as MenuResponse;
+		throw new Error('Menu unavailable offline');
+	}
 }
 
 // --- Tables cache ---

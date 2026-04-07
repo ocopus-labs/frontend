@@ -27,6 +27,12 @@ export interface MenuItemIngredient {
 	costPerUnit: number;
 }
 
+export interface ComboComponent {
+	menuItemId: string;
+	name: string;
+	quantity: number;
+}
+
 export interface MenuItem {
 	id: string;
 	name: string;
@@ -39,6 +45,8 @@ export interface MenuItem {
 	isVegan?: boolean;
 	isGlutenFree?: boolean;
 	requiresKitchen?: boolean | null;
+	isCombo?: boolean;
+	comboComponents?: ComboComponent[];
 	preparationTime?: number; // in minutes
 	sortOrder: number;
 	modifiers?: {
@@ -78,10 +86,36 @@ export interface ModifierGroup {
 	updatedAt: string;
 }
 
+export interface MenuGroup {
+	id: string;
+	name: string;
+	description?: string;
+	icon?: string;
+	color?: string;
+	itemIds: string[];
+	sortOrder: number;
+	isActive: boolean;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface POSTab {
+	id: string;
+	type: 'category' | 'group';
+	referenceId: string;
+	sortOrder: number;
+}
+
+export interface POSLayout {
+	tabs: POSTab[];
+}
+
 export interface MenuResponse {
 	categories: MenuCategory[];
 	items: MenuItem[];
 	modifierGroups: ModifierGroup[];
+	groups?: MenuGroup[];
+	posLayout?: POSLayout;
 	totalCategories: number;
 	totalItems: number;
 	totalModifierGroups: number;

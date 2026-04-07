@@ -1,4 +1,4 @@
-import type { MenuCategory, MenuItem, MenuResponse, ModifierGroup } from '$lib/types/menu';
+import type { MenuCategory, MenuGroup, MenuItem, MenuResponse, ModifierGroup, POSLayout, POSTab } from '$lib/types/menu';
 import { createApiClient, getApiClient } from './client';
 
 // ==================== TYPES ====================
@@ -310,4 +310,89 @@ export async function deleteModifierGroup(
 ): Promise<{ message: string }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.delete(`/business/${businessId}/menu/modifier-groups/${groupId}`);
+}
+
+// ==================== GROUPS ====================
+
+export async function getGroups(
+  businessId: string,
+  options?: FetchOption
+): Promise<{ groups: MenuGroup[] }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get(`/business/${businessId}/menu/groups`);
+}
+
+export async function createGroup(
+  businessId: string,
+  data: { name: string; description?: string; icon?: string; color?: string; itemIds: string[]; sortOrder?: number; isActive?: boolean },
+  options?: FetchOption
+): Promise<{ message: string; group: MenuGroup }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/business/${businessId}/menu/groups`, data);
+}
+
+export async function updateGroup(
+  businessId: string,
+  groupId: string,
+  data: Partial<{ name: string; description?: string; icon?: string; color?: string; itemIds: string[]; sortOrder?: number; isActive?: boolean }>,
+  options?: FetchOption
+): Promise<{ message: string; group: MenuGroup }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.patch(`/business/${businessId}/menu/groups/${groupId}`, data);
+}
+
+export async function deleteGroup(
+  businessId: string,
+  groupId: string,
+  options?: FetchOption
+): Promise<{ message: string }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.delete(`/business/${businessId}/menu/groups/${groupId}`);
+}
+
+// ==================== POS LAYOUT ====================
+
+export async function getPOSLayout(
+  businessId: string,
+  options?: FetchOption
+): Promise<{ posLayout: POSLayout | null }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get(`/business/${businessId}/menu/pos-layout`);
+}
+
+export async function savePOSLayout(
+  businessId: string,
+  tabs: POSTab[],
+  options?: FetchOption
+): Promise<{ message: string; layout: POSLayout }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.put(`/business/${businessId}/menu/pos-layout`, { tabs });
+}
+
+// ==================== FAVORITES ====================
+
+export async function getFavorites(
+  businessId: string,
+  options?: FetchOption
+): Promise<{ favorites: string[] }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get(`/business/${businessId}/menu/favorites`);
+}
+
+export async function addFavorite(
+  businessId: string,
+  menuItemId: string,
+  options?: FetchOption
+): Promise<{ message: string }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/business/${businessId}/menu/favorites`, { menuItemId });
+}
+
+export async function removeFavorite(
+  businessId: string,
+  menuItemId: string,
+  options?: FetchOption
+): Promise<{ message: string }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.delete(`/business/${businessId}/menu/favorites/${menuItemId}`);
 }

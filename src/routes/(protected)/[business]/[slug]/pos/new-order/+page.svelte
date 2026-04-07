@@ -39,7 +39,7 @@
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { browser } from '$app/environment';
-	import { queueOfflineOrder, cacheMenu } from '$lib/utils/offline-store';
+	import { queueOfflineOrder } from '$lib/utils/offline-store';
 	import PosTour from '$lib/components/pos/pos-tour.svelte';
 	import confetti from 'canvas-confetti';
 
@@ -173,18 +173,6 @@
 			try { sessionStorage.removeItem(`pos-cart-${businessId}`); } catch {}
 		}
 	}
-
-	// Cache menu data to IndexedDB for offline access (Part 5)
-	$effect(() => {
-		if (browser && data.categories) {
-			const businessId = (data.business as any)?.id;
-			if (businessId) {
-				cacheMenu(businessId, { categories: data.categories, menuItems: data.menuItems }).catch(() => {
-					// Silently ignore — menu cache is best-effort
-				});
-			}
-		}
-	});
 
 	// Customization dialog state
 	let showCustomizationDialog = $state(false);

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import AppSidebar from '$lib/components/global/dashboard-sidebar.svelte';
+	import BottomNav from '$lib/components/global/bottom-nav.svelte';
 	import ImpersonationBanner from '$lib/components/global/impersonation-banner.svelte';
 	import AnnouncementBanner from '$lib/components/global/announcement-banner.svelte';
 	import SubscriptionBanner from '$lib/components/global/subscription-banner.svelte';
@@ -112,6 +113,13 @@
 				{/if}
 			</div>
 		</header>
-		{@render children()}
+		<div class="pb-20 md:pb-0">
+			{@render children()}
+		</div>
 	</Sidebar.Inset>
+	<BottomNav
+		userRole={$page.data.userRole}
+		enabledFeatures={$page.data.features?.enabledFeatures ?? []}
+		businessBase={basePath}
+	/>
 </Sidebar.Provider>
