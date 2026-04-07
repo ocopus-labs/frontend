@@ -16,7 +16,7 @@
 	} from '@tabler/icons-svelte';
 
 	import {
-		MenuCategories,
+		POSTabBar,
 		MenuItemCard,
 		OrderSummary,
 		ItemCustomizationDialog,
@@ -25,8 +25,10 @@
 		ReceiptDialog,
 		CustomerPicker,
 		ManageTabsDialog,
-		type OrderItemType
+		type OrderItemType,
+		type ResolvedTab,
 	} from '$lib/components/pos';
+	import { getFavorites, addFavorite, removeFavorite } from '$lib/api';
 
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import ShortcutHelpDialog from '$lib/components/global/shortcut-help-dialog.svelte';
@@ -54,7 +56,8 @@
 	import type { ExtendedOrderItem, POSMenuItem } from '$lib/types/pos';
 
 	// State variables
-	let selectedCategory = $state('All Items');
+	let selectedTabId = $state('all');
+	let selectedTab = $state<ResolvedTab | null>(null);
 	let searchQuery = $state('');
 	let debouncedSearchQuery = $state('');
 	let orderType = $state<'dine_in' | 'takeaway' | 'delivery'>('dine_in');
@@ -193,6 +196,42 @@
 	let discountType = $state<'percentage' | 'fixed'>('percentage');
 	let discountValue = $state(0);
 
+	// Favorites state
+	let favoriteIds = $state<string[]>([]);
+
+	// Load favorites on mount
+	onMount(async () => {
+		try {
+			const bid = (data as any).business?.id;
+			if (bid) {
+				const res = await getFavorites(bid);
+				favoriteIds = res.favorites;
+			}
+		} catch { /* non-critical */ }
+	});
+
+	async function toggleFavorite(itemId: string | number) {
+		const id = String(itemId);
+		const bid = (data as any).business?.id;
+		if (!bid) return;
+		if (favoriteIds.includes(id)) {
+			favoriteIds = favoriteIds.filter(f => f !== id);
+			removeFavorite(bid, id).catch(() => { favoriteIds = [...favoriteIds, id]; });
+		} else {
+			favoriteIds = [...favoriteIds, id];
+			addFavorite(bid, id).catch(() => { favoriteIds = favoriteIds.filter(f => f !== id); });
+		}
+	}
+
+	// Item counts per category for tab badges
+	const itemCounts = $derived(() => {
+		const map = new Map<string, number>();
+		for (const item of (data.menuItems as any[])) {
+			map.set(item.categoryId, (map.get(item.categoryId) ?? 0) + 1);
+		}
+		return map;
+	});
+
 	// Manage tabs state
 	let showManageTabs = $state(false);
 	const isManager = $derived(
@@ -216,15 +255,24 @@
 	const filteredMenuItems = $derived(() => {
 		let items = data.menuItems as POSMenuItem[];
 
-		// Filter by category
-		if (selectedCategory !== 'All Items') {
-			const category = data.categories.find((c: { name: string }) => c.name === selectedCategory);
-			if (category && category.id !== 'all') {
-				items = items.filter((item) => item.categoryId === category.id);
+		// Filter by selected tab
+		const tab = selectedTab;
+		if (tab) {
+			if (tab.type === 'category') {
+				items = items.filter(item => item.categoryId === tab.referenceId);
+			} else if (tab.type === 'group') {
+				const group = (data.groups ?? []).find((g: any) => g.id === tab.referenceId);
+				if (group) {
+					const idSet = new Set(group.itemIds);
+					items = items.filter(item => idSet.has(item.id));
+				}
+			} else if (tab.type === 'favorites') {
+				const favSet = new Set(favoriteIds);
+				items = items.filter(item => favSet.has(item.id));
 			}
 		}
 
-		// Filter by debounced search (1.14)
+		// Filter by debounced search
 		if (debouncedSearchQuery) {
 			const query = debouncedSearchQuery.toLowerCase();
 			items = items.filter((item) =>
@@ -257,8 +305,9 @@
 	);
 	const totalPayment = $derived(subtotal + taxes - discount);
 
-	function handleCategorySelect(categoryName: string) {
-		selectedCategory = categoryName;
+	function handleTabSelect(tab: ResolvedTab) {
+		selectedTabId = tab.id;
+		selectedTab = tab.type === 'all' ? null : tab;
 	}
 
 	// Check if item has any modifiers (1.15)
@@ -813,14 +862,9 @@
 		},
 		{
 			key: 'F3',
-			description: 'Cycle category',
+			description: 'Cycle tab',
 			handler: () => {
-				const categories = data.categories as { id: string; name: string; count: number }[];
-				if (categories.length === 0) return;
-				const categoryNames = categories.map((c) => c.name);
-				const currentIndex = categoryNames.indexOf(selectedCategory);
-				const nextIndex = (currentIndex + 1) % categoryNames.length;
-				selectedCategory = categoryNames[nextIndex];
+				// Cycle is handled by POSTabBar externally — no-op here for now
 			}
 		},
 		{
@@ -881,14 +925,15 @@
 				<div class="sticky top-0 z-30 border-b border-border bg-background p-2 md:static md:p-4 lg:p-6">
 					<div class="mb-2 flex items-center gap-2 md:mb-3 lg:mb-4">
 						<div class="flex-1 min-w-0">
-						<MenuCategories
-							categories={data.categories.map((c: { id: string; name: string; count: number }) => ({
-								name: c.name,
-								count: c.count,
-								active: c.name === selectedCategory
-							}))}
-							{selectedCategory}
-							onCategorySelect={handleCategorySelect}
+						<POSTabBar
+							categories={data.rawCategories ?? []}
+							groups={data.groups ?? []}
+							posLayout={data.posLayout}
+							itemCounts={itemCounts()}
+							totalItems={(data.menuItems ?? []).length}
+							favoriteCount={favoriteIds.length}
+							{selectedTabId}
+							onTabSelect={handleTabSelect}
 						/>
 						</div>
 						{#if isManager}
@@ -926,6 +971,8 @@
 									onAddToOrder={handleAddToOrderFromCard}
 									{region}
 									cartQuantity={cartQuantityMap[item._menuItemId] || 0}
+									isFavorite={favoriteIds.includes(item._menuItemId)}
+									onToggleFavorite={toggleFavorite}
 								/>
 							{/each}
 						</div>

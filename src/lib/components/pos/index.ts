@@ -18,6 +18,8 @@ export { default as TableMergeDialog } from './TableMergeDialog.svelte';
 export { default as TableSplitDialog } from './TableSplitDialog.svelte';
 export { default as KotPrintView } from './KotPrintView.svelte';
 export { default as ManageTabsDialog } from './ManageTabsDialog.svelte';
+export { default as POSTabBar } from './POSTabBar.svelte';
+export type { ResolvedTab } from './POSTabBar.svelte';
 
 export type { Category } from './MenuCategories.svelte';
 export type { MenuItem } from './MenuItemCard.svelte';
