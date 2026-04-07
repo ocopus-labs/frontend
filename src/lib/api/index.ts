@@ -50,7 +50,16 @@ export {
   type MenuItemModifier,
   type CreateModifierGroupPayload,
   type UpdateModifierGroupPayload,
-  type ModifierGroupOptionPayload
+  type ModifierGroupOptionPayload,
+  getGroups,
+  createGroup,
+  updateGroup,
+  deleteGroup,
+  getPOSLayout,
+  savePOSLayout,
+  getFavorites,
+  addFavorite,
+  removeFavorite,
 } from './menu';
 export {
   createOrder,

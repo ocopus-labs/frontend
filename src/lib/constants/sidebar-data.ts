@@ -132,6 +132,10 @@ export const sidebarData: Record<string, SidebarData> = {
 					{
 						title: 'Modifiers',
 						url: '/[business]/[slug]/menu/modifiers'
+					},
+					{
+						title: 'Groups',
+						url: '/[business]/[slug]/menu/groups'
 					}
 				]
 			},
