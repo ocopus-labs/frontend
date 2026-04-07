@@ -86,8 +86,11 @@ export const load: PageLoad = async ({ parent, depends }) => {
 
     return {
       categories,
+      rawCategories: menuData.categories || [],
       menuItems,
       menuVersion: menuData.menuVersion,
+      groups: menuData.groups || [],
+      posLayout: menuData.posLayout || null,
       tables: tablesData.tables || [],
       supportsTable
     };
@@ -96,8 +99,11 @@ export const load: PageLoad = async ({ parent, depends }) => {
     // Return empty data if menu fetch fails
     return {
       categories: [{ id: 'all', name: 'All Items', count: 0 }],
+      rawCategories: [],
       menuItems: [],
       menuVersion: 0,
+      groups: [],
+      posLayout: null,
       tables: [],
       supportsTable
     };

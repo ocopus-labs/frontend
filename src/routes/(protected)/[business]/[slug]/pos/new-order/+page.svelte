@@ -24,6 +24,7 @@
 		TableSelectorDialog,
 		ReceiptDialog,
 		CustomerPicker,
+		ManageTabsDialog,
 		type OrderItemType
 	} from '$lib/components/pos';
 
@@ -191,6 +192,12 @@
 	let showDiscount = $state(false);
 	let discountType = $state<'percentage' | 'fixed'>('percentage');
 	let discountValue = $state(0);
+
+	// Manage tabs state
+	let showManageTabs = $state(false);
+	const isManager = $derived(
+		['owner', 'restaurant_owner', 'manager'].includes(($page.data.userRole as string) || '')
+	);
 
 	// Payment state
 	let showPaymentDialog = $state(false);
@@ -872,7 +879,8 @@
 			<div class="flex flex-1 flex-col overflow-hidden lg:min-w-0" data-tour="menu-grid">
 				<!-- Category Tabs & Search -->
 				<div class="sticky top-0 z-30 border-b border-border bg-background p-2 md:static md:p-4 lg:p-6">
-					<div class="mb-2 md:mb-3 lg:mb-4">
+					<div class="mb-2 flex items-center gap-2 md:mb-3 lg:mb-4">
+						<div class="flex-1 min-w-0">
 						<MenuCategories
 							categories={data.categories.map((c: { id: string; name: string; count: number }) => ({
 								name: c.name,
@@ -882,6 +890,12 @@
 							{selectedCategory}
 							onCategorySelect={handleCategorySelect}
 						/>
+						</div>
+						{#if isManager}
+							<Button variant="ghost" size="icon" class="shrink-0 h-8 w-8" onclick={() => showManageTabs = true} title="Manage tabs">
+								<IconEdit class="h-4 w-4" />
+							</Button>
+						{/if}
 					</div>
 					<div class="flex items-center gap-2">
 						<div class="relative flex-1 md:max-w-md">
@@ -1182,6 +1196,17 @@
 	onClose={() => (showShortcutHelp = false)}
 	shortcuts={shortcutsList}
 />
+
+<!-- Manage Tabs Dialog -->
+{#if isManager}
+	<ManageTabsDialog
+		bind:open={showManageTabs}
+		businessId={data.business?.id ?? ''}
+		categories={data.rawCategories ?? []}
+		groups={data.groups ?? []}
+		currentTabs={data.posLayout?.tabs ?? null}
+	/>
+{/if}
 
 <!-- Shortcut hint -->
 <div class="fixed right-2 bottom-2 z-10 text-xs text-muted-foreground opacity-50 pointer-events-none select-none">
