@@ -5,7 +5,9 @@
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import SunIcon from '@lucide/svelte/icons/sun';
 	import MoonIcon from '@lucide/svelte/icons/moon';
+	import LanguagesIcon from '@lucide/svelte/icons/languages';
 	import SparklesIcon from '@lucide/svelte/icons/sparkles';
+	import { locale, setLocale, SUPPORTED_LOCALES } from '$lib/i18n.svelte';
 	import * as Avatar from '$lib/components/ui/avatar/index.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
@@ -141,6 +143,22 @@
 						{/if}
 						{dark ? 'Light mode' : 'Dark mode'}
 					</DropdownMenu.Item>
+					<DropdownMenu.Sub>
+						<DropdownMenu.SubTrigger>
+							<LanguagesIcon />
+							Language
+						</DropdownMenu.SubTrigger>
+						<DropdownMenu.SubContent>
+							{#each SUPPORTED_LOCALES as loc (loc.code)}
+								<DropdownMenu.Item onclick={() => setLocale(loc.code)}>
+									{loc.label}
+									{#if locale.current === loc.code}
+										<span class="ml-auto text-xs text-primary">&#10003;</span>
+									{/if}
+								</DropdownMenu.Item>
+							{/each}
+						</DropdownMenu.SubContent>
+					</DropdownMenu.Sub>
 				</DropdownMenu.Group>
 				<DropdownMenu.Separator />
 				<DropdownMenu.Item onclick={handleLogout}>

@@ -301,7 +301,14 @@ export {
   type DailyTrend,
   type FullReport,
   type AnalyticsDaily,
-  type AnalyticsPeriodParams
+  type AnalyticsPeriodParams,
+  // Prediction API
+  getSalesForecast,
+  getDemandPrediction,
+  getReorderSuggestions,
+  type ForecastPoint,
+  type DemandPrediction,
+  type ReorderSuggestion
 } from './analytics';
 
 // Search API
