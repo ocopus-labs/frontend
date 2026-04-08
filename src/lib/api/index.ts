@@ -354,10 +354,23 @@ export {
   redeemLoyaltyPoints,
   adjustLoyaltyPoints,
   getLoyaltyLeaderboard,
+  getLoyaltyTiers,
+  configureLoyaltyTiers,
+  getLoyaltyTierProgress,
+  generateReferralCode,
+  processReferral,
+  getLoyaltyPromotions,
+  createLoyaltyPromotion,
   type LoyaltySettings,
   type LoyaltyAccount,
   type LoyaltyTransaction,
-  type LoyaltyLeaderboardEntry
+  type LoyaltyLeaderboardEntry,
+  type LoyaltyTier,
+  type LoyaltyTierInput,
+  type LoyaltyTierProgress,
+  type LoyaltyReferral,
+  type LoyaltyPromotion,
+  type CreateLoyaltyPromotionPayload
 } from './loyalty';
 
 // Tax API
@@ -559,3 +572,59 @@ export {
   type AutoReorderRule,
   type CreateAutoReorderRulePayload
 } from './purchase-order';
+
+// Customer Segmentation API
+export {
+  getSegments,
+  getSegmentById,
+  createSegment,
+  previewSegment,
+  refreshSegment,
+  deleteSegment,
+  type Segment,
+  type SegmentWithCampaigns,
+  type SegmentRules,
+  type SegmentPreviewCustomer,
+  type CreateSegmentPayload
+} from './segment';
+
+// Campaign API
+export {
+  getCampaigns,
+  getCampaignById,
+  createCampaign,
+  sendCampaign,
+  getCampaignStats,
+  deleteCampaign,
+  type Campaign,
+  type CampaignChannel,
+  type CampaignStatus,
+  type CampaignStats,
+  type CampaignFunnel,
+  type CampaignStatsResponse,
+  type CampaignSegmentRef,
+  type CreateCampaignPayload
+} from './campaign';
+
+// Online Ordering API
+export {
+  getOnlineMenu,
+  getOnlineConfig,
+  onlineCheckout,
+  type OnlineBusinessConfig,
+  type OnlineMenuItem,
+  type OnlineMenuCategory,
+  type OnlineCheckoutPayload,
+  type OnlineCheckoutResult
+} from './online-order';
+
+// Accounting API
+export {
+  createAccountingExport,
+  getAccountingExports,
+  downloadAccountingExport,
+  type AccountingProvider,
+  type AccountingExportStatus,
+  type AccountingExport,
+  type CreateAccountingExportPayload
+} from './accounting';
