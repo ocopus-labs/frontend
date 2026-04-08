@@ -433,11 +433,8 @@
 				<!-- Payment Method Selection -->
 				<div class="space-y-3">
 					<Label class="text-sm font-medium">Payment Method</Label>
-					{@const methods = stripePublishableKey
-						? (['cash', 'card', 'upi', 'stripe', 'other'] as const)
-						: (['cash', 'card', 'upi', 'other'] as const)}
 					<div class="grid {stripePublishableKey ? 'grid-cols-5' : 'grid-cols-4'} gap-2">
-						{#each methods as method}
+						{#each stripePublishableKey ? ['cash', 'card', 'upi', 'stripe', 'other'] : ['cash', 'card', 'upi', 'other'] as method}
 							{@const MethodIcons = methodIcons[method] ?? IconReceipt}
 							<button
 								type="button"
