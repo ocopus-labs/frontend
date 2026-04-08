@@ -10,22 +10,29 @@
 	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
+	import { Progress } from '$lib/components/ui/progress';
 	import {
 		IconArrowLeft,
 		IconEdit,
 		IconLoader2,
 		IconStar,
-		IconAdjustmentsHorizontal
+		IconAdjustmentsHorizontal,
+		IconCopy,
+		IconShare,
+		IconAlertTriangle
 	} from '@tabler/icons-svelte';
 	import { toast } from 'svelte-sonner';
 	import { StatusPill } from '$lib/components/data-display';
 	import {
 		updateCustomer,
 		adjustLoyaltyPoints,
+		generateReferralCode,
 		type UpdateCustomerPayload,
 		type LoyaltyAccount,
 		type LoyaltyTransaction,
-		type LoyaltySettings
+		type LoyaltySettings,
+		type LoyaltyTierProgress,
+		type LoyaltyReferral
 	} from '$lib/api';
 	import { currencyToRegion, createI18nUtils } from '$lib/utils/i18n';
 	import { userFriendlyError } from '$lib/utils/error';
@@ -38,6 +45,7 @@
 	const loyaltyAccount = $derived((data as any).loyaltyAccount as LoyaltyAccount | null);
 	const loyaltyTransactions = $derived((data as any).loyaltyTransactions as LoyaltyTransaction[] || []);
 	const loyaltySettings = $derived((data as any).loyaltySettings as LoyaltySettings | null);
+	const tierProgress = $derived((data as any).tierProgress as LoyaltyTierProgress | null);
 
 	const region = $derived(currencyToRegion((data as any).business?.settings?.currency || 'USD'));
 	const i18n = $derived(createI18nUtils(region));
@@ -50,6 +58,10 @@
 	let adjustAmount = $state(0);
 	let adjustReason = $state('');
 	let isAdjusting = $state(false);
+
+	// Referral state
+	let referralCode = $state<string | null>(null);
+	let isGeneratingReferral = $state(false);
 
 	const taxSettings = $derived((data as any).business?.settings?.tax);
 	const taxEnabled = $derived(taxSettings?.enabled === true);
@@ -73,6 +85,69 @@
 		gold: 'bg-yellow-500 text-white',
 		platinum: 'bg-purple-600 text-white'
 	};
+
+	// Tier progress helpers
+	const progressPercent = $derived.by(() => {
+		if (!tierProgress?.nextTier || !loyaltyAccount) return 100;
+		const currentMin = tierProgress.currentTier?.minPoints ?? 0;
+		const nextMin = tierProgress.nextTier.minPoints;
+		const range = nextMin - currentMin;
+		if (range <= 0) return 100;
+		const progress = loyaltyAccount.lifetimePoints - currentMin;
+		return Math.min(100, Math.max(0, Math.round((progress / range) * 100)));
+	});
+
+	const tierBadgeStyle = $derived.by(() => {
+		if (!tierProgress?.currentTier?.color) return '';
+		return `background-color: ${tierProgress.currentTier.color}; color: white;`;
+	});
+
+	// Check for points expiring soon (within 30 days)
+	const hasExpiringPoints = $derived.by(() => {
+		if (!loyaltyTransactions.length) return false;
+		const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+		const now = Date.now();
+		return loyaltyTransactions.some(
+			(tx: LoyaltyTransaction) =>
+				tx.type === 'earn' &&
+				tx.points > 0 &&
+				(tx as any).expiresAt &&
+				new Date((tx as any).expiresAt).getTime() - now < thirtyDays &&
+				new Date((tx as any).expiresAt).getTime() > now
+		);
+	});
+
+	async function handleGenerateReferral() {
+		if (!customer) return;
+		isGeneratingReferral = true;
+		const businessId = (data as any).businessId;
+		try {
+			const result = await generateReferralCode(businessId, customer.id);
+			referralCode = result.referral.referralCode;
+			toast.success('Referral code generated');
+		} catch (error) {
+			toast.error(userFriendlyError(error));
+		} finally {
+			isGeneratingReferral = false;
+		}
+	}
+
+	function copyReferralCode() {
+		if (!referralCode) return;
+		navigator.clipboard.writeText(referralCode);
+		toast.success('Referral code copied to clipboard');
+	}
+
+	function shareReferralCode() {
+		if (!referralCode || !navigator.share) {
+			copyReferralCode();
+			return;
+		}
+		navigator.share({
+			title: 'Referral Code',
+			text: `Use my referral code: ${referralCode}`
+		}).catch(() => {});
+	}
 
 	function goBack() {
 		const business = $page.params.business;
@@ -311,15 +386,74 @@
 							<p class="text-sm text-muted-foreground">Available Points</p>
 						</div>
 						<div class="text-center">
-							<Badge class={TIER_COLORS[loyaltyAccount.tier] || ''}>
-								{loyaltyAccount.tier.charAt(0).toUpperCase() + loyaltyAccount.tier.slice(1)}
-							</Badge>
+							{#if tierProgress?.currentTier}
+								<Badge
+									class="text-sm"
+									style={tierBadgeStyle}
+								>
+									{tierProgress.currentTier.name}
+								</Badge>
+							{:else}
+								<Badge class={TIER_COLORS[loyaltyAccount.tier] || ''}>
+									{loyaltyAccount.tier.charAt(0).toUpperCase() + loyaltyAccount.tier.slice(1)}
+								</Badge>
+							{/if}
 							<p class="mt-1 text-sm text-muted-foreground">Current Tier</p>
 						</div>
 						<div class="text-center">
 							<p class="text-xl font-semibold">{loyaltyAccount.lifetimePoints}</p>
 							<p class="text-sm text-muted-foreground">Lifetime Points</p>
 						</div>
+					</div>
+
+					<!-- Tier Progress -->
+					{#if tierProgress?.nextTier}
+						<div class="mt-4 border-t pt-4">
+							<div class="flex items-center justify-between text-sm">
+								<span class="text-muted-foreground">Progress to {tierProgress.nextTier.name}</span>
+								<span class="font-medium">{tierProgress.pointsToNextTier} pts to go</span>
+							</div>
+							<div class="mt-2">
+								<Progress value={progressPercent} max={100} class="h-2" />
+							</div>
+						</div>
+					{:else if tierProgress?.currentTier}
+						<div class="mt-4 border-t pt-4">
+							<p class="text-center text-sm text-muted-foreground">
+								Highest tier reached
+							</p>
+						</div>
+					{/if}
+
+					<!-- Point Expiry Warning -->
+					{#if hasExpiringPoints}
+						<div class="mt-3 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-950">
+							<IconAlertTriangle class="h-4 w-4 shrink-0 text-amber-600" />
+							<p class="text-xs text-amber-700 dark:text-amber-400">Some points are expiring within 30 days</p>
+						</div>
+					{/if}
+
+					<!-- Referral Code -->
+					<div class="mt-4 border-t pt-4">
+						<p class="mb-2 text-sm font-medium">Referral Code</p>
+						{#if referralCode}
+							<div class="flex items-center gap-2">
+								<code class="flex-1 rounded-md bg-muted px-3 py-2 text-center text-sm font-mono font-semibold tracking-wider">{referralCode}</code>
+								<Button variant="outline" size="icon" class="h-9 w-9 shrink-0" onclick={copyReferralCode} title="Copy code">
+									<IconCopy class="h-4 w-4" />
+								</Button>
+								<Button variant="outline" size="icon" class="h-9 w-9 shrink-0" onclick={shareReferralCode} title="Share code">
+									<IconShare class="h-4 w-4" />
+								</Button>
+							</div>
+						{:else}
+							<Button variant="outline" size="sm" onclick={handleGenerateReferral} disabled={isGeneratingReferral}>
+								{#if isGeneratingReferral}
+									<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+								{/if}
+								Generate Referral Code
+							</Button>
+						{/if}
 					</div>
 
 					{#if loyaltyTransactions.length > 0}

@@ -1,0 +1,125 @@
+import { createApiClient, getApiClient } from './client';
+
+// ==================== TYPES ====================
+
+export interface OnlineBusinessConfig {
+  business: {
+    id: string;
+    name: string;
+    slug: string;
+    type: string;
+    logo: string | null;
+    description: string | null;
+    currency: string;
+  };
+  onlineOrdering: {
+    acceptsDelivery: boolean;
+    acceptsTakeaway: boolean;
+    minOrderAmount: number;
+    acceptedPaymentMethods: string[];
+    estimatedPrepTime: number;
+  };
+  deliveryZones: Array<{
+    id: string;
+    name: string;
+    deliveryFee: number;
+    minOrderAmount: number;
+    estimatedMinutes: number;
+  }>;
+  businessHours: any | null;
+  paymentMethods: {
+    dodo: boolean;
+  };
+}
+
+export interface OnlineMenuItem {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  image?: string;
+  isVeg?: boolean;
+  modifiers?: {
+    sizes?: Array<{ id: string; name: string; price: number; isDefault?: boolean }>;
+    spiceLevels?: Array<{ id: string; name: string; price: number; isDefault?: boolean }>;
+    addOns?: Array<{ id: string; name: string; price: number }>;
+  };
+  tags?: string[];
+}
+
+export interface OnlineMenuCategory {
+  id: string;
+  name: string;
+  description?: string;
+  image?: string;
+  items: OnlineMenuItem[];
+}
+
+export interface OnlineCheckoutPayload {
+  items: Array<{
+    menuItemId: string;
+    name: string;
+    quantity: number;
+    basePrice: number;
+    modifiers?: {
+      size?: { id: string; name: string; price: number };
+      spiceLevel?: { id: string; name: string; price: number };
+      addOns?: Array<{ id: string; name: string; price: number }>;
+      specialInstructions?: string;
+    };
+  }>;
+  orderType: 'takeaway' | 'delivery';
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  deliveryAddress?: string;
+  deliveryNotes?: string;
+  paymentMethod: string;
+}
+
+export interface OnlineCheckoutResult {
+  order: {
+    id: string;
+    orderNumber: string;
+    status: string;
+    paymentStatus: string;
+    items: any[];
+    pricing: any;
+    orderType: string;
+    orderChannel: string;
+    deliveryAddress: string | null;
+    deliveryNotes: string | null;
+    createdAt: string;
+  };
+  trackingToken: string;
+  estimatedPrepTime: number;
+}
+
+type FetchOption = { fetch?: typeof fetch };
+
+// ==================== PUBLIC ONLINE ORDERING API ====================
+
+export async function getOnlineMenu(
+  slug: string,
+  options?: FetchOption
+): Promise<{ categories: OnlineMenuCategory[] }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get(`/order-online/${slug}/menu`);
+}
+
+export async function getOnlineConfig(
+  slug: string,
+  options?: FetchOption
+): Promise<OnlineBusinessConfig> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get(`/order-online/${slug}/config`);
+}
+
+export async function onlineCheckout(
+  slug: string,
+  data: OnlineCheckoutPayload,
+  options?: FetchOption
+): Promise<OnlineCheckoutResult> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/order-online/${slug}/checkout`, data);
+}

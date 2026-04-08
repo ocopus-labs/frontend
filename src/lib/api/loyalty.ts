@@ -52,6 +52,74 @@ export interface LoyaltyLeaderboardEntry {
   tier: string;
 }
 
+export interface LoyaltyTier {
+  id: string;
+  restaurantId: string;
+  name: string;
+  minPoints: number;
+  multiplier: number;
+  perks: string[] | null;
+  color: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LoyaltyTierInput {
+  id?: string;
+  name: string;
+  minPoints: number;
+  multiplier: number;
+  perks?: string[];
+  color?: string;
+  sortOrder?: number;
+}
+
+export interface LoyaltyTierProgress {
+  account: LoyaltyAccount;
+  currentTier: LoyaltyTier | null;
+  nextTier: LoyaltyTier | null;
+  pointsToNextTier: number;
+}
+
+export interface LoyaltyReferral {
+  id: string;
+  restaurantId: string;
+  referrerId: string;
+  referredCustomerId: string | null;
+  referralCode: string;
+  rewardPoints: number | null;
+  status: 'pending' | 'completed' | 'expired';
+  completedAt: string | null;
+  createdAt: string;
+}
+
+export interface LoyaltyPromotion {
+  id: string;
+  restaurantId: string;
+  name: string;
+  type: string;
+  conditions: Record<string, unknown> | null;
+  bonusPoints: number | null;
+  multiplier: number | null;
+  startDate: string;
+  endDate: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateLoyaltyPromotionPayload {
+  name: string;
+  type: string;
+  conditions?: Record<string, unknown>;
+  bonusPoints?: number;
+  multiplier?: number;
+  startDate: string;
+  endDate: string;
+  active?: boolean;
+}
+
 type FetchOption = { fetch?: typeof fetch };
 
 // ==================== LOYALTY API ====================
@@ -129,4 +197,74 @@ export async function getLoyaltyLeaderboard(
 ): Promise<{ leaderboard: LoyaltyLeaderboardEntry[] }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.get(`/business/${businessId}/loyalty/leaderboard`);
+}
+
+// ==================== TIER API ====================
+
+export async function getLoyaltyTiers(
+  businessId: string,
+  options?: FetchOption
+): Promise<{ tiers: LoyaltyTier[] }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get(`/business/${businessId}/loyalty/tiers`);
+}
+
+export async function configureLoyaltyTiers(
+  businessId: string,
+  tiers: LoyaltyTierInput[],
+  options?: FetchOption
+): Promise<{ tiers: LoyaltyTier[] }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/business/${businessId}/loyalty/tiers`, { tiers });
+}
+
+export async function getLoyaltyTierProgress(
+  businessId: string,
+  customerId: string,
+  options?: FetchOption
+): Promise<LoyaltyTierProgress> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get(`/business/${businessId}/loyalty/accounts/${customerId}/tier`);
+}
+
+// ==================== REFERRAL API ====================
+
+export async function generateReferralCode(
+  businessId: string,
+  customerId: string,
+  options?: FetchOption
+): Promise<{ referral: LoyaltyReferral }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/business/${businessId}/loyalty/referrals`, { customerId });
+}
+
+export async function processReferral(
+  businessId: string,
+  code: string,
+  customerId: string,
+  options?: FetchOption
+): Promise<{ referral: LoyaltyReferral }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/business/${businessId}/loyalty/referrals/${code}/complete`, { customerId });
+}
+
+// ==================== PROMOTION API ====================
+
+export async function getLoyaltyPromotions(
+  businessId: string,
+  params?: { all?: boolean },
+  options?: FetchOption
+): Promise<{ promotions: LoyaltyPromotion[] }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  const query = params?.all ? '?all=true' : '';
+  return api.get(`/business/${businessId}/loyalty/promotions${query}`);
+}
+
+export async function createLoyaltyPromotion(
+  businessId: string,
+  data: CreateLoyaltyPromotionPayload,
+  options?: FetchOption
+): Promise<{ promotion: LoyaltyPromotion }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/business/${businessId}/loyalty/promotions`, data);
 }
