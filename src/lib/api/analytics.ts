@@ -218,3 +218,64 @@ export async function generateDailyAnalytics(
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.post(`/business/${businessId}/analytics/daily/generate`, { date });
 }
+
+// ==================== PREDICTION TYPES ====================
+
+export interface ForecastPoint {
+  date: string;
+  predictedRevenue: number;
+  predictedOrders: number;
+  confidence: number;
+}
+
+export interface DemandPrediction {
+  menuItemId: string;
+  menuItemName: string;
+  category: string;
+  predictedQuantity: number;
+  avgQuantity: number;
+  weekCount: number;
+}
+
+export interface ReorderSuggestion {
+  inventoryItemId: string;
+  name: string;
+  sku: string;
+  unit: string;
+  currentStock: number;
+  minimumStock: number;
+  avgDailyConsumption: number;
+  estimatedDaysRemaining: number;
+  suggestedOrderQuantity: number;
+  linkedMenuItems: string[];
+}
+
+// ==================== PREDICTION ENDPOINTS ====================
+
+export async function getSalesForecast(
+  businessId: string,
+  days?: number,
+  options?: FetchOption
+): Promise<{ forecasts: ForecastPoint[]; days: number }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  const query = days ? `?days=${days}` : '';
+  return api.get(`/business/${businessId}/analytics/predictions/forecast${query}`);
+}
+
+export async function getDemandPrediction(
+  businessId: string,
+  date?: string,
+  options?: FetchOption
+): Promise<{ predictions: DemandPrediction[]; date: string }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  const query = date ? `?date=${date}` : '';
+  return api.get(`/business/${businessId}/analytics/predictions/demand${query}`);
+}
+
+export async function getReorderSuggestions(
+  businessId: string,
+  options?: FetchOption
+): Promise<{ suggestions: ReorderSuggestion[] }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get(`/business/${businessId}/analytics/predictions/reorder-suggestions`);
+}

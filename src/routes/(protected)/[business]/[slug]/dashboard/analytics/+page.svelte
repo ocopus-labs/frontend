@@ -10,7 +10,9 @@
 		IconCash,
 		IconXboxX,
 		IconTrophy,
-		IconCreditCard
+		IconCreditCard,
+		IconChartLine,
+		IconTargetArrow
 	} from '@tabler/icons-svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -202,6 +204,70 @@
 
 	// Rank medal colors
 	const rankColors = ['text-amber-500', 'text-slate-400', 'text-orange-600'];
+
+	// Forecast overlay data: merge actual revenue trends with predicted forecasts
+	const forecastChartData = $derived.by(() => {
+		const actuals = (data.revenueTrends || []).map((d: any) => {
+			const dateStr = d.date;
+			let label = dateStr;
+			if (typeof dateStr === 'string' && dateStr.includes('-')) {
+				const parts = dateStr.split('-');
+				const month = parseInt(parts[1], 10);
+				const day = parseInt(parts[2], 10);
+				const monthNames = [
+					'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+					'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+				];
+				label = `${monthNames[month - 1]} ${day}`;
+			}
+			return {
+				date: label,
+				actualRevenue: d.revenue ?? 0,
+				predictedRevenue: null as number | null
+			};
+		});
+
+		const forecasts = ((data as any).forecastData || []).map((f: any) => {
+			const dateStr = f.date;
+			let label = dateStr;
+			if (typeof dateStr === 'string' && dateStr.includes('-')) {
+				const parts = dateStr.split('-');
+				const month = parseInt(parts[1], 10);
+				const day = parseInt(parts[2], 10);
+				const monthNames = [
+					'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+					'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+				];
+				label = `${monthNames[month - 1]} ${day}`;
+			}
+			return {
+				date: label,
+				actualRevenue: null as number | null,
+				predictedRevenue: f.predictedRevenue ?? 0
+			};
+		});
+
+		// Bridge: last actual point also appears as first prediction
+		if (actuals.length > 0 && forecasts.length > 0) {
+			const lastActual = actuals[actuals.length - 1];
+			forecasts.unshift({
+				date: lastActual.date,
+				actualRevenue: null,
+				predictedRevenue: lastActual.actualRevenue
+			});
+		}
+
+		return [...actuals, ...forecasts];
+	});
+
+	// Average confidence from forecast data
+	const forecastConfidence = $derived.by(() => {
+		const forecasts = (data as any).forecastData || [];
+		if (forecasts.length === 0) return 0;
+		const avg =
+			forecasts.reduce((s: number, f: any) => s + (f.confidence ?? 0), 0) / forecasts.length;
+		return Math.round(avg * 100);
+	});
 </script>
 
 <div class="flex flex-1 flex-col">
@@ -289,6 +355,71 @@
 								class="flex flex-col items-center justify-center py-16 text-muted-foreground"
 							>
 								<p class="text-sm">No revenue data for this period</p>
+							</div>
+						</Card.Content>
+					</Card.Root>
+				{/if}
+			</div>
+
+			<!-- Revenue Forecast: Actual vs Predicted -->
+			<div class="px-4 lg:px-6">
+				{#if forecastChartData.length > 0 && ((data as any).forecastData || []).length > 0}
+					<Card.Root>
+						<Card.Header>
+							<div class="flex items-center justify-between">
+								<div>
+									<Card.Title class="flex items-center gap-2">
+										<IconChartLine class="h-4 w-4 text-violet-500" />
+										Revenue Forecast
+									</Card.Title>
+									<Card.Description>
+										Actual revenue vs predicted (next 7 days)
+									</Card.Description>
+								</div>
+								{#if forecastConfidence > 0}
+									<div class="flex items-center gap-2">
+										<IconTargetArrow class="h-4 w-4 text-muted-foreground" />
+										<span class="text-sm text-muted-foreground">
+											{forecastConfidence}% confidence
+										</span>
+									</div>
+								{/if}
+							</div>
+						</Card.Header>
+						<Card.Content>
+							<BarChart
+								data={forecastChartData}
+								xKey="date"
+								series={[
+									{ key: 'actualRevenue', label: 'Actual Revenue', color: 'var(--chart-1)' },
+									{
+										key: 'predictedRevenue',
+										label: 'Predicted Revenue',
+										color: 'var(--chart-5, #a78bfa)'
+									}
+								]}
+							/>
+						</Card.Content>
+					</Card.Root>
+				{:else}
+					<Card.Root>
+						<Card.Header>
+							<Card.Title class="flex items-center gap-2">
+								<IconChartLine class="h-4 w-4 text-violet-500" />
+								Revenue Forecast
+							</Card.Title>
+							<Card.Description>
+								Actual revenue vs predicted (next 7 days)
+							</Card.Description>
+						</Card.Header>
+						<Card.Content>
+							<div
+								class="flex flex-col items-center justify-center py-16 text-muted-foreground"
+							>
+								<p class="text-sm">
+									Not enough historical data to generate forecasts. Analytics data from at
+									least 2 weeks is needed.
+								</p>
 							</div>
 						</Card.Content>
 					</Card.Root>

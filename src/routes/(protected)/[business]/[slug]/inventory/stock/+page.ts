@@ -1,5 +1,5 @@
 import type { PageLoad } from './$types';
-import { getInventoryItems, getInventoryStats } from '$lib/api';
+import { getInventoryItems, getInventoryStats, getDemandPrediction, getReorderSuggestions } from '$lib/api';
 
 export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 	depends('app:inventory');
@@ -10,9 +10,11 @@ export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 	const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 
 	try {
-		const [itemsData, statsData] = await Promise.all([
+		const [itemsData, statsData, demandData, reorderData] = await Promise.all([
 			getInventoryItems(businessId, { limit, offset }, { fetch }),
-			getInventoryStats(businessId, { fetch })
+			getInventoryStats(businessId, { fetch }),
+			getDemandPrediction(businessId, undefined, { fetch }).catch(() => null),
+			getReorderSuggestions(businessId, { fetch }).catch(() => null)
 		]);
 
 		return {
@@ -20,7 +22,9 @@ export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 			items: itemsData.items,
 			total: itemsData.total,
 			pagination: { limit, offset },
-			stats: statsData.stats
+			stats: statsData.stats,
+			demandPredictions: demandData?.predictions || [],
+			reorderSuggestions: reorderData?.suggestions || []
 		};
 	} catch (err) {
 		console.warn('Failed to load inventory:', err);
@@ -36,6 +40,8 @@ export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 				outOfStock: 0,
 				totalValue: 0
 			},
+			demandPredictions: [],
+			reorderSuggestions: [],
 			error: err instanceof Error ? err.message : 'Failed to load inventory'
 		};
 	}

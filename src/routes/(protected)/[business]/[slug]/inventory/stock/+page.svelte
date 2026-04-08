@@ -563,6 +563,119 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 			{/if}
 		</div>
 	</div>
+
+		<!-- Reorder Suggestions -->
+		{#if (data as any).reorderSuggestions?.length > 0}
+			<div class="px-4 pt-4 lg:px-6">
+				<Card.Root>
+					<Card.Header>
+						<Card.Title class="flex items-center gap-2">
+							<IconTrendingUp class="h-4 w-4 text-amber-500" />
+							Reorder Suggestions
+						</Card.Title>
+						<Card.Description>
+							Items running low based on recent consumption patterns
+						</Card.Description>
+					</Card.Header>
+					<Card.Content>
+						<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+							{#each (data as any).reorderSuggestions as suggestion (suggestion.inventoryItemId)}
+								<Card.Root class="border-l-4 {suggestion.estimatedDaysRemaining <= 2 ? 'border-l-red-500' : suggestion.estimatedDaysRemaining <= 5 ? 'border-l-amber-500' : 'border-l-blue-500'}">
+									<Card.Content class="p-4">
+										<div class="flex items-start justify-between">
+											<div class="min-w-0 flex-1">
+												<p class="truncate text-sm font-semibold">{suggestion.name}</p>
+												<p class="text-xs text-muted-foreground">SKU: {suggestion.sku}</p>
+											</div>
+											<Badge variant={suggestion.estimatedDaysRemaining <= 2 ? 'destructive' : 'secondary'} class="shrink-0">
+												{suggestion.estimatedDaysRemaining <= 0 ? 'Out' : suggestion.estimatedDaysRemaining + 'd left'}
+											</Badge>
+										</div>
+										<div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+											<div>
+												<p class="text-muted-foreground">Current Stock</p>
+												<p class="font-medium">{suggestion.currentStock} {suggestion.unit}</p>
+											</div>
+											<div>
+												<p class="text-muted-foreground">Daily Usage</p>
+												<p class="font-medium">{suggestion.avgDailyConsumption} {suggestion.unit}/day</p>
+											</div>
+											<div>
+												<p class="text-muted-foreground">Min Stock</p>
+												<p class="font-medium">{suggestion.minimumStock} {suggestion.unit}</p>
+											</div>
+											<div>
+												<p class="text-muted-foreground">Suggested Order</p>
+												<p class="font-semibold text-primary">{suggestion.suggestedOrderQuantity} {suggestion.unit}</p>
+											</div>
+										</div>
+										{#if suggestion.linkedMenuItems.length > 0}
+											<div class="mt-2 flex flex-wrap gap-1">
+												{#each suggestion.linkedMenuItems.slice(0, 3) as menuItem}
+													<Badge variant="outline" class="text-xs">{menuItem}</Badge>
+												{/each}
+												{#if suggestion.linkedMenuItems.length > 3}
+													<Badge variant="outline" class="text-xs">+{suggestion.linkedMenuItems.length - 3} more</Badge>
+												{/if}
+											</div>
+										{/if}
+									</Card.Content>
+								</Card.Root>
+							{/each}
+						</div>
+					</Card.Content>
+				</Card.Root>
+			</div>
+		{/if}
+
+		<!-- Demand Planning Table -->
+		{#if (data as any).demandPredictions?.length > 0}
+			<div class="px-4 pt-4 pb-4 lg:px-6">
+				<Card.Root>
+					<Card.Header>
+						<Card.Title class="flex items-center gap-2">
+							<IconTrendingUp class="h-4 w-4 text-violet-500" />
+							Demand Planning
+						</Card.Title>
+						<Card.Description>
+							Predicted item demand based on same-day sales from the last 4 weeks
+						</Card.Description>
+					</Card.Header>
+					<Card.Content>
+						<Table.Root>
+							<Table.Header>
+								<Table.Row>
+									<Table.Head>Item</Table.Head>
+									<Table.Head>Category</Table.Head>
+									<Table.Head class="text-right">Predicted Qty</Table.Head>
+									<Table.Head class="text-right">Avg Qty</Table.Head>
+									<Table.Head class="text-right">Data Points</Table.Head>
+								</Table.Row>
+							</Table.Header>
+							<Table.Body>
+								{#each (data as any).demandPredictions.slice(0, 20) as prediction (prediction.menuItemId)}
+									<Table.Row>
+										<Table.Cell class="font-medium">{prediction.menuItemName}</Table.Cell>
+										<Table.Cell>
+											<Badge variant="outline">{prediction.category}</Badge>
+										</Table.Cell>
+										<Table.Cell class="text-right font-semibold tabular-nums">
+											{prediction.predictedQuantity}
+										</Table.Cell>
+										<Table.Cell class="text-right tabular-nums text-muted-foreground">
+											{prediction.avgQuantity}
+										</Table.Cell>
+										<Table.Cell class="text-right tabular-nums text-muted-foreground">
+											{prediction.weekCount} {prediction.weekCount === 1 ? 'week' : 'weeks'}
+										</Table.Cell>
+									</Table.Row>
+								{/each}
+							</Table.Body>
+						</Table.Root>
+					</Card.Content>
+				</Card.Root>
+			</div>
+		{/if}
 </div>
 
 <!-- Add Item Dialog -->

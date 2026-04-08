@@ -5,7 +5,8 @@ import {
 	getRevenueTrends,
 	getAnalyticsDashboard,
 	getPaymentMethodBreakdown,
-	getHourlyBreakdown
+	getHourlyBreakdown,
+	getSalesForecast
 } from '$lib/api';
 import { getOrderStats } from '$lib/api/order';
 
@@ -68,6 +69,7 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 			paymentData,
 			hourlyData,
 			orderStats,
+			forecastData,
 			...heatmapDayResults
 		] = await Promise.all([
 			getDashboardStats(businessId, undefined, { fetch, period }),
@@ -79,6 +81,7 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 			),
 			getHourlyBreakdown(businessId, undefined, { fetch }).catch(() => null),
 			getOrderStats(businessId, undefined, { fetch }).catch(() => null),
+			getSalesForecast(businessId, 7, { fetch }).catch(() => null),
 			...heatmapDateStrings.map((dateStr) =>
 				getHourlyBreakdown(businessId, dateStr, { fetch }).catch(() => null)
 			)
@@ -108,6 +111,7 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 			hourlyBreakdown: hourlyData?.breakdown || [],
 			orderStats: orderStats?.stats || null,
 			revenueHeatmapData,
+			forecastData: forecastData?.forecasts || [],
 			analyticsError: null
 		};
 	} catch (error) {
@@ -123,6 +127,7 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 			hourlyBreakdown: [],
 			orderStats: null,
 			revenueHeatmapData: [],
+			forecastData: [],
 			analyticsError: error instanceof Error ? error.message : 'Failed to load analytics'
 		};
 	}
