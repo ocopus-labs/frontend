@@ -9,12 +9,14 @@
 		IconDeviceMobile,
 		IconReceipt,
 		IconPlus,
-		IconTrash
+		IconTrash,
+		IconBrandStripe
 	} from '@tabler/icons-svelte';
 	import { IconLoader2 } from '@tabler/icons-svelte';
 	import { createI18nUtils } from '$lib/utils/i18n';
 	import type { PaymentMethod } from '$lib/api';
-	import { generatePaymentQr } from '$lib/api';
+	import { generatePaymentQr, createStripeIntent, confirmStripePayment } from '$lib/api';
+	import { toast } from 'svelte-sonner';
 
 	interface SplitEntry {
 		id: string;
@@ -44,6 +46,8 @@
 		isProcessing?: boolean;
 		region?: string;
 		businessId?: string;
+		stripePublishableKey?: string;
+		currency?: string;
 	}
 
 	let {
@@ -57,7 +61,9 @@
 		onCancel,
 		isProcessing = false,
 		region = 'us',
-		businessId
+		businessId,
+		stripePublishableKey,
+		currency = 'usd'
 	}: Props = $props();
 
 	const i18n = createI18nUtils(region);
@@ -66,7 +72,7 @@
 	let mode = $state<'single' | 'split'>('single');
 
 	// Single payment state
-	let paymentMethod = $state<PaymentMethod>('cash');
+	let paymentMethod = $state<PaymentMethod | 'stripe'>('cash');
 	let paymentAmount = $state(balanceDue);
 	let cashReceived = $state(0);
 	let transactionReference = $state('');
@@ -84,6 +90,7 @@
 			transactionReference = '';
 			paymentMethod = 'cash';
 			tipAmount = 0;
+			stripeError = '';
 			splitEntries = [
 				{ id: crypto.randomUUID(), method: 'cash', amount: Math.floor(balanceDue / 2) },
 				{ id: crypto.randomUUID(), method: 'card', amount: balanceDue - Math.floor(balanceDue / 2) }
@@ -95,6 +102,117 @@
 	let upiQrDataUrl = $state<string | null>(null);
 	let isLoadingQr = $state(false);
 	let qrDebounceTimer = $state<ReturnType<typeof setTimeout> | null>(null);
+
+	// Stripe state
+	let stripeInstance = $state<any>(null);
+	let stripeElements = $state<any>(null);
+	let stripeCardElement = $state<any>(null);
+	let stripeCardContainer = $state<HTMLDivElement | null>(null);
+	let isStripeLoading = $state(false);
+	let stripeError = $state('');
+
+	// Initialize Stripe when method is 'stripe' (or tear down when switching away)
+	$effect(() => {
+		if (
+			open &&
+			mode === 'single' &&
+			paymentMethod === 'stripe' &&
+			stripePublishableKey &&
+			stripeCardContainer
+		) {
+			initStripe();
+		}
+
+		return () => {
+			// Cleanup card element when switching away
+			if (stripeCardElement) {
+				stripeCardElement.unmount();
+				stripeCardElement = null;
+			}
+			stripeElements = null;
+		};
+	});
+
+	async function initStripe() {
+		if (stripeInstance) {
+			mountStripeCard();
+			return;
+		}
+		isStripeLoading = true;
+		stripeError = '';
+		try {
+			const { loadStripe } = await import('@stripe/stripe-js');
+			stripeInstance = await loadStripe(stripePublishableKey!);
+			if (!stripeInstance) {
+				stripeError = 'Failed to initialize Stripe';
+				return;
+			}
+			mountStripeCard();
+		} catch {
+			stripeError = 'Failed to load Stripe';
+		} finally {
+			isStripeLoading = false;
+		}
+	}
+
+	function mountStripeCard() {
+		if (!stripeInstance || !stripeCardContainer) return;
+		stripeElements = stripeInstance.elements();
+		stripeCardElement = stripeElements.create('card', {
+			style: {
+				base: {
+					fontSize: '16px',
+					color: '#1a1a1a',
+					'::placeholder': { color: '#6b7280' }
+				}
+			}
+		});
+		stripeCardElement.mount(stripeCardContainer);
+		stripeCardElement.on('change', (event: any) => {
+			stripeError = event.error ? event.error.message : '';
+		});
+	}
+
+	async function handleStripePayment() {
+		if (!stripeInstance || !stripeCardElement || !businessId) return;
+		isStripeLoading = true;
+		stripeError = '';
+		try {
+			// 1. Create a PaymentIntent on the backend
+			const { clientSecret } = await createStripeIntent(businessId, {
+				amount: Math.round(paymentAmount * 100), // Stripe expects cents
+				currency,
+				orderId
+			});
+
+			// 2. Confirm card payment with Stripe.js
+			const { error, paymentIntent } = await stripeInstance.confirmCardPayment(clientSecret, {
+				payment_method: { card: stripeCardElement }
+			});
+
+			if (error) {
+				stripeError = error.message ?? 'Payment failed';
+				return;
+			}
+
+			if (paymentIntent?.status === 'succeeded') {
+				// 3. Notify backend
+				await confirmStripePayment(businessId, { intentId: paymentIntent.id });
+				toast.success('Stripe payment successful');
+				onPaymentComplete({
+					paymentMethod: 'card',
+					amount: paymentAmount,
+					remainingBalance: balanceDue - paymentAmount
+				});
+			} else {
+				stripeError = `Payment status: ${paymentIntent?.status ?? 'unknown'}`;
+			}
+		} catch (err: any) {
+			stripeError = err?.message ?? 'Payment failed';
+		} finally {
+			isStripeLoading = false;
+		}
+	}
 
 	// Fetch UPI QR when method is UPI and amount changes (debounced)
 	$effect(() => {
@@ -179,7 +297,7 @@
 			}
 			if (!isValidSinglePayment()) return;
 			onPaymentComplete({
-				paymentMethod,
+				paymentMethod: paymentMethod as PaymentMethod,
 				amount: paymentAmount,
 				change: change > 0 ? change : undefined,
 				remainingBalance: balanceDue - paymentAmount,
@@ -253,21 +371,23 @@
 		}));
 	}
 
-	const methodIcons = {
+	const methodIcons: Record<string, any> = {
 		cash: IconCash,
 		card: IconCreditCard,
 		upi: IconDeviceMobile,
 		net_banking: IconReceipt,
 		wallet: IconReceipt,
+		stripe: IconBrandStripe,
 		other: IconReceipt
-	} as const;
+	};
 
-	const methodLabels: Record<PaymentMethod, string> = {
+	const methodLabels: Record<string, string> = {
 		cash: 'Cash',
 		card: 'Card',
 		upi: 'UPI',
 		net_banking: 'Net Banking',
 		wallet: 'Wallet',
+		stripe: 'Stripe',
 		other: 'Other'
 	};
 </script>
@@ -313,19 +433,22 @@
 				<!-- Payment Method Selection -->
 				<div class="space-y-3">
 					<Label class="text-sm font-medium">Payment Method</Label>
-					<div class="grid grid-cols-4 gap-2">
-						{#each ['cash', 'card', 'upi', 'other'] as const as method}
-							{@const MethodIcons = methodIcons[method]}
+					{@const methods = stripePublishableKey
+						? (['cash', 'card', 'upi', 'stripe', 'other'] as const)
+						: (['cash', 'card', 'upi', 'other'] as const)}
+					<div class="grid {stripePublishableKey ? 'grid-cols-5' : 'grid-cols-4'} gap-2">
+						{#each methods as method}
+							{@const MethodIcons = methodIcons[method] ?? IconReceipt}
 							<button
 								type="button"
 								class="flex flex-col items-center gap-1 rounded-lg border-2 p-3 transition-colors {paymentMethod ===
 								method
 									? 'border-primary bg-primary/10'
 									: 'border-border hover:border-primary/50'}"
-								onclick={() => (paymentMethod = method)}
+								onclick={() => (paymentMethod = method as PaymentMethod | 'stripe')}
 							>
 								<MethodIcons class="h-6 w-6" />
-								<span class="text-xs font-medium">{methodLabels[method]}</span>
+								<span class="text-xs font-medium">{methodLabels[method] ?? method}</span>
 							</button>
 						{/each}
 					</div>
@@ -460,6 +583,26 @@
 						<p class="text-xs text-muted-foreground">
 							Not required — just confirm you received the payment
 						</p>
+					</div>
+				{/if}
+
+				<!-- Stripe Card Input -->
+				{#if paymentMethod === 'stripe'}
+					<div class="space-y-3">
+						<Label class="text-sm font-medium">Card Details</Label>
+						<div
+							bind:this={stripeCardContainer}
+							class="rounded-md border border-border bg-background p-3"
+						></div>
+						{#if isStripeLoading && !stripeCardElement}
+							<div class="flex items-center gap-2 text-sm text-muted-foreground">
+								<IconLoader2 class="h-4 w-4 animate-spin" />
+								Loading Stripe...
+							</div>
+						{/if}
+						{#if stripeError}
+							<p class="text-xs text-destructive">{stripeError}</p>
+						{/if}
 					</div>
 				{/if}
 
@@ -623,11 +766,23 @@
 		</div>
 
 		<Dialog.Footer>
-			<Button variant="outline" onclick={onCancel} disabled={isProcessing}>Cancel</Button>
+			<Button variant="outline" onclick={onCancel} disabled={isProcessing || isStripeLoading}>Cancel</Button>
 			{#if mode === 'single'}
-				<Button onclick={handleSubmit} disabled={!isValidSinglePayment() || isProcessing}>
-					{isProcessing ? 'Processing...' : `Pay ${i18n.formatCurrency(paymentAmount)}`}
-				</Button>
+				{#if paymentMethod === 'stripe'}
+					<Button
+						onclick={handleStripePayment}
+						disabled={!stripeCardElement || isStripeLoading || isProcessing || paymentAmount <= 0}
+					>
+						{#if isStripeLoading}
+							<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+						{/if}
+						{isStripeLoading ? 'Processing...' : `Pay ${i18n.formatCurrency(paymentAmount)} with Stripe`}
+					</Button>
+				{:else}
+					<Button onclick={handleSubmit} disabled={!isValidSinglePayment() || isProcessing}>
+						{isProcessing ? 'Processing...' : `Pay ${i18n.formatCurrency(paymentAmount)}`}
+					</Button>
+				{/if}
 			{:else}
 				<Button
 					onclick={handleSubmit}

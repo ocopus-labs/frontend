@@ -16,12 +16,16 @@
 	} from '$lib/api';
 	import { invalidateAll } from '$app/navigation';
 	import { userFriendlyError } from '$lib/utils/error';
+	import { getApiClient } from '$lib/api/client';
 
 	let { data }: { data: PageData } = $props();
 
 	const settings = $derived((data as any).upiSettings as UpiSettings | null);
 	const orderingSettings = $derived(
 		(data as any).orderingSettings as OrderingSettings | null
+	);
+	const stripeSettings = $derived(
+		(data as any).stripeSettings as { enabled: boolean; publishableKey: string } | null
 	);
 
 	let enabled = $state(false);
@@ -33,6 +37,11 @@
 	// QR preview state
 	let previewQr = $state<string | null>(null);
 	let isLoadingPreview = $state(false);
+
+	// Stripe state
+	let stripeEnabled = $state(false);
+	let stripePublishableKey = $state('');
+	let isSavingStripe = $state(false);
 
 	// Self-ordering state
 	let selfOrderEnabled = $state(false);
@@ -52,6 +61,13 @@
 		if (orderingSettings) {
 			selfOrderEnabled = orderingSettings.selfOrderEnabled;
 			requirePrepayment = orderingSettings.requirePrepayment;
+		}
+	});
+
+	$effect(() => {
+		if (stripeSettings) {
+			stripeEnabled = stripeSettings.enabled;
+			stripePublishableKey = stripeSettings.publishableKey;
 		}
 	});
 
@@ -101,6 +117,25 @@
 		}
 	});
 
+	async function handleSaveStripe() {
+		isSavingStripe = true;
+		const businessId = (data as any).businessId;
+
+		try {
+			const api = getApiClient();
+			await api.put(`/business/${businessId}/payments/stripe/settings`, {
+				enabled: stripeEnabled,
+				publishableKey: stripePublishableKey
+			});
+			toast.success('Stripe settings saved');
+			await invalidateAll();
+		} catch (error) {
+			toast.error(userFriendlyError(error));
+		} finally {
+			isSavingStripe = false;
+		}
+	}
+
 	async function handleSaveOrdering() {
 		isSavingOrdering = true;
 		const businessId = (data as any).businessId;
@@ -121,7 +156,7 @@
 </script>
 
 <div class="flex flex-col gap-6 p-6">
-	<PageHeader title="UPI Payments" description="Configure UPI QR code payments and customer self-ordering" />
+	<PageHeader title="Payment Settings" description="Configure payment methods, Stripe, UPI QR codes, and customer self-ordering" />
 
 	{#if !settings}
 		<Card.Root>
@@ -220,6 +255,66 @@
 			</Button>
 		</div>
 	{/if}
+
+	<!-- Stripe Payments Section -->
+	<div class="border-t pt-6">
+		<PageHeader title="Stripe Payments" description="Accept card payments online via Stripe" />
+	</div>
+
+	<Card.Root>
+		<Card.Header>
+			<Card.Title class="text-base">Stripe Status</Card.Title>
+			<Card.Description>Enable or disable Stripe card payments</Card.Description>
+		</Card.Header>
+		<Card.Content>
+			<div class="flex items-center justify-between">
+				<div>
+					<p class="text-sm font-medium">Stripe Payments</p>
+					<p class="text-sm text-muted-foreground">
+						{stripeEnabled
+							? 'Customers can pay with credit/debit cards via Stripe'
+							: 'Stripe card payments are disabled'}
+					</p>
+				</div>
+				<Switch bind:checked={stripeEnabled} />
+			</div>
+		</Card.Content>
+	</Card.Root>
+
+	{#if stripeEnabled}
+		<Card.Root>
+			<Card.Header>
+				<Card.Title class="text-base">Stripe Configuration</Card.Title>
+				<Card.Description
+					>Enter your Stripe publishable key from the Stripe dashboard</Card.Description
+				>
+			</Card.Header>
+			<Card.Content class="grid gap-4">
+				<div class="grid gap-2">
+					<label for="stripeKey" class="text-sm font-medium">Publishable Key</label>
+					<Input
+						id="stripeKey"
+						type="text"
+						bind:value={stripePublishableKey}
+						placeholder="pk_live_..."
+					/>
+					<p class="text-xs text-muted-foreground">
+						Found in Stripe Dashboard &gt; Developers &gt; API keys. Use the publishable key (starts
+						with pk_).
+					</p>
+				</div>
+			</Card.Content>
+		</Card.Root>
+	{/if}
+
+	<div class="flex justify-end">
+		<Button onclick={handleSaveStripe} disabled={isSavingStripe}>
+			{#if isSavingStripe}
+				<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+			{/if}
+			Save Stripe Settings
+		</Button>
+	</div>
 
 	<!-- Customer Self-Ordering Section -->
 	<div class="border-t pt-6">

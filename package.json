@@ -80,6 +80,7 @@
 	},
 	"dependencies": {
 		"@dodopayments/better-auth": "^1.4.2",
+		"@stripe/stripe-js": "^9.1.0",
 		"@tabler/icons-svelte": "^3.35.0",
 		"better-auth": "^1.4.13",
 		"canvas-confetti": "^1.9.4",

@@ -451,6 +451,12 @@ export {
   submitOrderFeedback
 } from './customer-order';
 
+// Stripe API
+export {
+  createStripeIntent,
+  confirmStripePayment
+} from './stripe';
+
 // Notification API
 export {
   registerDeviceToken,
