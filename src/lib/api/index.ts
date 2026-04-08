@@ -463,3 +463,99 @@ export {
   removeDeviceToken,
   getNotificationHistory
 } from './notification';
+
+// Receipt Delivery API
+export {
+  sendReceipt,
+  getReceiptDeliveries,
+  type ReceiptDelivery
+} from './receipt';
+
+// Schedule API
+export {
+  getShiftTemplates,
+  createShiftTemplate,
+  getRoster,
+  createShift,
+  bulkCreateShifts,
+  getLeaveRequests,
+  createLeaveRequest,
+  approveLeaveRequest,
+  rejectLeaveRequest,
+  getOvertimeReport,
+  type ShiftTemplate,
+  type ShiftTemplateColor,
+  type CreateShiftTemplatePayload,
+  type ScheduledShift,
+  type CreateShiftPayload,
+  type BulkCreateShiftsPayload,
+  type RosterEntry,
+  type RosterResponse,
+  type LeaveRequest,
+  type LeaveType,
+  type LeaveStatus,
+  type CreateLeaveRequestPayload,
+  type OvertimeEntry,
+  type OvertimeReport
+} from './schedule';
+
+// Delivery Management API
+export {
+  getDrivers,
+  createDriver,
+  updateDriver,
+  getZones,
+  createZone,
+  updateZone,
+  assignDelivery,
+  updateDeliveryStatus,
+  getActiveDeliveries,
+  trackDelivery,
+  type DeliveryDriver,
+  type DeliveryZone,
+  type Delivery,
+  type DeliveryTracking,
+  type DriverStatus,
+  type DeliveryStatus,
+  type CreateDriverPayload,
+  type UpdateDriverPayload,
+  type CreateZonePayload,
+  type AssignDeliveryPayload,
+  type UpdateDeliveryStatusPayload
+} from './delivery';
+
+// Waitlist API
+export {
+  addToWaitlist,
+  getActiveWaitlist,
+  notifyWaitlistEntry,
+  seatWaitlistEntry,
+  cancelWaitlistEntry,
+  markWaitlistNoShow,
+  trackWaitlistPosition,
+  type WaitlistEntry,
+  type WaitlistTrackingEntry,
+  type WaitlistStatus,
+  type AddToWaitlistPayload
+} from './waitlist';
+
+// Purchase Order API
+export {
+  getPurchaseOrders,
+  getPurchaseOrder,
+  createPurchaseOrder,
+  markPurchaseOrderSent,
+  receivePurchaseOrderItems,
+  cancelPurchaseOrder,
+  getAutoReorderRules,
+  upsertAutoReorderRule,
+  type PurchaseOrder,
+  type PurchaseOrderItem,
+  type PurchaseOrderStatus,
+  type CreatePurchaseOrderPayload,
+  type CreatePurchaseOrderItemPayload,
+  type ReceiveItemPayload,
+  type ReceiveItemsPayload,
+  type AutoReorderRule,
+  type CreateAutoReorderRulePayload
+} from './purchase-order';
