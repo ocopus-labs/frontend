@@ -52,14 +52,13 @@ const STORAGE_KEY = 'app:locale';
 
 // Vite's import.meta.glob for static JSON message files.
 // eager: true  — bundles them at build time so there is no async waterfall.
-const messageModules = import.meta.glob<Messages>('../../messages/*.json', {
+const messageModules = import.meta.glob<Messages>('./i18n/*.json', {
 	eager: true,
 	import: 'default'
 });
 
 function loadMessages(code: LocaleCode): Messages {
-	// The glob keys look like "../../messages/en.json"
-	const key = `../../messages/${code}.json`;
+	const key = `./i18n/${code}.json`;
 	return messageModules[key] ?? {};
 }
 
