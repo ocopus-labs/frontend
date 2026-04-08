@@ -12,7 +12,8 @@
 		IconCalendar,
 		IconClock,
 		IconUser,
-		IconLoader2
+		IconLoader2,
+		IconScan
 	} from '@tabler/icons-svelte';
 
 	import {
@@ -25,10 +26,11 @@
 		ReceiptDialog,
 		CustomerPicker,
 		ManageTabsDialog,
+		BarcodeScanner,
 		type OrderItemType,
 		type ResolvedTab,
 	} from '$lib/components/pos';
-	import { getFavorites, addFavorite, removeFavorite } from '$lib/api';
+	import { getFavorites, addFavorite, removeFavorite, lookupMenuItemByBarcode } from '$lib/api';
 
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import ShortcutHelpDialog from '$lib/components/global/shortcut-help-dialog.svelte';
@@ -47,7 +49,7 @@
 	import { invalidateMenuCache } from '$lib/stores/pos-cache';
 	import { invalidate } from '$app/navigation';
 	import PosTour from '$lib/components/pos/pos-tour.svelte';
-	import confetti from 'canvas-confetti';
+
 
 	// Get data from load function
 	let { data } = $props();
@@ -235,6 +237,47 @@
 		} else {
 			favoriteIds = [...favoriteIds, id];
 			addFavorite(bid, id).catch(() => { favoriteIds = favoriteIds.filter(f => f !== id); });
+		}
+	}
+
+	// Barcode scanner state
+	let showBarcodeScanner = $state(false);
+
+	async function handleBarcodeScan(barcode: string, format?: string) {
+		const businessId = (data.business as any)?.id;
+		if (!businessId) return;
+
+		try {
+			const result = await lookupMenuItemByBarcode(businessId, barcode);
+			const menuItem = result.item;
+
+			// Find the matching POSMenuItem from loaded data
+			const posItem = (data.menuItems as POSMenuItem[]).find(
+				(item) => item.menuItemId === menuItem.id || item.id === menuItem.id
+			);
+
+			if (posItem) {
+				addToOrder(posItem);
+				toast.success(`${posItem.name} added to order`);
+			} else {
+				// Item found in API but not in current menu data -- add directly
+				const newOrderItem: ExtendedOrderItem = {
+					id: crypto.randomUUID(),
+					name: menuItem.name,
+					price: menuItem.price,
+					quantity: 1,
+					image: menuItem.image || '',
+					modifiers: {},
+					menuItemId: menuItem.id,
+					basePrice: menuItem.price,
+				};
+				orderItems = [...orderItems, newOrderItem];
+				toast.success(`${menuItem.name} added to order`);
+			}
+
+			showBarcodeScanner = false;
+		} catch {
+			toast.error(`No menu item found for barcode: ${barcode}`);
 		}
 	}
 
@@ -656,6 +699,7 @@
 			const firstOrderKey = `first-order:${businessId}`;
 			if (typeof window !== 'undefined' && !localStorage.getItem(firstOrderKey)) {
 				localStorage.setItem(firstOrderKey, 'true');
+				const { default: confetti } = await import('canvas-confetti');
 				confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
 				setTimeout(() => toast.success('Your first order is live!', { duration: 5000 }), 500);
 			}
@@ -956,11 +1000,11 @@
 	]);
 
 	onMount(() => {
-		window.addEventListener('keydown', handleKeyboard);
+		browser && window.addEventListener('keydown', handleKeyboard);
 	});
 
 	onDestroy(() => {
-		window.removeEventListener('keydown', handleKeyboard);
+		browser && window.removeEventListener('keydown', handleKeyboard);
 	});
 </script>
 
@@ -1004,11 +1048,21 @@
 								class="h-8 pl-9 text-sm md:h-10"
 							/>
 						</div>
+						<Button
+							variant="outline"
+							size="sm"
+							class="shrink-0 gap-1.5"
+							onclick={() => (showBarcodeScanner = true)}
+							title="Scan barcode (USB scanner or camera)"
+						>
+							<IconScan class="h-4 w-4" />
+							<span class="hidden sm:inline">Scan</span>
+						</Button>
 					</div>
 				</div>
 
 				<!-- Menu Grid -->
-				<div class="flex-1 overflow-y-auto pb-24 lg:pb-0" ontouchstart={onMenuTouchStart} ontouchend={onMenuTouchEnd}>
+				<div class="flex-1 overflow-y-auto pb-40 lg:pb-0" ontouchstart={onMenuTouchStart} ontouchend={onMenuTouchEnd}>
 					{#if displayMenuItems.length === 0}
 						<EmptyState type="no-results" title="No items found" description="Try a different search term." size="sm" />
 					{:else}
@@ -1092,7 +1146,7 @@
 		{#if orderItems.length > 0}
 		<Drawer.Root bind:open={showOrderSummary}>
 			<div
-				class="safe-bottom fixed right-0 bottom-0 left-0 z-40 border-t border-border bg-background/95 p-2.5 backdrop-blur-sm lg:hidden"
+				class="safe-bottom fixed right-0 bottom-0 left-0 z-40 border-t border-border bg-background/95 p-2.5 pb-[calc(0.625rem+4rem)] backdrop-blur-sm lg:hidden"
 			>
 				<Drawer.Trigger class="w-full">
 					<Button class="h-12 w-full gap-3 text-base" size="lg">
@@ -1280,6 +1334,7 @@
 <ReceiptDialog
 	open={showReceiptDialog}
 	paymentId={currentPaymentId}
+	orderId={currentOrderId}
 	change={currentPaymentChange}
 	onClose={handleReceiptClose}
 	{region}
@@ -1304,6 +1359,13 @@
 		currentTabs={data.posLayout?.tabs ?? null}
 	/>
 {/if}
+
+<!-- Barcode Scanner Dialog -->
+<BarcodeScanner
+	bind:open={showBarcodeScanner}
+	onclose={() => (showBarcodeScanner = false)}
+	onscan={handleBarcodeScan}
+/>
 
 <!-- Shortcut hint -->
 <div class="fixed right-2 bottom-2 z-10 text-xs text-muted-foreground opacity-50 pointer-events-none select-none">

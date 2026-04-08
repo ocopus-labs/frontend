@@ -61,6 +61,8 @@ export interface MenuItem {
 	taxCode?: string;
 	taxCategory?: string;
 	customTaxRate?: number;
+	barcode?: string;
+	barcodeFormat?: string;
 	createdAt: string;
 	updatedAt: string;
 }

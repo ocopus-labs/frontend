@@ -8,6 +8,7 @@ export interface GstConfig {
   compositionScheme: boolean;
   placeOfSupply: string;
   eInvoiceEnabled: boolean;
+  autoGenerateEinvoice?: boolean;
 }
 
 export interface VatConfig {
@@ -166,6 +167,47 @@ export async function getGstSummary(
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.get(`/business/${businessId}/tax/gst-summary?${searchParams.toString()}`);
 }
+
+// ==================== E-INVOICE API ====================
+
+export type EinvoiceStatus = 'pending' | 'generated' | 'registered' | 'failed';
+
+export interface EinvoiceStatusResponse {
+	id: string;
+	irn: string | null;
+	irnGeneratedAt: string | null;
+	ewayBillNumber: string | null;
+	einvoiceStatus: EinvoiceStatus | null;
+}
+
+export async function generateEinvoice(
+	businessId: string,
+	orderId: string,
+	options?: FetchOption
+): Promise<{ einvoice: EinvoiceStatusResponse }> {
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.post(`/business/${businessId}/tax/einvoice/generate/${orderId}`);
+}
+
+export async function generateEwayBill(
+	businessId: string,
+	orderId: string,
+	options?: FetchOption
+): Promise<{ einvoice: EinvoiceStatusResponse }> {
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.post(`/business/${businessId}/tax/einvoice/eway-bill/${orderId}`);
+}
+
+export async function getEinvoiceStatus(
+	businessId: string,
+	orderId: string,
+	options?: FetchOption
+): Promise<{ einvoice: EinvoiceStatusResponse }> {
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.get(`/business/${businessId}/tax/einvoice/status/${orderId}`);
+}
+
+// ==================== TAX EXPORT ====================
 
 export async function exportTaxReport(
   businessId: string,

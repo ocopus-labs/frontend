@@ -60,6 +60,7 @@ export {
   getFavorites,
   addFavorite,
   removeFavorite,
+  lookupMenuItemByBarcode,
 } from './menu';
 export {
   createOrder,
@@ -229,6 +230,9 @@ export {
   type CreateInventoryItemPayload,
   type UpdateInventoryItemPayload,
   type StockTransactionPayload,
+  lookupInventoryByBarcode,
+  scanReceiveInventory,
+  type ScanReceiveItem,
   // Supplier API
   getSuppliers,
   getSupplierStats,
@@ -381,6 +385,9 @@ export {
   getTaxRegimes,
   exportTaxReport,
   getGstSummary,
+  generateEinvoice,
+  generateEwayBill,
+  getEinvoiceStatus,
   type TaxSettings,
   type TaxRegime,
   type TaxCategoryConfig,
@@ -392,7 +399,9 @@ export {
   type VatConfig,
   type SalesTaxConfig,
   type GstSummary,
-  type GstHsnSummaryEntry
+  type GstHsnSummaryEntry,
+  type EinvoiceStatus,
+  type EinvoiceStatusResponse
 } from './tax';
 
 // API Keys
@@ -628,3 +637,29 @@ export {
   type AccountingExport,
   type CreateAccountingExportPayload
 } from './accounting';
+
+// Report Builder API
+export {
+  getReportDimensions,
+  getReportMetrics,
+  executeReportQuery,
+  saveReport,
+  getSavedReports,
+  runSavedReport,
+  deleteSavedReport,
+  type ReportDimension,
+  type ReportMetric,
+  type ReportFilter,
+  type ReportQueryConfig,
+  type ReportColumn,
+  type ReportResult,
+  type SavedReport,
+  type SaveReportPayload
+} from './report-builder';
+
+// Display Queue API
+export {
+  getDisplayQueue,
+  type DisplayOrder,
+  type DisplayQueueResponse
+} from './display';

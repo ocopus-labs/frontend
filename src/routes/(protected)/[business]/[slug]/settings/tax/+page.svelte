@@ -18,7 +18,6 @@
 		type RegimeInfo
 	} from '$lib/api';
 	import { goto, invalidate } from '$app/navigation';
-	import { page } from '$app/stores';
 	import { userFriendlyError } from '$lib/utils/error';
 	import { IconFileSpreadsheet } from '@tabler/icons-svelte';
 
@@ -41,6 +40,7 @@
 	let gstCompositionScheme = $state(false);
 	let gstPlaceOfSupply = $state('');
 	let gstEInvoiceEnabled = $state(false);
+	let gstAutoGenerateEinvoice = $state(false);
 
 	// VAT-specific
 	let vatReverseCharge = $state(false);
@@ -76,6 +76,7 @@
 				gstCompositionScheme = settings.gstConfig.compositionScheme;
 				gstPlaceOfSupply = settings.gstConfig.placeOfSupply;
 				gstEInvoiceEnabled = settings.gstConfig.eInvoiceEnabled;
+				gstAutoGenerateEinvoice = (settings.gstConfig as any).autoGenerateEinvoice ?? false;
 			}
 			if (settings.vatConfig) {
 				vatReverseCharge = settings.vatConfig.reverseChargeApplicable;
@@ -140,8 +141,9 @@
 				payload.gstConfig = {
 					compositionScheme: gstCompositionScheme,
 					placeOfSupply: gstPlaceOfSupply || regionCode,
-					eInvoiceEnabled: gstEInvoiceEnabled
-				};
+					eInvoiceEnabled: gstEInvoiceEnabled,
+					autoGenerateEinvoice: gstAutoGenerateEinvoice
+				} as any;
 			} else if (regime === 'vat_eu' || regime === 'vat_uk') {
 				payload.vatConfig = {
 					reverseChargeApplicable: vatReverseCharge,
@@ -388,6 +390,17 @@
 							</div>
 							<Switch bind:checked={gstEInvoiceEnabled} />
 						</div>
+						{#if gstEInvoiceEnabled}
+							<div class="flex items-center justify-between">
+								<div>
+									<p class="text-sm font-medium">Auto-Generate e-Invoice</p>
+									<p class="text-sm text-muted-foreground">
+										Automatically generate IRN when an invoice is created for paid orders
+									</p>
+								</div>
+								<Switch bind:checked={gstAutoGenerateEinvoice} />
+							</div>
+						{/if}
 					</Card.Content>
 				</Card.Root>
 			{:else if regime === 'vat_eu' || regime === 'vat_uk'}

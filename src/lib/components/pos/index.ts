@@ -20,6 +20,7 @@ export { default as KotPrintView } from './KotPrintView.svelte';
 export { default as ManageTabsDialog } from './ManageTabsDialog.svelte';
 export { default as POSTabBar } from './POSTabBar.svelte';
 export type { ResolvedTab } from './POSTabBar.svelte';
+export { default as BarcodeScanner } from './BarcodeScanner.svelte';
 
 export type { Category } from './MenuCategories.svelte';
 export type { MenuItem } from './MenuItemCard.svelte';

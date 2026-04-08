@@ -15,7 +15,9 @@
 		IconReceipt,
 		IconClock,
 		IconReceiptRefund,
-		IconHistory
+		IconHistory,
+		IconFileInvoice,
+		IconTruck
 	} from '@tabler/icons-svelte';
 	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -26,8 +28,11 @@
 		processRefund,
 		updateOrderStatus,
 		reprintKot,
+		generateEinvoice,
+		generateEwayBill,
 		type PaymentMethod,
-		type Payment
+		type Payment,
+		type EinvoiceStatusResponse
 	} from '$lib/api';
 	import { createI18nUtils, currencyToRegion } from '$lib/utils/i18n';
 	import { userFriendlyError } from '$lib/utils/error';
@@ -51,6 +56,64 @@
 	const order = $derived(data.order);
 	const payments = $derived(data.payments as Payment[]);
 	const balanceDue = $derived(order ? Number(order.balanceDue) : 0);
+
+	// E-invoice state
+	let einvoice = $state<EinvoiceStatusResponse | null>((data as any).einvoice ?? null);
+	let isGeneratingEinvoice = $state(false);
+	let isGeneratingEwayBill = $state(false);
+
+	// Sync einvoice data from loader
+	$effect(() => {
+		const d = (data as any).einvoice;
+		if (d) einvoice = d;
+	});
+
+	function getEinvoiceStatusBadge(status: string | null) {
+		switch (status) {
+			case 'generated':
+				return { variant: 'secondary' as const, text: 'IRN Generated' };
+			case 'registered':
+				return { variant: 'default' as const, text: 'Registered (NIC)' };
+			case 'pending':
+				return { variant: 'outline' as const, text: 'Pending' };
+			case 'failed':
+				return { variant: 'destructive' as const, text: 'Failed' };
+			default:
+				return { variant: 'outline' as const, text: 'Not Generated' };
+		}
+	}
+
+	async function handleGenerateEinvoice() {
+		if (!order || isGeneratingEinvoice) return;
+		isGeneratingEinvoice = true;
+		try {
+			const businessId = $page.data.business.id;
+			const result = await generateEinvoice(businessId, order.id);
+			einvoice = result.einvoice;
+			toast.success('E-invoice (IRN) generated successfully');
+			await invalidate('app:order');
+		} catch (error: any) {
+			toast.error(userFriendlyError(error, 'Failed to generate e-invoice'));
+		} finally {
+			isGeneratingEinvoice = false;
+		}
+	}
+
+	async function handleGenerateEwayBill() {
+		if (!order || isGeneratingEwayBill) return;
+		isGeneratingEwayBill = true;
+		try {
+			const businessId = $page.data.business.id;
+			const result = await generateEwayBill(businessId, order.id);
+			einvoice = result.einvoice;
+			toast.success('E-way bill generated successfully');
+			await invalidate('app:order');
+		} catch (error: any) {
+			toast.error(userFriendlyError(error, 'Failed to generate e-way bill'));
+		} finally {
+			isGeneratingEwayBill = false;
+		}
+	}
 
 	// Auto-print handler (4.1) — checks for ?print=true URL param
 	$effect(() => {
@@ -506,6 +569,72 @@
 					</Card.Root>
 				</div>
 
+				<!-- E-Invoice Status -->
+				{#if einvoice?.einvoiceStatus || order.invoiceNumber}
+					<Card.Root>
+						<Card.Header>
+							<Card.Title class="flex items-center gap-2 text-lg">
+								<IconFileInvoice class="h-5 w-5" />
+								E-Invoice
+							</Card.Title>
+						</Card.Header>
+						<Card.Content class="space-y-3">
+							<div class="flex justify-between">
+								<span class="text-muted-foreground">Status</span>
+								<Badge variant={getEinvoiceStatusBadge(einvoice?.einvoiceStatus ?? null).variant}>
+									{getEinvoiceStatusBadge(einvoice?.einvoiceStatus ?? null).text}
+								</Badge>
+							</div>
+							{#if einvoice?.irn}
+								<div class="flex justify-between">
+									<span class="text-muted-foreground">IRN</span>
+									<span class="max-w-[300px] truncate font-mono text-xs" title={einvoice.irn}>
+										{einvoice.irn}
+									</span>
+								</div>
+							{/if}
+							{#if einvoice?.irnGeneratedAt}
+								<div class="flex justify-between">
+									<span class="text-muted-foreground">Generated At</span>
+									<span class="text-sm">
+										{new Date(einvoice.irnGeneratedAt).toLocaleString()}
+									</span>
+								</div>
+							{/if}
+							{#if einvoice?.ewayBillNumber}
+								<div class="flex justify-between">
+									<span class="text-muted-foreground">E-Way Bill</span>
+									<span class="font-mono text-sm">{einvoice.ewayBillNumber}</span>
+								</div>
+							{/if}
+							<div class="flex gap-2 pt-2">
+								{#if !einvoice?.irn && order.invoiceNumber}
+									<Button
+										variant="outline"
+										size="sm"
+										onclick={handleGenerateEinvoice}
+										disabled={isGeneratingEinvoice}
+									>
+										<IconFileInvoice class="mr-2 h-4 w-4" />
+										{isGeneratingEinvoice ? 'Generating...' : 'Generate E-Invoice'}
+									</Button>
+								{/if}
+								{#if !einvoice?.ewayBillNumber && order.orderType === 'delivery'}
+									<Button
+										variant="outline"
+										size="sm"
+										onclick={handleGenerateEwayBill}
+										disabled={isGeneratingEwayBill}
+									>
+										<IconTruck class="mr-2 h-4 w-4" />
+										{isGeneratingEwayBill ? 'Generating...' : 'Generate E-Way Bill'}
+									</Button>
+								{/if}
+							</div>
+						</Card.Content>
+					</Card.Root>
+				{/if}
+
 				<!-- Order Items -->
 				<Card.Root>
 					<Card.Header>
@@ -684,6 +813,7 @@
 <ReceiptDialog
 	open={showReceiptDialog}
 	paymentId={selectedPaymentId}
+	orderId={order?.id}
 	onClose={handleReceiptClose}
 	{region}
 />

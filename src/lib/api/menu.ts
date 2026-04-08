@@ -398,3 +398,14 @@ export async function removeFavorite(
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.delete(`/business/${businessId}/menu/favorites/${menuItemId}`);
 }
+
+// ==================== BARCODE LOOKUP ====================
+
+export async function lookupMenuItemByBarcode(
+  businessId: string,
+  barcode: string,
+  options?: FetchOption
+): Promise<{ item: MenuItem }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get(`/business/${businessId}/menu/lookup?barcode=${encodeURIComponent(barcode)}`);
+}

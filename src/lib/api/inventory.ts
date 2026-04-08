@@ -52,6 +52,8 @@ export interface InventoryItem {
   restaurantId: string;
   name: string;
   sku: string;
+  barcode?: string;
+  barcodeFormat?: string;
   category: InventoryCategory;
   currentStock: number;
   minimumStock: number;
@@ -78,6 +80,8 @@ export interface InventoryStats {
 export interface CreateInventoryItemPayload {
   name: string;
   sku: string;
+  barcode?: string;
+  barcodeFormat?: string;
   category: InventoryCategory;
   currentStock: number;
   minimumStock: number;
@@ -227,6 +231,31 @@ export async function getStockTransactions(
   if (params?.offset !== undefined) searchParams.set('offset', String(params.offset));
   const query = searchParams.toString();
   return api.get(`/business/${businessId}/inventory/${itemId}/transactions${query ? `?${query}` : ''}`);
+}
+
+// ==================== BARCODE ====================
+
+export async function lookupInventoryByBarcode(
+  businessId: string,
+  barcode: string,
+  options?: FetchOption
+): Promise<{ item: InventoryItem }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.get(`/business/${businessId}/inventory/lookup?barcode=${encodeURIComponent(barcode)}`);
+}
+
+export interface ScanReceiveItem {
+  barcode: string;
+  quantity: number;
+}
+
+export async function scanReceiveInventory(
+  businessId: string,
+  items: ScanReceiveItem[],
+  options?: FetchOption
+): Promise<{ message: string; received: number; errors: string[] }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/business/${businessId}/inventory/scan-receive`, { items });
 }
 
 // ==================== SUPPLIER TYPES ====================
