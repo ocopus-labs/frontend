@@ -6,6 +6,8 @@
  *   - 'menu-cache'     — persistent menu snapshot for offline use
  */
 
+import { browser } from "$app/environment";
+
 const DB_NAME = 'restaurantpro-offline';
 const DB_VERSION = 1;
 
@@ -20,20 +22,20 @@ export interface OfflineOrder {
 
 function openDB(): Promise<IDBDatabase> {
 	return new Promise((resolve, reject) => {
-		const request = indexedDB.open(DB_NAME, DB_VERSION);
+		const request = browser ? indexedDB.open(DB_NAME, DB_VERSION) : null;
 
 		request.onupgradeneeded = () => {
-			const db = request.result;
-			if (!db.objectStoreNames.contains('offline-orders')) {
-				db.createObjectStore('offline-orders', { keyPath: 'id' });
+			const db = request?.result;
+			if (!db?.objectStoreNames.contains('offline-orders')) {
+				db?.createObjectStore('offline-orders', { keyPath: 'id' });
 			}
-			if (!db.objectStoreNames.contains('menu-cache')) {
-				db.createObjectStore('menu-cache', { keyPath: 'businessId' });
+			if (!db?.objectStoreNames.contains('menu-cache')) {
+				db?.createObjectStore('menu-cache', { keyPath: 'businessId' });
 			}
 		};
 
-		request.onsuccess = () => resolve(request.result);
-		request.onerror = () => reject(request.error);
+		request.onsuccess = () => resolve(request?.result);
+		request.onerror = () => reject(request?.error);
 	});
 }
 

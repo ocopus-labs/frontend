@@ -13,7 +13,7 @@ async function isMaintenanceMode(): Promise<boolean> {
 	}
 
 	try {
-		const baseUrl = env.PUBLIC_API_BASE || 'http://localhost:3000/api';
+		const baseUrl = env.PUBLIC_API_BASE || 'http://localhost:3000/api/v1';
 		const pingUrl = `${baseUrl}/ping`;
 		const res = await fetch(pingUrl, {
 			signal: AbortSignal.timeout(3000),
@@ -115,7 +115,7 @@ export const handle: Handle = async ({ event, resolve }) => {
  * we need to manually attach the cookie header for authenticated API calls.
  */
 export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
-	const apiBase = env.PUBLIC_API_BASE || '/api';
+	const apiBase = env.PUBLIC_API_BASE || '/api/v1';
 
 	if (apiBase !== '/api' && request.url.startsWith(apiBase)) {
 		request.headers.set('cookie', event.request.headers.get('cookie') || '');

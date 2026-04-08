@@ -537,7 +537,7 @@
 						<Card.Content>
 							{#if (data.topItems as any[])?.length > 0}
 								<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-									{#each data.topItems as any[] as item, i (item.id)}
+									{#each data.topItems as any[] as item, i (item)}
 										<div
 											class="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
 										>

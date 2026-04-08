@@ -31,7 +31,7 @@ export async function getSocket(): Promise<Socket | null> {
 
 	if (!socket) {
 		const { io } = await loadSocketIO();
-		const backendUrl = env.PUBLIC_API_BASE?.replace('/api', '') || 'http://localhost:3000';
+		const backendUrl = env.PUBLIC_API_BASE?.replace(/\/api(\/v\d+)?$/, '') || 'http://localhost:3000';
 		socket = io(`${backendUrl}/orders`, {
 			withCredentials: true,
 			autoConnect: false,

@@ -15,7 +15,7 @@ export interface SessionResponse {
  * This properly validates the session token with the backend.
  */
 export async function getSession(headers: Headers): Promise<SessionResponse | null> {
-	const baseUrl = env.PUBLIC_API_BASE?.replace('/api', '') || 'http://localhost:3000';
+	const baseUrl = env.PUBLIC_API_BASE?.replace(/\/api(\/v\d+)?$/, '') || 'http://localhost:3000';
 
 	try {
 		const response = await fetch(`${baseUrl}/api/auth/get-session`, {
