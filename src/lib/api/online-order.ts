@@ -30,6 +30,11 @@ export interface OnlineBusinessConfig {
   paymentMethods: {
     dodo: boolean;
   };
+  paymentGateways?: {
+    stripe: { enabled: boolean; publishableKey: string | null; mode: 'test' | 'live' };
+    razorpay: { enabled: boolean; keyId: string | null; mode: 'test' | 'live' };
+    dodo: { enabled: boolean };
+  };
 }
 
 export interface OnlineMenuItem {
@@ -122,4 +127,13 @@ export async function onlineCheckout(
 ): Promise<OnlineCheckoutResult> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.post(`/order-online/${slug}/checkout`, data);
+}
+
+export async function createOnlineOrderPaymentIntent(
+  slug: string,
+  data: { orderId: string; amount: number; currency: string; customerEmail?: string },
+  options?: FetchOption,
+): Promise<{ clientSecret: string; intentId: string }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/order-online/${slug}/create-payment-intent`, data);
 }

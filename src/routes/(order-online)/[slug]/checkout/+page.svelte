@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { onlineCheckout, type OnlineBusinessConfig, type OnlineCheckoutPayload } from '$lib/api';
+	import {
+		onlineCheckout,
+		createOnlineOrderPaymentIntent,
+		type OnlineBusinessConfig,
+		type OnlineCheckoutPayload
+	} from '$lib/api';
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
 	import UserIcon from '@lucide/svelte/icons/user';
 	import PhoneIcon from '@lucide/svelte/icons/phone';
@@ -20,6 +25,7 @@
 	import CircleCheckBigIcon from '@lucide/svelte/icons/circle-check-big';
 	import NotepadTextIcon from '@lucide/svelte/icons/notepad-text';
 	import StoreIcon from '@lucide/svelte/icons/store';
+	import LockIcon from '@lucide/svelte/icons/lock';
 
 	const slug = $derived(page.params.slug ?? '');
 
@@ -88,6 +94,15 @@
 	const onlineOrdering = $derived(config?.onlineOrdering);
 	const deliveryZones = $derived(config?.deliveryZones || []);
 	const acceptedPaymentMethods = $derived(onlineOrdering?.acceptedPaymentMethods || ['cash']);
+	const paymentGateways = $derived(config?.paymentGateways);
+	const stripeEnabled = $derived(
+		!!paymentGateways?.stripe?.enabled && !!paymentGateways?.stripe?.publishableKey
+	);
+	const razorpayEnabled = $derived(
+		!!paymentGateways?.razorpay?.enabled && !!paymentGateways?.razorpay?.keyId
+	);
+	const cashEnabled = $derived(acceptedPaymentMethods.includes('cash'));
+	const hasAnyPaymentMethod = $derived(stripeEnabled || razorpayEnabled || cashEnabled);
 
 	const cartTotal = $derived(cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0));
 	const cartItemCount = $derived(cart.reduce((sum, item) => sum + item.quantity, 0));
@@ -108,8 +123,12 @@
 	let customerEmail = $state('');
 	let deliveryAddress = $state('');
 	let deliveryNotes = $state('');
+	// Legacy acceptedPaymentMethods value (cash/online/upi/card) — kept for backward-compat payload
 	let paymentMethod = $state('cash');
+	// New gateway selector for the checkout UI
+	let selectedPaymentMethod = $state<'stripe' | 'razorpay' | 'cash' | null>(null);
 	let isSubmitting = $state(false);
+	let isProcessingPayment = $state(false);
 	let errorMessage = $state('');
 
 	// Success state
@@ -120,8 +139,19 @@
 		estimatedPrepTime: number;
 	} | null>(null);
 
-	// Steps: details -> confirm
-	let step = $state<'details' | 'confirm'>('details');
+	// Steps: details -> confirm -> payment (only used for stripe card-entry)
+	let step = $state<'details' | 'confirm' | 'payment'>('details');
+	const stepIndex = $derived(step === 'details' ? 0 : step === 'confirm' ? 1 : 2);
+
+	// Stripe refs (not reactive)
+	let stripeInstance: any = null;
+	let stripeElementsInstance: any = null;
+	// Reactive state that the template reads
+	let stripeMountEl = $state<HTMLDivElement | null>(null);
+	let pendingOrderId = $state<string | null>(null);
+	let pendingTrackingToken = $state<string | null>(null);
+	let pendingEstimatedPrepTime = $state(0);
+	let pendingOrderNumber = $state<string | null>(null);
 
 	function validatePhone(phone: string): boolean {
 		return /^\+?[\d\s-]{7,20}$/.test(phone.trim());
@@ -159,51 +189,39 @@
 			return;
 		}
 
+		if (!selectedPaymentMethod) {
+			errorMessage = 'Please select a payment method';
+			return;
+		}
+
 		isSubmitting = true;
 		errorMessage = '';
 
 		try {
-			const payload: OnlineCheckoutPayload = {
-				orderType,
-				customerName: customerName.trim(),
-				customerPhone: customerPhone.trim(),
-				customerEmail: customerEmail.trim() || undefined,
-				paymentMethod,
-				items: cart.map((item) => ({
-					menuItemId: item.menuItemId,
-					name: item.name,
-					quantity: item.quantity,
-					basePrice: item.basePrice,
-					modifiers: item.modifiers
-						? {
-								size: item.modifiers.size,
-								spiceLevel: item.modifiers.spiceLevel,
-								addOns: item.modifiers.addOns,
-								specialInstructions: item.modifiers.specialInstructions
-							}
-						: undefined
-				})),
-				...(orderType === 'delivery' && {
-					deliveryAddress: deliveryAddress.trim(),
-					deliveryNotes: deliveryNotes.trim() || undefined
-				})
-			};
+			const result = await createOrderOnServer();
+			const amount = result.order?.pricing?.total ?? cartTotal;
+			const currency = business?.currency || 'INR';
 
-			const result = await onlineCheckout(slug, payload);
-
-			// Clear cart
-			if (typeof window !== 'undefined') {
-				sessionStorage.removeItem(`online-cart:${slug}`);
-				sessionStorage.removeItem(`online-order-type:${slug}`);
+			if (selectedPaymentMethod === 'cash') {
+				showSuccess();
+				return;
 			}
 
-			// Show success
-			orderSuccess = true;
-			successData = {
-				orderNumber: result.order.orderNumber,
-				trackingToken: result.trackingToken,
-				estimatedPrepTime: result.estimatedPrepTime
-			};
+			if (selectedPaymentMethod === 'stripe') {
+				// Moves to payment step so Stripe Elements can be mounted
+				await handleStripePayment(result.order.id, amount, currency);
+				return;
+			}
+
+			if (selectedPaymentMethod === 'razorpay') {
+				try {
+					await handleRazorpayPayment(result.order.id, amount, currency);
+					showSuccess();
+				} catch (err: any) {
+					errorMessage = err?.message || 'Razorpay payment was not completed.';
+				}
+				return;
+			}
 		} catch (err: any) {
 			errorMessage = err?.message || 'Failed to place order. Please try again.';
 		} finally {
@@ -212,7 +230,9 @@
 	}
 
 	function goBack() {
-		if (step === 'confirm') {
+		if (step === 'payment') {
+			step = 'confirm';
+		} else if (step === 'confirm') {
 			step = 'details';
 		} else {
 			goto(`/${slug}`);
@@ -223,15 +243,189 @@
 		cash: { label: 'Cash on Pickup/Delivery', icon: BanknoteIcon },
 		online: { label: 'Pay Online', icon: CreditCardIcon },
 		upi: { label: 'UPI', icon: WalletIcon },
-		card: { label: 'Card', icon: CreditCardIcon }
+		card: { label: 'Card', icon: CreditCardIcon },
+		stripe: { label: 'Credit / Debit Card', icon: CreditCardIcon },
+		razorpay: { label: 'UPI / Card / Wallet', icon: CreditCardIcon }
 	};
 
-	// Auto-select first available payment method
+	// Auto-select first available gateway when config loads
 	$effect(() => {
-		if (acceptedPaymentMethods.length > 0 && !acceptedPaymentMethods.includes(paymentMethod)) {
-			paymentMethod = acceptedPaymentMethods[0];
+		if (selectedPaymentMethod !== null) return;
+		if (stripeEnabled) {
+			selectedPaymentMethod = 'stripe';
+		} else if (razorpayEnabled) {
+			selectedPaymentMethod = 'razorpay';
+		} else if (cashEnabled) {
+			selectedPaymentMethod = 'cash';
 		}
 	});
+
+	// Keep legacy paymentMethod in sync with gateway selection for the checkout payload
+	$effect(() => {
+		if (selectedPaymentMethod === 'cash') {
+			paymentMethod = 'cash';
+		} else if (selectedPaymentMethod === 'stripe' || selectedPaymentMethod === 'razorpay') {
+			// Prefer 'online' if it's in acceptedPaymentMethods, else fallback to first
+			if (acceptedPaymentMethods.includes('online')) {
+				paymentMethod = 'online';
+			} else if (acceptedPaymentMethods.includes('card')) {
+				paymentMethod = 'card';
+			} else {
+				paymentMethod = acceptedPaymentMethods[0] ?? 'online';
+			}
+		}
+	});
+
+	// ── Stripe Elements mount ──
+	$effect(() => {
+		if (step !== 'payment' || selectedPaymentMethod !== 'stripe') return;
+		if (!stripeMountEl || !stripeElementsInstance) return;
+		try {
+			const paymentElement = stripeElementsInstance.create('payment');
+			paymentElement.mount(stripeMountEl);
+		} catch (err) {
+			console.error('Failed to mount Stripe element', err);
+		}
+	});
+
+	async function createOrderOnServer() {
+		const payload: OnlineCheckoutPayload = {
+			orderType,
+			customerName: customerName.trim(),
+			customerPhone: customerPhone.trim(),
+			customerEmail: customerEmail.trim() || undefined,
+			paymentMethod,
+			items: cart.map((item) => ({
+				menuItemId: item.menuItemId,
+				name: item.name,
+				quantity: item.quantity,
+				basePrice: item.basePrice,
+				modifiers: item.modifiers
+					? {
+							size: item.modifiers.size,
+							spiceLevel: item.modifiers.spiceLevel,
+							addOns: item.modifiers.addOns,
+							specialInstructions: item.modifiers.specialInstructions
+						}
+					: undefined
+			})),
+			...(orderType === 'delivery' && {
+				deliveryAddress: deliveryAddress.trim(),
+				deliveryNotes: deliveryNotes.trim() || undefined
+			})
+		};
+
+		const result = await onlineCheckout(slug, payload);
+		pendingOrderId = result.order.id;
+		pendingOrderNumber = result.order.orderNumber;
+		pendingTrackingToken = result.trackingToken;
+		pendingEstimatedPrepTime = result.estimatedPrepTime;
+		return result;
+	}
+
+	function clearCartStorage() {
+		if (typeof window !== 'undefined') {
+			sessionStorage.removeItem(`online-cart:${slug}`);
+			sessionStorage.removeItem(`online-order-type:${slug}`);
+		}
+	}
+
+	function showSuccess() {
+		clearCartStorage();
+		orderSuccess = true;
+		successData = {
+			orderNumber: pendingOrderNumber ?? '',
+			trackingToken: pendingTrackingToken ?? '',
+			estimatedPrepTime: pendingEstimatedPrepTime
+		};
+	}
+
+	async function handleStripePayment(orderId: string, amount: number, currency: string) {
+		const stripePubKey = paymentGateways?.stripe?.publishableKey;
+		if (!stripePubKey) throw new Error('Stripe is not configured');
+
+		const { loadStripe } = await import('@stripe/stripe-js');
+		const stripe = await loadStripe(stripePubKey);
+		if (!stripe) throw new Error('Failed to load Stripe');
+
+		const { clientSecret } = await createOnlineOrderPaymentIntent(slug, {
+			orderId,
+			amount,
+			currency,
+			customerEmail: customerEmail.trim() || undefined
+		});
+
+		stripeInstance = stripe;
+		stripeElementsInstance = stripe.elements({ clientSecret });
+		// Move to payment step so the mount element is rendered; $effect handles create+mount
+		step = 'payment';
+	}
+
+	async function confirmStripeCardPayment() {
+		if (!stripeInstance || !stripeElementsInstance) {
+			errorMessage = 'Stripe is not ready yet';
+			return;
+		}
+		isProcessingPayment = true;
+		errorMessage = '';
+		try {
+			const { error, paymentIntent } = await stripeInstance.confirmPayment({
+				elements: stripeElementsInstance,
+				confirmParams: { return_url: window.location.href },
+				redirect: 'if_required'
+			});
+			if (error) {
+				throw new Error(error.message || 'Payment failed');
+			}
+			if (paymentIntent && paymentIntent.status === 'succeeded') {
+				showSuccess();
+			} else {
+				throw new Error('Payment was not completed');
+			}
+		} catch (err: any) {
+			errorMessage = err?.message || 'Failed to process payment';
+		} finally {
+			isProcessingPayment = false;
+		}
+	}
+
+	async function handleRazorpayPayment(orderId: string, amount: number, currency: string) {
+		const razorpayKeyId = paymentGateways?.razorpay?.keyId;
+		if (!razorpayKeyId) throw new Error('Razorpay is not configured');
+
+		// TODO: Add server-side Razorpay order creation endpoint for online orders
+		// and pass `order_id` below. Without it, Razorpay still works for direct
+		// card charges but cannot benefit from the full order verification flow.
+
+		if (!(window as any).Razorpay) {
+			await new Promise<void>((resolve, reject) => {
+				const script = document.createElement('script');
+				script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+				script.onload = () => resolve();
+				script.onerror = () => reject(new Error('Failed to load Razorpay'));
+				document.head.appendChild(script);
+			});
+		}
+
+		return new Promise<any>((resolve, reject) => {
+			const rzp = new (window as any).Razorpay({
+				key: razorpayKeyId,
+				amount: Math.round(amount * 100),
+				currency,
+				name: business?.name || 'Order',
+				description: `Order ${pendingOrderNumber ?? orderId}`,
+				prefill: {
+					name: customerName.trim(),
+					email: customerEmail.trim(),
+					contact: customerPhone.trim()
+				},
+				theme: { color: '#6366f1' },
+				handler: (response: any) => resolve(response),
+				modal: { ondismiss: () => reject(new Error('Payment cancelled')) }
+			});
+			rzp.open();
+		});
+	}
 </script>
 
 {#if orderSuccess && successData}
@@ -268,7 +462,13 @@
 					</div>
 					<div class="flex items-center justify-between text-sm">
 						<span class="text-muted-foreground">Payment</span>
-						<span class="font-medium capitalize">{paymentMethod}</span>
+						<span class="font-medium">
+							{#if selectedPaymentMethod}
+								{paymentMethodLabels[selectedPaymentMethod]?.label || selectedPaymentMethod}
+							{:else}
+								{paymentMethod}
+							{/if}
+						</span>
 					</div>
 				</div>
 			</div>
@@ -310,7 +510,7 @@
 				</button>
 				<div class="min-w-0 flex-1">
 					<h1 class="text-base font-bold">
-						{#if step === 'details'}Checkout{:else}Confirm Order{/if}
+						{#if step === 'details'}Checkout{:else if step === 'confirm'}Confirm Order{:else}Payment{/if}
 					</h1>
 					{#if business}
 						<p class="truncate text-xs text-muted-foreground">{business.name}</p>
@@ -320,9 +520,9 @@
 
 			<!-- Step indicator -->
 			<div class="flex items-center gap-2 px-4 pb-3">
-				{#each ['Details', 'Confirm'] as label, i}
-					{@const active = i <= (step === 'details' ? 0 : 1)}
-					{@const isLast = i === 1}
+				{#each ['Details', 'Confirm', 'Payment'] as label, i}
+					{@const active = i <= stepIndex}
+					{@const isLast = i === 2}
 					<div class="flex items-center gap-2 {isLast ? '' : 'flex-1'}">
 						<div class="flex items-center gap-1.5">
 							<div
@@ -330,7 +530,7 @@
 									? 'bg-primary text-primary-foreground'
 									: 'bg-gray-200 text-gray-500 dark:bg-muted dark:text-muted-foreground'}"
 							>
-								{#if i < (step === 'details' ? 0 : 1)}
+								{#if i < stepIndex}
 									<CheckCircle2Icon class="h-3.5 w-3.5" />
 								{:else}
 									{i + 1}
@@ -339,7 +539,7 @@
 							<span class="text-xs font-medium {active ? 'text-primary' : 'text-gray-400'}">{label}</span>
 						</div>
 						{#if !isLast}
-							<div class="h-0.5 flex-1 rounded-full {step === 'confirm' ? 'bg-primary' : 'bg-gray-200 dark:bg-muted'}"></div>
+							<div class="h-0.5 flex-1 rounded-full {i < stepIndex ? 'bg-primary' : 'bg-gray-200 dark:bg-muted'}"></div>
 						{/if}
 					</div>
 				{/each}
@@ -499,42 +699,105 @@
 				{/if}
 
 				<!-- Payment Method -->
-				{#if acceptedPaymentMethods.length > 1}
-					<div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card">
-						<div class="mb-4 flex items-center gap-2">
-							<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-								<WalletIcon class="h-4 w-4 text-primary" />
-							</div>
-							<div>
-								<h2 class="text-sm font-bold">Payment Method</h2>
-								<p class="text-xs text-muted-foreground">How would you like to pay?</p>
-							</div>
+				<div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card">
+					<div class="mb-4 flex items-center gap-2">
+						<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+							<WalletIcon class="h-4 w-4 text-primary" />
 						</div>
-						<div class="space-y-2">
-							{#each acceptedPaymentMethods as method}
-								{@const info = paymentMethodLabels[method] || { label: method, icon: WalletIcon }}
-								<button
-									class="flex w-full items-center gap-3 rounded-xl border-2 p-3.5 text-left transition-all {paymentMethod === method
-										? 'border-primary bg-primary/5'
-										: 'border-gray-100 hover:border-gray-200 dark:border-border'}"
-									onclick={() => (paymentMethod = method)}
-								>
-									<div
-										class="flex h-5 w-5 items-center justify-center rounded-full border-2 {paymentMethod === method
-											? 'border-primary'
-											: 'border-gray-300 dark:border-muted-foreground'}"
-									>
-										{#if paymentMethod === method}
-											<div class="h-2.5 w-2.5 rounded-full bg-primary"></div>
-										{/if}
-									</div>
-									<info.icon class="h-4 w-4 text-gray-500" />
-									<span class="text-sm font-medium">{info.label}</span>
-								</button>
-							{/each}
+						<div>
+							<h2 class="text-sm font-bold">Payment Method</h2>
+							<p class="text-xs text-muted-foreground">How would you like to pay?</p>
 						</div>
 					</div>
-				{/if}
+					<div class="space-y-2">
+						{#if stripeEnabled}
+							<button
+								type="button"
+								class="flex w-full items-center gap-3 rounded-xl border-2 p-3.5 text-left transition-all {selectedPaymentMethod === 'stripe'
+									? 'border-primary bg-primary/5'
+									: 'border-gray-100 hover:border-gray-200 dark:border-border'}"
+								onclick={() => (selectedPaymentMethod = 'stripe')}
+							>
+								<div
+									class="flex h-5 w-5 items-center justify-center rounded-full border-2 {selectedPaymentMethod === 'stripe'
+										? 'border-primary'
+										: 'border-gray-300 dark:border-muted-foreground'}"
+								>
+									{#if selectedPaymentMethod === 'stripe'}
+										<div class="h-2.5 w-2.5 rounded-full bg-primary"></div>
+									{/if}
+								</div>
+								<CreditCardIcon class="h-4 w-4 text-gray-500" />
+								<div class="min-w-0 flex-1">
+									<div class="text-sm font-medium">Credit / Debit Card</div>
+									<div class="text-[11px] text-muted-foreground">Secured by Stripe</div>
+								</div>
+								{#if paymentGateways?.stripe?.mode === 'test'}
+									<span class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">TEST</span>
+								{/if}
+							</button>
+						{/if}
+
+						{#if razorpayEnabled}
+							<button
+								type="button"
+								class="flex w-full items-center gap-3 rounded-xl border-2 p-3.5 text-left transition-all {selectedPaymentMethod === 'razorpay'
+									? 'border-primary bg-primary/5'
+									: 'border-gray-100 hover:border-gray-200 dark:border-border'}"
+								onclick={() => (selectedPaymentMethod = 'razorpay')}
+							>
+								<div
+									class="flex h-5 w-5 items-center justify-center rounded-full border-2 {selectedPaymentMethod === 'razorpay'
+										? 'border-primary'
+										: 'border-gray-300 dark:border-muted-foreground'}"
+								>
+									{#if selectedPaymentMethod === 'razorpay'}
+										<div class="h-2.5 w-2.5 rounded-full bg-primary"></div>
+									{/if}
+								</div>
+								<WalletIcon class="h-4 w-4 text-gray-500" />
+								<div class="min-w-0 flex-1">
+									<div class="text-sm font-medium">UPI / Card / Wallet</div>
+									<div class="text-[11px] text-muted-foreground">Secured by Razorpay</div>
+								</div>
+								{#if paymentGateways?.razorpay?.mode === 'test'}
+									<span class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">TEST</span>
+								{/if}
+							</button>
+						{/if}
+
+						{#if cashEnabled}
+							<button
+								type="button"
+								class="flex w-full items-center gap-3 rounded-xl border-2 p-3.5 text-left transition-all {selectedPaymentMethod === 'cash'
+									? 'border-primary bg-primary/5'
+									: 'border-gray-100 hover:border-gray-200 dark:border-border'}"
+								onclick={() => (selectedPaymentMethod = 'cash')}
+							>
+								<div
+									class="flex h-5 w-5 items-center justify-center rounded-full border-2 {selectedPaymentMethod === 'cash'
+										? 'border-primary'
+										: 'border-gray-300 dark:border-muted-foreground'}"
+								>
+									{#if selectedPaymentMethod === 'cash'}
+										<div class="h-2.5 w-2.5 rounded-full bg-primary"></div>
+									{/if}
+								</div>
+								<BanknoteIcon class="h-4 w-4 text-gray-500" />
+								<div class="min-w-0 flex-1">
+									<div class="text-sm font-medium">Pay at Pickup / Delivery</div>
+									<div class="text-[11px] text-muted-foreground">Cash on arrival</div>
+								</div>
+							</button>
+						{/if}
+
+						{#if !hasAnyPaymentMethod}
+							<p class="text-xs text-muted-foreground">
+								No payment methods are configured for this business.
+							</p>
+						{/if}
+					</div>
+				</div>
 
 				<!-- Order Summary -->
 				<div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card">
@@ -663,7 +926,13 @@
 									<WalletIcon class="h-3.5 w-3.5" />
 									Payment
 								</span>
-								<span class="font-medium capitalize">{paymentMethodLabels[paymentMethod]?.label || paymentMethod}</span>
+								<span class="font-medium">
+									{#if selectedPaymentMethod}
+										{paymentMethodLabels[selectedPaymentMethod]?.label || selectedPaymentMethod}
+									{:else}
+										Not selected
+									{/if}
+								</span>
 							</div>
 						</div>
 					</div>
@@ -730,16 +999,63 @@
 				<button
 					class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 font-semibold text-primary-foreground shadow-lg transition-all active:scale-[0.98] disabled:opacity-60"
 					onclick={handlePlaceOrder}
-					disabled={isSubmitting}
+					disabled={isSubmitting || !selectedPaymentMethod}
 				>
 					{#if isSubmitting}
 						<Loader2Icon class="h-4 w-4 animate-spin" />
 						Placing Order...
-					{:else}
+					{:else if selectedPaymentMethod === 'cash'}
 						<CheckCircle2Icon class="h-4 w-4" />
 						Place Order
+					{:else}
+						<LockIcon class="h-4 w-4" />
+						Pay {formatPrice(cartTotal)}
 					{/if}
 				</button>
+
+			<!-- Step 3: Payment (Stripe Elements) -->
+			{:else if step === 'payment'}
+				<div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card">
+					<div class="mb-4 flex items-center gap-2">
+						<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+							<LockIcon class="h-4 w-4 text-primary" />
+						</div>
+						<div>
+							<h2 class="text-sm font-bold">Secure Payment</h2>
+							<p class="text-xs text-muted-foreground">
+								{#if pendingOrderNumber}
+									Order {pendingOrderNumber} ·
+								{/if}
+								{formatPrice(cartTotal)}
+							</p>
+						</div>
+					</div>
+
+					<div id="stripe-payment-element" bind:this={stripeMountEl} class="min-h-[200px]"></div>
+
+					<p class="mt-3 flex items-center gap-1 text-[11px] text-muted-foreground">
+						<ShieldCheckIcon class="h-3 w-3" />
+						Your payment information is encrypted and processed securely by Stripe.
+					</p>
+				</div>
+
+				<button
+					class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 font-semibold text-primary-foreground shadow-lg transition-all active:scale-[0.98] disabled:opacity-60"
+					onclick={confirmStripeCardPayment}
+					disabled={isProcessingPayment}
+				>
+					{#if isProcessingPayment}
+						<Loader2Icon class="h-4 w-4 animate-spin" />
+						Processing Payment...
+					{:else}
+						<LockIcon class="h-4 w-4" />
+						Pay {formatPrice(cartTotal)}
+					{/if}
+				</button>
+
+				<p class="text-center text-[11px] text-muted-foreground">
+					Your order has been reserved. Complete the payment above to confirm.
+				</p>
 			{/if}
 		</div>
 

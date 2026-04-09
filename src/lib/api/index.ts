@@ -486,6 +486,14 @@ export {
   confirmStripePayment
 } from './stripe';
 
+// Razorpay API
+export {
+  createRazorpayOrder,
+  verifyRazorpayPayment,
+  type RazorpayOrderResponse,
+  type RazorpayVerifyResponse
+} from './razorpay';
+
 // Notification API
 export {
   registerDeviceToken,
@@ -627,6 +635,7 @@ export {
   getOnlineMenu,
   getOnlineConfig,
   onlineCheckout,
+  createOnlineOrderPaymentIntent,
   type OnlineBusinessConfig,
   type OnlineMenuItem,
   type OnlineMenuCategory,
