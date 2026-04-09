@@ -1,9 +1,13 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { toast } from 'svelte-sonner';
 	import {
 		onlineCheckout,
 		createOnlineOrderPaymentIntent,
+		createOnlineOrderRazorpayOrder,
+		verifyOnlineOrderRazorpayPayment,
 		type OnlineBusinessConfig,
 		type OnlineCheckoutPayload
 	} from '$lib/api';
@@ -58,6 +62,16 @@
 	$effect(() => {
 		if (typeof window !== 'undefined' && !loaded) {
 			loaded = true;
+
+			// If the page was loaded via a Stripe 3DS return, skip the cart-missing
+			// redirect — the dedicated 3DS handler will restore state from
+			// sessionStorage and drive the success flow.
+			const urlParams = new URLSearchParams(window.location.search);
+			const isStripeReturn =
+				urlParams.has('payment_intent') &&
+				urlParams.has('payment_intent_client_secret') &&
+				urlParams.has('redirect_status');
+
 			const cartKey = `online-cart:${slug}`;
 			const saved = sessionStorage.getItem(cartKey);
 			if (saved) {
@@ -83,8 +97,8 @@
 				orderType = savedType;
 			}
 
-			// If no cart, go back to menu
-			if (!saved || cart.length === 0) {
+			// If no cart, go back to menu (unless we're resuming from 3DS).
+			if (!isStripeReturn && (!saved || cart.length === 0)) {
 				goto(`/${slug}`, { replaceState: true });
 			}
 		}
@@ -129,6 +143,7 @@
 	let selectedPaymentMethod = $state<'stripe' | 'razorpay' | 'cash' | null>(null);
 	let isSubmitting = $state(false);
 	let isProcessingPayment = $state(false);
+	let isVerifyingPayment = $state(false);
 	let errorMessage = $state('');
 
 	// Success state
@@ -288,6 +303,131 @@
 		}
 	});
 
+	// ── Stripe 3DS redirect return handling ──
+	// When a customer returns from a 3D Secure challenge, Stripe appends
+	// `payment_intent`, `payment_intent_client_secret`, and `redirect_status`
+	// query params to the return URL. Resume the success flow when we see them.
+	let has3dsReturnBeenHandled = false;
+	$effect(() => {
+		if (!browser || has3dsReturnBeenHandled) return;
+		const urlParams = new URLSearchParams(window.location.search);
+		const paymentIntentId = urlParams.get('payment_intent');
+		const clientSecret = urlParams.get('payment_intent_client_secret');
+		const redirectStatus = urlParams.get('redirect_status');
+		if (paymentIntentId && clientSecret && redirectStatus) {
+			has3dsReturnBeenHandled = true;
+			void handleStripeReturn(paymentIntentId, clientSecret, redirectStatus);
+		}
+	});
+
+	async function handleStripeReturn(
+		_intentId: string,
+		clientSecret: string,
+		status: string
+	) {
+		// Clean up the URL FIRST so a refresh doesn't retrigger the handler.
+		const cleanUrl = window.location.pathname;
+		window.history.replaceState({}, '', cleanUrl);
+
+		if (status === 'failed') {
+			toast.error('Payment failed. Please try again.');
+			clearPendingOrderStorage();
+			return;
+		}
+
+		if (status !== 'succeeded') {
+			// Any other status (e.g. `canceled`, `requires_payment_method`) — surface it
+			// but don't clobber the user's cart so they can retry.
+			toast.error('Payment was not completed. Please try again.');
+			clearPendingOrderStorage();
+			return;
+		}
+
+		isVerifyingPayment = true;
+		try {
+			const stripePubKey = paymentGateways?.stripe?.publishableKey;
+			if (!stripePubKey) {
+				toast.error('Unable to verify payment — Stripe is not configured');
+				return;
+			}
+
+			const { loadStripe } = await import('@stripe/stripe-js');
+			const stripe = await loadStripe(stripePubKey);
+			if (!stripe) {
+				toast.error('Unable to verify payment status');
+				return;
+			}
+
+			const { paymentIntent, error } = await stripe.retrievePaymentIntent(clientSecret);
+			if (error || !paymentIntent) {
+				toast.error('Unable to verify payment status');
+				clearPendingOrderStorage();
+				return;
+			}
+
+			if (paymentIntent.status === 'succeeded') {
+				// Restore context from sessionStorage
+				const storedOrderId = sessionStorage.getItem(pendingOrderIdKey);
+				const storedTrackingToken = sessionStorage.getItem(pendingTrackingTokenKey);
+				const storedOrderNumber = sessionStorage.getItem(pendingOrderNumberKey);
+				const storedPrepTime = sessionStorage.getItem(pendingPrepTimeKey);
+				const storedCart = sessionStorage.getItem(pendingOrderCartKey);
+				const storedOrderType = sessionStorage.getItem(pendingOrderTypeKey);
+				const storedPaymentMethod = sessionStorage.getItem(pendingPaymentMethodKey);
+
+				if (storedOrderId && storedTrackingToken) {
+					pendingOrderId = storedOrderId;
+					pendingTrackingToken = storedTrackingToken;
+					pendingOrderNumber = storedOrderNumber ?? '';
+					pendingEstimatedPrepTime = storedPrepTime ? Number(storedPrepTime) : 0;
+
+					// Restore cart so the success page renders the correct line items
+					if (storedCart) {
+						try {
+							cart = JSON.parse(storedCart);
+						} catch {
+							/* ignore — not critical for the success page */
+						}
+					}
+					if (storedOrderType === 'takeaway' || storedOrderType === 'delivery') {
+						orderType = storedOrderType;
+					}
+					if (
+						storedPaymentMethod === 'stripe' ||
+						storedPaymentMethod === 'razorpay' ||
+						storedPaymentMethod === 'cash'
+					) {
+						selectedPaymentMethod = storedPaymentMethod;
+					}
+
+					// Mark loaded so the cart-missing effect doesn't redirect us to the menu
+					loaded = true;
+
+					showSuccess();
+					toast.success('Payment successful!');
+				} else {
+					// Fallback — sessionStorage was cleared mid-flow.
+					toast.success(
+						'Payment succeeded, but we lost your session. Please check your email for the order confirmation or contact support.',
+						{ duration: 10000 }
+					);
+					// Ensure we don't redirect to the menu while showing this message
+					loaded = true;
+				}
+			} else if (paymentIntent.status === 'requires_payment_method') {
+				toast.error('Payment failed. Please try a different payment method.');
+				clearPendingOrderStorage();
+			} else if (paymentIntent.status === 'processing') {
+				toast.info('Your payment is still processing. We will email you once it is confirmed.');
+			} else {
+				toast.error('Payment was not completed.');
+				clearPendingOrderStorage();
+			}
+		} finally {
+			isVerifyingPayment = false;
+		}
+	}
+
 	async function createOrderOnServer() {
 		const payload: OnlineCheckoutPayload = {
 			orderType,
@@ -323,11 +463,33 @@
 		return result;
 	}
 
+	// SessionStorage keys used to resume the success flow after a Stripe 3DS redirect.
+	const pendingOrderIdKey = $derived(`online-pending-order-id:${slug}`);
+	const pendingTrackingTokenKey = $derived(`online-pending-tracking-token:${slug}`);
+	const pendingOrderNumberKey = $derived(`online-pending-order-number:${slug}`);
+	const pendingPrepTimeKey = $derived(`online-pending-prep-time:${slug}`);
+	const pendingOrderCartKey = $derived(`online-pending-order-cart:${slug}`);
+	const pendingOrderTypeKey = $derived(`online-pending-order-type:${slug}`);
+	const pendingPaymentMethodKey = $derived(`online-pending-payment-method:${slug}`);
+
+	function clearPendingOrderStorage() {
+		if (typeof window === 'undefined') return;
+		sessionStorage.removeItem(pendingOrderIdKey);
+		sessionStorage.removeItem(pendingTrackingTokenKey);
+		sessionStorage.removeItem(pendingOrderNumberKey);
+		sessionStorage.removeItem(pendingPrepTimeKey);
+		sessionStorage.removeItem(pendingOrderCartKey);
+		sessionStorage.removeItem(pendingOrderTypeKey);
+		sessionStorage.removeItem(pendingPaymentMethodKey);
+	}
+
 	function clearCartStorage() {
 		if (typeof window !== 'undefined') {
 			sessionStorage.removeItem(`online-cart:${slug}`);
 			sessionStorage.removeItem(`online-order-type:${slug}`);
 		}
+		// Also clear any lingering 3DS resume context so we never double-handle
+		clearPendingOrderStorage();
 	}
 
 	function showSuccess() {
@@ -369,17 +531,38 @@
 		isProcessingPayment = true;
 		errorMessage = '';
 		try {
+			// Persist context so we can resume the success flow if Stripe redirects
+			// the customer away for 3D Secure authentication.
+			if (typeof window !== 'undefined' && pendingOrderId && pendingTrackingToken) {
+				sessionStorage.setItem(pendingOrderIdKey, pendingOrderId);
+				sessionStorage.setItem(pendingTrackingTokenKey, pendingTrackingToken);
+				if (pendingOrderNumber) {
+					sessionStorage.setItem(pendingOrderNumberKey, pendingOrderNumber);
+				}
+				sessionStorage.setItem(pendingPrepTimeKey, String(pendingEstimatedPrepTime));
+				sessionStorage.setItem(pendingOrderCartKey, JSON.stringify(cart));
+				sessionStorage.setItem(pendingOrderTypeKey, orderType);
+				sessionStorage.setItem(pendingPaymentMethodKey, 'stripe');
+			}
+
+			// Use a clean return URL (strip any existing query params) so the 3DS
+			// handler receives only Stripe's return params.
+			const returnUrl = `${window.location.origin}${window.location.pathname}`;
+
 			const { error, paymentIntent } = await stripeInstance.confirmPayment({
 				elements: stripeElementsInstance,
-				confirmParams: { return_url: window.location.href },
+				confirmParams: { return_url: returnUrl },
 				redirect: 'if_required'
 			});
 			if (error) {
+				// No redirect happened — clean up the pending context we just stored
+				clearPendingOrderStorage();
 				throw new Error(error.message || 'Payment failed');
 			}
 			if (paymentIntent && paymentIntent.status === 'succeeded') {
 				showSuccess();
 			} else {
+				clearPendingOrderStorage();
 				throw new Error('Payment was not completed');
 			}
 		} catch (err: any) {
@@ -393,9 +576,14 @@
 		const razorpayKeyId = paymentGateways?.razorpay?.keyId;
 		if (!razorpayKeyId) throw new Error('Razorpay is not configured');
 
-		// TODO: Add server-side Razorpay order creation endpoint for online orders
-		// and pass `order_id` below. Without it, Razorpay still works for direct
-		// card charges but cannot benefit from the full order verification flow.
+		// Create a Razorpay order on the server first. This binds the Razorpay
+		// order to our server-validated amount and enables strong signature
+		// verification on success.
+		const rzpOrder = await createOnlineOrderRazorpayOrder(slug, {
+			orderId,
+			amount,
+			currency
+		});
 
 		if (!(window as any).Razorpay) {
 			await new Promise<void>((resolve, reject) => {
@@ -407,11 +595,16 @@
 			});
 		}
 
-		return new Promise<any>((resolve, reject) => {
+		const response = await new Promise<{
+			razorpay_order_id: string;
+			razorpay_payment_id: string;
+			razorpay_signature: string;
+		}>((resolve, reject) => {
 			const rzp = new (window as any).Razorpay({
 				key: razorpayKeyId,
-				amount: Math.round(amount * 100),
-				currency,
+				order_id: rzpOrder.orderId,
+				amount: rzpOrder.amount,
+				currency: rzpOrder.currency,
 				name: business?.name || 'Order',
 				description: `Order ${pendingOrderNumber ?? orderId}`,
 				prefill: {
@@ -420,15 +613,42 @@
 					contact: customerPhone.trim()
 				},
 				theme: { color: '#6366f1' },
-				handler: (response: any) => resolve(response),
+				handler: (resp: any) => resolve(resp),
 				modal: { ondismiss: () => reject(new Error('Payment cancelled')) }
 			});
 			rzp.open();
 		});
+
+		// Verify signature on the server before considering the payment done.
+		const verification = await verifyOnlineOrderRazorpayPayment(slug, {
+			orderId,
+			razorpay_order_id: response.razorpay_order_id,
+			razorpay_payment_id: response.razorpay_payment_id,
+			razorpay_signature: response.razorpay_signature
+		});
+
+		if (!verification.verified) {
+			throw new Error('Payment signature verification failed');
+		}
+
+		return response;
 	}
 </script>
 
-{#if orderSuccess && successData}
+{#if isVerifyingPayment && !orderSuccess}
+	<!-- Verifying payment (returning from Stripe 3DS) -->
+	<div class="flex min-h-svh flex-col items-center justify-center bg-gray-50 px-6 dark:bg-background">
+		<div class="w-full max-w-sm text-center">
+			<div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+				<Loader2Icon class="h-8 w-8 animate-spin text-primary" />
+			</div>
+			<h1 class="text-xl font-bold text-gray-900 dark:text-foreground">Verifying payment...</h1>
+			<p class="mt-2 text-sm text-muted-foreground">
+				Please wait while we confirm your payment. Do not close or refresh this page.
+			</p>
+		</div>
+	</div>
+{:else if orderSuccess && successData}
 	<!-- Success Page -->
 	<div class="flex min-h-svh flex-col items-center justify-center bg-gray-50 px-6 dark:bg-background">
 		<div class="w-full max-w-md text-center">
