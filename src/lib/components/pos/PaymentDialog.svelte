@@ -15,7 +15,12 @@
 	import { IconLoader2 } from '@tabler/icons-svelte';
 	import { createI18nUtils } from '$lib/utils/i18n';
 	import type { PaymentMethod } from '$lib/api';
-	import { generatePaymentQr, createStripeIntent, confirmStripePayment } from '$lib/api';
+	import {
+		generatePaymentQr,
+		createStripeIntent,
+		confirmStripePayment,
+		getPaymentCredentials
+	} from '$lib/api';
 	import { toast } from 'svelte-sonner';
 
 	interface SplitEntry {
@@ -111,13 +116,55 @@
 	let isStripeLoading = $state(false);
 	let stripeError = $state('');
 
+	// Resolved Stripe publishable key — either from the prop (override) or
+	// fetched dynamically from the business's payment credentials.
+	let resolvedStripeKey = $state<string | null>(null);
+	let isLoadingStripeKey = $state(false);
+	let hasAttemptedKeyFetch = $state(false);
+
+	// The key we should actually use: prop wins, fallback to fetched credential.
+	const effectiveStripeKey = $derived(stripePublishableKey ?? resolvedStripeKey);
+
+	// Fetch the business's Stripe publishable key when the dialog opens and
+	// no prop override was provided. We fetch eagerly (rather than only on
+	// method-select) so we know whether to render the Stripe option at all.
+	$effect(() => {
+		if (!open) {
+			hasAttemptedKeyFetch = false;
+			return;
+		}
+		if (stripePublishableKey) {
+			// Prop override is available — no fetch needed.
+			return;
+		}
+		if (!businessId) return;
+		if (hasAttemptedKeyFetch) return;
+
+		hasAttemptedKeyFetch = true;
+		isLoadingStripeKey = true;
+		getPaymentCredentials(businessId)
+			.then(({ credentials }) => {
+				const stripeCred = credentials.find(
+					(c) => c.provider === 'stripe' && c.enabled && c.publishableKey
+				);
+				resolvedStripeKey = stripeCred?.publishableKey ?? null;
+			})
+			.catch(() => {
+				resolvedStripeKey = null;
+				toast.error('Failed to load Stripe credentials');
+			})
+			.finally(() => {
+				isLoadingStripeKey = false;
+			});
+	});
+
 	// Initialize Stripe when method is 'stripe' (or tear down when switching away)
 	$effect(() => {
 		if (
 			open &&
 			mode === 'single' &&
 			paymentMethod === 'stripe' &&
-			stripePublishableKey &&
+			effectiveStripeKey &&
 			stripeCardContainer
 		) {
 			initStripe();
@@ -134,6 +181,7 @@
 	});
 
 	async function initStripe() {
+		if (!effectiveStripeKey) return;
 		if (stripeInstance) {
 			mountStripeCard();
 			return;
@@ -142,7 +190,7 @@
 		stripeError = '';
 		try {
 			const { loadStripe } = await import('@stripe/stripe-js');
-			stripeInstance = await loadStripe(stripePublishableKey!);
+			stripeInstance = await loadStripe(effectiveStripeKey);
 			if (!stripeInstance) {
 				stripeError = 'Failed to initialize Stripe';
 				return;
@@ -432,9 +480,17 @@
 				<!-- SINGLE PAYMENT MODE -->
 				<!-- Payment Method Selection -->
 				<div class="space-y-3">
-					<Label class="text-sm font-medium">Payment Method</Label>
-					<div class="grid {stripePublishableKey ? 'grid-cols-5' : 'grid-cols-4'} gap-2">
-						{#each stripePublishableKey ? ['cash', 'card', 'upi', 'stripe', 'other'] : ['cash', 'card', 'upi', 'other'] as method}
+					<div class="flex items-center justify-between">
+						<Label class="text-sm font-medium">Payment Method</Label>
+						{#if isLoadingStripeKey}
+							<span class="flex items-center gap-1 text-xs text-muted-foreground">
+								<IconLoader2 class="h-3 w-3 animate-spin" />
+								Loading payment options...
+							</span>
+						{/if}
+					</div>
+					<div class="grid {effectiveStripeKey ? 'grid-cols-5' : 'grid-cols-4'} gap-2">
+						{#each effectiveStripeKey ? ['cash', 'card', 'upi', 'stripe', 'other'] : ['cash', 'card', 'upi', 'other'] as method}
 							{@const MethodIcons = methodIcons[method] ?? IconReceipt}
 							<button
 								type="button"
