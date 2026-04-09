@@ -677,3 +677,16 @@ export {
   type DisplayOrder,
   type DisplayQueueResponse
 } from './display';
+
+// Payment Credentials API
+export {
+  getPaymentCredentials,
+  updatePaymentCredential,
+  deletePaymentCredential,
+  verifyPaymentCredential,
+  type PaymentProvider,
+  type PaymentMode,
+  type CredentialSource,
+  type MaskedPaymentCredential,
+  type UpdateCredentialPayload
+} from './payment-credentials';
