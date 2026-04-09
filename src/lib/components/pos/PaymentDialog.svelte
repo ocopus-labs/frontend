@@ -10,7 +10,8 @@
 		IconReceipt,
 		IconPlus,
 		IconTrash,
-		IconBrandStripe
+		IconBrandStripe,
+		IconBuildingBank
 	} from '@tabler/icons-svelte';
 	import { IconLoader2 } from '@tabler/icons-svelte';
 	import { createI18nUtils } from '$lib/utils/i18n';
@@ -19,9 +20,13 @@
 		generatePaymentQr,
 		createStripeIntent,
 		confirmStripePayment,
-		getPaymentCredentials
+		getPaymentCredentials,
+		createRazorpayOrder,
+		verifyRazorpayPayment
 	} from '$lib/api';
 	import { toast } from 'svelte-sonner';
+
+	type ExtendedPaymentMethod = PaymentMethod | 'stripe' | 'razorpay';
 
 	interface SplitEntry {
 		id: string;
@@ -77,7 +82,7 @@
 	let mode = $state<'single' | 'split'>('single');
 
 	// Single payment state
-	let paymentMethod = $state<PaymentMethod | 'stripe'>('cash');
+	let paymentMethod = $state<ExtendedPaymentMethod>('cash');
 	let paymentAmount = $state(balanceDue);
 	let cashReceived = $state(0);
 	let transactionReference = $state('');
@@ -96,6 +101,7 @@
 			paymentMethod = 'cash';
 			tipAmount = 0;
 			stripeError = '';
+			razorpayError = '';
 			splitEntries = [
 				{ id: crypto.randomUUID(), method: 'cash', amount: Math.floor(balanceDue / 2) },
 				{ id: crypto.randomUUID(), method: 'card', amount: balanceDue - Math.floor(balanceDue / 2) }
@@ -116,45 +122,66 @@
 	let isStripeLoading = $state(false);
 	let stripeError = $state('');
 
-	// Resolved Stripe publishable key — either from the prop (override) or
+	// Razorpay state
+	let isRazorpayLoading = $state(false);
+	let razorpayError = $state('');
+
+	// Resolved gateway credentials — either from the prop (override) or
 	// fetched dynamically from the business's payment credentials.
 	let resolvedStripeKey = $state<string | null>(null);
-	let isLoadingStripeKey = $state(false);
+	let resolvedRazorpayKey = $state<string | null>(null);
+	let isLoadingCredentials = $state(false);
 	let hasAttemptedKeyFetch = $state(false);
 
 	// The key we should actually use: prop wins, fallback to fetched credential.
 	const effectiveStripeKey = $derived(stripePublishableKey ?? resolvedStripeKey);
+	// Razorpay is enabled if keyId exists
+	const effectiveRazorpayEnabled = $derived(!!resolvedRazorpayKey);
 
-	// Fetch the business's Stripe publishable key when the dialog opens and
-	// no prop override was provided. We fetch eagerly (rather than only on
-	// method-select) so we know whether to render the Stripe option at all.
+	// Dynamic list of available payment methods, including gateways that are
+	// actually configured for this business.
+	const availableMethods = $derived.by<ExtendedPaymentMethod[]>(() => {
+		const methods: ExtendedPaymentMethod[] = ['cash', 'card', 'upi'];
+		if (effectiveStripeKey) methods.push('stripe');
+		if (effectiveRazorpayEnabled) methods.push('razorpay');
+		methods.push('other');
+		return methods;
+	});
+
+	// Fetch the business's payment credentials when the dialog opens and no
+	// prop override is provided. We fetch eagerly (rather than only on
+	// method-select) so we know which gateway options to render.
 	$effect(() => {
 		if (!open) {
 			hasAttemptedKeyFetch = false;
 			return;
 		}
-		if (stripePublishableKey) {
-			// Prop override is available — no fetch needed.
-			return;
-		}
+		// Note: even if a Stripe publishable key is passed via prop (override),
+		// we still fetch credentials to discover Razorpay configuration.
 		if (!businessId) return;
 		if (hasAttemptedKeyFetch) return;
 
 		hasAttemptedKeyFetch = true;
-		isLoadingStripeKey = true;
+		isLoadingCredentials = true;
 		getPaymentCredentials(businessId)
 			.then(({ credentials }) => {
 				const stripeCred = credentials.find(
 					(c) => c.provider === 'stripe' && c.enabled && c.publishableKey
 				);
 				resolvedStripeKey = stripeCred?.publishableKey ?? null;
+
+				const razorpayCred = credentials.find(
+					(c) => c.provider === 'razorpay' && c.enabled && c.keyId
+				);
+				resolvedRazorpayKey = razorpayCred?.keyId ?? null;
 			})
 			.catch(() => {
 				resolvedStripeKey = null;
-				toast.error('Failed to load Stripe credentials');
+				resolvedRazorpayKey = null;
+				toast.error('Failed to load payment gateway credentials');
 			})
 			.finally(() => {
-				isLoadingStripeKey = false;
+				isLoadingCredentials = false;
 			});
 	});
 
@@ -259,6 +286,111 @@
 			stripeError = err?.message ?? 'Payment failed';
 		} finally {
 			isStripeLoading = false;
+		}
+	}
+
+	// Lazy-load the Razorpay Checkout script. Resolves once the global
+	// `window.Razorpay` constructor is available.
+	async function loadRazorpayScript(): Promise<void> {
+		if (typeof window === 'undefined') return;
+		if ((window as any).Razorpay) return;
+
+		const existing = document.querySelector<HTMLScriptElement>(
+			'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
+		);
+		if (existing) {
+			// Wait for existing script to finish loading
+			await new Promise<void>((resolve, reject) => {
+				if ((window as any).Razorpay) return resolve();
+				existing.addEventListener('load', () => resolve(), { once: true });
+				existing.addEventListener(
+					'error',
+					() => reject(new Error('Failed to load Razorpay')),
+					{ once: true }
+				);
+			});
+			return;
+		}
+
+		await new Promise<void>((resolve, reject) => {
+			const script = document.createElement('script');
+			script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+			script.async = true;
+			script.onload = () => resolve();
+			script.onerror = () => reject(new Error('Failed to load Razorpay'));
+			document.head.appendChild(script);
+		});
+	}
+
+	async function handleRazorpayPayment() {
+		if (!businessId || !resolvedRazorpayKey) return;
+		isRazorpayLoading = true;
+		razorpayError = '';
+		try {
+			// 1. Load the Razorpay Checkout widget (idempotent)
+			await loadRazorpayScript();
+
+			// 2. Create a Razorpay order on the backend
+			const rzpOrder = await createRazorpayOrder(businessId, {
+				orderId,
+				amount: Math.round(paymentAmount * 100) // paise
+			});
+
+			// 3. Open the Razorpay checkout widget
+			await new Promise<void>((resolve, reject) => {
+				const rzp = new (window as any).Razorpay({
+					key: resolvedRazorpayKey,
+					amount: rzpOrder.amount,
+					currency: rzpOrder.currency || 'INR',
+					order_id: rzpOrder.razorpayOrderId,
+					name: 'Order Payment',
+					description: `Order #${orderNumber}`,
+					handler: async (response: {
+						razorpay_order_id: string;
+						razorpay_payment_id: string;
+						razorpay_signature: string;
+					}) => {
+						try {
+							// 4. Verify the payment signature on the backend
+							await verifyRazorpayPayment(businessId, {
+								orderId,
+								razorpay_order_id: response.razorpay_order_id,
+								razorpay_payment_id: response.razorpay_payment_id,
+								razorpay_signature: response.razorpay_signature
+							});
+
+							toast.success('Razorpay payment successful');
+							onPaymentComplete({
+								paymentMethod: 'card',
+								amount: paymentAmount,
+								remainingBalance: balanceDue - paymentAmount,
+								tipAmount: tipAmount > 0 ? tipAmount : undefined
+							});
+							resolve();
+						} catch (err: any) {
+							reject(err);
+						}
+					},
+					modal: {
+						ondismiss: () => {
+							// User closed the widget without paying — not an error
+							isRazorpayLoading = false;
+						}
+					},
+					theme: { color: '#3b82f6' }
+				});
+				rzp.on('payment.failed', (response: any) => {
+					reject(
+						new Error(response?.error?.description ?? 'Razorpay payment failed')
+					);
+				});
+				rzp.open();
+			});
+		} catch (err: any) {
+			razorpayError = err?.message ?? 'Razorpay payment failed';
+			toast.error(razorpayError);
+		} finally {
+			isRazorpayLoading = false;
 		}
 	}
 
@@ -426,6 +558,7 @@
 		net_banking: IconReceipt,
 		wallet: IconReceipt,
 		stripe: IconBrandStripe,
+		razorpay: IconBuildingBank,
 		other: IconReceipt
 	};
 
@@ -436,6 +569,7 @@
 		net_banking: 'Net Banking',
 		wallet: 'Wallet',
 		stripe: 'Stripe',
+		razorpay: 'Razorpay',
 		other: 'Other'
 	};
 </script>
@@ -482,15 +616,18 @@
 				<div class="space-y-3">
 					<div class="flex items-center justify-between">
 						<Label class="text-sm font-medium">Payment Method</Label>
-						{#if isLoadingStripeKey}
+						{#if isLoadingCredentials}
 							<span class="flex items-center gap-1 text-xs text-muted-foreground">
 								<IconLoader2 class="h-3 w-3 animate-spin" />
 								Loading payment options...
 							</span>
 						{/if}
 					</div>
-					<div class="grid {effectiveStripeKey ? 'grid-cols-5' : 'grid-cols-4'} gap-2">
-						{#each effectiveStripeKey ? ['cash', 'card', 'upi', 'stripe', 'other'] : ['cash', 'card', 'upi', 'other'] as method}
+					<div
+						class="grid gap-2"
+						style="grid-template-columns: repeat({availableMethods.length}, minmax(0, 1fr));"
+					>
+						{#each availableMethods as method}
 							{@const MethodIcons = methodIcons[method] ?? IconReceipt}
 							<button
 								type="button"
@@ -498,7 +635,7 @@
 								method
 									? 'border-primary bg-primary/10'
 									: 'border-border hover:border-primary/50'}"
-								onclick={() => (paymentMethod = method as PaymentMethod | 'stripe')}
+								onclick={() => (paymentMethod = method)}
 							>
 								<MethodIcons class="h-6 w-6" />
 								<span class="text-xs font-medium">{methodLabels[method] ?? method}</span>
@@ -655,6 +792,25 @@
 						{/if}
 						{#if stripeError}
 							<p class="text-xs text-destructive">{stripeError}</p>
+						{/if}
+					</div>
+				{/if}
+
+				<!-- Razorpay Info -->
+				{#if paymentMethod === 'razorpay'}
+					<div class="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+						<div class="flex items-start gap-3">
+							<IconBuildingBank class="mt-0.5 h-5 w-5 text-muted-foreground" />
+							<div class="space-y-1">
+								<p class="text-sm font-medium">Razorpay Checkout</p>
+								<p class="text-xs text-muted-foreground">
+									Clicking "Pay" will open the Razorpay secure checkout widget. The customer
+									can pay with card, UPI, net banking, or wallets.
+								</p>
+							</div>
+						</div>
+						{#if razorpayError}
+							<p class="text-xs text-destructive">{razorpayError}</p>
 						{/if}
 					</div>
 				{/if}
@@ -819,7 +975,13 @@
 		</div>
 
 		<Dialog.Footer>
-			<Button variant="outline" onclick={onCancel} disabled={isProcessing || isStripeLoading}>Cancel</Button>
+			<Button
+				variant="outline"
+				onclick={onCancel}
+				disabled={isProcessing || isStripeLoading || isRazorpayLoading}
+			>
+				Cancel
+			</Button>
 			{#if mode === 'single'}
 				{#if paymentMethod === 'stripe'}
 					<Button
@@ -830,6 +992,18 @@
 							<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
 						{/if}
 						{isStripeLoading ? 'Processing...' : `Pay ${i18n.formatCurrency(paymentAmount)} with Stripe`}
+					</Button>
+				{:else if paymentMethod === 'razorpay'}
+					<Button
+						onclick={handleRazorpayPayment}
+						disabled={isRazorpayLoading || isProcessing || paymentAmount <= 0 || !resolvedRazorpayKey}
+					>
+						{#if isRazorpayLoading}
+							<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+						{/if}
+						{isRazorpayLoading
+							? 'Processing...'
+							: `Pay ${i18n.formatCurrency(paymentAmount)} with Razorpay`}
 					</Button>
 				{:else}
 					<Button onclick={handleSubmit} disabled={!isValidSinglePayment() || isProcessing}>
