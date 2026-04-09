@@ -636,6 +636,8 @@ export {
   getOnlineConfig,
   onlineCheckout,
   createOnlineOrderPaymentIntent,
+  createOnlineOrderRazorpayOrder,
+  verifyOnlineOrderRazorpayPayment,
   type OnlineBusinessConfig,
   type OnlineMenuItem,
   type OnlineMenuCategory,

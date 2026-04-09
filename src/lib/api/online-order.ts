@@ -137,3 +137,26 @@ export async function createOnlineOrderPaymentIntent(
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.post(`/order-online/${slug}/create-payment-intent`, data);
 }
+
+export async function createOnlineOrderRazorpayOrder(
+  slug: string,
+  data: { orderId: string; amount: number; currency: string },
+  options?: FetchOption,
+): Promise<{ orderId: string; amount: number; currency: string }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/order-online/${slug}/create-razorpay-order`, data);
+}
+
+export async function verifyOnlineOrderRazorpayPayment(
+  slug: string,
+  data: {
+    orderId: string;
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+  },
+  options?: FetchOption,
+): Promise<{ verified: boolean; orderId: string }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.post(`/order-online/${slug}/verify-razorpay-payment`, data);
+}
