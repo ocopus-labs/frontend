@@ -10,7 +10,9 @@
 		IconBuilding,
 		IconSettings,
 		IconCreditCard,
-		IconBell
+		IconBell,
+		IconShoppingCart,
+		IconChevronRight
 	} from '@tabler/icons-svelte';
 	import { updateBusiness } from '$lib/api/business';
 	import { invalidate } from '$app/navigation';
@@ -495,6 +497,37 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 					</Card.Root>
 				</Tabs.Content>
 			</Tabs.Root>
+
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Online Ordering</Card.Title>
+					<Card.Description>
+						Accept online orders from customers with a shareable link and QR code.
+					</Card.Description>
+				</Card.Header>
+				<Card.Content>
+					<a
+						href="./online-ordering"
+						class="hover:bg-muted/50 group flex items-center justify-between rounded-lg border p-4 transition-colors"
+					>
+						<div class="flex items-start gap-3">
+							<div class="bg-primary/10 text-primary rounded-lg p-2">
+								<IconShoppingCart class="h-5 w-5" />
+							</div>
+							<div class="space-y-1">
+								<div class="text-sm font-medium">Configure Online Ordering</div>
+								<p class="text-muted-foreground text-xs">
+									Enable online orders, set order types, minimum amount, prep time, payment
+									methods, and get a shareable link + QR code.
+								</p>
+							</div>
+						</div>
+						<IconChevronRight
+							class="text-muted-foreground group-hover:text-foreground h-5 w-5 transition-colors"
+						/>
+					</a>
+				</Card.Content>
+			</Card.Root>
 
 			<div class="flex justify-end">
 				<Button onclick={saveSettings} disabled={saving}>

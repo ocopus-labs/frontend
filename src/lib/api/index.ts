@@ -634,6 +634,13 @@ export {
   type OnlineCheckoutResult
 } from './online-order';
 
+// Online Ordering Settings API
+export {
+  getOnlineOrderingSettings,
+  updateOnlineOrderingSettings,
+  type OnlineOrderingConfig
+} from './online-ordering';
+
 // Accounting API
 export {
   createAccountingExport,
