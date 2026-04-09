@@ -16,7 +16,9 @@
 		IconChevronDown,
 		IconChevronUp,
 		IconExternalLink,
-		IconAlertCircle
+		IconAlertCircle,
+		IconInfoCircle,
+		IconBulb
 	} from '@tabler/icons-svelte';
 
 	import * as Card from '$lib/components/ui/card';
@@ -51,12 +53,16 @@
 
 	interface ProviderMeta {
 		name: string;
+		tagline: string;
 		description: string;
+		useCase: string;
 		publicKeyLabel: string | null;
 		publicKeyPlaceholder: string | null;
 		secretKeyPlaceholder: string;
+		webhookSecretPlaceholder: string;
 		docsUrl: string;
 		color: string;
+		customerFacing: boolean;
 		webhookPath: (businessId: string) => string;
 		webhookNote?: string;
 	}
@@ -64,32 +70,50 @@
 	const PROVIDERS: Record<PaymentProvider, ProviderMeta> = {
 		stripe: {
 			name: 'Stripe',
-			description: 'International card payments, Apple Pay, Google Pay',
+			tagline: 'International Card Payments',
+			description:
+				'Best for businesses accepting international cards, Apple Pay, and Google Pay. Supports 135+ currencies.',
+			useCase:
+				'Recommended if you serve international customers or accept non-Indian cards.',
 			publicKeyLabel: 'Publishable Key',
 			publicKeyPlaceholder: 'pk_test_... or pk_live_...',
 			secretKeyPlaceholder: 'sk_test_... or sk_live_...',
+			webhookSecretPlaceholder: 'whsec_...',
 			docsUrl: 'https://dashboard.stripe.com/apikeys',
 			color: 'rgb(99, 91, 255)',
+			customerFacing: true,
 			webhookPath: (id) => `/webhook/stripe/${id}`
 		},
 		razorpay: {
 			name: 'Razorpay',
-			description: 'India-focused payments (UPI, cards, net banking, wallets)',
+			tagline: 'India Payments (UPI, Cards, Wallets)',
+			description:
+				'Best for Indian businesses. Supports UPI, cards, net banking, wallets (Paytm, PhonePe, etc.), and EMI.',
+			useCase:
+				'Recommended if you primarily serve Indian customers. Lower fees for domestic payments.',
 			publicKeyLabel: 'Key ID',
 			publicKeyPlaceholder: 'rzp_test_... or rzp_live_...',
 			secretKeyPlaceholder: 'Razorpay key secret',
+			webhookSecretPlaceholder: 'Webhook signing secret',
 			docsUrl: 'https://dashboard.razorpay.com/app/keys',
 			color: 'rgb(0, 130, 196)',
+			customerFacing: true,
 			webhookPath: (id) => `/webhook/razorpay/${id}`
 		},
 		dodo: {
 			name: 'Dodo Payments',
-			description: 'Used for subscription billing (primarily platform-managed)',
+			tagline: 'Subscription Billing (Platform)',
+			description:
+				'Used internally for your monthly subscription billing. Not used for customer-facing payments at this time.',
+			useCase:
+				'Automatically managed by the platform. You typically do not need to configure this unless you have a special arrangement.',
 			publicKeyLabel: null,
 			publicKeyPlaceholder: null,
 			secretKeyPlaceholder: 'Dodo API key',
+			webhookSecretPlaceholder: 'Webhook signing secret',
 			docsUrl: 'https://app.dodopayments.com/developer/api-keys',
 			color: 'rgb(255, 107, 0)',
+			customerFacing: false,
 			webhookPath: () => `/webhook/dodo`,
 			webhookNote: 'Dodo webhooks are platform-level and shared across all businesses.'
 		}
@@ -333,11 +357,14 @@
 		return PROVIDERS.stripe.secretKeyPlaceholder;
 	}
 
-	function webhookSecretPlaceholder(cred: MaskedPaymentCredential | undefined): string {
+	function webhookSecretPlaceholder(
+		provider: PaymentProvider,
+		cred: MaskedPaymentCredential | undefined
+	): string {
 		if (cred?.hasWebhookSecret) {
 			return '••••••••••••';
 		}
-		return 'whsec_...';
+		return PROVIDERS[provider].webhookSecretPlaceholder;
 	}
 </script>
 
@@ -358,6 +385,31 @@
 			</Card.Content>
 		</Card.Root>
 	{/if}
+
+	<div
+		class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm dark:border-amber-900/50 dark:bg-amber-950/30"
+	>
+		<div class="flex items-start gap-3">
+			<IconBulb class="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+			<div class="space-y-2 text-amber-900 dark:text-amber-100">
+				<p class="font-semibold">Recommended Setup</p>
+				<ul class="space-y-1 text-xs leading-relaxed">
+					<li>
+						<span class="font-medium">For Indian businesses:</span> Enable
+						<span class="font-semibold">Razorpay</span> (lowest fees for domestic).
+					</li>
+					<li>
+						<span class="font-medium">For international:</span> Enable
+						<span class="font-semibold">Stripe</span>.
+					</li>
+					<li>
+						<span class="font-medium">For both:</span> Enable both — customers will see gateway choices
+						at checkout.
+					</li>
+				</ul>
+			</div>
+		</div>
+	</div>
 
 	<div class="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
 		<p class="mb-1 font-medium text-foreground">Security notice</p>
@@ -394,15 +446,23 @@
 						</div>
 						<div>
 							<div class="flex flex-wrap items-center gap-2">
-								<Card.Title class="text-lg">{meta.name}</Card.Title>
+								<Card.Title class="text-lg font-semibold">{meta.name}</Card.Title>
 								<Badge variant={status.variant} class={status.className}>{status.label}</Badge>
 								{#if cred && cred.enabled && cred.source === 'business'}
 									<Badge variant="outline" class={modeBadgeClass(cred.mode)}>
 										{cred.mode === 'live' ? 'Live' : 'Test'}
 									</Badge>
 								{/if}
+								{#if !meta.customerFacing}
+									<Badge
+										variant="secondary"
+										class="bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200"
+									>
+										Platform Managed
+									</Badge>
+								{/if}
 							</div>
-							<Card.Description class="mt-1">{meta.description}</Card.Description>
+							<p class="mt-1 text-xs text-muted-foreground">{meta.tagline}</p>
 							{#if cred?.lastVerifiedAt}
 								<p class="mt-1 flex items-center gap-1 text-xs text-green-700 dark:text-green-400">
 									<IconCheck class="size-3.5" />
@@ -429,6 +489,33 @@
 
 			{#if form.expanded}
 				<Card.Content class="flex flex-col gap-5 border-t pt-5">
+					<!-- Description + use-case tip -->
+					<div class="flex flex-col gap-3">
+						<p class="text-sm leading-relaxed text-muted-foreground">{meta.description}</p>
+						<div
+							class="flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 p-3"
+						>
+							<IconInfoCircle class="mt-0.5 size-4 shrink-0 text-primary" />
+							<p class="text-xs leading-relaxed text-foreground">
+								<span class="font-medium">Tip: </span>{meta.useCase}
+							</p>
+						</div>
+						{#if !meta.customerFacing}
+							<div
+								class="flex items-start gap-2 rounded-md border border-amber-300/60 bg-amber-50 p-3 dark:border-amber-900/50 dark:bg-amber-950/30"
+							>
+								<IconAlertCircle
+									class="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400"
+								/>
+								<p class="text-xs leading-relaxed text-amber-900 dark:text-amber-200">
+									<span class="font-medium">Not for customer payments. </span>
+									{meta.name} will not appear in your POS or online checkout. It is used only for
+									platform subscription billing.
+								</p>
+							</div>
+						{/if}
+					</div>
+
 					{#if usingPlatform}
 						<div
 							class="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200"
@@ -527,7 +614,7 @@
 							id="{provider}-webhook-secret"
 							type="password"
 							bind:value={forms[provider].webhookSecret}
-							placeholder={webhookSecretPlaceholder(cred)}
+							placeholder={webhookSecretPlaceholder(provider, cred)}
 							autocomplete="off"
 						/>
 						<p class="text-xs text-muted-foreground">
