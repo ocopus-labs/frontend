@@ -12,7 +12,9 @@
 		IconCreditCard,
 		IconCash,
 		IconDeviceMobile,
-		IconRefresh
+		IconRefresh,
+		IconBrandStripe,
+		IconBuildingBank
 	} from '@tabler/icons-svelte';
 	import { EmptyState } from '$lib/components/data-display';
 	import * as Select from '$lib/components/ui/select';
@@ -87,6 +89,10 @@
 				return IconCash;
 			case 'upi':
 				return IconDeviceMobile;
+			case 'stripe':
+				return IconBrandStripe;
+			case 'razorpay':
+				return IconBuildingBank;
 			default:
 				return IconReceipt;
 		}
@@ -104,6 +110,10 @@
 				return 'Net Banking';
 			case 'wallet':
 				return 'Wallet';
+			case 'razorpay':
+				return 'Razorpay';
+			case 'stripe':
+				return 'Stripe';
 			default:
 				return 'Other';
 		}
@@ -282,7 +292,7 @@
 
 					<Select.Root type="single" value={data.methodFilter} onValueChange={(v) => applyMethodFilter(v)}>
 						<Select.Trigger class="w-[150px]">
-							{({ all: 'All Methods', card: 'Card', cash: 'Cash', upi: 'UPI', net_banking: 'Net Banking', wallet: 'Wallet' } as Record<string, string>)[data.methodFilter] || 'All Methods'}
+							{({ all: 'All Methods', card: 'Card', cash: 'Cash', upi: 'UPI', net_banking: 'Net Banking', wallet: 'Wallet', razorpay: 'Razorpay', stripe: 'Stripe' } as Record<string, string>)[data.methodFilter] || 'All Methods'}
 						</Select.Trigger>
 						<Select.Content>
 							<Select.Item value="all">All Methods</Select.Item>
@@ -291,6 +301,8 @@
 							<Select.Item value="upi">UPI</Select.Item>
 							<Select.Item value="net_banking">Net Banking</Select.Item>
 							<Select.Item value="wallet">Wallet</Select.Item>
+							<Select.Item value="razorpay">Razorpay</Select.Item>
+							<Select.Item value="stripe">Stripe</Select.Item>
 						</Select.Content>
 					</Select.Root>
 				</div>

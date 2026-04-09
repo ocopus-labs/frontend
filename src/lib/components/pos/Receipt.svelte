@@ -68,6 +68,8 @@
 			upi: 'UPI',
 			net_banking: 'Net Banking',
 			wallet: 'Wallet',
+			razorpay: 'Razorpay',
+			stripe: 'Stripe',
 			other: 'Other'
 		};
 		return methods[method] || method;

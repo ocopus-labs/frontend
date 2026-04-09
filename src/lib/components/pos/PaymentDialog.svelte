@@ -275,7 +275,7 @@
 				await confirmStripePayment(businessId, { intentId: paymentIntent.id });
 				toast.success('Stripe payment successful');
 				onPaymentComplete({
-					paymentMethod: 'card',
+					paymentMethod: 'stripe',
 					amount: paymentAmount,
 					remainingBalance: balanceDue - paymentAmount
 				});
@@ -361,7 +361,7 @@
 
 							toast.success('Razorpay payment successful');
 							onPaymentComplete({
-								paymentMethod: 'card',
+								paymentMethod: 'razorpay',
 								amount: paymentAmount,
 								remainingBalance: balanceDue - paymentAmount,
 								tipAmount: tipAmount > 0 ? tipAmount : undefined

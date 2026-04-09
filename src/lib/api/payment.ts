@@ -2,7 +2,15 @@ import { createApiClient, getApiClient } from './client';
 
 // ==================== TYPES ====================
 
-export type PaymentMethod = 'cash' | 'card' | 'upi' | 'net_banking' | 'wallet' | 'other';
+export type PaymentMethod =
+  | 'cash'
+  | 'card'
+  | 'upi'
+  | 'net_banking'
+  | 'wallet'
+  | 'razorpay'
+  | 'stripe'
+  | 'other';
 export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded' | 'partially_refunded';
 
 export interface RefundEntry {
