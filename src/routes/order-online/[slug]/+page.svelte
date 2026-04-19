@@ -19,8 +19,12 @@
 	import PackageIcon from '@lucide/svelte/icons/package';
 	import TruckIcon from '@lucide/svelte/icons/truck';
 	import type { OnlineBusinessConfig, OnlineMenuCategory } from '$lib/api';
+	import { useCustomerSession } from '$lib/customer-auth';
+	import UserCircleIcon from '@lucide/svelte/icons/user-circle';
 
 	let { data }: { data: PageData } = $props();
+
+	const customerSession = useCustomerSession();
 
 	const config = $derived(data.config as OnlineBusinessConfig);
 	const business = $derived(config.business);
@@ -301,6 +305,15 @@
 			>
 				<SearchIcon class="h-4 w-4" />
 			</button>
+			{#if $customerSession?.data?.user}
+				<a
+					href="/order-online/{slug}/account"
+					class="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 transition-colors hover:bg-gray-200 dark:bg-muted"
+					aria-label="My account"
+				>
+					<UserCircleIcon class="h-4 w-4" />
+				</a>
+			{/if}
 		</div>
 
 		<!-- Order Type Toggle -->
