@@ -57,11 +57,11 @@
 	let cart = $state<CartItem[]>([]);
 	let searchQuery = $state('');
 
-	// Load cart from sessionStorage
+	// Load cart from localStorage (persists across auth redirects and page reloads)
 	$effect(() => {
 		if (typeof window !== 'undefined') {
 			const key = `online-cart:${slug}`;
-			const saved = sessionStorage.getItem(key);
+			const saved = localStorage.getItem(key);
 			if (saved) {
 				try {
 					cart = JSON.parse(saved);
@@ -70,18 +70,18 @@
 				}
 			}
 			// Restore order type
-			const savedType = sessionStorage.getItem(`online-order-type:${slug}`);
+			const savedType = localStorage.getItem(`online-order-type:${slug}`);
 			if (savedType === 'takeaway' || savedType === 'delivery') {
 				orderType = savedType;
 			}
 		}
 	});
 
-	// Save cart to sessionStorage
+	// Save cart to localStorage so it survives auth redirects
 	$effect(() => {
 		if (typeof window !== 'undefined' && slug) {
 			const key = `online-cart:${slug}`;
-			sessionStorage.setItem(key, JSON.stringify(cart));
+			localStorage.setItem(key, JSON.stringify(cart));
 		}
 	});
 
@@ -89,7 +89,7 @@
 	$effect(() => {
 		if (typeof window !== 'undefined' && slug) {
 			sessionStorage.setItem(`online-config:${slug}`, JSON.stringify(config));
-			sessionStorage.setItem(`online-order-type:${slug}`, orderType);
+			localStorage.setItem(`online-order-type:${slug}`, orderType);
 		}
 	});
 

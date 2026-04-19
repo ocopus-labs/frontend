@@ -11,6 +11,8 @@
 		type OnlineBusinessConfig,
 		type OnlineCheckoutPayload
 	} from '$lib/api';
+	import { useCustomerSession } from '$lib/customer-auth';
+	import { AuthModal, PhoneVerifyGate } from '$lib/components/customer-auth';
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
 	import UserIcon from '@lucide/svelte/icons/user';
 	import PhoneIcon from '@lucide/svelte/icons/phone';
@@ -30,6 +32,11 @@
 	import NotepadTextIcon from '@lucide/svelte/icons/notepad-text';
 	import StoreIcon from '@lucide/svelte/icons/store';
 	import LockIcon from '@lucide/svelte/icons/lock';
+
+	// ── Customer auth ──
+	const customerSession = useCustomerSession();
+	let showAuthModal = $state(false);
+	let authEnabled = $state(false);
 
 	const slug = $derived(page.params.slug ?? '');
 
@@ -58,7 +65,7 @@
 	let orderType = $state<'takeaway' | 'delivery'>('takeaway');
 	let loaded = $state(false);
 
-	// Load cart and config from sessionStorage
+	// Load cart and config from storage
 	$effect(() => {
 		if (typeof window !== 'undefined' && !loaded) {
 			loaded = true;
@@ -72,8 +79,9 @@
 				urlParams.has('payment_intent_client_secret') &&
 				urlParams.has('redirect_status');
 
+			// Cart is stored in localStorage so it survives auth redirects
 			const cartKey = `online-cart:${slug}`;
-			const saved = sessionStorage.getItem(cartKey);
+			const saved = localStorage.getItem(cartKey);
 			if (saved) {
 				try {
 					cart = JSON.parse(saved);
@@ -87,12 +95,13 @@
 			if (savedConfig) {
 				try {
 					config = JSON.parse(savedConfig);
+					authEnabled = !!(config as OnlineBusinessConfig)?.onlineOrdering?.authEnabled;
 				} catch {
 					/* ignore */
 				}
 			}
 
-			const savedType = sessionStorage.getItem(`online-order-type:${slug}`);
+			const savedType = localStorage.getItem(`online-order-type:${slug}`);
 			if (savedType === 'takeaway' || savedType === 'delivery') {
 				orderType = savedType;
 			}
@@ -178,6 +187,11 @@
 	}
 
 	function handleContinue() {
+		// If auth is required and user is not signed in, show the auth modal
+		if (authEnabled && !$customerSession?.data?.user) {
+			showAuthModal = true;
+			return;
+		}
 		if (!customerName.trim()) {
 			errorMessage = 'Please enter your name';
 			return;
@@ -206,6 +220,12 @@
 
 		if (!selectedPaymentMethod) {
 			errorMessage = 'Please select a payment method';
+			return;
+		}
+
+		// Auth gate: if authEnabled and no session, open the modal
+		if (authEnabled && !$customerSession?.data?.user) {
+			showAuthModal = true;
 			return;
 		}
 
@@ -238,6 +258,22 @@
 				return;
 			}
 		} catch (err: any) {
+			// Handle backend 401: session expired or not present
+			if (err?.status === 401 || err?.statusCode === 401) {
+				showAuthModal = true;
+				errorMessage = '';
+				return;
+			}
+			// Handle backend 403 with PHONE_VERIFICATION_REQUIRED:
+			// PhoneVerifyGate renders automatically when session.data.user.phoneNumberVerified===false
+			if (
+				(err?.status === 403 || err?.statusCode === 403) &&
+				err?.body?.code === 'PHONE_VERIFICATION_REQUIRED'
+			) {
+				errorMessage =
+					'Please verify your phone number to place an order. Complete the verification in the dialog above.';
+				return;
+			}
 			errorMessage = err?.message || 'Failed to place order. Please try again.';
 		} finally {
 			isSubmitting = false;
@@ -485,6 +521,9 @@
 
 	function clearCartStorage() {
 		if (typeof window !== 'undefined') {
+			// Cart lives in localStorage (survives auth redirects)
+			localStorage.removeItem(`online-cart:${slug}`);
+			localStorage.removeItem(`online-order-type:${slug}`);
 			sessionStorage.removeItem(`online-cart:${slug}`);
 			sessionStorage.removeItem(`online-order-type:${slug}`);
 		}
@@ -634,6 +673,18 @@
 		return response;
 	}
 </script>
+
+<!-- AuthModal: opens when authEnabled and user is not signed in -->
+{#if authEnabled}
+	<AuthModal
+		bind:open={showAuthModal}
+		onSuccess={() => { showAuthModal = false; }}
+	/>
+{/if}
+
+<!-- PhoneVerifyGate: passthrough wrapper; shows blocking dialog when a Google-signed-in
+     user hasn't verified their phone yet. Only active when authEnabled. -->
+<PhoneVerifyGate>
 
 {#if isVerifyingPayment && !orderSuccess}
 	<!-- Verifying payment (returning from Stripe 3DS) -->
@@ -1287,3 +1338,5 @@
 		</footer>
 	</div>
 {/if}
+
+</PhoneVerifyGate>
