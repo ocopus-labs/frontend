@@ -42,7 +42,8 @@ export function downloadCsv(
 	}
 
 	const csvString = csvLines.join('\n');
-	const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+	// Prepend UTF-8 BOM so Excel opens currency symbols (₹, €, £) correctly.
+	const blob = new Blob(['\ufeff', csvString], { type: 'text/csv;charset=utf-8;' });
 	const url = URL.createObjectURL(blob);
 
 	const anchor = document.createElement('a');
