@@ -12,9 +12,11 @@
 
 	interface Props {
 		children: Snippet;
+		/** When false the gate is inactive: children render as-is with no phone-verify dialog. */
+		authEnabled?: boolean;
 	}
 
-	let { children }: Props = $props();
+	let { children, authEnabled = true }: Props = $props();
 
 	// useCustomerSession returns a nanostores Atom — same pattern as useSession in nav-user.svelte
 	const session = useCustomerSession();
@@ -23,6 +25,7 @@
 	// A Google-only sign-in leaves this false, triggering the gate.
 	// While isPending is true, we render children optimistically.
 	let needsVerify = $derived.by(() => {
+		if (!authEnabled) return false;
 		const s = $session;
 		if (!s || s.isPending) return false;
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any

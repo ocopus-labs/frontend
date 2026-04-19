@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { PageData } from './$types';
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -33,10 +34,11 @@
 	import StoreIcon from '@lucide/svelte/icons/store';
 	import LockIcon from '@lucide/svelte/icons/lock';
 
+	let { data }: { data: PageData } = $props();
+
 	// ── Customer auth ──
 	const customerSession = useCustomerSession();
 	let showAuthModal = $state(false);
-	let authEnabled = $state(false);
 
 	const slug = $derived(page.params.slug ?? '');
 
@@ -61,7 +63,14 @@
 
 	// ── State ──
 	let cart = $state<CartItem[]>([]);
-	let config = $state<OnlineBusinessConfig | null>(null);
+	// Server-loaded config is authoritative; sessionStorage is a cache fallback for PWA/offline.
+	let config = $state<OnlineBusinessConfig | null>(
+		(data.config as unknown as OnlineBusinessConfig) ?? null
+	);
+	// Derive authEnabled from server config first; fall back to sessionStorage-loaded value below.
+	let authEnabled = $state(
+		!!(data.config as unknown as OnlineBusinessConfig | null)?.onlineOrdering?.authEnabled
+	);
 	let orderType = $state<'takeaway' | 'delivery'>('takeaway');
 	let loaded = $state(false);
 
@@ -90,14 +99,17 @@
 				}
 			}
 
-			const configKey = `online-config:${slug}`;
-			const savedConfig = sessionStorage.getItem(configKey);
-			if (savedConfig) {
-				try {
-					config = JSON.parse(savedConfig);
-					authEnabled = !!(config as OnlineBusinessConfig)?.onlineOrdering?.authEnabled;
-				} catch {
-					/* ignore */
+			// Use server-loaded config if available; fall back to sessionStorage for PWA/offline.
+			if (!config) {
+				const configKey = `online-config:${slug}`;
+				const savedConfig = sessionStorage.getItem(configKey);
+				if (savedConfig) {
+					try {
+						config = JSON.parse(savedConfig);
+						authEnabled = !!(config as OnlineBusinessConfig)?.onlineOrdering?.authEnabled;
+					} catch {
+						/* ignore */
+					}
 				}
 			}
 
@@ -356,11 +368,7 @@
 		}
 	});
 
-	async function handleStripeReturn(
-		_intentId: string,
-		clientSecret: string,
-		status: string
-	) {
+	async function handleStripeReturn(_intentId: string, clientSecret: string, status: string) {
 		// Clean up the URL FIRST so a refresh doesn't retrigger the handler.
 		const cleanUrl = window.location.pathname;
 		window.history.replaceState({}, '', cleanUrl);
@@ -678,665 +686,762 @@
 {#if authEnabled}
 	<AuthModal
 		bind:open={showAuthModal}
-		onSuccess={() => { showAuthModal = false; }}
+		onSuccess={() => {
+			showAuthModal = false;
+		}}
 	/>
 {/if}
 
 <!-- PhoneVerifyGate: passthrough wrapper; shows blocking dialog when a Google-signed-in
      user hasn't verified their phone yet. Only active when authEnabled. -->
-<PhoneVerifyGate>
-
-{#if isVerifyingPayment && !orderSuccess}
-	<!-- Verifying payment (returning from Stripe 3DS) -->
-	<div class="flex min-h-svh flex-col items-center justify-center bg-gray-50 px-6 dark:bg-background">
-		<div class="w-full max-w-sm text-center">
-			<div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-				<Loader2Icon class="h-8 w-8 animate-spin text-primary" />
-			</div>
-			<h1 class="text-xl font-bold text-gray-900 dark:text-foreground">Verifying payment...</h1>
-			<p class="mt-2 text-sm text-muted-foreground">
-				Please wait while we confirm your payment. Do not close or refresh this page.
-			</p>
-		</div>
-	</div>
-{:else if orderSuccess && successData}
-	<!-- Success Page -->
-	<div class="flex min-h-svh flex-col items-center justify-center bg-gray-50 px-6 dark:bg-background">
-		<div class="w-full max-w-md text-center">
-			<div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-				<CircleCheckBigIcon class="h-10 w-10 text-green-600 dark:text-green-400" />
-			</div>
-			<h1 class="text-2xl font-bold text-gray-900 dark:text-foreground">Order Placed!</h1>
-			<p class="mt-2 text-sm text-muted-foreground">
-				Your order <span class="font-semibold text-foreground">{successData.orderNumber}</span> has been received.
-			</p>
-
-			<div class="mt-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card">
-				<div class="space-y-3">
-					<div class="flex items-center justify-between text-sm">
-						<span class="text-muted-foreground">Order Type</span>
-						<span class="flex items-center gap-1.5 font-medium capitalize">
-							{#if orderType === 'delivery'}
-								<TruckIcon class="h-3.5 w-3.5" />
-							{:else}
-								<PackageIcon class="h-3.5 w-3.5" />
-							{/if}
-							{orderType}
-						</span>
-					</div>
-					<div class="flex items-center justify-between text-sm">
-						<span class="text-muted-foreground">Estimated Time</span>
-						<span class="flex items-center gap-1.5 font-medium">
-							<ClockIcon class="h-3.5 w-3.5" />
-							~{successData.estimatedPrepTime} min
-						</span>
-					</div>
-					<div class="flex items-center justify-between text-sm">
-						<span class="text-muted-foreground">Payment</span>
-						<span class="font-medium">
-							{#if selectedPaymentMethod}
-								{paymentMethodLabels[selectedPaymentMethod]?.label || selectedPaymentMethod}
-							{:else}
-								{paymentMethod}
-							{/if}
-						</span>
-					</div>
-				</div>
-			</div>
-
-			<div class="mt-6 space-y-3">
-				<a
-					href="/order/track/{successData.trackingToken}"
-					class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 font-semibold text-primary-foreground shadow-lg transition-all active:scale-[0.98]"
-				>
-					Track Your Order
-				</a>
-				<button
-					class="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 transition-all hover:bg-gray-50 active:scale-[0.98] dark:border-border dark:bg-card dark:text-foreground"
-					onclick={() => goto(`/${slug}`)}
-				>
-					Order More
-				</button>
-			</div>
-
-			<p class="mt-6 text-xs text-muted-foreground">
-				You can track your order status using the link above.
-			</p>
-		</div>
-	</div>
-{:else}
-	<!-- Checkout Flow -->
-	<div class="flex min-h-svh flex-col bg-gray-50 dark:bg-background">
-		<!-- Header -->
-		<header
-			class="sticky top-0 z-20 border-b bg-white/95 backdrop-blur dark:bg-background/95"
+<PhoneVerifyGate {authEnabled}>
+	{#if isVerifyingPayment && !orderSuccess}
+		<!-- Verifying payment (returning from Stripe 3DS) -->
+		<div
+			class="flex min-h-svh flex-col items-center justify-center bg-gray-50 px-6 dark:bg-background"
 		>
-			<div class="flex items-center gap-3 px-4 py-3">
-				<button
-					onclick={goBack}
-					class="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 transition-colors hover:bg-gray-200 dark:bg-muted"
-					aria-label="Go back"
+			<div class="w-full max-w-sm text-center">
+				<div
+					class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10"
 				>
-					<ArrowLeftIcon class="h-4 w-4" />
-				</button>
-				<div class="min-w-0 flex-1">
-					<h1 class="text-base font-bold">
-						{#if step === 'details'}Checkout{:else if step === 'confirm'}Confirm Order{:else}Payment{/if}
-					</h1>
-					{#if business}
-						<p class="truncate text-xs text-muted-foreground">{business.name}</p>
-					{/if}
+					<Loader2Icon class="h-8 w-8 animate-spin text-primary" />
 				</div>
+				<h1 class="text-xl font-bold text-gray-900 dark:text-foreground">Verifying payment...</h1>
+				<p class="mt-2 text-sm text-muted-foreground">
+					Please wait while we confirm your payment. Do not close or refresh this page.
+				</p>
 			</div>
+		</div>
+	{:else if orderSuccess && successData}
+		<!-- Success Page -->
+		<div
+			class="flex min-h-svh flex-col items-center justify-center bg-gray-50 px-6 dark:bg-background"
+		>
+			<div class="w-full max-w-md text-center">
+				<div
+					class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30"
+				>
+					<CircleCheckBigIcon class="h-10 w-10 text-green-600 dark:text-green-400" />
+				</div>
+				<h1 class="text-2xl font-bold text-gray-900 dark:text-foreground">Order Placed!</h1>
+				<p class="mt-2 text-sm text-muted-foreground">
+					Your order <span class="font-semibold text-foreground">{successData.orderNumber}</span> has
+					been received.
+				</p>
 
-			<!-- Step indicator -->
-			<div class="flex items-center gap-2 px-4 pb-3">
-				{#each ['Details', 'Confirm', 'Payment'] as label, i}
-					{@const active = i <= stepIndex}
-					{@const isLast = i === 2}
-					<div class="flex items-center gap-2 {isLast ? '' : 'flex-1'}">
-						<div class="flex items-center gap-1.5">
-							<div
-								class="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-colors {active
-									? 'bg-primary text-primary-foreground'
-									: 'bg-gray-200 text-gray-500 dark:bg-muted dark:text-muted-foreground'}"
-							>
-								{#if i < stepIndex}
-									<CheckCircle2Icon class="h-3.5 w-3.5" />
+				<div
+					class="mt-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card"
+				>
+					<div class="space-y-3">
+						<div class="flex items-center justify-between text-sm">
+							<span class="text-muted-foreground">Order Type</span>
+							<span class="flex items-center gap-1.5 font-medium capitalize">
+								{#if orderType === 'delivery'}
+									<TruckIcon class="h-3.5 w-3.5" />
 								{:else}
-									{i + 1}
+									<PackageIcon class="h-3.5 w-3.5" />
 								{/if}
-							</div>
-							<span class="text-xs font-medium {active ? 'text-primary' : 'text-gray-400'}">{label}</span>
+								{orderType}
+							</span>
 						</div>
-						{#if !isLast}
-							<div class="h-0.5 flex-1 rounded-full {i < stepIndex ? 'bg-primary' : 'bg-gray-200 dark:bg-muted'}"></div>
+						<div class="flex items-center justify-between text-sm">
+							<span class="text-muted-foreground">Estimated Time</span>
+							<span class="flex items-center gap-1.5 font-medium">
+								<ClockIcon class="h-3.5 w-3.5" />
+								~{successData.estimatedPrepTime} min
+							</span>
+						</div>
+						<div class="flex items-center justify-between text-sm">
+							<span class="text-muted-foreground">Payment</span>
+							<span class="font-medium">
+								{#if selectedPaymentMethod}
+									{paymentMethodLabels[selectedPaymentMethod]?.label || selectedPaymentMethod}
+								{:else}
+									{paymentMethod}
+								{/if}
+							</span>
+						</div>
+					</div>
+				</div>
+
+				<div class="mt-6 space-y-3">
+					<a
+						href="/order/track/{successData.trackingToken}"
+						class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 font-semibold text-primary-foreground shadow-lg transition-all active:scale-[0.98]"
+					>
+						Track Your Order
+					</a>
+					<button
+						class="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 transition-all hover:bg-gray-50 active:scale-[0.98] dark:border-border dark:bg-card dark:text-foreground"
+						onclick={() => goto(`/${slug}`)}
+					>
+						Order More
+					</button>
+				</div>
+
+				<p class="mt-6 text-xs text-muted-foreground">
+					You can track your order status using the link above.
+				</p>
+			</div>
+		</div>
+	{:else}
+		<!-- Checkout Flow -->
+		<div class="flex min-h-svh flex-col bg-gray-50 dark:bg-background">
+			<!-- Header -->
+			<header class="sticky top-0 z-20 border-b bg-white/95 backdrop-blur dark:bg-background/95">
+				<div class="flex items-center gap-3 px-4 py-3">
+					<button
+						onclick={goBack}
+						class="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 transition-colors hover:bg-gray-200 dark:bg-muted"
+						aria-label="Go back"
+					>
+						<ArrowLeftIcon class="h-4 w-4" />
+					</button>
+					<div class="min-w-0 flex-1">
+						<h1 class="text-base font-bold">
+							{#if step === 'details'}Checkout{:else if step === 'confirm'}Confirm Order{:else}Payment{/if}
+						</h1>
+						{#if business}
+							<p class="truncate text-xs text-muted-foreground">{business.name}</p>
 						{/if}
 					</div>
-				{/each}
-			</div>
-		</header>
-
-		<div class="flex-1 px-4 py-4 space-y-4">
-			{#if errorMessage}
-				<div class="flex items-center gap-2 rounded-xl bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
-					<span class="shrink-0 text-lg">!</span>
-					{errorMessage}
-				</div>
-			{/if}
-
-			<!-- Step 1: Details -->
-			{#if step === 'details'}
-				<!-- Order Type Badge -->
-				<div class="flex items-center gap-2 rounded-xl border border-gray-100 bg-white p-3 dark:border-border dark:bg-card">
-					{#if orderType === 'delivery'}
-						<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
-							<TruckIcon class="h-4 w-4 text-blue-600 dark:text-blue-400" />
-						</div>
-						<div>
-							<p class="text-sm font-semibold">Delivery Order</p>
-							<p class="text-xs text-muted-foreground">We'll deliver to your address</p>
-						</div>
-					{:else}
-						<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
-							<PackageIcon class="h-4 w-4 text-green-600 dark:text-green-400" />
-						</div>
-						<div>
-							<p class="text-sm font-semibold">Takeaway Order</p>
-							<p class="text-xs text-muted-foreground">Pick up from the store</p>
-						</div>
-					{/if}
 				</div>
 
-				<!-- Customer Details -->
-				<div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card">
-					<div class="mb-4 flex items-center gap-2">
-						<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-							<UserIcon class="h-4 w-4 text-primary" />
+				<!-- Step indicator -->
+				<div class="flex items-center gap-2 px-4 pb-3">
+					{#each ['Details', 'Confirm', 'Payment'] as label, i}
+						{@const active = i <= stepIndex}
+						{@const isLast = i === 2}
+						<div class="flex items-center gap-2 {isLast ? '' : 'flex-1'}">
+							<div class="flex items-center gap-1.5">
+								<div
+									class="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-colors {active
+										? 'bg-primary text-primary-foreground'
+										: 'bg-gray-200 text-gray-500 dark:bg-muted dark:text-muted-foreground'}"
+								>
+									{#if i < stepIndex}
+										<CheckCircle2Icon class="h-3.5 w-3.5" />
+									{:else}
+										{i + 1}
+									{/if}
+								</div>
+								<span class="text-xs font-medium {active ? 'text-primary' : 'text-gray-400'}"
+									>{label}</span
+								>
+							</div>
+							{#if !isLast}
+								<div
+									class="h-0.5 flex-1 rounded-full {i < stepIndex
+										? 'bg-primary'
+										: 'bg-gray-200 dark:bg-muted'}"
+								></div>
+							{/if}
 						</div>
-						<div>
-							<h2 class="text-sm font-bold">Your Details</h2>
-							<p class="text-xs text-muted-foreground">So we can reach you about your order</p>
-						</div>
+					{/each}
+				</div>
+			</header>
+
+			<div class="flex-1 space-y-4 px-4 py-4">
+				{#if errorMessage}
+					<div
+						class="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+					>
+						<span class="shrink-0 text-lg">!</span>
+						{errorMessage}
 					</div>
-					<div class="space-y-4">
-						<div class="space-y-1.5">
-							<label for="name" class="text-xs font-semibold text-gray-600 dark:text-muted-foreground">Name *</label>
-							<div class="relative">
-								<UserIcon class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-								<input
-									id="name"
-									type="text"
-									bind:value={customerName}
-									placeholder="Enter your name"
-									class="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-4 text-sm outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary dark:border-border dark:bg-muted"
-								/>
-							</div>
-						</div>
-						<div class="space-y-1.5">
-							<label for="phone" class="text-xs font-semibold text-gray-600 dark:text-muted-foreground">Phone *</label>
-							<div class="relative">
-								<PhoneIcon class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-								<input
-									id="phone"
-									type="tel"
-									bind:value={customerPhone}
-									placeholder="+91 XXXXX XXXXX"
-									class="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-4 text-sm outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary dark:border-border dark:bg-muted"
-								/>
-							</div>
-						</div>
-						<div class="space-y-1.5">
-							<label for="email" class="text-xs font-semibold text-gray-600 dark:text-muted-foreground">Email (optional)</label>
-							<div class="relative">
-								<MailIcon class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-								<input
-									id="email"
-									type="email"
-									bind:value={customerEmail}
-									placeholder="your@email.com"
-									class="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-4 text-sm outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary dark:border-border dark:bg-muted"
-								/>
-							</div>
-						</div>
-					</div>
-				</div>
+				{/if}
 
-				<!-- Delivery Address (if delivery) -->
-				{#if orderType === 'delivery'}
-					<div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card">
-						<div class="mb-4 flex items-center gap-2">
-							<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
-								<MapPinIcon class="h-4 w-4 text-blue-600 dark:text-blue-400" />
+				<!-- Step 1: Details -->
+				{#if step === 'details'}
+					<!-- Order Type Badge -->
+					<div
+						class="flex items-center gap-2 rounded-xl border border-gray-100 bg-white p-3 dark:border-border dark:bg-card"
+					>
+						{#if orderType === 'delivery'}
+							<div
+								class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30"
+							>
+								<TruckIcon class="h-4 w-4 text-blue-600 dark:text-blue-400" />
 							</div>
 							<div>
-								<h2 class="text-sm font-bold">Delivery Address</h2>
-								<p class="text-xs text-muted-foreground">Where should we deliver your order?</p>
+								<p class="text-sm font-semibold">Delivery Order</p>
+								<p class="text-xs text-muted-foreground">We'll deliver to your address</p>
+							</div>
+						{:else}
+							<div
+								class="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30"
+							>
+								<PackageIcon class="h-4 w-4 text-green-600 dark:text-green-400" />
+							</div>
+							<div>
+								<p class="text-sm font-semibold">Takeaway Order</p>
+								<p class="text-xs text-muted-foreground">Pick up from the store</p>
+							</div>
+						{/if}
+					</div>
+
+					<!-- Customer Details -->
+					<div
+						class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card"
+					>
+						<div class="mb-4 flex items-center gap-2">
+							<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+								<UserIcon class="h-4 w-4 text-primary" />
+							</div>
+							<div>
+								<h2 class="text-sm font-bold">Your Details</h2>
+								<p class="text-xs text-muted-foreground">So we can reach you about your order</p>
 							</div>
 						</div>
 						<div class="space-y-4">
 							<div class="space-y-1.5">
-								<label for="address" class="text-xs font-semibold text-gray-600 dark:text-muted-foreground">Full Address *</label>
-								<textarea
-									id="address"
-									bind:value={deliveryAddress}
-									placeholder="House/flat number, street, area, landmark..."
-									rows="3"
-									class="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary dark:border-border dark:bg-muted"
-								></textarea>
-							</div>
-							<div class="space-y-1.5">
-								<label for="notes" class="text-xs font-semibold text-gray-600 dark:text-muted-foreground">Delivery Notes (optional)</label>
+								<label
+									for="name"
+									class="text-xs font-semibold text-gray-600 dark:text-muted-foreground"
+									>Name *</label
+								>
 								<div class="relative">
-									<NotepadTextIcon class="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+									<UserIcon
+										class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
+									/>
 									<input
-										id="notes"
+										id="name"
 										type="text"
-										bind:value={deliveryNotes}
-										placeholder="Ring the bell, call on arrival..."
-										class="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-4 text-sm outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary dark:border-border dark:bg-muted"
+										bind:value={customerName}
+										placeholder="Enter your name"
+										class="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pr-4 pl-10 text-sm transition-colors outline-none focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary dark:border-border dark:bg-muted"
 									/>
 								</div>
 							</div>
-
-							<!-- Delivery zones info -->
-							{#if deliveryZones.length > 0}
-								<div class="rounded-xl bg-blue-50/50 p-3 dark:bg-blue-900/10">
-									<p class="mb-1.5 text-xs font-semibold text-blue-800 dark:text-blue-300">Delivery Zones</p>
-									<div class="space-y-1">
-										{#each deliveryZones as zone}
-											<div class="flex items-center justify-between text-xs">
-												<span class="text-blue-700 dark:text-blue-400">{zone.name}</span>
-												<div class="flex items-center gap-2 text-blue-600 dark:text-blue-300">
-													{#if zone.deliveryFee > 0}
-														<span>Fee: {formatPrice(zone.deliveryFee)}</span>
-													{:else}
-														<span class="text-green-600">Free</span>
-													{/if}
-													{#if zone.estimatedMinutes}
-														<span>~{zone.estimatedMinutes} min</span>
-													{/if}
-												</div>
-											</div>
-										{/each}
-									</div>
-									<p class="mt-1.5 text-[10px] text-blue-500 dark:text-blue-400">
-										Delivery fee will be confirmed after order placement based on your zone.
-									</p>
+							<div class="space-y-1.5">
+								<label
+									for="phone"
+									class="text-xs font-semibold text-gray-600 dark:text-muted-foreground"
+									>Phone *</label
+								>
+								<div class="relative">
+									<PhoneIcon
+										class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
+									/>
+									<input
+										id="phone"
+										type="tel"
+										bind:value={customerPhone}
+										placeholder="+91 XXXXX XXXXX"
+										class="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pr-4 pl-10 text-sm transition-colors outline-none focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary dark:border-border dark:bg-muted"
+									/>
 								</div>
+							</div>
+							<div class="space-y-1.5">
+								<label
+									for="email"
+									class="text-xs font-semibold text-gray-600 dark:text-muted-foreground"
+									>Email (optional)</label
+								>
+								<div class="relative">
+									<MailIcon
+										class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
+									/>
+									<input
+										id="email"
+										type="email"
+										bind:value={customerEmail}
+										placeholder="your@email.com"
+										class="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pr-4 pl-10 text-sm transition-colors outline-none focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary dark:border-border dark:bg-muted"
+									/>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Delivery Address (if delivery) -->
+					{#if orderType === 'delivery'}
+						<div
+							class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card"
+						>
+							<div class="mb-4 flex items-center gap-2">
+								<div
+									class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30"
+								>
+									<MapPinIcon class="h-4 w-4 text-blue-600 dark:text-blue-400" />
+								</div>
+								<div>
+									<h2 class="text-sm font-bold">Delivery Address</h2>
+									<p class="text-xs text-muted-foreground">Where should we deliver your order?</p>
+								</div>
+							</div>
+							<div class="space-y-4">
+								<div class="space-y-1.5">
+									<label
+										for="address"
+										class="text-xs font-semibold text-gray-600 dark:text-muted-foreground"
+										>Full Address *</label
+									>
+									<textarea
+										id="address"
+										bind:value={deliveryAddress}
+										placeholder="House/flat number, street, area, landmark..."
+										rows="3"
+										class="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm transition-colors outline-none focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary dark:border-border dark:bg-muted"
+									></textarea>
+								</div>
+								<div class="space-y-1.5">
+									<label
+										for="notes"
+										class="text-xs font-semibold text-gray-600 dark:text-muted-foreground"
+										>Delivery Notes (optional)</label
+									>
+									<div class="relative">
+										<NotepadTextIcon class="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+										<input
+											id="notes"
+											type="text"
+											bind:value={deliveryNotes}
+											placeholder="Ring the bell, call on arrival..."
+											class="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pr-4 pl-10 text-sm transition-colors outline-none focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary dark:border-border dark:bg-muted"
+										/>
+									</div>
+								</div>
+
+								<!-- Delivery zones info -->
+								{#if deliveryZones.length > 0}
+									<div class="rounded-xl bg-blue-50/50 p-3 dark:bg-blue-900/10">
+										<p class="mb-1.5 text-xs font-semibold text-blue-800 dark:text-blue-300">
+											Delivery Zones
+										</p>
+										<div class="space-y-1">
+											{#each deliveryZones as zone}
+												<div class="flex items-center justify-between text-xs">
+													<span class="text-blue-700 dark:text-blue-400">{zone.name}</span>
+													<div class="flex items-center gap-2 text-blue-600 dark:text-blue-300">
+														{#if zone.deliveryFee > 0}
+															<span>Fee: {formatPrice(zone.deliveryFee)}</span>
+														{:else}
+															<span class="text-green-600">Free</span>
+														{/if}
+														{#if zone.estimatedMinutes}
+															<span>~{zone.estimatedMinutes} min</span>
+														{/if}
+													</div>
+												</div>
+											{/each}
+										</div>
+										<p class="mt-1.5 text-[10px] text-blue-500 dark:text-blue-400">
+											Delivery fee will be confirmed after order placement based on your zone.
+										</p>
+									</div>
+								{/if}
+							</div>
+						</div>
+					{/if}
+
+					<!-- Payment Method -->
+					<div
+						class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card"
+					>
+						<div class="mb-4 flex items-center gap-2">
+							<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+								<WalletIcon class="h-4 w-4 text-primary" />
+							</div>
+							<div>
+								<h2 class="text-sm font-bold">Payment Method</h2>
+								<p class="text-xs text-muted-foreground">How would you like to pay?</p>
+							</div>
+						</div>
+						<div class="space-y-2">
+							{#if stripeEnabled}
+								<button
+									type="button"
+									class="flex w-full items-center gap-3 rounded-xl border-2 p-3.5 text-left transition-all {selectedPaymentMethod ===
+									'stripe'
+										? 'border-primary bg-primary/5'
+										: 'border-gray-100 hover:border-gray-200 dark:border-border'}"
+									onclick={() => (selectedPaymentMethod = 'stripe')}
+								>
+									<div
+										class="flex h-5 w-5 items-center justify-center rounded-full border-2 {selectedPaymentMethod ===
+										'stripe'
+											? 'border-primary'
+											: 'border-gray-300 dark:border-muted-foreground'}"
+									>
+										{#if selectedPaymentMethod === 'stripe'}
+											<div class="h-2.5 w-2.5 rounded-full bg-primary"></div>
+										{/if}
+									</div>
+									<CreditCardIcon class="h-4 w-4 text-gray-500" />
+									<div class="min-w-0 flex-1">
+										<div class="text-sm font-medium">Credit / Debit Card</div>
+										<div class="text-[11px] text-muted-foreground">Secured by Stripe</div>
+									</div>
+									{#if paymentGateways?.stripe?.mode === 'test'}
+										<span
+											class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+											>TEST</span
+										>
+									{/if}
+								</button>
+							{/if}
+
+							{#if razorpayEnabled}
+								<button
+									type="button"
+									class="flex w-full items-center gap-3 rounded-xl border-2 p-3.5 text-left transition-all {selectedPaymentMethod ===
+									'razorpay'
+										? 'border-primary bg-primary/5'
+										: 'border-gray-100 hover:border-gray-200 dark:border-border'}"
+									onclick={() => (selectedPaymentMethod = 'razorpay')}
+								>
+									<div
+										class="flex h-5 w-5 items-center justify-center rounded-full border-2 {selectedPaymentMethod ===
+										'razorpay'
+											? 'border-primary'
+											: 'border-gray-300 dark:border-muted-foreground'}"
+									>
+										{#if selectedPaymentMethod === 'razorpay'}
+											<div class="h-2.5 w-2.5 rounded-full bg-primary"></div>
+										{/if}
+									</div>
+									<WalletIcon class="h-4 w-4 text-gray-500" />
+									<div class="min-w-0 flex-1">
+										<div class="text-sm font-medium">UPI / Card / Wallet</div>
+										<div class="text-[11px] text-muted-foreground">Secured by Razorpay</div>
+									</div>
+									{#if paymentGateways?.razorpay?.mode === 'test'}
+										<span
+											class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+											>TEST</span
+										>
+									{/if}
+								</button>
+							{/if}
+
+							{#if cashEnabled}
+								<button
+									type="button"
+									class="flex w-full items-center gap-3 rounded-xl border-2 p-3.5 text-left transition-all {selectedPaymentMethod ===
+									'cash'
+										? 'border-primary bg-primary/5'
+										: 'border-gray-100 hover:border-gray-200 dark:border-border'}"
+									onclick={() => (selectedPaymentMethod = 'cash')}
+								>
+									<div
+										class="flex h-5 w-5 items-center justify-center rounded-full border-2 {selectedPaymentMethod ===
+										'cash'
+											? 'border-primary'
+											: 'border-gray-300 dark:border-muted-foreground'}"
+									>
+										{#if selectedPaymentMethod === 'cash'}
+											<div class="h-2.5 w-2.5 rounded-full bg-primary"></div>
+										{/if}
+									</div>
+									<BanknoteIcon class="h-4 w-4 text-gray-500" />
+									<div class="min-w-0 flex-1">
+										<div class="text-sm font-medium">Pay at Pickup / Delivery</div>
+										<div class="text-[11px] text-muted-foreground">Cash on arrival</div>
+									</div>
+								</button>
+							{/if}
+
+							{#if !hasAnyPaymentMethod}
+								<p class="text-xs text-muted-foreground">
+									No payment methods are configured for this business.
+								</p>
 							{/if}
 						</div>
 					</div>
-				{/if}
 
-				<!-- Payment Method -->
-				<div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card">
-					<div class="mb-4 flex items-center gap-2">
-						<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-							<WalletIcon class="h-4 w-4 text-primary" />
+					<!-- Order Summary -->
+					<div
+						class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card"
+					>
+						<div class="mb-3 flex items-center gap-2">
+							<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+								<ReceiptIcon class="h-4 w-4 text-primary" />
+							</div>
+							<div>
+								<h2 class="text-sm font-bold">Order Summary</h2>
+								<p class="text-xs text-muted-foreground">{cartItemCount} items</p>
+							</div>
 						</div>
-						<div>
-							<h2 class="text-sm font-bold">Payment Method</h2>
-							<p class="text-xs text-muted-foreground">How would you like to pay?</p>
-						</div>
-					</div>
-					<div class="space-y-2">
-						{#if stripeEnabled}
-							<button
-								type="button"
-								class="flex w-full items-center gap-3 rounded-xl border-2 p-3.5 text-left transition-all {selectedPaymentMethod === 'stripe'
-									? 'border-primary bg-primary/5'
-									: 'border-gray-100 hover:border-gray-200 dark:border-border'}"
-								onclick={() => (selectedPaymentMethod = 'stripe')}
-							>
-								<div
-									class="flex h-5 w-5 items-center justify-center rounded-full border-2 {selectedPaymentMethod === 'stripe'
-										? 'border-primary'
-										: 'border-gray-300 dark:border-muted-foreground'}"
-								>
-									{#if selectedPaymentMethod === 'stripe'}
-										<div class="h-2.5 w-2.5 rounded-full bg-primary"></div>
-									{/if}
-								</div>
-								<CreditCardIcon class="h-4 w-4 text-gray-500" />
-								<div class="min-w-0 flex-1">
-									<div class="text-sm font-medium">Credit / Debit Card</div>
-									<div class="text-[11px] text-muted-foreground">Secured by Stripe</div>
-								</div>
-								{#if paymentGateways?.stripe?.mode === 'test'}
-									<span class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">TEST</span>
-								{/if}
-							</button>
-						{/if}
-
-						{#if razorpayEnabled}
-							<button
-								type="button"
-								class="flex w-full items-center gap-3 rounded-xl border-2 p-3.5 text-left transition-all {selectedPaymentMethod === 'razorpay'
-									? 'border-primary bg-primary/5'
-									: 'border-gray-100 hover:border-gray-200 dark:border-border'}"
-								onclick={() => (selectedPaymentMethod = 'razorpay')}
-							>
-								<div
-									class="flex h-5 w-5 items-center justify-center rounded-full border-2 {selectedPaymentMethod === 'razorpay'
-										? 'border-primary'
-										: 'border-gray-300 dark:border-muted-foreground'}"
-								>
-									{#if selectedPaymentMethod === 'razorpay'}
-										<div class="h-2.5 w-2.5 rounded-full bg-primary"></div>
-									{/if}
-								</div>
-								<WalletIcon class="h-4 w-4 text-gray-500" />
-								<div class="min-w-0 flex-1">
-									<div class="text-sm font-medium">UPI / Card / Wallet</div>
-									<div class="text-[11px] text-muted-foreground">Secured by Razorpay</div>
-								</div>
-								{#if paymentGateways?.razorpay?.mode === 'test'}
-									<span class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">TEST</span>
-								{/if}
-							</button>
-						{/if}
-
-						{#if cashEnabled}
-							<button
-								type="button"
-								class="flex w-full items-center gap-3 rounded-xl border-2 p-3.5 text-left transition-all {selectedPaymentMethod === 'cash'
-									? 'border-primary bg-primary/5'
-									: 'border-gray-100 hover:border-gray-200 dark:border-border'}"
-								onclick={() => (selectedPaymentMethod = 'cash')}
-							>
-								<div
-									class="flex h-5 w-5 items-center justify-center rounded-full border-2 {selectedPaymentMethod === 'cash'
-										? 'border-primary'
-										: 'border-gray-300 dark:border-muted-foreground'}"
-								>
-									{#if selectedPaymentMethod === 'cash'}
-										<div class="h-2.5 w-2.5 rounded-full bg-primary"></div>
-									{/if}
-								</div>
-								<BanknoteIcon class="h-4 w-4 text-gray-500" />
-								<div class="min-w-0 flex-1">
-									<div class="text-sm font-medium">Pay at Pickup / Delivery</div>
-									<div class="text-[11px] text-muted-foreground">Cash on arrival</div>
-								</div>
-							</button>
-						{/if}
-
-						{#if !hasAnyPaymentMethod}
-							<p class="text-xs text-muted-foreground">
-								No payment methods are configured for this business.
-							</p>
-						{/if}
-					</div>
-				</div>
-
-				<!-- Order Summary -->
-				<div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card">
-					<div class="mb-3 flex items-center gap-2">
-						<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-							<ReceiptIcon class="h-4 w-4 text-primary" />
-						</div>
-						<div>
-							<h2 class="text-sm font-bold">Order Summary</h2>
-							<p class="text-xs text-muted-foreground">{cartItemCount} items</p>
-						</div>
-					</div>
-					<div class="space-y-2.5">
-						{#each cart as item (item.cartId)}
-							<div class="flex items-start justify-between gap-2">
-								<div class="min-w-0 flex-1">
-									<div class="flex items-center gap-1.5">
-										<span class="text-sm font-medium">{item.name}</span>
-										<span class="text-xs text-muted-foreground">x{item.quantity}</span>
-									</div>
-									{#if item.modifiers}
-										<div class="mt-0.5 flex flex-wrap gap-1">
-											{#if item.modifiers.size}
-												<span class="rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600 dark:bg-muted dark:text-muted-foreground">
-													{item.modifiers.size.name}
-												</span>
-											{/if}
-											{#if item.modifiers.spiceLevel}
-												<span class="rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] text-orange-600 dark:bg-orange-900/20 dark:text-orange-300">
-													{item.modifiers.spiceLevel.name}
-												</span>
-											{/if}
-											{#if item.modifiers.addOns?.length}
-												{#each item.modifiers.addOns as addOn}
-													<span class="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600 dark:bg-blue-900/20 dark:text-blue-300">
-														+{addOn.name}
-													</span>
-												{/each}
-											{/if}
+						<div class="space-y-2.5">
+							{#each cart as item (item.cartId)}
+								<div class="flex items-start justify-between gap-2">
+									<div class="min-w-0 flex-1">
+										<div class="flex items-center gap-1.5">
+											<span class="text-sm font-medium">{item.name}</span>
+											<span class="text-xs text-muted-foreground">x{item.quantity}</span>
 										</div>
-										{#if item.modifiers.specialInstructions}
-											<p class="mt-0.5 text-[10px] italic text-muted-foreground">
-												"{item.modifiers.specialInstructions}"
-											</p>
+										{#if item.modifiers}
+											<div class="mt-0.5 flex flex-wrap gap-1">
+												{#if item.modifiers.size}
+													<span
+														class="rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600 dark:bg-muted dark:text-muted-foreground"
+													>
+														{item.modifiers.size.name}
+													</span>
+												{/if}
+												{#if item.modifiers.spiceLevel}
+													<span
+														class="rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] text-orange-600 dark:bg-orange-900/20 dark:text-orange-300"
+													>
+														{item.modifiers.spiceLevel.name}
+													</span>
+												{/if}
+												{#if item.modifiers.addOns?.length}
+													{#each item.modifiers.addOns as addOn}
+														<span
+															class="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600 dark:bg-blue-900/20 dark:text-blue-300"
+														>
+															+{addOn.name}
+														</span>
+													{/each}
+												{/if}
+											</div>
+											{#if item.modifiers.specialInstructions}
+												<p class="mt-0.5 text-[10px] text-muted-foreground italic">
+													"{item.modifiers.specialInstructions}"
+												</p>
+											{/if}
 										{/if}
-									{/if}
+									</div>
+									<span class="shrink-0 text-sm font-semibold">
+										{formatPrice(item.unitPrice * item.quantity)}
+									</span>
 								</div>
-								<span class="shrink-0 text-sm font-semibold">
-									{formatPrice(item.unitPrice * item.quantity)}
-								</span>
+							{/each}
+							<div class="mt-2 flex justify-between border-t border-dashed pt-2.5">
+								<span class="text-sm font-bold">Subtotal</span>
+								<span class="text-sm font-bold text-primary">{formatPrice(cartTotal)}</span>
 							</div>
-						{/each}
-						<div class="mt-2 border-t border-dashed pt-2.5 flex justify-between">
-							<span class="text-sm font-bold">Subtotal</span>
-							<span class="text-sm font-bold text-primary">{formatPrice(cartTotal)}</span>
+							<p class="text-[11px] text-muted-foreground">
+								Taxes will be calculated and added to the final total.
+							</p>
 						</div>
-						<p class="text-[11px] text-muted-foreground">Taxes will be calculated and added to the final total.</p>
-					</div>
-				</div>
-
-				<button
-					class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 font-semibold text-primary-foreground shadow-lg transition-all active:scale-[0.98]"
-					onclick={handleContinue}
-				>
-					Continue
-				</button>
-
-			<!-- Step 2: Confirm -->
-			{:else if step === 'confirm'}
-				<div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card">
-					<div class="mb-4 flex items-center gap-2">
-						<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
-							<ShieldCheckIcon class="h-4 w-4 text-green-600 dark:text-green-400" />
-						</div>
-						<h2 class="text-sm font-bold">Review your order</h2>
 					</div>
 
-					<!-- Customer details -->
-					<div class="mb-4 rounded-xl bg-gray-50 p-3 dark:bg-muted/50">
-						<div class="grid gap-2 text-sm">
-							<div class="flex items-center justify-between">
-								<span class="flex items-center gap-1.5 text-muted-foreground">
-									<UserIcon class="h-3.5 w-3.5" />
-									Name
-								</span>
-								<span class="font-medium">{customerName}</span>
+					<button
+						class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 font-semibold text-primary-foreground shadow-lg transition-all active:scale-[0.98]"
+						onclick={handleContinue}
+					>
+						Continue
+					</button>
+
+					<!-- Step 2: Confirm -->
+				{:else if step === 'confirm'}
+					<div
+						class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card"
+					>
+						<div class="mb-4 flex items-center gap-2">
+							<div
+								class="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30"
+							>
+								<ShieldCheckIcon class="h-4 w-4 text-green-600 dark:text-green-400" />
 							</div>
-							<div class="flex items-center justify-between">
-								<span class="flex items-center gap-1.5 text-muted-foreground">
-									<PhoneIcon class="h-3.5 w-3.5" />
-									Phone
-								</span>
-								<span class="font-medium">{customerPhone}</span>
-							</div>
-							{#if customerEmail}
+							<h2 class="text-sm font-bold">Review your order</h2>
+						</div>
+
+						<!-- Customer details -->
+						<div class="mb-4 rounded-xl bg-gray-50 p-3 dark:bg-muted/50">
+							<div class="grid gap-2 text-sm">
 								<div class="flex items-center justify-between">
 									<span class="flex items-center gap-1.5 text-muted-foreground">
-										<MailIcon class="h-3.5 w-3.5" />
-										Email
+										<UserIcon class="h-3.5 w-3.5" />
+										Name
 									</span>
-									<span class="font-medium">{customerEmail}</span>
+									<span class="font-medium">{customerName}</span>
 								</div>
-							{/if}
-							<div class="flex items-center justify-between">
-								<span class="text-muted-foreground">Order Type</span>
-								<span class="flex items-center gap-1 font-medium capitalize">
-									{#if orderType === 'delivery'}
-										<TruckIcon class="h-3 w-3" />
-									{:else}
-										<PackageIcon class="h-3 w-3" />
-									{/if}
-									{orderType}
-								</span>
-							</div>
-							{#if orderType === 'delivery' && deliveryAddress}
-								<div class="flex items-start justify-between gap-4">
-									<span class="flex shrink-0 items-center gap-1.5 text-muted-foreground">
-										<MapPinIcon class="h-3.5 w-3.5" />
-										Address
+								<div class="flex items-center justify-between">
+									<span class="flex items-center gap-1.5 text-muted-foreground">
+										<PhoneIcon class="h-3.5 w-3.5" />
+										Phone
 									</span>
-									<span class="text-right text-xs font-medium">{deliveryAddress}</span>
+									<span class="font-medium">{customerPhone}</span>
 								</div>
-							{/if}
-							<div class="flex items-center justify-between">
-								<span class="flex items-center gap-1.5 text-muted-foreground">
-									<WalletIcon class="h-3.5 w-3.5" />
-									Payment
-								</span>
-								<span class="font-medium">
-									{#if selectedPaymentMethod}
-										{paymentMethodLabels[selectedPaymentMethod]?.label || selectedPaymentMethod}
-									{:else}
-										Not selected
-									{/if}
-								</span>
-							</div>
-						</div>
-					</div>
-
-					<!-- Items -->
-					<div class="space-y-2.5">
-						{#each cart as item (item.cartId)}
-							<div class="flex items-start justify-between gap-2">
-								<div class="min-w-0 flex-1">
-									<div class="flex items-center gap-1.5">
-										<span class="text-sm font-medium">{item.name}</span>
-										<span class="text-xs text-muted-foreground">x{item.quantity}</span>
+								{#if customerEmail}
+									<div class="flex items-center justify-between">
+										<span class="flex items-center gap-1.5 text-muted-foreground">
+											<MailIcon class="h-3.5 w-3.5" />
+											Email
+										</span>
+										<span class="font-medium">{customerEmail}</span>
 									</div>
-									{#if item.modifiers}
-										<div class="mt-0.5 flex flex-wrap gap-1">
-											{#if item.modifiers.size}
-												<span class="rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600 dark:bg-muted dark:text-muted-foreground">
-													{item.modifiers.size.name}
-												</span>
-											{/if}
-											{#if item.modifiers.spiceLevel}
-												<span class="rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] text-orange-600 dark:bg-orange-900/20 dark:text-orange-300">
-													{item.modifiers.spiceLevel.name}
-												</span>
-											{/if}
-											{#if item.modifiers.addOns?.length}
-												{#each item.modifiers.addOns as addOn}
-													<span class="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600 dark:bg-blue-900/20 dark:text-blue-300">
-														+{addOn.name}
-													</span>
-												{/each}
-											{/if}
-										</div>
-									{/if}
-								</div>
-								<span class="shrink-0 text-sm font-semibold">
-									{formatPrice(item.unitPrice * item.quantity)}
-								</span>
-							</div>
-						{/each}
-					</div>
-
-					<div class="mt-3 border-t border-dashed pt-3 flex justify-between">
-						<span class="font-bold">Subtotal</span>
-						<span class="text-lg font-bold text-primary">{formatPrice(cartTotal)}</span>
-					</div>
-					<p class="mt-1 text-[11px] text-muted-foreground">Taxes will be added to the final total.</p>
-				</div>
-
-				{#if onlineOrdering?.estimatedPrepTime}
-					<div class="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 dark:border-border dark:bg-card">
-						<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-							<ClockIcon class="h-5 w-5 text-primary" />
-						</div>
-						<div>
-							<p class="text-sm font-semibold">Estimated preparation time</p>
-							<p class="text-xs text-muted-foreground">
-								Your order will be ready in approximately {onlineOrdering.estimatedPrepTime} minutes.
-							</p>
-						</div>
-					</div>
-				{/if}
-
-				<button
-					class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 font-semibold text-primary-foreground shadow-lg transition-all active:scale-[0.98] disabled:opacity-60"
-					onclick={handlePlaceOrder}
-					disabled={isSubmitting || !selectedPaymentMethod}
-				>
-					{#if isSubmitting}
-						<Loader2Icon class="h-4 w-4 animate-spin" />
-						Placing Order...
-					{:else if selectedPaymentMethod === 'cash'}
-						<CheckCircle2Icon class="h-4 w-4" />
-						Place Order
-					{:else}
-						<LockIcon class="h-4 w-4" />
-						Pay {formatPrice(cartTotal)}
-					{/if}
-				</button>
-
-			<!-- Step 3: Payment (Stripe Elements) -->
-			{:else if step === 'payment'}
-				<div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card">
-					<div class="mb-4 flex items-center gap-2">
-						<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-							<LockIcon class="h-4 w-4 text-primary" />
-						</div>
-						<div>
-							<h2 class="text-sm font-bold">Secure Payment</h2>
-							<p class="text-xs text-muted-foreground">
-								{#if pendingOrderNumber}
-									Order {pendingOrderNumber} ·
 								{/if}
-								{formatPrice(cartTotal)}
-							</p>
+								<div class="flex items-center justify-between">
+									<span class="text-muted-foreground">Order Type</span>
+									<span class="flex items-center gap-1 font-medium capitalize">
+										{#if orderType === 'delivery'}
+											<TruckIcon class="h-3 w-3" />
+										{:else}
+											<PackageIcon class="h-3 w-3" />
+										{/if}
+										{orderType}
+									</span>
+								</div>
+								{#if orderType === 'delivery' && deliveryAddress}
+									<div class="flex items-start justify-between gap-4">
+										<span class="flex shrink-0 items-center gap-1.5 text-muted-foreground">
+											<MapPinIcon class="h-3.5 w-3.5" />
+											Address
+										</span>
+										<span class="text-right text-xs font-medium">{deliveryAddress}</span>
+									</div>
+								{/if}
+								<div class="flex items-center justify-between">
+									<span class="flex items-center gap-1.5 text-muted-foreground">
+										<WalletIcon class="h-3.5 w-3.5" />
+										Payment
+									</span>
+									<span class="font-medium">
+										{#if selectedPaymentMethod}
+											{paymentMethodLabels[selectedPaymentMethod]?.label || selectedPaymentMethod}
+										{:else}
+											Not selected
+										{/if}
+									</span>
+								</div>
+							</div>
 						</div>
+
+						<!-- Items -->
+						<div class="space-y-2.5">
+							{#each cart as item (item.cartId)}
+								<div class="flex items-start justify-between gap-2">
+									<div class="min-w-0 flex-1">
+										<div class="flex items-center gap-1.5">
+											<span class="text-sm font-medium">{item.name}</span>
+											<span class="text-xs text-muted-foreground">x{item.quantity}</span>
+										</div>
+										{#if item.modifiers}
+											<div class="mt-0.5 flex flex-wrap gap-1">
+												{#if item.modifiers.size}
+													<span
+														class="rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600 dark:bg-muted dark:text-muted-foreground"
+													>
+														{item.modifiers.size.name}
+													</span>
+												{/if}
+												{#if item.modifiers.spiceLevel}
+													<span
+														class="rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] text-orange-600 dark:bg-orange-900/20 dark:text-orange-300"
+													>
+														{item.modifiers.spiceLevel.name}
+													</span>
+												{/if}
+												{#if item.modifiers.addOns?.length}
+													{#each item.modifiers.addOns as addOn}
+														<span
+															class="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600 dark:bg-blue-900/20 dark:text-blue-300"
+														>
+															+{addOn.name}
+														</span>
+													{/each}
+												{/if}
+											</div>
+										{/if}
+									</div>
+									<span class="shrink-0 text-sm font-semibold">
+										{formatPrice(item.unitPrice * item.quantity)}
+									</span>
+								</div>
+							{/each}
+						</div>
+
+						<div class="mt-3 flex justify-between border-t border-dashed pt-3">
+							<span class="font-bold">Subtotal</span>
+							<span class="text-lg font-bold text-primary">{formatPrice(cartTotal)}</span>
+						</div>
+						<p class="mt-1 text-[11px] text-muted-foreground">
+							Taxes will be added to the final total.
+						</p>
 					</div>
 
-					<div id="stripe-payment-element" bind:this={stripeMountEl} class="min-h-[200px]"></div>
-
-					<p class="mt-3 flex items-center gap-1 text-[11px] text-muted-foreground">
-						<ShieldCheckIcon class="h-3 w-3" />
-						Your payment information is encrypted and processed securely by Stripe.
-					</p>
-				</div>
-
-				<button
-					class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 font-semibold text-primary-foreground shadow-lg transition-all active:scale-[0.98] disabled:opacity-60"
-					onclick={confirmStripeCardPayment}
-					disabled={isProcessingPayment}
-				>
-					{#if isProcessingPayment}
-						<Loader2Icon class="h-4 w-4 animate-spin" />
-						Processing Payment...
-					{:else}
-						<LockIcon class="h-4 w-4" />
-						Pay {formatPrice(cartTotal)}
+					{#if onlineOrdering?.estimatedPrepTime}
+						<div
+							class="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 dark:border-border dark:bg-card"
+						>
+							<div
+								class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10"
+							>
+								<ClockIcon class="h-5 w-5 text-primary" />
+							</div>
+							<div>
+								<p class="text-sm font-semibold">Estimated preparation time</p>
+								<p class="text-xs text-muted-foreground">
+									Your order will be ready in approximately {onlineOrdering.estimatedPrepTime} minutes.
+								</p>
+							</div>
+						</div>
 					{/if}
-				</button>
 
-				<p class="text-center text-[11px] text-muted-foreground">
-					Your order has been reserved. Complete the payment above to confirm.
-				</p>
-			{/if}
+					<button
+						class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 font-semibold text-primary-foreground shadow-lg transition-all active:scale-[0.98] disabled:opacity-60"
+						onclick={handlePlaceOrder}
+						disabled={isSubmitting || !selectedPaymentMethod}
+					>
+						{#if isSubmitting}
+							<Loader2Icon class="h-4 w-4 animate-spin" />
+							Placing Order...
+						{:else if selectedPaymentMethod === 'cash'}
+							<CheckCircle2Icon class="h-4 w-4" />
+							Place Order
+						{:else}
+							<LockIcon class="h-4 w-4" />
+							Pay {formatPrice(cartTotal)}
+						{/if}
+					</button>
+
+					<!-- Step 3: Payment (Stripe Elements) -->
+				{:else if step === 'payment'}
+					<div
+						class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card"
+					>
+						<div class="mb-4 flex items-center gap-2">
+							<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+								<LockIcon class="h-4 w-4 text-primary" />
+							</div>
+							<div>
+								<h2 class="text-sm font-bold">Secure Payment</h2>
+								<p class="text-xs text-muted-foreground">
+									{#if pendingOrderNumber}
+										Order {pendingOrderNumber} ·
+									{/if}
+									{formatPrice(cartTotal)}
+								</p>
+							</div>
+						</div>
+
+						<div id="stripe-payment-element" bind:this={stripeMountEl} class="min-h-[200px]"></div>
+
+						<p class="mt-3 flex items-center gap-1 text-[11px] text-muted-foreground">
+							<ShieldCheckIcon class="h-3 w-3" />
+							Your payment information is encrypted and processed securely by Stripe.
+						</p>
+					</div>
+
+					<button
+						class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 font-semibold text-primary-foreground shadow-lg transition-all active:scale-[0.98] disabled:opacity-60"
+						onclick={confirmStripeCardPayment}
+						disabled={isProcessingPayment}
+					>
+						{#if isProcessingPayment}
+							<Loader2Icon class="h-4 w-4 animate-spin" />
+							Processing Payment...
+						{:else}
+							<LockIcon class="h-4 w-4" />
+							Pay {formatPrice(cartTotal)}
+						{/if}
+					</button>
+
+					<p class="text-center text-[11px] text-muted-foreground">
+						Your order has been reserved. Complete the payment above to confirm.
+					</p>
+				{/if}
+			</div>
+
+			<!-- Footer -->
+			<footer class="border-t bg-white px-4 py-3 text-center dark:bg-card">
+				<p class="text-[11px] text-muted-foreground">Powered by RestaurantPro</p>
+			</footer>
 		</div>
-
-		<!-- Footer -->
-		<footer class="border-t bg-white px-4 py-3 text-center dark:bg-card">
-			<p class="text-[11px] text-muted-foreground">
-				Powered by RestaurantPro
-			</p>
-		</footer>
-	</div>
-{/if}
-
+	{/if}
 </PhoneVerifyGate>
