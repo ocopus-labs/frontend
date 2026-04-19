@@ -280,6 +280,10 @@ export const sidebarData: Record<string, SidebarData> = {
 						url: '/[business]/[slug]/settings/kitchen-stations'
 					},
 					{
+						title: 'Accounting Export',
+						url: '/[business]/[slug]/settings/accounting'
+					},
+					{
 						title: 'Features',
 						url: '/[business]/[slug]/settings/features'
 					}

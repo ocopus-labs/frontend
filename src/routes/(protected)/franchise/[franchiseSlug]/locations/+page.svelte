@@ -7,7 +7,11 @@
 		getFranchiseBusinesses,
 		removeBusinessFromFranchise,
 		pushMenuToLocations,
+		addBusinessToFranchise,
 	} from '$lib/api/franchise';
+	import { getUserBusinesses } from '$lib/api/business';
+	import * as Dialog from '$lib/components/ui/dialog';
+	import { toast } from 'svelte-sonner';
 	import type { Business } from '$lib/api/types';
 
 	import Plus from '@lucide/svelte/icons/plus';
@@ -16,6 +20,7 @@
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+	import ArrowRightLeft from '@lucide/svelte/icons/arrow-right-left';
 
 	import type { PageData } from './$types';
 
@@ -29,6 +34,44 @@
 	let loading = $state(true);
 	let syncingMenu = $state(false);
 	let syncMessage = $state<string | null>(null);
+
+	// Transfer dialog state
+	let transferDialogOpen = $state(false);
+	let transferableBusinesses = $state<Business[]>([]);
+	let loadingTransferable = $state(false);
+	let transferringId = $state<string | null>(null);
+
+	async function openTransferDialog() {
+		transferDialogOpen = true;
+		loadingTransferable = true;
+		try {
+			const res = await getUserBusinesses();
+			transferableBusinesses = res.businesses.filter((b) => !b.franchiseId);
+		} catch (err: any) {
+			toast.error(err?.message ?? 'Failed to load businesses');
+			transferableBusinesses = [];
+		} finally {
+			loadingTransferable = false;
+		}
+	}
+
+	async function handleTransfer(businessId: string) {
+		if (!franchise?.id) return;
+		if (!confirm('Transfer this business into the franchise? It will inherit franchise settings going forward.')) return;
+
+		transferringId = businessId;
+		try {
+			const res = await addBusinessToFranchise(franchise.id, { businessId });
+			businesses = [...businesses, res.business];
+			transferableBusinesses = transferableBusinesses.filter((b) => b.id !== businessId);
+			toast.success('Business transferred to franchise');
+			if (transferableBusinesses.length === 0) transferDialogOpen = false;
+		} catch (err: any) {
+			toast.error(err?.message ?? 'Transfer failed');
+		} finally {
+			transferringId = null;
+		}
+	}
 
 	$effect(() => {
 		if (franchise?.id) {
@@ -99,6 +142,10 @@
 					<RefreshCw class="mr-2 h-4 w-4 {syncingMenu ? 'animate-spin' : ''}" />
 					Sync Menu
 				</Button>
+				<Button variant="outline" onclick={openTransferDialog}>
+					<ArrowRightLeft class="mr-2 h-4 w-4" />
+					Transfer Existing
+				</Button>
 				<Button onclick={() => goto('/business/setup')}>
 					<Plus class="mr-2 h-4 w-4" />
 					Add Location
@@ -106,6 +153,48 @@
 			</div>
 		{/if}
 	</div>
+
+	<Dialog.Root bind:open={transferDialogOpen}>
+		<Dialog.Content class="max-w-lg">
+			<Dialog.Header>
+				<Dialog.Title>Transfer business into franchise</Dialog.Title>
+				<Dialog.Description>
+					Select a standalone business you own to move it into {franchise?.name}. Once transferred, the business will follow franchise-level settings.
+				</Dialog.Description>
+			</Dialog.Header>
+			<div class="max-h-80 overflow-y-auto">
+				{#if loadingTransferable}
+					<div class="space-y-2 py-2">
+						{#each [1, 2] as _ (_)}
+							<div class="h-14 animate-pulse rounded-lg bg-muted"></div>
+						{/each}
+					</div>
+				{:else if transferableBusinesses.length === 0}
+					<p class="text-muted-foreground py-6 text-center text-sm">
+						No standalone businesses available to transfer.
+					</p>
+				{:else}
+					<div class="space-y-2 py-2">
+						{#each transferableBusinesses as b (b.id)}
+							<div class="flex items-center justify-between gap-3 rounded-lg border p-3">
+								<div class="min-w-0">
+									<div class="truncate text-sm font-medium">{b.name}</div>
+									<div class="text-muted-foreground text-xs capitalize">{b.type}</div>
+								</div>
+								<Button
+									size="sm"
+									disabled={transferringId === b.id}
+									onclick={() => handleTransfer(b.id)}
+								>
+									{transferringId === b.id ? 'Transferring...' : 'Transfer'}
+								</Button>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		</Dialog.Content>
+	</Dialog.Root>
 
 	{#if syncMessage}
 		<div class="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">
