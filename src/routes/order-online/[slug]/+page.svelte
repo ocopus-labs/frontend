@@ -257,7 +257,7 @@
 
 	// ── Navigation ──
 	function goToCheckout() {
-		goto(`order-online/${slug}/checkout`);
+		goto(`${slug}/checkout`);
 	}
 
 	let showCart = $state(false);

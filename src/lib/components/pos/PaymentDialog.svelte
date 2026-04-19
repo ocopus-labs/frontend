@@ -112,7 +112,7 @@
 	// UPI QR state
 	let upiQrDataUrl = $state<string | null>(null);
 	let isLoadingQr = $state(false);
-	let qrDebounceTimer = $state<ReturnType<typeof setTimeout> | null>(null);
+	let qrDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 	// Stripe state
 	let stripeInstance = $state<any>(null);
