@@ -7,11 +7,13 @@ export const load: PageLoad = async ({ parent, fetch, depends }) => {
 	const businessId = parentData.businessId;
 
 	try {
-		// Fetch online orders in pending_approval status.
-		// The backend supports ?status and ?orderType query params.
+		// Fetch all pending_approval orders. These only originate from customer flows
+		// (online/QR), so no additional filter is needed. Note: orderType is
+		// 'dine_in' | 'takeaway' | 'delivery' — never literally 'online' — so
+		// filtering by orderType here would yield zero results.
 		const { orders, total } = await getOrders(
 			businessId,
-			{ status: 'pending_approval', orderType: 'online' },
+			{ status: 'pending_approval' },
 			{ fetch }
 		);
 
