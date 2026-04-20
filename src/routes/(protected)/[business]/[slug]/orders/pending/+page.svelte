@@ -31,8 +31,9 @@
 	}
 
 	// Transform API orders to display format
+	// Exclude pending_approval — those belong on the dedicated pending-approval page
 	let orders = $derived(
-		(data.orders || []).map((order: Order) => ({
+		(data.orders || []).filter((order: Order) => order.status !== 'pending_approval').map((order: Order) => ({
 			id: order.orderNumber,
 			orderId: order.id,
 			customer: order.customerInfo?.name || 'Walk-in',
@@ -196,7 +197,6 @@
 						placeholder="All Status"
 						allOptionLabel="All Status"
 						options={[
-							{ value: 'pending_approval', label: 'Pending Approval' },
 							{ value: 'active', label: 'Active' },
 							{ value: 'preparing', label: 'Preparing' },
 							{ value: 'ready', label: 'Ready' },

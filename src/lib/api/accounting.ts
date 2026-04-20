@@ -62,7 +62,7 @@ export async function downloadAccountingExport(
   businessId: string,
   exportId: string
 ): Promise<Blob> {
-  const url = `/api/business/${businessId}/accounting/exports/${exportId}/download`;
+  const url = `/api/v1/business/${businessId}/accounting/exports/${exportId}/download`;
   const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) throw new Error('Download failed');
   return res.blob();
