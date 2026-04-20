@@ -7,8 +7,8 @@ export type CustomerProfile = {
 	email: string | null;
 	name: string | null;
 	image: string | null;
-	phone: string | null;
-	phoneVerified: boolean;
+	phoneNumber: string | null;
+	phoneNumberVerified: boolean;
 	createdAt: string;
 };
 

@@ -153,9 +153,9 @@
 					{/if}
 					<div class="flex items-center justify-between text-sm">
 						<span class="text-muted-foreground">Phone</span>
-						<span class="font-medium">{maskPhone(profile.phone)}</span>
+						<span class="font-medium">{maskPhone(profile.phoneNumber)}</span>
 					</div>
-					{#if profile.phoneVerified}
+					{#if profile.phoneNumberVerified}
 						<div class="flex items-center justify-between text-sm">
 							<span class="text-muted-foreground">Phone verified</span>
 							<span
