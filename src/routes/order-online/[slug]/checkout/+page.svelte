@@ -156,6 +156,24 @@
 	let customerName = $state('');
 	let customerPhone = $state('');
 	let customerEmail = $state('');
+
+	// Prefill from the signed-in customer's profile. Only fills blank fields so
+	// a manual edit isn't overwritten if the session refreshes later.
+	$effect(() => {
+		const user = $customerSession?.data?.user as
+			| {
+					name?: string | null;
+					email?: string | null;
+					phoneNumber?: string | null;
+					phone?: string | null;
+			  }
+			| undefined;
+		if (!user) return;
+		if (!customerName && user.name) customerName = user.name;
+		if (!customerEmail && user.email) customerEmail = user.email;
+		const sessionPhone = user.phoneNumber ?? user.phone;
+		if (!customerPhone && sessionPhone) customerPhone = sessionPhone;
+	});
 	let deliveryAddress = $state('');
 	let deliveryNotes = $state('');
 	// Legacy acceptedPaymentMethods value (cash/online/upi/card) — kept for backward-compat payload
