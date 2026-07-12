@@ -153,12 +153,12 @@
 						<Table.Header>
 							<Table.Row>
 								<Table.Head>Order ID</Table.Head>
-								<Table.Head>Customer</Table.Head>
-								<Table.Head>Type</Table.Head>
-								<Table.Head>Items</Table.Head>
+								<Table.Head class="hidden sm:table-cell">Customer</Table.Head>
+								<Table.Head class="hidden lg:table-cell">Type</Table.Head>
+								<Table.Head class="hidden lg:table-cell">Items</Table.Head>
 								<Table.Head>Total</Table.Head>
 								<Table.Head>Payment</Table.Head>
-								<Table.Head>Completed At</Table.Head>
+								<Table.Head class="hidden md:table-cell">Completed At</Table.Head>
 								<Table.Head class="text-right">Actions</Table.Head>
 							</Table.Row>
 						</Table.Header>
@@ -174,14 +174,14 @@
 											{/if}
 										</div>
 									</Table.Cell>
-									<Table.Cell>{order.customer}</Table.Cell>
-									<Table.Cell>
+									<Table.Cell class="hidden sm:table-cell">{order.customer}</Table.Cell>
+									<Table.Cell class="hidden lg:table-cell">
 										<Badge variant="outline">{order.type}</Badge>
 									</Table.Cell>
-									<Table.Cell>{order.items} {order.items === 1 ? 'item' : 'items'}</Table.Cell>
+									<Table.Cell class="hidden lg:table-cell">{order.items} {order.items === 1 ? 'item' : 'items'}</Table.Cell>
 									<Table.Cell class="font-medium">{formatCurrency(order.total)}</Table.Cell>
 									<Table.Cell>{order.paymentMethod}</Table.Cell>
-									<Table.Cell>
+									<Table.Cell class="hidden md:table-cell">
 										<div class="text-sm">
 											<div>{order.date}</div>
 											<div class="text-muted-foreground">{order.completedAt}</div>

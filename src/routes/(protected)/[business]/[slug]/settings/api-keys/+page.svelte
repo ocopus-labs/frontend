@@ -359,10 +359,10 @@
 									<Table.Header>
 										<Table.Row>
 											<Table.Head>Name</Table.Head>
-											<Table.Head>Key</Table.Head>
-											<Table.Head>Scopes</Table.Head>
-											<Table.Head>Last Used</Table.Head>
-											<Table.Head>Expires</Table.Head>
+											<Table.Head class="hidden sm:table-cell">Key</Table.Head>
+											<Table.Head class="hidden md:table-cell">Scopes</Table.Head>
+											<Table.Head class="hidden lg:table-cell">Last Used</Table.Head>
+											<Table.Head class="hidden lg:table-cell">Expires</Table.Head>
 											<Table.Head class="text-right">Actions</Table.Head>
 										</Table.Row>
 									</Table.Header>
@@ -375,12 +375,12 @@
 														<span class="font-medium">{key.name}</span>
 													</div>
 												</Table.Cell>
-												<Table.Cell>
+												<Table.Cell class="hidden sm:table-cell">
 													<code class="rounded bg-muted px-2 py-0.5 text-xs">
 														{key.keyPrefix}...
 													</code>
 												</Table.Cell>
-												<Table.Cell>
+												<Table.Cell class="hidden md:table-cell">
 													<div class="flex flex-wrap gap-1">
 														{#each key.scopes.slice(0, 3) as scope}
 															<Badge variant="secondary" class="text-xs">{scope}</Badge>
@@ -390,10 +390,10 @@
 														{/if}
 													</div>
 												</Table.Cell>
-												<Table.Cell class="text-muted-foreground text-sm">
+												<Table.Cell class="text-muted-foreground text-sm hidden lg:table-cell">
 													{formatRelativeTime(key.lastUsedAt)}
 												</Table.Cell>
-												<Table.Cell class="text-sm">
+												<Table.Cell class="text-sm hidden lg:table-cell">
 													{#if key.expiresAt}
 														{#if new Date(key.expiresAt) < new Date()}
 															<Badge variant="destructive" class="text-xs">Expired</Badge>
@@ -450,8 +450,8 @@
 									<Table.Header>
 										<Table.Row>
 											<Table.Head>Name</Table.Head>
-											<Table.Head>Key</Table.Head>
-											<Table.Head>Created</Table.Head>
+											<Table.Head class="hidden sm:table-cell">Key</Table.Head>
+											<Table.Head class="hidden lg:table-cell">Created</Table.Head>
 											<Table.Head>Status</Table.Head>
 										</Table.Row>
 									</Table.Header>
@@ -459,10 +459,10 @@
 										{#each revokedKeys as key (key.id)}
 											<Table.Row>
 												<Table.Cell class="font-medium">{key.name}</Table.Cell>
-												<Table.Cell>
+												<Table.Cell class="hidden sm:table-cell">
 													<code class="rounded bg-muted px-2 py-0.5 text-xs">{key.keyPrefix}...</code>
 												</Table.Cell>
-												<Table.Cell class="text-muted-foreground">{formatDate(key.createdAt)}</Table.Cell>
+												<Table.Cell class="text-muted-foreground hidden lg:table-cell">{formatDate(key.createdAt)}</Table.Cell>
 												<Table.Cell>
 													<Badge variant="secondary" class="text-xs">Revoked</Badge>
 												</Table.Cell>

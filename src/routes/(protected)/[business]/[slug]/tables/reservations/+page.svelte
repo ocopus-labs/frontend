@@ -341,11 +341,11 @@
 							<Table.Header>
 								<Table.Row>
 									<Table.Head>Customer</Table.Head>
-									<Table.Head>Date & Time</Table.Head>
-									<Table.Head>Party Size</Table.Head>
-									<Table.Head>Table</Table.Head>
+									<Table.Head class="hidden sm:table-cell">Date & Time</Table.Head>
+									<Table.Head class="hidden md:table-cell">Party Size</Table.Head>
+									<Table.Head class="hidden lg:table-cell">Table</Table.Head>
 									<Table.Head>Status</Table.Head>
-									<Table.Head>Notes</Table.Head>
+									<Table.Head class="hidden lg:table-cell">Notes</Table.Head>
 									<Table.Head class="text-right">Actions</Table.Head>
 								</Table.Row>
 							</Table.Header>
@@ -363,7 +363,7 @@
 												{/if}
 											</div>
 										</Table.Cell>
-										<Table.Cell>
+										<Table.Cell class="hidden sm:table-cell">
 											<div class="flex items-center gap-1">
 												<IconCalendar class="h-4 w-4 text-muted-foreground" />
 												<div>
@@ -372,13 +372,13 @@
 												</div>
 											</div>
 										</Table.Cell>
-										<Table.Cell>
+										<Table.Cell class="hidden md:table-cell">
 											<div class="flex items-center gap-1">
 												<IconUsers class="h-4 w-4 text-muted-foreground" />
 												{reservation.partySize}
 											</div>
 										</Table.Cell>
-										<Table.Cell>
+										<Table.Cell class="hidden lg:table-cell">
 											<Badge variant="outline">{getTableName(reservation.tableId)}</Badge>
 										</Table.Cell>
 										<Table.Cell>
@@ -387,7 +387,7 @@
 												status={({ confirmed: "success", pending: "warning", cancelled: "error", completed: "info", no_show: "neutral", seated: "primary" } as Record<string, "success" | "warning" | "error" | "info" | "neutral" | "primary">)[reservation.status] || 'neutral'}
 											/>
 										</Table.Cell>
-										<Table.Cell>
+										<Table.Cell class="hidden lg:table-cell">
 											<span class="max-w-[150px] truncate text-sm text-muted-foreground">
 												{reservation.notes || '-'}
 											</span>

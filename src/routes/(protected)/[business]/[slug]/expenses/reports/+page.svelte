@@ -279,8 +279,8 @@
 									<Table.Row>
 										<Table.Head>Category</Table.Head>
 										<Table.Head>Total</Table.Head>
-										<Table.Head>% of Total</Table.Head>
-										<Table.Head>Trend</Table.Head>
+										<Table.Head class="hidden md:table-cell">% of Total</Table.Head>
+										<Table.Head class="hidden lg:table-cell">Trend</Table.Head>
 									</Table.Row>
 								</Table.Header>
 								<Table.Body>
@@ -304,7 +304,7 @@
 												</div>
 											</Table.Cell>
 											<Table.Cell class="font-medium">{formatCurrency(category.total)}</Table.Cell>
-											<Table.Cell>
+											<Table.Cell class="hidden md:table-cell">
 												<div class="flex items-center gap-2">
 													<div class="h-2 w-16 rounded-full bg-muted">
 														<div
@@ -315,7 +315,7 @@
 													<span class="text-sm text-muted-foreground">{category.percentage.toFixed(1)}%</span>
 												</div>
 											</Table.Cell>
-											<Table.Cell>
+											<Table.Cell class="hidden lg:table-cell">
 												{#if category.trend > 0}
 													<span class="flex items-center gap-1 text-destructive">
 														<IconTrendingUp class="h-4 w-4" />

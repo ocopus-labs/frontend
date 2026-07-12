@@ -318,8 +318,8 @@
 								<Table.Header>
 									<Table.Row>
 										<Table.Head>Description</Table.Head>
-										<Table.Head>Category</Table.Head>
-										<Table.Head>Date</Table.Head>
+										<Table.Head class="hidden md:table-cell">Category</Table.Head>
+										<Table.Head class="hidden lg:table-cell">Date</Table.Head>
 										<Table.Head class="text-right">Amount</Table.Head>
 									</Table.Row>
 								</Table.Header>
@@ -334,10 +334,10 @@
 													{expense.description}
 												</div>
 											</Table.Cell>
-											<Table.Cell>
+											<Table.Cell class="hidden md:table-cell">
 												<Badge variant="outline">{expense.category}</Badge>
 											</Table.Cell>
-											<Table.Cell class="text-muted-foreground">{expense.date}</Table.Cell>
+											<Table.Cell class="hidden lg:table-cell text-muted-foreground">{expense.date}</Table.Cell>
 											<Table.Cell class="text-right font-medium text-destructive">
 												-{formatCurrency(expense.amount)}
 											</Table.Cell>

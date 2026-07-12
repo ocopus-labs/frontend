@@ -224,12 +224,12 @@
 						<Table.Header>
 							<Table.Row>
 								<Table.Head>Order ID</Table.Head>
-								<Table.Head>Customer</Table.Head>
-								<Table.Head>Type</Table.Head>
-								<Table.Head>Items</Table.Head>
+								<Table.Head class="hidden sm:table-cell">Customer</Table.Head>
+								<Table.Head class="hidden lg:table-cell">Type</Table.Head>
+								<Table.Head class="hidden lg:table-cell">Items</Table.Head>
 								<Table.Head>Total</Table.Head>
 								<Table.Head>Status</Table.Head>
-								<Table.Head>Date & Time</Table.Head>
+								<Table.Head class="hidden md:table-cell">Date & Time</Table.Head>
 								<Table.Head class="text-right">Action</Table.Head>
 							</Table.Row>
 						</Table.Header>
@@ -244,11 +244,11 @@
 											{/if}
 										</div>
 									</Table.Cell>
-									<Table.Cell>{order.customer}</Table.Cell>
-									<Table.Cell>
+									<Table.Cell class="hidden sm:table-cell">{order.customer}</Table.Cell>
+									<Table.Cell class="hidden lg:table-cell">
 										<Badge variant="outline">{order.type}</Badge>
 									</Table.Cell>
-									<Table.Cell>
+									<Table.Cell class="hidden lg:table-cell">
 										<div class="max-w-[200px] truncate text-sm text-muted-foreground">
 											{order.items.join(', ')}
 										</div>
@@ -260,7 +260,7 @@
 											status={getStatusPillStatus(order.status)}
 										/>
 									</Table.Cell>
-									<Table.Cell>
+									<Table.Cell class="hidden md:table-cell">
 										<div class="text-sm">
 											<div>{order.date}</div>
 											<div class="text-muted-foreground">{order.time}</div>

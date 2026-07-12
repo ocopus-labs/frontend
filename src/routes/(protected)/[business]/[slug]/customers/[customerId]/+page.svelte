@@ -493,10 +493,10 @@
 						<Table.Header>
 							<Table.Row>
 								<Table.Head>Order #</Table.Head>
-								<Table.Head>Date</Table.Head>
-								<Table.Head>Type</Table.Head>
+								<Table.Head class="hidden sm:table-cell">Date</Table.Head>
+								<Table.Head class="hidden lg:table-cell">Type</Table.Head>
 								<Table.Head>Status</Table.Head>
-								<Table.Head>Payment</Table.Head>
+								<Table.Head class="hidden md:table-cell">Payment</Table.Head>
 								<Table.Head class="text-right">Total</Table.Head>
 							</Table.Row>
 						</Table.Header>
@@ -508,8 +508,8 @@
 									onclick={() => viewOrder(order.id)}
 								>
 									<Table.Cell class="font-medium">{order.orderNumber}</Table.Cell>
-									<Table.Cell>{new Date(order.createdAt).toLocaleDateString()}</Table.Cell>
-									<Table.Cell class="capitalize">{order.orderType.replace('_', ' ')}</Table.Cell>
+									<Table.Cell class="hidden sm:table-cell">{new Date(order.createdAt).toLocaleDateString()}</Table.Cell>
+									<Table.Cell class="capitalize hidden lg:table-cell">{order.orderType.replace('_', ' ')}</Table.Cell>
 									<Table.Cell>
 										<StatusPill
 											label={order.status}
@@ -520,7 +520,7 @@
 													: 'warning'}
 										/>
 									</Table.Cell>
-									<Table.Cell>
+									<Table.Cell class="hidden md:table-cell">
 										<StatusPill
 											label={order.paymentStatus}
 											status={order.paymentStatus === 'paid'
