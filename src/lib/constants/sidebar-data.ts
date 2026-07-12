@@ -149,6 +149,10 @@ export const sidebarData: Record<string, SidebarData> = {
 						url: '/[business]/[slug]/orders/pending'
 					},
 					{
+						title: 'Pending Approval',
+						url: '/[business]/[slug]/orders/pending-approval'
+					},
+					{
 						title: 'Completed',
 						url: '/[business]/[slug]/orders/completed'
 					},
@@ -278,6 +282,10 @@ export const sidebarData: Record<string, SidebarData> = {
 					{
 						title: 'Kitchen Stations',
 						url: '/[business]/[slug]/settings/kitchen-stations'
+					},
+					{
+						title: 'Accounting Export',
+						url: '/[business]/[slug]/settings/accounting'
 					},
 					{
 						title: 'Features',

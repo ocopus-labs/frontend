@@ -20,15 +20,13 @@
 		IconAlertTriangle,
 		IconClock,
 		IconCash,
+		IconUserCheck
 	} from '@tabler/icons-svelte';
 	import { toast } from 'svelte-sonner';
 	import { invalidate } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import PageHeader from '$lib/components/global/page-header.svelte';
-	import {
-		updateOnlineOrderingSettings,
-		type OnlineOrderingConfig,
-	} from '$lib/api';
+	import { updateOnlineOrderingSettings, type OnlineOrderingConfig } from '$lib/api';
 
 	let { data }: { data: PageData } = $props();
 
@@ -47,18 +45,22 @@
 		JPY: '¥',
 		CNY: '¥',
 		AED: 'د.إ',
-		SGD: 'S$',
+		SGD: 'S$'
 	};
 	const currencySymbol = CURRENCY_SYMBOLS[businessCurrencyCode] ?? businessCurrencyCode;
 
 	// Reactive form state
-	let initialSettings = $state<OnlineOrderingConfig>({ ...initialConfig });
-	let settings = $state<OnlineOrderingConfig>({ ...initialConfig });
+	let initialSettings = $state<OnlineOrderingConfig>({
+		authEnabled: false,
+		...initialConfig
+	});
+	let settings = $state<OnlineOrderingConfig>({
+		authEnabled: false,
+		...initialConfig
+	});
 	let saving = $state(false);
 
-	const hasChanges = $derived(
-		JSON.stringify(initialSettings) !== JSON.stringify(settings),
-	);
+	const hasChanges = $derived(JSON.stringify(initialSettings) !== JSON.stringify(settings));
 
 	// Shareable URL
 	const orderingUrl = $derived.by(() => {
@@ -77,18 +79,18 @@
 		{
 			value: 'cash',
 			label: 'Cash on Pickup/Delivery',
-			description: 'Customer pays in cash when receiving the order',
+			description: 'Customer pays in cash when receiving the order'
 		},
 		{
 			value: 'online',
 			label: 'Online Payment',
-			description: 'Customer pays online via Stripe / Razorpay / Dodo',
+			description: 'Customer pays online via Stripe / Razorpay / Dodo'
 		},
 		{
 			value: 'card',
 			label: 'Card at Pickup/Delivery',
-			description: 'Customer pays with a card on the card reader when receiving the order',
-		},
+			description: 'Customer pays with a card on the card reader when receiving the order'
+		}
 	];
 
 	function togglePaymentMethod(method: string, checked: boolean) {
@@ -163,10 +165,7 @@
 
 		saving = true;
 		try {
-			const result = await updateOnlineOrderingSettings(
-				(data as any).businessId,
-				settings,
-			);
+			const result = await updateOnlineOrderingSettings((data as any).businessId, settings);
 			initialSettings = { ...result.settings };
 			settings = { ...result.settings };
 			toast.success('Online ordering settings saved');
@@ -194,7 +193,7 @@
 
 		{#if onlineOrderingError}
 			<div
-				class="border-destructive/40 bg-destructive/5 text-destructive mx-6 flex items-start gap-2 rounded-md border p-3 text-sm"
+				class="mx-6 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive"
 			>
 				<IconAlertTriangle class="mt-0.5 size-4 flex-shrink-0" />
 				<div>
@@ -210,7 +209,7 @@
 			<Card.Root>
 				<Card.Header>
 					<div class="flex items-start gap-3">
-						<div class="bg-primary/10 text-primary rounded-lg p-2">
+						<div class="rounded-lg bg-primary/10 p-2 text-primary">
 							<IconShoppingCart class="size-5" />
 						</div>
 						<div class="flex-1">
@@ -226,7 +225,7 @@
 					<div class="flex items-center justify-between rounded-lg border p-4">
 						<div class="space-y-1 pr-4">
 							<div class="text-sm font-medium">Online Store</div>
-							<p class="text-muted-foreground text-xs">
+							<p class="text-xs text-muted-foreground">
 								{settings.enabled
 									? 'Your store is live and accepting orders.'
 									: 'Customers cannot currently place online orders.'}
@@ -242,42 +241,50 @@
 				<Card.Root>
 					<Card.Header>
 						<Card.Title>Order Types</Card.Title>
-						<Card.Description>
-							Choose which order types your business supports.
-						</Card.Description>
+						<Card.Description>Choose which order types your business supports.</Card.Description>
 					</Card.Header>
 					<Card.Content class="space-y-3">
 						<div class="flex items-center justify-between rounded-lg border p-4">
 							<div class="flex items-start gap-3 pr-4">
-								<IconPackage class="text-muted-foreground mt-0.5 size-5" />
+								<IconPackage class="mt-0.5 size-5 text-muted-foreground" />
 								<div class="space-y-1">
 									<div class="text-sm font-medium">Accept Takeaway</div>
-									<p class="text-muted-foreground text-xs">
+									<p class="text-xs text-muted-foreground">
 										Customers order online and pick up at your location.
 									</p>
 								</div>
 							</div>
-							<Switch
-								bind:checked={settings.acceptsTakeaway}
-								aria-label="Accept takeaway orders"
-							/>
+							<Switch bind:checked={settings.acceptsTakeaway} aria-label="Accept takeaway orders" />
 						</div>
 
 						<div class="flex items-center justify-between rounded-lg border p-4">
 							<div class="flex items-start gap-3 pr-4">
-								<IconTruck class="text-muted-foreground mt-0.5 size-5" />
+								<IconTruck class="mt-0.5 size-5 text-muted-foreground" />
 								<div class="space-y-1">
 									<div class="text-sm font-medium">Accept Delivery</div>
-									<p class="text-muted-foreground text-xs">
+									<p class="text-xs text-muted-foreground">
 										Customers order online and you deliver to their address. Configure zones and
 										drivers in the Delivery module.
 									</p>
 								</div>
 							</div>
-							<Switch
-								bind:checked={settings.acceptsDelivery}
-								aria-label="Accept delivery orders"
-							/>
+							<Switch bind:checked={settings.acceptsDelivery} aria-label="Accept delivery orders" />
+						</div>
+
+						<Separator />
+
+						<div class="flex items-center justify-between rounded-lg border p-4">
+							<div class="flex items-start gap-3 pr-4">
+								<IconUserCheck class="mt-0.5 size-5 text-muted-foreground" />
+								<div class="space-y-1">
+									<div class="text-sm font-medium">Require Customer Sign-In</div>
+									<p class="text-xs text-muted-foreground">
+										Customers must sign in with Google or phone before placing an order. Enables
+										loyalty tracking and order history. When off, guest checkout stays available.
+									</p>
+								</div>
+							</div>
+							<Switch bind:checked={settings.authEnabled} aria-label="Require customer sign-in" />
 						</div>
 					</Card.Content>
 				</Card.Root>
@@ -294,12 +301,12 @@
 						<div class="grid gap-4 sm:grid-cols-2">
 							<div class="space-y-2">
 								<Label for="min-order-amount" class="flex items-center gap-1.5">
-									<IconCash class="text-muted-foreground size-4" />
+									<IconCash class="size-4 text-muted-foreground" />
 									Minimum Order Amount
 								</Label>
 								<div class="relative">
 									<span
-										class="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2 text-sm"
+										class="absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground"
 									>
 										{currencySymbol}
 									</span>
@@ -312,14 +319,14 @@
 										bind:value={settings.minOrderAmount}
 									/>
 								</div>
-								<p class="text-muted-foreground text-xs">
+								<p class="text-xs text-muted-foreground">
 									Orders below this amount will be rejected. Use 0 for no minimum.
 								</p>
 							</div>
 
 							<div class="space-y-2">
 								<Label for="prep-time" class="flex items-center gap-1.5">
-									<IconClock class="text-muted-foreground size-4" />
+									<IconClock class="size-4 text-muted-foreground" />
 									Estimated Prep Time (minutes)
 								</Label>
 								<Input
@@ -329,7 +336,7 @@
 									step="1"
 									bind:value={settings.estimatedPrepTime}
 								/>
-								<p class="text-muted-foreground text-xs">
+								<p class="text-xs text-muted-foreground">
 									Shown to customers as an expected wait time.
 								</p>
 							</div>
@@ -340,14 +347,14 @@
 						<div class="space-y-3">
 							<div>
 								<div class="text-sm font-medium">Accepted Payment Methods</div>
-								<p class="text-muted-foreground text-xs">
+								<p class="text-xs text-muted-foreground">
 									Pick at least one option customers can use to pay for online orders.
 								</p>
 							</div>
 							<div class="space-y-3">
 								{#each PAYMENT_METHODS as method (method.value)}
 									<label
-										class="hover:bg-muted/50 flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors"
+										class="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
 									>
 										<Checkbox
 											checked={isPaymentMethodChecked(method.value)}
@@ -355,7 +362,7 @@
 										/>
 										<div class="space-y-0.5">
 											<div class="text-sm font-medium">{method.label}</div>
-											<p class="text-muted-foreground text-xs">{method.description}</p>
+											<p class="text-xs text-muted-foreground">{method.description}</p>
 										</div>
 									</label>
 								{/each}
@@ -368,7 +375,7 @@
 				<Card.Root>
 					<Card.Header>
 						<div class="flex items-start gap-3">
-							<div class="bg-primary/10 text-primary rounded-lg p-2">
+							<div class="rounded-lg bg-primary/10 p-2 text-primary">
 								<IconQrcode class="size-5" />
 							</div>
 							<div>
@@ -413,7 +420,7 @@
 						<div class="grid gap-6 sm:grid-cols-[auto_1fr] sm:items-center">
 							<div class="flex justify-center sm:justify-start">
 								{#if browser}
-									<div class="bg-muted/40 rounded-lg border p-3">
+									<div class="rounded-lg border bg-muted/40 p-3">
 										<img
 											src={qrImageUrl}
 											alt="QR code for online ordering store"
@@ -423,19 +430,19 @@
 									</div>
 								{:else}
 									<div
-										class="bg-muted/40 flex size-40 items-center justify-center rounded-lg border sm:size-48"
+										class="flex size-40 items-center justify-center rounded-lg border bg-muted/40 sm:size-48"
 									>
-										<IconQrcode class="text-muted-foreground size-10" />
+										<IconQrcode class="size-10 text-muted-foreground" />
 									</div>
 								{/if}
 							</div>
 							<div class="space-y-3">
 								<div>
 									<div class="text-sm font-medium">Print-ready QR code</div>
-									<p class="text-muted-foreground text-xs">
-										Download as a PNG and print on table tents, menus, receipts, counter signs,
-										or delivery bags. Customers scan it with their phone camera to open your
-										menu instantly.
+									<p class="text-xs text-muted-foreground">
+										Download as a PNG and print on table tents, menus, receipts, counter signs, or
+										delivery bags. Customers scan it with their phone camera to open your menu
+										instantly.
 									</p>
 								</div>
 								<Button type="button" variant="default" onclick={handleDownloadQr}>
@@ -450,9 +457,9 @@
 
 			<!-- Section 5: Save button -->
 			<div
-				class="bg-background/95 sticky bottom-0 -mx-6 flex items-center justify-between gap-3 border-t px-6 py-4 backdrop-blur sm:rounded-b-none"
+				class="sticky bottom-0 -mx-6 flex items-center justify-between gap-3 border-t bg-background/95 px-6 py-4 backdrop-blur sm:rounded-b-none"
 			>
-				<div class="text-muted-foreground text-xs">
+				<div class="text-xs text-muted-foreground">
 					{#if hasChanges}
 						<span class="text-amber-600 dark:text-amber-500">You have unsaved changes.</span>
 					{:else}

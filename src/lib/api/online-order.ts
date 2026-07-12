@@ -18,6 +18,7 @@ export interface OnlineBusinessConfig {
     minOrderAmount: number;
     acceptedPaymentMethods: string[];
     estimatedPrepTime: number;
+    authEnabled?: boolean;
   };
   deliveryZones: Array<{
     id: string;

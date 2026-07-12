@@ -507,7 +507,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 				</Card.Header>
 				<Card.Content>
 					<a
-						href="./online-ordering"
+						href="/{data.businessType}/{data.business.slug}/settings/online-ordering"
 						class="hover:bg-muted/50 group flex items-center justify-between rounded-lg border p-4 transition-colors"
 					>
 						<div class="flex items-start gap-3">

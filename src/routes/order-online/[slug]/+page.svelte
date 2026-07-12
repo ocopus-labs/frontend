@@ -19,8 +19,12 @@
 	import PackageIcon from '@lucide/svelte/icons/package';
 	import TruckIcon from '@lucide/svelte/icons/truck';
 	import type { OnlineBusinessConfig, OnlineMenuCategory } from '$lib/api';
+	import { useCustomerSession } from '$lib/customer-auth';
+	import UserCircleIcon from '@lucide/svelte/icons/user-circle';
 
 	let { data }: { data: PageData } = $props();
+
+	const customerSession = useCustomerSession();
 
 	const config = $derived(data.config as OnlineBusinessConfig);
 	const business = $derived(config.business);
@@ -57,11 +61,11 @@
 	let cart = $state<CartItem[]>([]);
 	let searchQuery = $state('');
 
-	// Load cart from sessionStorage
+	// Load cart from localStorage (persists across auth redirects and page reloads)
 	$effect(() => {
 		if (typeof window !== 'undefined') {
 			const key = `online-cart:${slug}`;
-			const saved = sessionStorage.getItem(key);
+			const saved = localStorage.getItem(key);
 			if (saved) {
 				try {
 					cart = JSON.parse(saved);
@@ -70,18 +74,18 @@
 				}
 			}
 			// Restore order type
-			const savedType = sessionStorage.getItem(`online-order-type:${slug}`);
+			const savedType = localStorage.getItem(`online-order-type:${slug}`);
 			if (savedType === 'takeaway' || savedType === 'delivery') {
 				orderType = savedType;
 			}
 		}
 	});
 
-	// Save cart to sessionStorage
+	// Save cart to localStorage so it survives auth redirects
 	$effect(() => {
 		if (typeof window !== 'undefined' && slug) {
 			const key = `online-cart:${slug}`;
-			sessionStorage.setItem(key, JSON.stringify(cart));
+			localStorage.setItem(key, JSON.stringify(cart));
 		}
 	});
 
@@ -89,7 +93,7 @@
 	$effect(() => {
 		if (typeof window !== 'undefined' && slug) {
 			sessionStorage.setItem(`online-config:${slug}`, JSON.stringify(config));
-			sessionStorage.setItem(`online-order-type:${slug}`, orderType);
+			localStorage.setItem(`online-order-type:${slug}`, orderType);
 		}
 	});
 
@@ -257,7 +261,7 @@
 
 	// ── Navigation ──
 	function goToCheckout() {
-		goto(`order-online/${slug}/checkout`);
+		goto(`${slug}/checkout`);
 	}
 
 	let showCart = $state(false);
@@ -301,6 +305,15 @@
 			>
 				<SearchIcon class="h-4 w-4" />
 			</button>
+			{#if $customerSession?.data?.user}
+				<a
+					href="/order-online/{slug}/account"
+					class="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 transition-colors hover:bg-gray-200 dark:bg-muted"
+					aria-label="My account"
+				>
+					<UserCircleIcon class="h-4 w-4" />
+				</a>
+			{/if}
 		</div>
 
 		<!-- Order Type Toggle -->

@@ -137,7 +137,7 @@
 					</p>
 				</div>
 			</div>
-			<Button href="./credentials" variant="outline" class="sm:shrink-0">
+			<Button href="/{(data as any).businessType}/{(data as any).business.slug}/settings/payments/credentials" variant="outline" class="sm:shrink-0">
 				Manage Credentials
 				<IconChevronRight class="ml-1 h-4 w-4" />
 			</Button>
