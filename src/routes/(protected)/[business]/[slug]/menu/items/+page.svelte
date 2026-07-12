@@ -616,11 +616,11 @@
 				<Table.Root>
 					<Table.Header>
 						<Table.Row>
-							<Table.Head>Image</Table.Head>
+							<Table.Head class="hidden lg:table-cell">Image</Table.Head>
 							<Table.Head>{businessType === 'retail' ? 'Product' : 'Item'} Name</Table.Head>
-							<Table.Head>Category</Table.Head>
+							<Table.Head class="hidden lg:table-cell">Category</Table.Head>
 							<Table.Head>Price</Table.Head>
-							<Table.Head>Food Cost</Table.Head>
+							<Table.Head class="hidden md:table-cell">Food Cost</Table.Head>
 							<Table.Head>Status</Table.Head>
 							<Table.Head class="text-right">Actions</Table.Head>
 						</Table.Row>
@@ -628,7 +628,7 @@
 					<Table.Body>
 						{#each filteredItems as item (item.id)}
 							<Table.Row>
-								<Table.Cell>
+								<Table.Cell class="hidden lg:table-cell">
 									{#if item.image}
 										<img src={item.image} alt={item.name} loading="lazy" class="h-10 w-10 rounded object-cover" />
 									{:else}
@@ -647,9 +647,9 @@
 										{/if}
 									</div>
 								</Table.Cell>
-								<Table.Cell>{getCategoryName(item.categoryId)}</Table.Cell>
+								<Table.Cell class="hidden lg:table-cell">{getCategoryName(item.categoryId)}</Table.Cell>
 								<Table.Cell>{formatCurrency(item.price)}</Table.Cell>
-								<Table.Cell>
+								<Table.Cell class="hidden md:table-cell">
 									{#if item.foodCost != null && item.foodCost > 0}
 										<div class="flex flex-col">
 											<span>{formatCurrency(item.foodCost)}</span>

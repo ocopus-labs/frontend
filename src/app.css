@@ -404,3 +404,22 @@
 		visibility: hidden !important;
 	}
 }
+
+/*
+ * Comfortable touch targets on touch devices (>=44px per Apple/Android
+ * guidance) WITHOUT changing desktop density: `pointer: coarse` matches
+ * touchscreens only, so mouse/trackpad users keep the compact sizing.
+ * Checkboxes/radios are excluded so they don't balloon; inline text links are
+ * unaffected because min-height does not apply to inline elements (only the
+ * button-styled inline-flex links grow).
+ */
+@media (pointer: coarse) {
+	button,
+	[role='button'],
+	a[href],
+	select,
+	textarea,
+	input:not([type='checkbox']):not([type='radio']):not([type='hidden']) {
+		min-height: 44px;
+	}
+}

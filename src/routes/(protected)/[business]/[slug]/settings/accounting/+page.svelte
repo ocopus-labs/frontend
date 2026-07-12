@@ -202,6 +202,7 @@
 />
 <div class="flex flex-col gap-6 p-6">
 	<PageHeader
+		back
 		title="Accounting Export"
 		description="Export financial data for your accounting software"
 	/>
@@ -359,11 +360,11 @@
 						<Table.Header>
 							<Table.Row>
 								<Table.Head>Provider</Table.Head>
-								<Table.Head>Date Range</Table.Head>
+								<Table.Head class="hidden md:table-cell">Date Range</Table.Head>
 								<Table.Head>Status</Table.Head>
-								<Table.Head>Format</Table.Head>
-								<Table.Head>Records</Table.Head>
-								<Table.Head>Created</Table.Head>
+								<Table.Head class="hidden lg:table-cell">Format</Table.Head>
+								<Table.Head class="hidden lg:table-cell">Records</Table.Head>
+								<Table.Head class="hidden lg:table-cell">Created</Table.Head>
 								<Table.Head class="text-right">Action</Table.Head>
 							</Table.Row>
 						</Table.Header>
@@ -373,7 +374,7 @@
 									<Table.Cell class="font-medium">
 										{getProviderName(exportItem.provider)}
 									</Table.Cell>
-									<Table.Cell class="text-sm text-muted-foreground">
+									<Table.Cell class="text-sm text-muted-foreground hidden md:table-cell">
 										{formatDate(exportItem.startDate)} - {formatDate(exportItem.endDate)}
 									</Table.Cell>
 									<Table.Cell>
@@ -390,9 +391,9 @@
 											{getStatusLabel(exportItem.status)}
 										</Badge>
 									</Table.Cell>
-									<Table.Cell class="uppercase">{exportItem.format}</Table.Cell>
-									<Table.Cell>{exportItem.recordCount ?? '-'}</Table.Cell>
-									<Table.Cell class="text-sm text-muted-foreground">
+									<Table.Cell class="uppercase hidden lg:table-cell">{exportItem.format}</Table.Cell>
+									<Table.Cell class="hidden lg:table-cell">{exportItem.recordCount ?? '-'}</Table.Cell>
+									<Table.Cell class="text-sm text-muted-foreground hidden lg:table-cell">
 										{formatDate(exportItem.createdAt)}
 									</Table.Cell>
 									<Table.Cell class="text-right">

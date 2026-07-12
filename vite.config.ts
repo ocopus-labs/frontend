@@ -11,6 +11,11 @@ export default defineConfig({
 		devtoolsJson(),
 		SvelteKitPWA({
 			registerType: 'prompt',
+			// The update prompt (pwa-update-prompt.svelte) registers the service
+			// worker itself so it can own the updatefound → reload flow. Disable
+			// vite-pwa's auto-injected registration to avoid a second, competing
+			// registration of the same scope.
+			injectRegister: null,
 			devOptions: {
 				enabled: false
 			},

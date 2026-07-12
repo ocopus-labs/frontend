@@ -121,7 +121,7 @@
 </script>
 
 <div class="flex flex-col gap-6 p-6">
-	<PageHeader title="Payment Settings" description="Configure payment methods, gateway credentials, UPI QR codes, and customer self-ordering" />
+	<PageHeader back title="Payment Settings" description="Configure payment methods, gateway credentials, UPI QR codes, and customer self-ordering" />
 
 	<!-- Payment Gateway Credentials Link -->
 	<Card.Root>

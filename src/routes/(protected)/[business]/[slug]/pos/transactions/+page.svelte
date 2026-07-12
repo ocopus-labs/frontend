@@ -315,12 +315,12 @@
 						<Table.Header>
 							<Table.Row>
 								<Table.Head>Payment ID</Table.Head>
-								<Table.Head>Order</Table.Head>
-								<Table.Head>Customer</Table.Head>
-								<Table.Head>Payment Method</Table.Head>
+								<Table.Head class="hidden lg:table-cell">Order</Table.Head>
+								<Table.Head class="hidden sm:table-cell">Customer</Table.Head>
+								<Table.Head class="hidden lg:table-cell">Payment Method</Table.Head>
 								<Table.Head>Amount</Table.Head>
 								<Table.Head>Status</Table.Head>
-								<Table.Head>Date & Time</Table.Head>
+								<Table.Head class="hidden md:table-cell">Date & Time</Table.Head>
 								<Table.Head class="text-right">Action</Table.Head>
 							</Table.Row>
 						</Table.Header>
@@ -332,11 +332,11 @@
 									<Table.Cell class="font-mono text-sm font-medium"
 										>{payment.paymentNumber}</Table.Cell
 									>
-									<Table.Cell class="font-mono text-sm text-muted-foreground"
+									<Table.Cell class="hidden font-mono text-sm text-muted-foreground lg:table-cell"
 										>{payment.orderNumber}</Table.Cell
 									>
-									<Table.Cell>{payment.customerInfo?.name || 'Guest'}</Table.Cell>
-									<Table.Cell>
+									<Table.Cell class="hidden sm:table-cell">{payment.customerInfo?.name || 'Guest'}</Table.Cell>
+									<Table.Cell class="hidden lg:table-cell">
 										<div class="flex items-center gap-2">
 											<PaymentIcon class="h-4 w-4" />
 											{getPaymentMethodLabel(payment.method)}
@@ -348,7 +348,7 @@
 											{getStatusBadge(payment.status).text}
 										</Badge>
 									</Table.Cell>
-									<Table.Cell>
+									<Table.Cell class="hidden md:table-cell">
 										<div class="text-sm">
 											<div>{dateTime.date}</div>
 											<div class="text-muted-foreground">{dateTime.time}</div>

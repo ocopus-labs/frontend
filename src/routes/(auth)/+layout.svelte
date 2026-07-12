@@ -5,13 +5,13 @@
 <div class="grid min-h-svh lg:grid-cols-2">
   <div class="flex flex-col order-2 gap-4 p-6 md:p-10">
     <div class="flex justify-center gap-2 md:justify-start">
-      <a href="#/" class="flex items-center gap-2 font-medium">
+      <a href="/" class="flex items-center gap-2 font-medium">
         <div
           class="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md"
         >
           <GalleryVerticalEndIcon class="size-4" />
         </div>
-        Acme Inc.
+        RestaurantPro
       </a>
     </div>
     <div class="flex flex-1 items-center justify-center">

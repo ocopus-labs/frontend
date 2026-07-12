@@ -342,9 +342,9 @@
 							<Table.Header>
 								<Table.Row>
 									<Table.Head>Description</Table.Head>
-									<Table.Head>Category</Table.Head>
-									<Table.Head>Vendor</Table.Head>
-									<Table.Head>Payment</Table.Head>
+									<Table.Head class="hidden lg:table-cell">Category</Table.Head>
+									<Table.Head class="hidden lg:table-cell">Vendor</Table.Head>
+									<Table.Head class="hidden md:table-cell">Payment</Table.Head>
 									<Table.Head>Status</Table.Head>
 									<Table.Head>Amount</Table.Head>
 									<Table.Head class="text-right">Actions</Table.Head>
@@ -361,7 +361,7 @@
 												{/if}
 											</div>
 										</Table.Cell>
-										<Table.Cell>
+										<Table.Cell class="hidden lg:table-cell">
 											<span
 												class="rounded-full px-2 py-1 text-xs"
 												style={getCategoryColor(expense.categoryId)}
@@ -369,10 +369,10 @@
 												{getCategoryName(expense.categoryId)}
 											</span>
 										</Table.Cell>
-										<Table.Cell class="text-muted-foreground">
+										<Table.Cell class="hidden lg:table-cell text-muted-foreground">
 											{expense.vendorName || '-'}
 										</Table.Cell>
-										<Table.Cell class="capitalize">
+										<Table.Cell class="hidden md:table-cell capitalize">
 											{expense.paymentMethod.replace('_', ' ')}
 										</Table.Cell>
 										<Table.Cell>
