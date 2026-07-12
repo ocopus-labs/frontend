@@ -302,7 +302,7 @@
 <div class="flex flex-1 flex-col">
 	<div class="@container/main flex flex-1 flex-col gap-4">
 		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<PageHeader title="API Keys" description="Manage API keys for MCP integrations and AI agents">
+			<PageHeader back title="API Keys" description="Manage API keys for MCP integrations and AI agents">
 				{#snippet actions()}
 					<Button onclick={() => (showCreateDialog = true)}>
 						<IconPlus class="mr-2 h-4 w-4" />

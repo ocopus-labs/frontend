@@ -202,6 +202,7 @@
 />
 <div class="flex flex-col gap-6 p-6">
 	<PageHeader
+		back
 		title="Accounting Export"
 		description="Export financial data for your accounting software"
 	/>

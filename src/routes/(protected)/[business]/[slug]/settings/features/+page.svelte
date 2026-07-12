@@ -113,7 +113,7 @@
 <MobilePageHeader title="Features" backHref={`/${$page.params.business}/${$page.params.slug}/settings`} />
 <div class="flex flex-col gap-6 p-6">
 	{#if !features}
-		<PageHeader title="Features" description="Manage optional features for your business" />
+		<PageHeader back title="Features" description="Manage optional features for your business" />
 		<Card.Root>
 			<Card.Content class="p-8 text-center">
 				<p class="text-muted-foreground">

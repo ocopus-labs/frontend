@@ -181,6 +181,7 @@
 <div class="flex flex-1 flex-col p-2 sm:p-6 md:p-4">
 	<div class="@container/main flex flex-1 flex-col gap-6">
 		<PageHeader
+			back
 			title="Online Ordering"
 			description="Let customers browse your menu, place orders, and pay online."
 		>

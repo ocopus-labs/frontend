@@ -176,6 +176,7 @@
 <MobilePageHeader title="Kitchen Stations" backHref={`/${$page.params.business}/${$page.params.slug}/settings`} />
 <div class="flex flex-col gap-6 p-6">
 	<PageHeader
+		back
 		title="Kitchen Stations"
 		description="Assign menu categories to kitchen stations for targeted order routing"
 	>

@@ -274,7 +274,7 @@
 </script>
 
 <div class="flex flex-col gap-6 p-6">
-	<PageHeader title="Loyalty & Rewards" description="Configure your customer loyalty program" />
+	<PageHeader back title="Loyalty & Rewards" description="Configure your customer loyalty program" />
 
 	{#if !settings}
 		<Card.Root>

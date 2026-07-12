@@ -185,6 +185,7 @@
 <MobilePageHeader title="Tax & Invoicing" backHref={`/${$page.params.business}/${$page.params.slug}/settings`} />
 <div class="flex flex-col gap-6 p-6">
 	<PageHeader
+		back
 		title="Tax & Invoicing"
 		description="Configure tax regime, registration details, and invoice numbering"
 	>

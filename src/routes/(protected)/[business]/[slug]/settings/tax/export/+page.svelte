@@ -152,7 +152,7 @@
 </script>
 
 <div class="flex flex-col gap-6 p-6">
-	<PageHeader title={exportLabel} description={exportDescription}>
+	<PageHeader back title={exportLabel} description={exportDescription}>
 		{#snippet actions()}
 			<Button variant="outline" size="sm" onclick={goBack}>
 				<IconArrowLeft class="mr-2 h-4 w-4" />

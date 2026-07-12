@@ -370,6 +370,7 @@
 
 <div class="flex flex-col gap-6 p-6">
 	<PageHeader
+		back
 		title="Payment Credentials"
 		description="Configure per-business API keys for Stripe, Razorpay, and Dodo Payments"
 	/>
