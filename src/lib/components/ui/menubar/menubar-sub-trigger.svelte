@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { Menubar as MenubarPrimitive } from "bits-ui";
-	import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 	import { cn, type WithoutChild } from "$lib/utils.js";
+	import { HugeiconsIcon } from "@hugeicons/svelte"
+	import { ArrowRight01Icon } from '@hugeicons/core-free-icons';
 
 	let {
 		ref = $bindable(null),
@@ -19,11 +20,11 @@
 	data-slot="menubar-sub-trigger"
 	data-inset={inset}
 	class={cn(
-		"focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none data-[inset]:pl-8",
+		"focus:bg-accent focus:text-accent-foreground data-open:bg-accent data-open:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground min-h-7 gap-2 rounded-md px-2 py-1 text-xs data-inset:pl-7.5 [&_svg:not([class*='size-'])]:size-3.5 flex cursor-default items-center outline-none select-none",
 		className
 	)}
 	{...restProps}
 >
 	{@render children?.()}
-	<ChevronRightIcon class="ml-auto size-4" />
+	<HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} class="cn-rtl-flip ml-auto size-4" />
 </MenubarPrimitive.SubTrigger>

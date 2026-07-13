@@ -2,6 +2,23 @@
 	import type { CustomerOrder } from '$lib/api/customer-me';
 	import { getOrders } from '$lib/api/customer-me';
 	import Loader2Icon from '@lucide/svelte/icons/loader-2';
+	import { Shimmer } from '@shimmer-from-structure/svelte';
+
+	// Placeholder rows rendered while loading so <Shimmer> can measure the real
+	// row layout and generate a structure-accurate skeleton (their text is made
+	// transparent by the library — only the layout/width is used).
+	const placeholderOrders: CustomerOrder[] = Array.from({ length: 3 }, (_, i) => ({
+		id: `skeleton-${i}`,
+		orderNumber: '0000',
+		status: 'pending',
+		paymentStatus: 'pending',
+		orderChannel: null,
+		items: [],
+		pricing: { total: 0 },
+		createdAt: new Date(0).toISOString(),
+		restaurantId: 'skeleton',
+		restaurant: { slug: 'skeleton', name: 'Restaurant name' }
+	}));
 
 	interface Props {
 		slug: string;
@@ -109,46 +126,42 @@
 	</button>
 </div>
 
-{#if loading}
-	<div class="space-y-3">
-		{#each [1, 2, 3] as _}
-			<div class="h-16 animate-pulse rounded-xl bg-gray-100 dark:bg-muted"></div>
-		{/each}
-	</div>
-{:else if error}
+{#if error}
 	<p class="text-sm text-destructive">{error}</p>
-{:else if orders.length === 0}
+{:else if !loading && orders.length === 0}
 	<p class="text-sm text-muted-foreground">No orders found.</p>
 {:else}
-	<div class="space-y-3">
-		{#each orders as order (order.id)}
-			<div
-				class="flex items-start justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 dark:border-border dark:bg-muted/40"
-			>
-				<div class="min-w-0 flex-1">
-					<div class="flex items-center gap-2">
-						<span class="text-sm font-semibold">#{order.orderNumber}</span>
-						<span
-							class="rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize {statusColor(
-								order.status
-							)}"
-						>
-							{order.status}
-						</span>
+	<Shimmer {loading}>
+		<div class="space-y-3">
+			{#each loading ? placeholderOrders : orders as order (order.id)}
+				<div
+					class="flex items-start justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 dark:border-border dark:bg-muted/40"
+				>
+					<div class="min-w-0 flex-1">
+						<div class="flex items-center gap-2">
+							<span class="text-sm font-semibold">#{order.orderNumber}</span>
+							<span
+								class="rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize {statusColor(
+									order.status
+								)}"
+							>
+								{order.status}
+							</span>
+						</div>
+						<p class="mt-0.5 text-xs text-muted-foreground">
+							{formatDate(order.createdAt)}
+							{#if order.restaurant?.name && activeTab === 'all'}
+								· {order.restaurant.name}
+							{/if}
+						</p>
 					</div>
-					<p class="mt-0.5 text-xs text-muted-foreground">
-						{formatDate(order.createdAt)}
-						{#if order.restaurant?.name && activeTab === 'all'}
-							· {order.restaurant.name}
-						{/if}
-					</p>
+					<span class="shrink-0 text-sm font-bold text-primary">{getTotal(order)}</span>
 				</div>
-				<span class="shrink-0 text-sm font-bold text-primary">{getTotal(order)}</span>
-			</div>
-		{/each}
-	</div>
+			{/each}
+		</div>
+	</Shimmer>
 
-	{#if nextCursor}
+	{#if !loading && nextCursor}
 		<button
 			class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-medium text-gray-700 transition-all hover:bg-gray-50 active:scale-[0.98] disabled:opacity-60 dark:border-border dark:bg-card dark:text-foreground"
 			onclick={loadMore}

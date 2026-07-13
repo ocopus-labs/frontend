@@ -24,6 +24,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { Switch } from '$lib/components/ui/switch';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import { EmptyState, StatusPill } from '$lib/components/data-display';

@@ -19,7 +19,7 @@
 		if (children) return true;
 
 		// no errors
-		if (!errors) return false;
+		if (!errors || errors.length === 0) return false;
 
 		// has an error but no message
 		if (errors.length === 1 && !errors[0]?.message) {
@@ -38,7 +38,7 @@
 		bind:this={ref}
 		role="alert"
 		data-slot="field-error"
-		class={cn("text-destructive text-sm font-normal", className)}
+		class={cn("text-destructive text-xs/relaxed font-normal", className)}
 		{...restProps}
 	>
 		{#if children}
