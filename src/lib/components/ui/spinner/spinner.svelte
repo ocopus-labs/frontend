@@ -16,4 +16,6 @@
 	}: SVGAttributes<SVGSVGElement> = $props();
 </script>
 
-<HugeiconsIcon icon={Loading03Icon} strokeWidth={2} {role} name={name === null ? undefined : name} color={color === null ? undefined : color} stroke={stroke === null ? undefined : stroke} aria-label={ariaLabel} class={cn("size-4 animate-spin", className)} {...restProps} />
+<!-- restProps is generic SVGAttributes; HugeiconsIcon exposes a narrower prop
+	set (e.g. class: string vs string|null), so pass the extras through untyped. -->
+<HugeiconsIcon icon={Loading03Icon} strokeWidth={2} {role} name={name === null ? undefined : name} color={color === null ? undefined : color} stroke={stroke === null ? undefined : stroke} aria-label={ariaLabel} class={cn("size-4 animate-spin", className)} {...(restProps as Record<string, unknown>)} />
