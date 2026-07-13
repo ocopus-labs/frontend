@@ -2,13 +2,13 @@
 	import { tv, type VariantProps } from "tailwind-variants";
 
 	const inputGroupButtonVariants = tv({
-		base: "flex items-center gap-2 text-sm shadow-none",
+		base: "gap-2 rounded-md text-xs/relaxed flex items-center shadow-none",
 		variants: {
 			size: {
-				xs: "h-6 gap-1 rounded-[calc(var(--radius)-5px)] px-2 has-[>svg]:px-2 [&>svg:not([class*='size-'])]:size-3.5",
-				sm: "h-8 gap-1.5 rounded-md px-2.5 has-[>svg]:px-2.5",
-				"icon-xs": "size-6 rounded-[calc(var(--radius)-5px)] p-0 has-[>svg]:p-0",
-				"icon-sm": "size-8 p-0 has-[>svg]:p-0",
+				xs: "h-5 gap-1 rounded-[calc(var(--radius-sm)-2px)] px-1 [&>svg:not([class*='size-'])]:size-3",
+				sm: "gap-1",
+				"icon-xs": "size-6 p-0 has-[>svg]:p-0",
+				"icon-sm": "size-7 p-0 has-[>svg]:p-0",
 			},
 		},
 		defaultVariants: {
@@ -21,9 +21,8 @@
 
 <script lang="ts">
 	import { cn } from "$lib/utils.js";
-	import type { Snippet } from "svelte";
-	import { Button, type ButtonProps } from "$lib/components/ui/button/index.js";
-	import type { HTMLButtonAttributes } from "svelte/elements";
+	import type { ComponentProps } from "svelte";
+	import { Button } from "$lib/components/ui/button/index.js";
 
 	let {
 		ref = $bindable(null),
@@ -33,13 +32,9 @@
 		variant = "ghost",
 		size = "xs",
 		...restProps
-	}: HTMLButtonAttributes & {
-		ref?: HTMLElement | null;
-		children?: Snippet;
-		variant?: ButtonProps["variant"];
+	}: Omit<ComponentProps<typeof Button>, "href" | "size"> & {
 		size?: InputGroupButtonSize;
 	} = $props();
-	const btnProps = restProps as Record<string, unknown>;
 </script>
 
 <Button
@@ -48,7 +43,7 @@
 	data-size={size}
 	{variant}
 	class={cn(inputGroupButtonVariants({ size }), className)}
-	{...btnProps}
+	{...restProps}
 >
 	{@render children?.()}
 </Button>
