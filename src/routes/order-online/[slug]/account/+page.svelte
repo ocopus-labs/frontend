@@ -11,6 +11,8 @@
 		type CustomerSession
 	} from '$lib/api/customer-me';
 	import { LoyaltyCard, OrderHistoryList, SessionList } from '$lib/components/customer-auth';
+	import { APP_NAME } from '$lib/constants/config';
+	import { Shimmer } from '@shimmer-from-structure/svelte';
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
 	import UserIcon from '@lucide/svelte/icons/user';
 	import StarIcon from '@lucide/svelte/icons/star';
@@ -25,6 +27,17 @@
 	let profile = $state<CustomerProfile | null>(null);
 	let profileLoading = $state(true);
 	let profileError = $state('');
+
+	// Placeholder profile gives <Shimmer> a real row layout to measure while loading,
+	// so the skeleton mirrors the actual Name/Email/Phone structure (text is hidden
+	// by the library — only dimensions are used).
+	const placeholderProfile = {
+		name: 'Customer name',
+		email: 'name@example.com',
+		phoneNumber: '+00 00000 00000',
+		phoneNumberVerified: true
+	} as CustomerProfile;
+	const displayProfile = $derived(profileLoading ? placeholderProfile : profile);
 
 	// ── Loyalty data ──
 	let loyalty = $state<LoyaltyEntry[]>([]);
@@ -102,13 +115,13 @@
 	}
 </script>
 
-<div class="flex min-h-svh flex-col bg-gray-50 dark:bg-background">
+<div class="flex min-h-svh flex-col bg-muted/40">
 	<!-- Header -->
-	<header class="sticky top-0 z-20 border-b bg-white/95 backdrop-blur dark:bg-background/95">
+	<header class="sticky top-0 z-20 border-b bg-card/95 backdrop-blur">
 		<div class="flex items-center gap-3 px-4 py-3">
 			<button
 				onclick={() => goto(`/order-online/${slug}`)}
-				class="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 transition-colors hover:bg-gray-200 dark:bg-muted"
+				class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted transition-colors hover:bg-muted"
 				aria-label="Go back"
 			>
 				<ArrowLeftIcon class="h-4 w-4" />
@@ -119,9 +132,7 @@
 
 	<div class="flex-1 space-y-4 px-4 py-4">
 		<!-- Profile section -->
-		<div
-			class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card"
-		>
+		<div class="rounded-2xl border border-border bg-card p-5 shadow-sm">
 			<div class="mb-4 flex items-center gap-2">
 				<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
 					<UserIcon class="h-4 w-4 text-primary" />
@@ -129,43 +140,39 @@
 				<h2 class="text-sm font-bold">Profile</h2>
 			</div>
 
-			{#if profileLoading}
-				<div class="space-y-3">
-					{#each [1, 2, 3] as _}
-						<div class="h-5 animate-pulse rounded bg-gray-100 dark:bg-muted"></div>
-					{/each}
-				</div>
-			{:else if profileError}
+			{#if profileError}
 				<p class="text-sm text-destructive">{profileError}</p>
-			{:else if profile}
-				<div class="space-y-3">
-					{#if profile.name}
+			{:else if displayProfile}
+				<Shimmer loading={profileLoading}>
+					<div class="space-y-3">
+						{#if displayProfile.name}
+							<div class="flex items-center justify-between text-sm">
+								<span class="text-muted-foreground">Name</span>
+								<span class="font-medium">{displayProfile.name}</span>
+							</div>
+						{/if}
+						{#if displayProfile.email}
+							<div class="flex items-center justify-between text-sm">
+								<span class="text-muted-foreground">Email</span>
+								<span class="font-medium">{displayProfile.email}</span>
+							</div>
+						{/if}
 						<div class="flex items-center justify-between text-sm">
-							<span class="text-muted-foreground">Name</span>
-							<span class="font-medium">{profile.name}</span>
+							<span class="text-muted-foreground">Phone</span>
+							<span class="font-medium">{maskPhone(displayProfile.phoneNumber)}</span>
 						</div>
-					{/if}
-					{#if profile.email}
-						<div class="flex items-center justify-between text-sm">
-							<span class="text-muted-foreground">Email</span>
-							<span class="font-medium">{profile.email}</span>
-						</div>
-					{/if}
-					<div class="flex items-center justify-between text-sm">
-						<span class="text-muted-foreground">Phone</span>
-						<span class="font-medium">{maskPhone(profile.phoneNumber)}</span>
+						{#if displayProfile.phoneNumberVerified}
+							<div class="flex items-center justify-between text-sm">
+								<span class="text-muted-foreground">Phone verified</span>
+								<span
+									class="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold text-success"
+								>
+									Verified
+								</span>
+							</div>
+						{/if}
 					</div>
-					{#if profile.phoneNumberVerified}
-						<div class="flex items-center justify-between text-sm">
-							<span class="text-muted-foreground">Phone verified</span>
-							<span
-								class="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-300"
-							>
-								Verified
-							</span>
-						</div>
-					{/if}
-				</div>
+				</Shimmer>
 			{/if}
 
 			<div class="mt-5 border-t pt-4">
@@ -186,9 +193,7 @@
 		</div>
 
 		<!-- Loyalty section -->
-		<div
-			class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card"
-		>
+		<div class="rounded-2xl border border-border bg-card p-5 shadow-sm">
 			<div class="mb-4 flex items-center gap-2">
 				<div
 					class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30"
@@ -206,9 +211,7 @@
 		</div>
 
 		<!-- Orders section -->
-		<div
-			class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card"
-		>
+		<div class="rounded-2xl border border-border bg-card p-5 shadow-sm">
 			<div class="mb-4 flex items-center gap-2">
 				<div
 					class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30"
@@ -221,12 +224,10 @@
 		</div>
 
 		<!-- Sessions section -->
-		<div
-			class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card"
-		>
+		<div class="rounded-2xl border border-border bg-card p-5 shadow-sm">
 			<div class="mb-4 flex items-center gap-2">
-				<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 dark:bg-muted">
-					<ShieldIcon class="h-4 w-4 text-gray-600 dark:text-muted-foreground" />
+				<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
+					<ShieldIcon class="h-4 w-4 text-muted-foreground" />
 				</div>
 				<h2 class="text-sm font-bold">Active Sessions</h2>
 			</div>
@@ -239,7 +240,7 @@
 		</div>
 	</div>
 
-	<footer class="border-t bg-white px-4 py-3 text-center dark:bg-card">
-		<p class="text-[11px] text-muted-foreground">Powered by RestaurantPro</p>
+	<footer class="border-t bg-card px-4 py-3 text-center">
+		<p class="text-[11px] text-muted-foreground">Powered by {APP_NAME}</p>
 	</footer>
 </div>

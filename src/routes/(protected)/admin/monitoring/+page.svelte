@@ -84,24 +84,36 @@
 	// Derived values
 	const lastRefreshText = $derived(
 		lastRefresh
-			? lastRefresh.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+			? lastRefresh.toLocaleTimeString('en-US', {
+					hour: '2-digit',
+					minute: '2-digit',
+					second: '2-digit'
+				})
 			: 'Never'
 	);
 
 	const totalWebhookEvents = $derived(
-		stats ? stats.webhookHealth.processed + stats.webhookHealth.failed + stats.webhookHealth.pending : 0
+		stats
+			? stats.webhookHealth.processed + stats.webhookHealth.failed + stats.webhookHealth.pending
+			: 0
 	);
 
 	const webhookProcessedPct = $derived(
-		totalWebhookEvents > 0 ? Math.round((stats!.webhookHealth.processed / totalWebhookEvents) * 100) : 0
+		totalWebhookEvents > 0
+			? Math.round((stats!.webhookHealth.processed / totalWebhookEvents) * 100)
+			: 0
 	);
 
 	const webhookFailedPct = $derived(
-		totalWebhookEvents > 0 ? Math.round((stats!.webhookHealth.failed / totalWebhookEvents) * 100) : 0
+		totalWebhookEvents > 0
+			? Math.round((stats!.webhookHealth.failed / totalWebhookEvents) * 100)
+			: 0
 	);
 
 	const webhookPendingPct = $derived(
-		totalWebhookEvents > 0 ? Math.round((stats!.webhookHealth.pending / totalWebhookEvents) * 100) : 0
+		totalWebhookEvents > 0
+			? Math.round((stats!.webhookHealth.pending / totalWebhookEvents) * 100)
+			: 0
 	);
 
 	function formatCurrency(amount: number): string {
@@ -122,10 +134,12 @@
 				{#if !paused}
 					<span class="flex items-center gap-1.5">
 						<span class="relative flex h-2.5 w-2.5">
-							<span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
-							<span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500"></span>
+							<span
+								class="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75"
+							></span>
+							<span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-success"></span>
 						</span>
-						<span class="text-xs font-medium text-green-600">Live</span>
+						<span class="text-xs font-medium text-success">Live</span>
 					</span>
 				{:else}
 					<Badge variant="secondary">Paused</Badge>
@@ -136,7 +150,12 @@
 			</p>
 		</div>
 		<div class="flex items-center gap-2">
-			<Button variant="outline" size="sm" onclick={togglePause} aria-label={paused ? 'Resume auto-refresh' : 'Pause auto-refresh'}>
+			<Button
+				variant="outline"
+				size="sm"
+				onclick={togglePause}
+				aria-label={paused ? 'Resume auto-refresh' : 'Pause auto-refresh'}
+			>
 				{#if paused}
 					<Play class="mr-1.5 h-4 w-4" />
 					Resume
@@ -145,7 +164,13 @@
 					Pause
 				{/if}
 			</Button>
-			<Button variant="outline" size="sm" onclick={handleManualRefresh} disabled={refreshing} aria-label="Refresh now">
+			<Button
+				variant="outline"
+				size="sm"
+				onclick={handleManualRefresh}
+				disabled={refreshing}
+				aria-label="Refresh now"
+			>
 				<RefreshCw class="mr-1.5 h-4 w-4 {refreshing ? 'animate-spin' : ''}" />
 				Refresh Now
 			</Button>
@@ -217,9 +242,7 @@
 				</Card.Header>
 				<Card.Content>
 					<div class="text-2xl font-bold">{stats.activeBusinesses}</div>
-					<p class="text-xs text-muted-foreground">
-						with orders today
-					</p>
+					<p class="text-xs text-muted-foreground">with orders today</p>
 				</Card.Content>
 			</Card.Root>
 
@@ -231,9 +254,7 @@
 				</Card.Header>
 				<Card.Content>
 					<div class="text-2xl font-bold">{stats.newUsersToday}</div>
-					<p class="text-xs text-muted-foreground">
-						registered today
-					</p>
+					<p class="text-xs text-muted-foreground">registered today</p>
 				</Card.Content>
 			</Card.Root>
 		</div>
@@ -274,7 +295,7 @@
 						<div class="space-y-1.5">
 							<div class="flex items-center justify-between text-sm">
 								<span class="text-muted-foreground">Processed</span>
-								<span class="font-medium text-green-600">{stats.webhookHealth.processed}</span>
+								<span class="font-medium text-success">{stats.webhookHealth.processed}</span>
 							</div>
 							<Progress value={webhookProcessedPct} class="h-2" />
 						</div>
@@ -282,7 +303,7 @@
 						<div class="space-y-1.5">
 							<div class="flex items-center justify-between text-sm">
 								<span class="text-muted-foreground">Failed</span>
-								<span class="font-medium text-red-600">{stats.webhookHealth.failed}</span>
+								<span class="font-medium text-destructive">{stats.webhookHealth.failed}</span>
 							</div>
 							<Progress value={webhookFailedPct} class="h-2" />
 						</div>
@@ -290,7 +311,7 @@
 						<div class="space-y-1.5">
 							<div class="flex items-center justify-between text-sm">
 								<span class="text-muted-foreground">Pending</span>
-								<span class="font-medium text-yellow-600">{stats.webhookHealth.pending}</span>
+								<span class="font-medium text-warning">{stats.webhookHealth.pending}</span>
 							</div>
 							<Progress value={webhookPendingPct} class="h-2" />
 						</div>
@@ -308,7 +329,7 @@
 				<Card.Root>
 					<Card.Header>
 						<Card.Title class="flex items-center gap-2 text-sm font-medium">
-							<AlertTriangle class="h-4 w-4 text-red-500" />
+							<AlertTriangle class="h-4 w-4 text-destructive" />
 							Recent Errors
 						</Card.Title>
 						<Card.Description>Last 5 failed webhook events</Card.Description>
@@ -317,18 +338,28 @@
 						{#if stats.recentErrors.length === 0}
 							<div class="flex flex-col items-center justify-center py-6 text-center">
 								<p class="text-sm text-muted-foreground">No recent errors</p>
-								<p class="mt-1 text-xs text-muted-foreground">All webhook events are processing normally</p>
+								<p class="mt-1 text-xs text-muted-foreground">
+									All webhook events are processing normally
+								</p>
 							</div>
 						{:else}
 							<div class="space-y-3">
 								{#each stats.recentErrors as error}
-									<div class="rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950/30">
-										<p class="text-sm font-medium text-red-800 dark:text-red-200 break-all">
+									<div class="rounded-md border border-destructive/30 bg-destructive/10 p-3">
+										<p class="text-sm font-medium break-all text-destructive">
 											{error.message}
 										</p>
-										<div class="mt-1 flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
+										<div class="mt-1 flex items-center gap-2 text-xs text-destructive/80">
 											<Clock class="h-3 w-3" />
-											<time>{new Date(error.timestamp).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', month: 'short', day: 'numeric' })}</time>
+											<time
+												>{new Date(error.timestamp).toLocaleString('en-US', {
+													hour: '2-digit',
+													minute: '2-digit',
+													second: '2-digit',
+													month: 'short',
+													day: 'numeric'
+												})}</time
+											>
 											<span>&middot;</span>
 											<span>{error.source}</span>
 										</div>
@@ -362,7 +393,9 @@
 			<Card.Content class="flex flex-col items-center justify-center py-12 text-center">
 				<AlertTriangle class="h-12 w-12 text-muted-foreground" />
 				<h3 class="mt-4 text-lg font-semibold">Failed to load monitoring data</h3>
-				<p class="mt-1 text-sm text-muted-foreground">Unable to fetch live statistics. Please try again.</p>
+				<p class="mt-1 text-sm text-muted-foreground">
+					Unable to fetch live statistics. Please try again.
+				</p>
 				<Button variant="outline" class="mt-4" onclick={handleManualRefresh}>
 					<RefreshCw class="mr-1.5 h-4 w-4" />
 					Retry

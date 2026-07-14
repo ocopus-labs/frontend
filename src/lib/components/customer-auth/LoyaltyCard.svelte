@@ -28,7 +28,7 @@
 		<div class="space-y-3">
 			{#each loading ? placeholderLoyalty : loyalty as entry (entry.restaurantId)}
 				<div
-					class="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 dark:border-border dark:bg-muted/40"
+					class="flex items-center justify-between rounded-xl border border-border bg-muted/40 px-4 py-3 dark:bg-muted/40"
 				>
 					<div>
 						<p class="text-sm font-semibold">{entry.restaurantName}</p>

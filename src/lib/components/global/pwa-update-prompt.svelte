@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { Button } from '$lib/components/ui/button';
+	import { APP_NAME } from '$lib/constants/config';
 
 	let showRefresh = $state(false);
 	let waitingWorker: ServiceWorker | null = $state(null);
@@ -71,7 +72,7 @@
 		role="alert"
 	>
 		<div class="text-sm">
-			<p class="font-medium">Install RestaurantPro</p>
+			<p class="font-medium">Install {APP_NAME}</p>
 			<p class="text-muted-foreground">Add to your home screen for quick access.</p>
 		</div>
 		<div class="flex gap-2">
@@ -83,7 +84,7 @@
 
 {#if showRefresh}
 	<div
-		class="fixed bottom-4 right-4 z-[9999] flex items-center gap-3 rounded-lg border bg-background p-4 shadow-lg"
+		class="fixed right-4 bottom-4 z-[9999] flex items-center gap-3 rounded-lg border bg-background p-4 shadow-lg"
 		role="alert"
 	>
 		<div class="text-sm">

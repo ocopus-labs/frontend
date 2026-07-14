@@ -45,10 +45,34 @@
 	}
 
 	const statusSteps = [
-		{ key: 'active', label: 'Order Placed', sublabel: 'Your order has been received', icon: CheckCircle2Icon, color: 'text-blue-500' },
-		{ key: 'preparing', label: 'Preparing', sublabel: 'Kitchen is working on your order', icon: CookingPotIcon, color: 'text-orange-500' },
-		{ key: 'ready', label: 'Ready', sublabel: 'Your order is ready for pickup', icon: BellRingIcon, color: 'text-green-500' },
-		{ key: 'completed', label: 'Served', sublabel: 'Enjoy your meal!', icon: UtensilsIcon, color: 'text-green-600' }
+		{
+			key: 'active',
+			label: 'Order Placed',
+			sublabel: 'Your order has been received',
+			icon: CheckCircle2Icon,
+			color: 'text-blue-500'
+		},
+		{
+			key: 'preparing',
+			label: 'Preparing',
+			sublabel: 'Kitchen is working on your order',
+			icon: CookingPotIcon,
+			color: 'text-primary'
+		},
+		{
+			key: 'ready',
+			label: 'Ready',
+			sublabel: 'Your order is ready for pickup',
+			icon: BellRingIcon,
+			color: 'text-success'
+		},
+		{
+			key: 'completed',
+			label: 'Served',
+			sublabel: 'Enjoy your meal!',
+			icon: UtensilsIcon,
+			color: 'text-success'
+		}
 	];
 
 	const currentStepIndex = $derived(() => {
@@ -66,17 +90,20 @@
 	function getItemStatusBadge(status: string): { label: string; class: string } {
 		switch (status) {
 			case 'pending':
-				return { label: 'Queued', class: 'bg-gray-100 text-gray-600 dark:bg-muted dark:text-muted-foreground' };
+				return { label: 'Queued', class: 'bg-muted text-muted-foreground' };
 			case 'preparing':
-				return { label: 'Preparing', class: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' };
+				return { label: 'Preparing', class: 'bg-primary/10 text-primary' };
 			case 'ready':
-				return { label: 'Ready', class: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' };
+				return { label: 'Ready', class: 'bg-success/15 text-success' };
 			case 'served':
-				return { label: 'Served', class: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' };
+				return {
+					label: 'Served',
+					class: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+				};
 			case 'cancelled':
-				return { label: 'Cancelled', class: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' };
+				return { label: 'Cancelled', class: 'bg-destructive/15 text-destructive' };
 			default:
-				return { label: status, class: 'bg-gray-100 text-gray-600' };
+				return { label: status, class: 'bg-muted text-muted-foreground' };
 		}
 	}
 
@@ -116,7 +143,7 @@
 		try {
 			await submitOrderFeedback(trackingToken, {
 				rating: feedbackRating,
-				comment: feedbackComment.trim() || undefined,
+				comment: feedbackComment.trim() || undefined
 			});
 			feedbackSubmitted = true;
 		} catch {
@@ -137,33 +164,42 @@
 	}
 </script>
 
-<div class="flex min-h-svh flex-col bg-gray-50 dark:bg-background">
+<div class="flex min-h-svh flex-col bg-muted/40">
 	<!-- ═══ Header ═══ -->
-	<header class="border-b bg-white px-4 py-4 dark:bg-card">
+	<header class="border-b bg-card px-4 py-4">
 		<div class="flex items-center justify-between">
 			<div>
 				<div class="flex items-center gap-2">
 					<h1 class="text-lg font-bold">{order.orderNumber}</h1>
 					{#if order.status === 'cancelled'}
-						<span class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-300">
+						<span
+							class="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-medium text-destructive"
+						>
 							<CircleXIcon class="h-3 w-3" />
 							Cancelled
 						</span>
 					{/if}
 				</div>
 				<p class="mt-0.5 text-xs text-muted-foreground">
-					Table {order.tableNumber} &middot; {formatDate(order.createdAt)} at {formatTime(order.createdAt)}
+					Table {order.tableNumber} &middot; {formatDate(order.createdAt)} at {formatTime(
+						order.createdAt
+					)}
 				</p>
 			</div>
 			<div class="flex flex-col items-end gap-1.5">
 				<!-- Payment badge -->
 				<span
-					class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold {order.paymentStatus === 'paid'
-						? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-						: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'}"
+					class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold {order.paymentStatus ===
+					'paid'
+						? 'bg-success/15 text-success'
+						: 'bg-primary/10 text-primary'}"
 				>
 					<WalletIcon class="h-3 w-3" />
-					{order.paymentStatus === 'paid' ? 'Paid' : order.paymentStatus === 'partial' ? 'Partial' : 'Unpaid'}
+					{order.paymentStatus === 'paid'
+						? 'Paid'
+						: order.paymentStatus === 'partial'
+							? 'Partial'
+							: 'Unpaid'}
 				</span>
 				<button
 					class="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
@@ -179,7 +215,7 @@
 	<div class="flex-1 space-y-4 px-4 py-4">
 		<!-- ═══ Progress Tracker ═══ -->
 		{#if order.status !== 'cancelled'}
-			<div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card">
+			<div class="rounded-2xl border border-border bg-card p-5 shadow-sm">
 				<h2 class="mb-4 text-sm font-bold">Order Status</h2>
 				<div class="space-y-0">
 					{#each statusSteps as step, i}
@@ -195,7 +231,7 @@
 										? 'bg-primary text-primary-foreground'
 										: isActive
 											? 'bg-primary text-primary-foreground ring-4 ring-primary/20'
-											: 'bg-gray-100 text-gray-400 dark:bg-muted dark:text-muted-foreground'}"
+											: 'bg-muted text-muted-foreground'}"
 								>
 									{#if isCompleted}
 										<CheckCircle2Icon class="h-4 w-4" />
@@ -205,9 +241,9 @@
 								</div>
 								{#if i < statusSteps.length - 1}
 									<div
-										class="my-1 w-0.5 flex-1 min-h-[24px] rounded-full {isCompleted
+										class="my-1 min-h-[24px] w-0.5 flex-1 rounded-full {isCompleted
 											? 'bg-primary'
-											: 'bg-gray-200 dark:bg-muted'}"
+											: 'bg-muted'}"
 									></div>
 								{/if}
 							</div>
@@ -217,7 +253,7 @@
 								<p
 									class="text-sm font-semibold {isActive || isCompleted
 										? 'text-foreground'
-										: 'text-gray-400 dark:text-muted-foreground'}"
+										: 'text-muted-foreground'}"
 								>
 									{step.label}
 								</p>
@@ -225,7 +261,9 @@
 								{#if isActive}
 									<div class="mt-1 flex items-center gap-1">
 										<span class="relative flex h-2 w-2">
-											<span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
+											<span
+												class="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"
+											></span>
 											<span class="relative inline-flex h-2 w-2 rounded-full bg-primary"></span>
 										</span>
 										<span class="text-[10px] font-medium text-primary">Current</span>
@@ -237,17 +275,17 @@
 				</div>
 			</div>
 		{:else}
-			<div class="rounded-2xl border border-red-100 bg-red-50/50 p-6 text-center dark:border-red-900/30 dark:bg-red-900/10">
-				<CircleXIcon class="mx-auto mb-2 h-10 w-10 text-red-400" />
-				<p class="font-semibold text-red-700 dark:text-red-300">Order Cancelled</p>
-				<p class="mt-1 text-sm text-red-500 dark:text-red-400">
+			<div class="rounded-2xl border border-destructive/30 bg-destructive/10 p-6 text-center">
+				<CircleXIcon class="mx-auto mb-2 h-10 w-10 text-destructive" />
+				<p class="font-semibold text-destructive">Order Cancelled</p>
+				<p class="mt-1 text-sm text-destructive/80">
 					This order has been cancelled. Please contact the restaurant for more info.
 				</p>
 			</div>
 		{/if}
 
 		<!-- ═══ Order Items ═══ -->
-		<div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card">
+		<div class="rounded-2xl border border-border bg-card p-5 shadow-sm">
 			<div class="mb-3 flex items-center gap-2">
 				<div class="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
 					<ReceiptIcon class="h-3.5 w-3.5 text-primary" />
@@ -255,7 +293,7 @@
 				<h2 class="text-sm font-bold">Items</h2>
 			</div>
 			<div class="space-y-3">
-				{#each (order.items as any[]) as item}
+				{#each order.items as any[] as item}
 					{@const badge = getItemStatusBadge(item.status)}
 					<div class="flex items-center justify-between gap-2">
 						<div class="min-w-0 flex-1">
@@ -266,14 +304,22 @@
 							{#if item.modifiers}
 								<div class="mt-0.5 flex flex-wrap gap-1">
 									{#if item.modifiers.size}
-										<span class="rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500 dark:bg-muted dark:text-muted-foreground">{item.modifiers.size.name || item.modifiers.size}</span>
+										<span
+											class="rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+											>{item.modifiers.size.name || item.modifiers.size}</span
+										>
 									{/if}
 									{#if item.modifiers.spiceLevel}
-										<span class="rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] text-orange-500 dark:bg-orange-900/20 dark:text-orange-300">{item.modifiers.spiceLevel.name || item.modifiers.spiceLevel}</span>
+										<span class="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary"
+											>{item.modifiers.spiceLevel.name || item.modifiers.spiceLevel}</span
+										>
 									{/if}
 									{#if item.modifiers.addOns?.length}
 										{#each item.modifiers.addOns as addOn}
-											<span class="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-500 dark:bg-blue-900/20 dark:text-blue-300">+{addOn.name || addOn}</span>
+											<span
+												class="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-500 dark:bg-blue-900/20 dark:text-blue-300"
+												>+{addOn.name || addOn}</span
+											>
 										{/each}
 									{/if}
 								</div>
@@ -293,7 +339,7 @@
 		</div>
 
 		<!-- ═══ Payment Summary ═══ -->
-		<div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card">
+		<div class="rounded-2xl border border-border bg-card p-5 shadow-sm">
 			<div class="mb-3 flex items-center gap-2">
 				<div class="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
 					<WalletIcon class="h-3.5 w-3.5 text-primary" />
@@ -312,14 +358,16 @@
 					</div>
 				{/if}
 				{#if pricing.discountAmount > 0}
-					<div class="flex justify-between text-green-600">
+					<div class="flex justify-between text-success">
 						<span>Discount</span>
 						<span class="tabular-nums">-{formatPrice(pricing.discountAmount)}</span>
 					</div>
 				{/if}
-				<div class="border-t border-dashed pt-2 flex justify-between">
+				<div class="flex justify-between border-t border-dashed pt-2">
 					<span class="font-bold">Total</span>
-					<span class="text-base font-bold text-primary tabular-nums">{formatPrice(pricing.total)}</span>
+					<span class="text-base font-bold text-primary tabular-nums"
+						>{formatPrice(pricing.total)}</span
+					>
 				</div>
 			</div>
 
@@ -338,26 +386,26 @@
 							Pay Now
 						{/if}
 					</button>
-					<p class="text-center text-[11px] text-muted-foreground">
-						Or pay at the counter
-					</p>
+					<p class="text-center text-[11px] text-muted-foreground">Or pay at the counter</p>
 				</div>
 			{/if}
 		</div>
 
 		<!-- Feedback / Thank You -->
 		{#if feedbackSubmitted}
-			<div class="mx-4 mb-4 rounded-xl bg-green-50 p-4 text-center dark:bg-green-950">
-				<p class="text-lg font-semibold text-green-800 dark:text-green-200">Thank you for dining with us!</p>
-				<p class="mt-1 text-sm text-green-600 dark:text-green-400">We appreciate your feedback.</p>
+			<div class="mx-4 mb-4 rounded-xl bg-success/10 p-4 text-center">
+				<p class="text-lg font-semibold text-success">Thank you for dining with us!</p>
+				<p class="mt-1 text-sm text-success">We appreciate your feedback.</p>
 			</div>
 		{:else if showFeedback}
-			<div class="mx-4 mb-4 rounded-xl border bg-white p-4 dark:bg-card">
+			<div class="mx-4 mb-4 rounded-xl border bg-card p-4">
 				<p class="text-center text-sm font-medium">How was your experience?</p>
 				<div class="mt-3 flex justify-center gap-2">
 					{#each [1, 2, 3, 4, 5] as star}
 						<button
-							class="text-2xl transition-transform hover:scale-110 {feedbackRating >= star ? 'grayscale-0' : 'grayscale'}"
+							class="text-2xl transition-transform hover:scale-110 {feedbackRating >= star
+								? 'grayscale-0'
+								: 'grayscale'}"
 							onclick={() => (feedbackRating = star)}
 							aria-label="{star} star{star > 1 ? 's' : ''}"
 						>
@@ -367,7 +415,7 @@
 				</div>
 				{#if feedbackRating > 0}
 					<textarea
-						class="mt-3 w-full rounded-lg border bg-transparent p-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+						class="mt-3 w-full rounded-lg border bg-transparent p-2 text-sm placeholder:text-muted-foreground focus:ring-1 focus:ring-primary focus:outline-none"
 						placeholder="Any comments? (optional)"
 						rows="2"
 						bind:value={feedbackComment}
@@ -386,8 +434,10 @@
 		<!-- Auto-refresh notice -->
 		<div class="flex items-center justify-center gap-1.5 pb-4">
 			<span class="relative flex h-2 w-2">
-				<span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
-				<span class="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
+				<span
+					class="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75"
+				></span>
+				<span class="relative inline-flex h-2 w-2 rounded-full bg-success"></span>
 			</span>
 			<p class="text-[11px] text-muted-foreground">Live updates every 10 seconds</p>
 		</div>

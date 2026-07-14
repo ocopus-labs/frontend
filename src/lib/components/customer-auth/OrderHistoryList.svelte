@@ -81,12 +81,12 @@
 		switch (status.toLowerCase()) {
 			case 'completed':
 			case 'delivered':
-				return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
+				return 'bg-success/15 text-success';
 			case 'cancelled':
 			case 'rejected':
-				return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
+				return 'bg-destructive/15 text-destructive';
 			case 'pending':
-				return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300';
+				return 'bg-warning/15 text-warning';
 			default:
 				return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
 		}
@@ -111,7 +111,7 @@
 	<button
 		class="rounded-full px-3.5 py-1.5 text-sm font-medium transition-all {activeTab === 'restaurant'
 			? 'bg-primary text-primary-foreground shadow-sm'
-			: 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-muted dark:text-muted-foreground'}"
+			: 'bg-muted text-muted-foreground hover:bg-muted'}"
 		onclick={() => (activeTab = 'restaurant')}
 	>
 		This restaurant
@@ -119,7 +119,7 @@
 	<button
 		class="rounded-full px-3.5 py-1.5 text-sm font-medium transition-all {activeTab === 'all'
 			? 'bg-primary text-primary-foreground shadow-sm'
-			: 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-muted dark:text-muted-foreground'}"
+			: 'bg-muted text-muted-foreground hover:bg-muted'}"
 		onclick={() => (activeTab = 'all')}
 	>
 		All restaurants
@@ -135,7 +135,7 @@
 		<div class="space-y-3">
 			{#each loading ? placeholderOrders : orders as order (order.id)}
 				<div
-					class="flex items-start justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 dark:border-border dark:bg-muted/40"
+					class="flex items-start justify-between gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3 dark:bg-muted/40"
 				>
 					<div class="min-w-0 flex-1">
 						<div class="flex items-center gap-2">
@@ -163,7 +163,7 @@
 
 	{#if !loading && nextCursor}
 		<button
-			class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-medium text-gray-700 transition-all hover:bg-gray-50 active:scale-[0.98] disabled:opacity-60 dark:border-border dark:bg-card dark:text-foreground"
+			class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card py-2.5 text-sm font-medium text-foreground transition-all hover:bg-muted active:scale-[0.98] disabled:opacity-60"
 			onclick={loadMore}
 			disabled={loadingMore}
 		>
