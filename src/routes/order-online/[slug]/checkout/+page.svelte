@@ -705,6 +705,7 @@
 {#if authEnabled}
 	<AuthModal
 		bind:open={showAuthModal}
+		googleOnly
 		onSuccess={() => {
 			showAuthModal = false;
 		}}
