@@ -2,6 +2,7 @@
 	import NavMain from './nav-main.svelte';
 	import NavUser from './nav-user.svelte';
 	import BusinessSwitcher from './business-switcher.svelte';
+	import GlobalSearch from '$lib/components/search/global-search.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { sidebarData } from '$lib/constants/sidebar-data';
 	import { page } from '$app/stores';
@@ -30,8 +31,8 @@
 	// Get enabled features from layout data (loaded in [slug]/+layout.server.ts)
 	const enabledFeatures = $derived(
 		($page.data.enabledFeatures as string[] | undefined) ??
-		($page.data.features?.enabledFeatures as string[] | undefined) ??
-		null
+			($page.data.features?.enabledFeatures as string[] | undefined) ??
+			null
 	);
 
 	// Use business-level subscription from [slug] layout (owner's subscription)
@@ -64,14 +65,31 @@
 
 	// Get current business from the list
 	const currentBusiness = $derived(businesses.find((b) => b.slug === slug));
+
+	// Global search context (derived from the current route)
+	const businessId = $derived($page.data.businessId as string | undefined);
+	const basePath = $derived(`/${businessType}/${slug}`);
 </script>
 
 <Sidebar.Root {collapsible} {...restProps}>
 	<Sidebar.Header>
+		<div class="flex items-center justify-end group-data-[collapsible=icon]:justify-center">
+			<Sidebar.Trigger />
+		</div>
 		<BusinessSwitcher {businesses} {currentBusiness} />
 	</Sidebar.Header>
 	<Sidebar.Content>
-		<NavMain items={navMainItems} subscription={businessSubscription} {userRole} {enabledFeatures} />
+		{#if businessId}
+			<div class="px-2 pt-2 group-data-[collapsible=icon]:hidden">
+				<GlobalSearch {businessId} {basePath} />
+			</div>
+		{/if}
+		<NavMain
+			items={navMainItems}
+			subscription={businessSubscription}
+			{userRole}
+			{enabledFeatures}
+		/>
 	</Sidebar.Content>
 	<Sidebar.Footer>
 		<NavUser subscription={businessSubscription} />

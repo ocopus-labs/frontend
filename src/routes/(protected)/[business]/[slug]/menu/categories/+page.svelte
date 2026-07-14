@@ -19,6 +19,7 @@
 	import { EmptyState } from '$lib/components/data-display';
 	import { toast } from 'svelte-sonner';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
+	import PageShell from '$lib/components/global/page-shell.svelte';
 	import {
 		createCategory,
 		updateCategory,
@@ -43,7 +44,9 @@
 
 	let categories = $state<MenuCategory[]>(data.categories || []);
 
-	$effect(() => { categories = data.categories || []; });
+	$effect(() => {
+		categories = data.categories || [];
+	});
 	let searchQuery = $state('');
 	let showAddDialog = $state(false);
 	let editingCategory = $state<MenuCategory | null>(null);
@@ -102,9 +105,7 @@
 				description: editingCategory.description || undefined,
 				requiresKitchen: editingCategory.requiresKitchen
 			});
-			categories = categories.map((cat) =>
-				cat.id === result.category.id ? result.category : cat
-			);
+			categories = categories.map((cat) => (cat.id === result.category.id ? result.category : cat));
 			toast.success('Category updated successfully');
 			invalidateMenuData();
 			editingCategory = null;
@@ -139,9 +140,7 @@
 			const result = await updateCategory(businessId, category.id, {
 				isActive: !category.isActive
 			});
-			categories = categories.map((cat) =>
-				cat.id === result.category.id ? result.category : cat
-			);
+			categories = categories.map((cat) => (cat.id === result.category.id ? result.category : cat));
 			toast.success(result.category.isActive ? 'Category enabled' : 'Category disabled');
 			invalidateMenuData();
 		} catch (error) {
@@ -164,102 +163,92 @@
 	}
 </script>
 
-<div class="flex flex-1 flex-col">
-	<div class="@container/main flex flex-1 flex-col gap-4">
-		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
-				<div>
-					<h1 class="text-2xl font-bold">Categories</h1>
-					<p class="text-muted-foreground">Organize your menu items into categories</p>
-				</div>
-				<div class="flex gap-2">
-					{#if categories.length === 0}
-						<Button variant="outline" onclick={seedCategories} disabled={isSubmitting}>
-							{#if isSubmitting}
-								<Loader2 class="mr-2 h-4 w-4 animate-spin" />
-							{:else}
-								<IconWand class="mr-2 h-4 w-4" />
-							{/if}
-							Use Default Categories
-						</Button>
-					{/if}
-					<Button onclick={() => (showAddDialog = true)}>
-						<IconPlus class="mr-2 h-4 w-4" />
-						Add Category
-					</Button>
-				</div>
+<PageShell title="Categories" description="Organize your menu items into categories">
+	{#snippet actions()}
+		{#if categories.length === 0}
+			<Button variant="outline" onclick={seedCategories} disabled={isSubmitting}>
+				{#if isSubmitting}
+					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+				{:else}
+					<IconWand class="mr-2 h-4 w-4" />
+				{/if}
+				Use Default Categories
+			</Button>
+		{/if}
+		<Button onclick={() => (showAddDialog = true)}>
+			<IconPlus class="mr-2 h-4 w-4" />
+			Add Category
+		</Button>
+	{/snippet}
+
+	<!-- Search -->
+	{#if categories.length > 0}
+		<div>
+			<div class="relative max-w-sm">
+				<IconSearch
+					class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+				/>
+				<Input placeholder="Search categories..." bind:value={searchQuery} class="pl-9" />
 			</div>
-
-			<!-- Search -->
-			{#if categories.length > 0}
-				<div class="px-6">
-					<div class="relative max-w-sm">
-						<IconSearch
-							class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-						/>
-						<Input placeholder="Search categories..." bind:value={searchQuery} class="pl-9" />
-					</div>
-				</div>
-			{/if}
-
-			<!-- Categories Grid -->
-			{#if filteredCategories.length > 0}
-				<div class="grid grid-cols-1 gap-4 px-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-					{#each filteredCategories as category (category.id)}
-						<Card.Root class="relative overflow-hidden {!category.isActive ? 'opacity-60' : ''}">
-							<Card.Header class="pb-2">
-								<div class="flex items-start justify-between">
-									<div class="flex items-center gap-2">
-										<IconGripVertical class="h-4 w-4 cursor-grab text-muted-foreground" />
-										<Card.Title class="text-lg">{category.name}</Card.Title>
-									</div>
-									<Badge variant={category.isActive ? 'default' : 'secondary'}>
-										{category.isActive ? 'Active' : 'Inactive'}
-									</Badge>
-								</div>
-							</Card.Header>
-							<Card.Content>
-								<p class="text-sm text-muted-foreground">
-									{category.description || 'No description'}
-								</p>
-							</Card.Content>
-							<Card.Footer class="flex justify-between gap-2">
-								<Button variant="ghost" size="sm" onclick={() => toggleCategory(category)}>
-									{category.isActive ? 'Disable' : 'Enable'}
-								</Button>
-								<div class="flex gap-1">
-									<Button variant="ghost" size="icon" onclick={() => openEditDialog(category)}>
-										<IconPencil class="h-4 w-4" />
-									</Button>
-									<Button
-										variant="ghost"
-										size="icon"
-										onclick={() => triggerDeleteCategory(category)}
-										class="text-destructive hover:text-destructive"
-									>
-										<IconTrash class="h-4 w-4" />
-									</Button>
-								</div>
-							</Card.Footer>
-						</Card.Root>
-					{/each}
-				</div>
-			{:else if categories.length === 0}
-				<EmptyState
-					type="empty"
-					title="No categories yet"
-					description="Create your first category to organize menu items, or use default categories to get started."
-				/>
-			{:else}
-				<EmptyState
-					type="no-results"
-					title="No categories found"
-					description="Try adjusting your search."
-				/>
-			{/if}
 		</div>
-	</div>
-</div>
+	{/if}
+
+	<!-- Categories Grid -->
+	{#if filteredCategories.length > 0}
+		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+			{#each filteredCategories as category (category.id)}
+				<Card.Root class="relative overflow-hidden {!category.isActive ? 'opacity-60' : ''}">
+					<Card.Header class="pb-2">
+						<div class="flex items-start justify-between">
+							<div class="flex items-center gap-2">
+								<IconGripVertical class="h-4 w-4 cursor-grab text-muted-foreground" />
+								<Card.Title class="text-lg">{category.name}</Card.Title>
+							</div>
+							<Badge variant={category.isActive ? 'default' : 'secondary'}>
+								{category.isActive ? 'Active' : 'Inactive'}
+							</Badge>
+						</div>
+					</Card.Header>
+					<Card.Content>
+						<p class="text-sm text-muted-foreground">
+							{category.description || 'No description'}
+						</p>
+					</Card.Content>
+					<Card.Footer class="flex justify-between gap-2">
+						<Button variant="ghost" size="sm" onclick={() => toggleCategory(category)}>
+							{category.isActive ? 'Disable' : 'Enable'}
+						</Button>
+						<div class="flex gap-1">
+							<Button variant="ghost" size="icon" onclick={() => openEditDialog(category)}>
+								<IconPencil class="h-4 w-4" />
+							</Button>
+							<Button
+								variant="ghost"
+								size="icon"
+								onclick={() => triggerDeleteCategory(category)}
+								class="text-destructive hover:text-destructive"
+							>
+								<IconTrash class="h-4 w-4" />
+							</Button>
+						</div>
+					</Card.Footer>
+				</Card.Root>
+			{/each}
+		</div>
+	{:else if categories.length === 0}
+		<EmptyState
+			type="empty"
+			title="No categories yet"
+			description="Create your first category to organize menu items, or use default categories to get started."
+		/>
+	{:else}
+		<EmptyState
+			type="no-results"
+			title="No categories found"
+			description="Try adjusting your search."
+		/>
+	{/if}
+</PageShell>
 
 <!-- Add Category Dialog -->
 <Dialog.Root bind:open={showAddDialog}>
@@ -286,7 +275,9 @@
 				<div class="flex items-center gap-2">
 					<Switch bind:checked={newCategory.requiresKitchen} />
 					<span class="text-sm text-muted-foreground">
-						{newCategory.requiresKitchen ? 'Items require kitchen preparation' : 'Items served instantly (skip kitchen)'}
+						{newCategory.requiresKitchen
+							? 'Items require kitchen preparation'
+							: 'Items served instantly (skip kitchen)'}
 					</span>
 				</div>
 			</div>
@@ -334,7 +325,9 @@
 					<div class="flex items-center gap-2">
 						<Switch bind:checked={editingCategory.requiresKitchen} />
 						<span class="text-sm text-muted-foreground">
-							{editingCategory.requiresKitchen ? 'Items require kitchen preparation' : 'Items served instantly (skip kitchen)'}
+							{editingCategory.requiresKitchen
+								? 'Items require kitchen preparation'
+								: 'Items served instantly (skip kitchen)'}
 						</span>
 					</div>
 				</div>

@@ -8,6 +8,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { IconLoader2 } from '@tabler/icons-svelte';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
+	import PageShell from '$lib/components/global/page-shell.svelte';
 	import {
 		IconPlus,
 		IconPencil,
@@ -38,7 +39,13 @@
 	let searchQuery = $state('');
 	let statusFilter = $state<'all' | SupplierStatus>('all');
 	const statusFilterLabel = $derived(
-		({ all: 'All Status', active: 'Active', inactive: 'Inactive', pending: 'Pending', blacklisted: 'Blacklisted' })[statusFilter] || 'All Status'
+		{
+			all: 'All Status',
+			active: 'Active',
+			inactive: 'Inactive',
+			pending: 'Pending',
+			blacklisted: 'Blacklisted'
+		}[statusFilter] || 'All Status'
 	);
 	let showAddDialog = $state(false);
 	let editingSupplier = $state<Supplier | null>(null);
@@ -63,7 +70,17 @@
 		categories: []
 	});
 
-	const allCategories = ['Dairy', 'Sauces', 'Oils', 'Dry Goods', 'Herbs', 'Vegetables', 'Meat', 'Seafood', 'Beverages'];
+	const allCategories = [
+		'Dairy',
+		'Sauces',
+		'Oils',
+		'Dry Goods',
+		'Herbs',
+		'Vegetables',
+		'Meat',
+		'Seafood',
+		'Beverages'
+	];
 
 	const filteredSuppliers = $derived(
 		suppliers.filter((supplier) => {
@@ -102,7 +119,14 @@
 			suppliers = [...suppliers, result.supplier];
 			toast.success('Supplier added successfully');
 			showAddDialog = false;
-			newSupplier = { name: '', contactPerson: '', phone: '', email: '', address: '', categories: [] };
+			newSupplier = {
+				name: '',
+				contactPerson: '',
+				phone: '',
+				email: '',
+				address: '',
+				categories: []
+			};
 		} catch (error) {
 			toast.error(userFriendlyError(error, 'Failed to add supplier'));
 		} finally {
@@ -157,161 +181,164 @@
 	}
 </script>
 
-<div class="flex flex-1 flex-col">
-	<div class="@container/main flex flex-1 flex-col gap-4">
-		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
-				<div>
-					<h1 class="text-2xl font-bold">Suppliers</h1>
-					<p class="text-muted-foreground">Manage your supplier relationships</p>
-				</div>
-				<Button onclick={() => (showAddDialog = true)}>
-					<IconPlus class="mr-2 h-4 w-4" />
-					Add Supplier
-				</Button>
-			</div>
+<PageShell title="Suppliers" description="Manage your supplier relationships">
+	{#snippet actions()}
+		<Button onclick={() => (showAddDialog = true)}>
+			<IconPlus class="mr-2 h-4 w-4" />
+			Add Supplier
+		</Button>
+	{/snippet}
 
-			<!-- Stats -->
-			<div class="grid grid-cols-1 gap-4 px-6 sm:grid-cols-3">
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Total Suppliers</Card.Title>
+	<!-- Stats -->
+	<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+		<Card.Root>
+			<Card.Header class="pb-2">
+				<Card.Title class="text-sm font-medium">Total Suppliers</Card.Title>
+			</Card.Header>
+			<Card.Content>
+				<div class="flex items-center gap-2">
+					<IconTruck class="h-5 w-5 text-muted-foreground" />
+					<span class="text-2xl font-bold">{stats.total}</span>
+				</div>
+			</Card.Content>
+		</Card.Root>
+		<Card.Root>
+			<Card.Header class="pb-2">
+				<Card.Title class="text-sm font-medium">Active Suppliers</Card.Title>
+			</Card.Header>
+			<Card.Content>
+				<div class="text-2xl font-bold text-success">{stats.active}</div>
+			</Card.Content>
+		</Card.Root>
+		<Card.Root>
+			<Card.Header class="pb-2">
+				<Card.Title class="text-sm font-medium">Total Orders</Card.Title>
+			</Card.Header>
+			<Card.Content>
+				<div class="text-2xl font-bold">{stats.totalOrders}</div>
+			</Card.Content>
+		</Card.Root>
+	</div>
+
+	<!-- Filters -->
+	<div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+		<div class="relative max-w-sm flex-1">
+			<IconSearch class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+			<Input placeholder="Search suppliers..." bind:value={searchQuery} class="pl-9" />
+		</div>
+
+		<Select.Root type="single" bind:value={statusFilter}>
+			<Select.Trigger class="w-[150px]">
+				{statusFilterLabel}
+			</Select.Trigger>
+			<Select.Content>
+				<Select.Item value="all">All Status</Select.Item>
+				<Select.Item value="active">Active</Select.Item>
+				<Select.Item value="inactive">Inactive</Select.Item>
+				<Select.Item value="pending">Pending</Select.Item>
+				<Select.Item value="blacklisted">Blacklisted</Select.Item>
+			</Select.Content>
+		</Select.Root>
+	</div>
+
+	<!-- Suppliers Grid -->
+	{#if filteredSuppliers.length > 0}
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+			{#each filteredSuppliers as supplier (supplier.id)}
+				<Card.Root class={supplier.status !== 'active' ? 'opacity-60' : ''}>
+					<Card.Header>
+						<div class="flex items-start justify-between">
+							<div>
+								<Card.Title class="text-lg">{supplier.name}</Card.Title>
+								<Card.Description>{supplier.contactPerson || 'No contact'}</Card.Description>
+							</div>
+							<StatusPill
+								label={supplier.status}
+								status={supplier.status === 'active' ? 'success' : 'neutral'}
+							/>
+						</div>
 					</Card.Header>
-					<Card.Content>
-						<div class="flex items-center gap-2">
-							<IconTruck class="h-5 w-5 text-muted-foreground" />
-							<span class="text-2xl font-bold">{stats.total}</span>
+					<Card.Content class="space-y-2">
+						{#if supplier.phone}
+							<div class="flex items-center gap-2 text-sm">
+								<IconPhone class="h-4 w-4 text-muted-foreground" />
+								{supplier.phone}
+							</div>
+						{/if}
+						{#if supplier.email}
+							<div class="flex items-center gap-2 text-sm">
+								<IconMail class="h-4 w-4 text-muted-foreground" />
+								{supplier.email}
+							</div>
+						{/if}
+						<div class="flex flex-wrap gap-1 pt-2">
+							{#each supplier.categories as category}
+								<Badge variant="outline" class="text-xs">{category}</Badge>
+							{/each}
+						</div>
+						<div class="pt-2 text-sm text-muted-foreground">
+							<span>{supplier.totalOrders} orders</span>
+							<span class="mx-2">•</span>
+							<span>Last: {formatDate(supplier.lastOrderDate)}</span>
 						</div>
 					</Card.Content>
+					<Card.Footer class="flex justify-between">
+						<Button variant="outline" size="sm" onclick={() => viewSupplier(supplier)}>
+							View Details
+						</Button>
+						<div class="flex gap-1">
+							<Button variant="ghost" size="icon" onclick={() => editSupplierFn(supplier)}>
+								<IconPencil class="h-4 w-4" />
+							</Button>
+							<Button
+								variant="ghost"
+								size="icon"
+								class="text-destructive hover:text-destructive"
+								onclick={() => handleDelete(supplier.id)}
+							>
+								<IconTrash class="h-4 w-4" />
+							</Button>
+						</div>
+					</Card.Footer>
 				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Active Suppliers</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold text-success">{stats.active}</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Total Orders</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold">{stats.totalOrders}</div>
-					</Card.Content>
-				</Card.Root>
-			</div>
-
-			<!-- Filters -->
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center">
-				<div class="relative max-w-sm flex-1">
-					<IconSearch
-						class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-					/>
-					<Input placeholder="Search suppliers..." bind:value={searchQuery} class="pl-9" />
-				</div>
-
-				<Select.Root type="single" bind:value={statusFilter}>
-					<Select.Trigger class="w-[150px]">
-						{statusFilterLabel}
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="all">All Status</Select.Item>
-						<Select.Item value="active">Active</Select.Item>
-						<Select.Item value="inactive">Inactive</Select.Item>
-						<Select.Item value="pending">Pending</Select.Item>
-						<Select.Item value="blacklisted">Blacklisted</Select.Item>
-					</Select.Content>
-				</Select.Root>
-			</div>
-
-			<!-- Suppliers Grid -->
-			{#if filteredSuppliers.length > 0}
-				<div class="grid grid-cols-1 gap-4 px-6 md:grid-cols-2 lg:grid-cols-3">
-					{#each filteredSuppliers as supplier (supplier.id)}
-						<Card.Root class={supplier.status !== 'active' ? 'opacity-60' : ''}>
-							<Card.Header>
-								<div class="flex items-start justify-between">
-									<div>
-										<Card.Title class="text-lg">{supplier.name}</Card.Title>
-										<Card.Description>{supplier.contactPerson || 'No contact'}</Card.Description>
-									</div>
-									<StatusPill
-										label={supplier.status}
-										status={supplier.status === 'active' ? 'success' : 'neutral'}
-									/>
-								</div>
-							</Card.Header>
-							<Card.Content class="space-y-2">
-								{#if supplier.phone}
-									<div class="flex items-center gap-2 text-sm">
-										<IconPhone class="h-4 w-4 text-muted-foreground" />
-										{supplier.phone}
-									</div>
-								{/if}
-								{#if supplier.email}
-									<div class="flex items-center gap-2 text-sm">
-										<IconMail class="h-4 w-4 text-muted-foreground" />
-										{supplier.email}
-									</div>
-								{/if}
-								<div class="flex flex-wrap gap-1 pt-2">
-									{#each supplier.categories as category}
-										<Badge variant="outline" class="text-xs">{category}</Badge>
-									{/each}
-								</div>
-								<div class="pt-2 text-sm text-muted-foreground">
-									<span>{supplier.totalOrders} orders</span>
-									<span class="mx-2">•</span>
-									<span>Last: {formatDate(supplier.lastOrderDate)}</span>
-								</div>
-							</Card.Content>
-							<Card.Footer class="flex justify-between">
-								<Button variant="outline" size="sm" onclick={() => viewSupplier(supplier)}>
-									View Details
-								</Button>
-								<div class="flex gap-1">
-									<Button variant="ghost" size="icon" onclick={() => editSupplierFn(supplier)}>
-										<IconPencil class="h-4 w-4" />
-									</Button>
-									<Button
-										variant="ghost"
-										size="icon"
-										class="text-destructive hover:text-destructive"
-										onclick={() => handleDelete(supplier.id)}
-									>
-										<IconTrash class="h-4 w-4" />
-									</Button>
-								</div>
-							</Card.Footer>
-						</Card.Root>
-					{/each}
-				</div>
-			{:else}
-				<EmptyState
-					type={suppliers.length === 0 ? 'empty' : 'no-results'}
-					title={suppliers.length === 0 ? 'No suppliers yet' : 'No suppliers found'}
-					description={suppliers.length === 0 ? 'Add your first supplier to get started.' : 'Try adjusting your search or filters.'}
-					actionLabel="Add Supplier"
-					onAction={() => (showAddDialog = true)}
-				/>
-			{/if}
-			<div class="px-6">
-						<div class="flex items-center justify-between border-t pt-4">
-				<p class="text-sm text-muted-foreground">
-					Showing {Math.min((data.page - 1) * data.limit + 1, data.total)} to {Math.min(data.page * data.limit, data.total)} of {data.total} results
-				</p>
-				<div class="flex gap-1">
-					<Button size="sm" variant="outline" disabled={data.page <= 1}
-						onclick={() => goto(`?page=${data.page - 1}&limit=${data.limit}`)}>Previous</Button>
-					<Button size="sm" variant="outline" disabled={data.page >= data.totalPages}
-						onclick={() => goto(`?page=${data.page + 1}&limit=${data.limit}`)}>Next</Button>
-				</div>
-			</div>
+			{/each}
+		</div>
+	{:else}
+		<EmptyState
+			type={suppliers.length === 0 ? 'empty' : 'no-results'}
+			title={suppliers.length === 0 ? 'No suppliers yet' : 'No suppliers found'}
+			description={suppliers.length === 0
+				? 'Add your first supplier to get started.'
+				: 'Try adjusting your search or filters.'}
+			actionLabel="Add Supplier"
+			onAction={() => (showAddDialog = true)}
+		/>
+	{/if}
+	<div>
+		<div class="flex items-center justify-between border-t pt-4">
+			<p class="text-sm text-muted-foreground">
+				Showing {Math.min((data.page - 1) * data.limit + 1, data.total)} to {Math.min(
+					data.page * data.limit,
+					data.total
+				)} of {data.total} results
+			</p>
+			<div class="flex gap-1">
+				<Button
+					size="sm"
+					variant="outline"
+					disabled={data.page <= 1}
+					onclick={() => goto(`?page=${data.page - 1}&limit=${data.limit}`)}>Previous</Button
+				>
+				<Button
+					size="sm"
+					variant="outline"
+					disabled={data.page >= data.totalPages}
+					onclick={() => goto(`?page=${data.page + 1}&limit=${data.limit}`)}>Next</Button
+				>
 			</div>
 		</div>
 	</div>
-</div>
+</PageShell>
 
 <!-- Add Supplier Dialog -->
 <Dialog.Root bind:open={showAddDialog}>
@@ -338,7 +365,12 @@
 				</div>
 				<div class="grid gap-2">
 					<label for="email" class="text-sm font-medium">Email</label>
-					<Input id="email" type="email" bind:value={newSupplier.email} placeholder="email@supplier.com" />
+					<Input
+						id="email"
+						type="email"
+						bind:value={newSupplier.email}
+						placeholder="email@supplier.com"
+					/>
 				</div>
 			</div>
 			<div class="grid gap-2">
@@ -369,7 +401,9 @@
 			</div>
 		</div>
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (showAddDialog = false)} disabled={isSubmitting}>Cancel</Button>
+			<Button variant="outline" onclick={() => (showAddDialog = false)} disabled={isSubmitting}
+				>Cancel</Button
+			>
 			<Button onclick={addSupplier} disabled={isSubmitting}>
 				{#if isSubmitting}
 					<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
@@ -417,7 +451,12 @@
 					<label for="edit-status" class="text-sm font-medium">Status</label>
 					<Select.Root type="single" bind:value={editingSupplier.status}>
 						<Select.Trigger class="w-full">
-							{({ active: 'Active', inactive: 'Inactive', pending: 'Pending', blacklisted: 'Blacklisted' })[editingSupplier.status] || editingSupplier.status}
+							{{
+								active: 'Active',
+								inactive: 'Inactive',
+								pending: 'Pending',
+								blacklisted: 'Blacklisted'
+							}[editingSupplier.status] || editingSupplier.status}
 						</Select.Trigger>
 						<Select.Content>
 							<Select.Item value="active">Active</Select.Item>
@@ -429,7 +468,9 @@
 				</div>
 			</div>
 			<Dialog.Footer>
-				<Button variant="outline" onclick={() => (editingSupplier = null)} disabled={isSubmitting}>Cancel</Button>
+				<Button variant="outline" onclick={() => (editingSupplier = null)} disabled={isSubmitting}
+					>Cancel</Button
+				>
 				<Button onclick={saveSupplier} disabled={isSubmitting}>
 					{#if isSubmitting}
 						<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
@@ -458,9 +499,9 @@
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Status</p>
 						<StatusPill
-								label={viewingSupplier.status}
-								status={viewingSupplier.status === 'active' ? 'success' : 'neutral'}
-							/>
+							label={viewingSupplier.status}
+							status={viewingSupplier.status === 'active' ? 'success' : 'neutral'}
+						/>
 					</div>
 				</div>
 				{#if viewingSupplier.phone}
@@ -514,7 +555,12 @@
 			</div>
 			<Dialog.Footer>
 				<Button variant="outline" onclick={() => (viewingSupplier = null)}>Close</Button>
-				<Button onclick={() => { editSupplierFn(viewingSupplier!); viewingSupplier = null; }}>
+				<Button
+					onclick={() => {
+						editSupplierFn(viewingSupplier!);
+						viewingSupplier = null;
+					}}
+				>
 					Edit Supplier
 				</Button>
 			</Dialog.Footer>

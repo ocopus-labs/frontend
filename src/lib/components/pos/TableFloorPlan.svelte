@@ -71,9 +71,7 @@
 	);
 
 	// Map from table id to its index in sortedTables for quick lookup
-	const sortedTableIndexById = $derived(
-		new Map(sortedTables.map((t, i) => [t.id, i]))
-	);
+	const sortedTableIndexById = $derived(new Map(sortedTables.map((t, i) => [t.id, i])));
 
 	const stats = $derived({
 		total: filteredTables.length,
@@ -258,15 +256,15 @@
 			<!-- Stats -->
 			<div class="hidden items-center gap-2 sm:flex">
 				<Badge variant="outline" class="gap-1">
-					<span class="h-2 w-2 rounded-full bg-green-500"></span>
+					<span class="h-2 w-2 rounded-full bg-success"></span>
 					{stats.available}
 				</Badge>
 				<Badge variant="outline" class="gap-1">
-					<span class="h-2 w-2 rounded-full bg-red-500"></span>
+					<span class="h-2 w-2 rounded-full bg-destructive"></span>
 					{stats.occupied}
 				</Badge>
 				<Badge variant="outline" class="gap-1">
-					<span class="h-2 w-2 rounded-full bg-yellow-500"></span>
+					<span class="h-2 w-2 rounded-full bg-warning"></span>
 					{stats.reserved}
 				</Badge>
 			</div>
@@ -396,19 +394,19 @@
 			class="absolute bottom-3 left-3 flex flex-wrap gap-3 rounded-lg border bg-background/95 p-2 text-xs backdrop-blur-sm"
 		>
 			<div class="flex items-center gap-1.5">
-				<span class="h-3 w-3 rounded-full border-2 border-green-500 bg-green-100"></span>
+				<span class="h-3 w-3 rounded-full border-2 border-success bg-success/20"></span>
 				<span>Available</span>
 			</div>
 			<div class="flex items-center gap-1.5">
-				<span class="h-3 w-3 rounded-full border-2 border-red-500 bg-red-100"></span>
+				<span class="h-3 w-3 rounded-full border-2 border-destructive bg-destructive/20"></span>
 				<span>Occupied</span>
 			</div>
 			<div class="flex items-center gap-1.5">
-				<span class="h-3 w-3 rounded-full border-2 border-yellow-500 bg-yellow-100"></span>
+				<span class="h-3 w-3 rounded-full border-2 border-warning bg-warning/20"></span>
 				<span>Reserved</span>
 			</div>
 			<div class="flex items-center gap-1.5">
-				<span class="h-3 w-3 rounded-full border-2 border-orange-500 bg-orange-100"></span>
+				<span class="h-3 w-3 rounded-full border-2 border-muted-foreground bg-muted"></span>
 				<span>Maintenance</span>
 			</div>
 		</div>

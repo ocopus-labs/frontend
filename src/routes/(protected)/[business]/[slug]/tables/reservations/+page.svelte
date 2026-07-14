@@ -10,6 +10,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import { IconLoader2 } from '@tabler/icons-svelte';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
+	import PageShell from '$lib/components/global/page-shell.svelte';
 	import {
 		IconPlus,
 		IconPencil,
@@ -77,24 +78,40 @@
 	const today = new Date().toISOString().split('T')[0];
 
 	const stats = $derived({
-		today: reservations.filter((r) => r.reservationDate === today && r.status !== 'cancelled').length,
-		upcoming: reservations.filter((r) => r.reservationDate > today && r.status !== 'cancelled').length,
+		today: reservations.filter((r) => r.reservationDate === today && r.status !== 'cancelled')
+			.length,
+		upcoming: reservations.filter((r) => r.reservationDate > today && r.status !== 'cancelled')
+			.length,
 		pending: reservations.filter((r) => r.status === 'pending').length
 	});
 
 	// Display labels for filter selects
 	const dateFilterLabel = $derived(
-		({ today: 'Today', upcoming: 'Upcoming', past: 'Past', all: 'All Time' } as Record<string, string>)[dateFilter] || dateFilter
+		(
+			{ today: 'Today', upcoming: 'Upcoming', past: 'Past', all: 'All Time' } as Record<
+				string,
+				string
+			>
+		)[dateFilter] || dateFilter
 	);
 
 	const statusFilterLabel = $derived(
-		({ all: 'All Status', confirmed: 'Confirmed', pending: 'Pending', seated: 'Seated', completed: 'Completed', cancelled: 'Cancelled' } as Record<string, string>)[statusFilter] || statusFilter
+		(
+			{
+				all: 'All Status',
+				confirmed: 'Confirmed',
+				pending: 'Pending',
+				seated: 'Seated',
+				completed: 'Completed',
+				cancelled: 'Cancelled'
+			} as Record<string, string>
+		)[statusFilter] || statusFilter
 	);
 
 	// Display label for table selects
 	const newReservationTableLabel = $derived(
 		newReservation.tableId
-			? (tables.find((t) => t.id === newReservation.tableId)?.displayName || 'Select table')
+			? tables.find((t) => t.id === newReservation.tableId)?.displayName || 'Select table'
 			: 'Select table'
 	);
 
@@ -144,7 +161,11 @@
 	}
 
 	async function addReservation() {
-		if (!newReservation.customerName.trim() || !newReservation.reservationDate || !newReservation.reservationTime) {
+		if (
+			!newReservation.customerName.trim() ||
+			!newReservation.reservationDate ||
+			!newReservation.reservationTime
+		) {
 			toast.error('Please fill in all required fields');
 			return;
 		}
@@ -200,7 +221,11 @@
 
 	async function confirmCancel(reason?: string) {
 		try {
-			const result = await cancelReservationApi(data.businessId, cancelTargetId, reason || undefined);
+			const result = await cancelReservationApi(
+				data.businessId,
+				cancelTargetId,
+				reason || undefined
+			);
 			reservations = reservations.map((r) => (r.id === cancelTargetId ? result.reservation : r));
 			toast.success('Reservation cancelled');
 		} catch (error) {
@@ -242,7 +267,9 @@
 				tableId: editingReservation.tableId,
 				notes: editingReservation.notes
 			});
-			reservations = reservations.map((r) => (r.id === editingReservation!.id ? result.reservation : r));
+			reservations = reservations.map((r) =>
+				r.id === editingReservation!.id ? result.reservation : r
+			);
 			toast.success('Reservation updated');
 			editingReservation = null;
 		} catch (error) {
@@ -253,220 +280,235 @@
 	}
 </script>
 
-<div class="flex flex-1 flex-col">
-	<div class="@container/main flex flex-1 flex-col gap-4">
-		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
-				<div>
-					<h1 class="text-2xl font-bold">Reservations</h1>
-					<p class="text-muted-foreground">Manage table reservations</p>
-				</div>
-				<Button onclick={() => (showAddDialog = true)}>
-					<IconPlus class="mr-2 h-4 w-4" />
-					New Reservation
-				</Button>
-			</div>
+<PageShell title="Reservations" description="Manage table reservations">
+	{#snippet actions()}
+		<Button onclick={() => (showAddDialog = true)}>
+			<IconPlus class="mr-2 h-4 w-4" />
+			New Reservation
+		</Button>
+	{/snippet}
 
-			<!-- Stats -->
-			<div class="grid grid-cols-3 gap-4 px-6">
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Today</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold">{stats.today}</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Upcoming</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold">{stats.upcoming}</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Pending</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold text-warning">{stats.pending}</div>
-					</Card.Content>
-				</Card.Root>
-			</div>
+	<!-- Stats -->
+	<div class="grid grid-cols-3 gap-4">
+		<Card.Root>
+			<Card.Header class="pb-2">
+				<Card.Title class="text-sm font-medium">Today</Card.Title>
+			</Card.Header>
+			<Card.Content>
+				<div class="text-2xl font-bold">{stats.today}</div>
+			</Card.Content>
+		</Card.Root>
+		<Card.Root>
+			<Card.Header class="pb-2">
+				<Card.Title class="text-sm font-medium">Upcoming</Card.Title>
+			</Card.Header>
+			<Card.Content>
+				<div class="text-2xl font-bold">{stats.upcoming}</div>
+			</Card.Content>
+		</Card.Root>
+		<Card.Root>
+			<Card.Header class="pb-2">
+				<Card.Title class="text-sm font-medium">Pending</Card.Title>
+			</Card.Header>
+			<Card.Content>
+				<div class="text-2xl font-bold text-warning">{stats.pending}</div>
+			</Card.Content>
+		</Card.Root>
+	</div>
 
-			<!-- Filters -->
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center">
-				<div class="relative max-w-sm flex-1">
-					<IconSearch
-						class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-					/>
-					<Input placeholder="Search reservations..." bind:value={searchQuery} class="pl-9" />
-				</div>
+	<!-- Filters -->
+	<div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+		<div class="relative max-w-sm flex-1">
+			<IconSearch class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+			<Input placeholder="Search reservations..." bind:value={searchQuery} class="pl-9" />
+		</div>
 
-				<div class="flex gap-2">
-					<Select.Root type="single" bind:value={dateFilter}>
-						<Select.Trigger class="w-[140px]">
-							{dateFilterLabel}
-						</Select.Trigger>
-						<Select.Content>
-							<Select.Item value="today">Today</Select.Item>
-							<Select.Item value="upcoming">Upcoming</Select.Item>
-							<Select.Item value="past">Past</Select.Item>
-							<Select.Item value="all">All Time</Select.Item>
-						</Select.Content>
-					</Select.Root>
+		<div class="flex gap-2">
+			<Select.Root type="single" bind:value={dateFilter}>
+				<Select.Trigger class="w-[140px]">
+					{dateFilterLabel}
+				</Select.Trigger>
+				<Select.Content>
+					<Select.Item value="today">Today</Select.Item>
+					<Select.Item value="upcoming">Upcoming</Select.Item>
+					<Select.Item value="past">Past</Select.Item>
+					<Select.Item value="all">All Time</Select.Item>
+				</Select.Content>
+			</Select.Root>
 
-					<Select.Root type="single" bind:value={statusFilter}>
-						<Select.Trigger class="w-[140px]">
-							{statusFilterLabel}
-						</Select.Trigger>
-						<Select.Content>
-							<Select.Item value="all">All Status</Select.Item>
-							<Select.Item value="confirmed">Confirmed</Select.Item>
-							<Select.Item value="pending">Pending</Select.Item>
-							<Select.Item value="seated">Seated</Select.Item>
-							<Select.Item value="completed">Completed</Select.Item>
-							<Select.Item value="cancelled">Cancelled</Select.Item>
-						</Select.Content>
-					</Select.Root>
-				</div>
-			</div>
+			<Select.Root type="single" bind:value={statusFilter}>
+				<Select.Trigger class="w-[140px]">
+					{statusFilterLabel}
+				</Select.Trigger>
+				<Select.Content>
+					<Select.Item value="all">All Status</Select.Item>
+					<Select.Item value="confirmed">Confirmed</Select.Item>
+					<Select.Item value="pending">Pending</Select.Item>
+					<Select.Item value="seated">Seated</Select.Item>
+					<Select.Item value="completed">Completed</Select.Item>
+					<Select.Item value="cancelled">Cancelled</Select.Item>
+				</Select.Content>
+			</Select.Root>
+		</div>
+	</div>
 
-			<!-- Reservations Table -->
-			{#if filteredReservations.length > 0}
-				<div class="px-6">
-					<div class="overflow-x-auto rounded-md border">
-						<Table.Root>
-							<Table.Header>
-								<Table.Row>
-									<Table.Head>Customer</Table.Head>
-									<Table.Head class="hidden sm:table-cell">Date & Time</Table.Head>
-									<Table.Head class="hidden md:table-cell">Party Size</Table.Head>
-									<Table.Head class="hidden lg:table-cell">Table</Table.Head>
-									<Table.Head>Status</Table.Head>
-									<Table.Head class="hidden lg:table-cell">Notes</Table.Head>
-									<Table.Head class="text-right">Actions</Table.Head>
-								</Table.Row>
-							</Table.Header>
-							<Table.Body>
-								{#each filteredReservations as reservation (reservation.id)}
-									<Table.Row>
-										<Table.Cell>
-											<div>
-												<div class="font-medium">{reservation.customerName}</div>
-												{#if reservation.customerPhone}
-													<div class="flex items-center gap-1 text-sm text-muted-foreground">
-														<IconPhone class="h-3 w-3" />
-														{reservation.customerPhone}
-													</div>
-												{/if}
+	<!-- Reservations Table -->
+	{#if filteredReservations.length > 0}
+		<div>
+			<div class="overflow-x-auto rounded-md border">
+				<Table.Root>
+					<Table.Header>
+						<Table.Row>
+							<Table.Head>Customer</Table.Head>
+							<Table.Head class="hidden sm:table-cell">Date & Time</Table.Head>
+							<Table.Head class="hidden md:table-cell">Party Size</Table.Head>
+							<Table.Head class="hidden lg:table-cell">Table</Table.Head>
+							<Table.Head>Status</Table.Head>
+							<Table.Head class="hidden lg:table-cell">Notes</Table.Head>
+							<Table.Head class="text-right">Actions</Table.Head>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						{#each filteredReservations as reservation (reservation.id)}
+							<Table.Row>
+								<Table.Cell>
+									<div>
+										<div class="font-medium">{reservation.customerName}</div>
+										{#if reservation.customerPhone}
+											<div class="flex items-center gap-1 text-sm text-muted-foreground">
+												<IconPhone class="h-3 w-3" />
+												{reservation.customerPhone}
 											</div>
-										</Table.Cell>
-										<Table.Cell class="hidden sm:table-cell">
-											<div class="flex items-center gap-1">
-												<IconCalendar class="h-4 w-4 text-muted-foreground" />
-												<div>
-													<div>{formatDate(reservation.reservationDate)}</div>
-													<div class="text-sm text-muted-foreground">{reservation.reservationTime}</div>
-												</div>
-											</div>
-										</Table.Cell>
-										<Table.Cell class="hidden md:table-cell">
-											<div class="flex items-center gap-1">
-												<IconUsers class="h-4 w-4 text-muted-foreground" />
-												{reservation.partySize}
-											</div>
-										</Table.Cell>
-										<Table.Cell class="hidden lg:table-cell">
-											<Badge variant="outline">{getTableName(reservation.tableId)}</Badge>
-										</Table.Cell>
-										<Table.Cell>
-											<StatusPill
-												label={getStatusBadge(reservation.status).text}
-												status={({ confirmed: "success", pending: "warning", cancelled: "error", completed: "info", no_show: "neutral", seated: "primary" } as Record<string, "success" | "warning" | "error" | "info" | "neutral" | "primary">)[reservation.status] || 'neutral'}
-											/>
-										</Table.Cell>
-										<Table.Cell class="hidden lg:table-cell">
-											<span class="max-w-[150px] truncate text-sm text-muted-foreground">
-												{reservation.notes || '-'}
-											</span>
-										</Table.Cell>
-										<Table.Cell class="text-right">
-											<div class="flex justify-end gap-1">
-												{#if reservation.status === 'pending'}
-													<Button
-														variant="ghost"
-														size="icon"
-														class="h-8 w-8 p-0 text-success"
-														onclick={() => handleConfirm(reservation.id)}
-													aria-label="Confirm reservation"
-													>
-														<IconCheck class="h-4 w-4" />
-													</Button>
-												{/if}
-												<Button
-													variant="ghost"
-													size="icon"
-													class="h-8 w-8 p-0"
-													onclick={() => editReservation(reservation)}
-												aria-label="Edit reservation"
-												>
-													<IconPencil class="h-4 w-4" />
-												</Button>
-												{#if reservation.status !== 'cancelled' && reservation.status !== 'completed'}
-													<Button
-														variant="ghost"
-														size="icon"
-														class="h-8 w-8 p-0 text-destructive"
-														onclick={() => handleCancel(reservation.id)}
-													aria-label="Cancel reservation"
-													>
-														<IconX class="h-4 w-4" />
-													</Button>
-												{/if}
-												<Button
-													variant="ghost"
-													size="icon"
-													class="h-8 w-8 p-0 text-destructive"
-													onclick={() => handleDelete(reservation.id)}
-												aria-label="Delete reservation"
-												>
-													<IconTrash class="h-4 w-4" />
-												</Button>
-											</div>
-										</Table.Cell>
-									</Table.Row>
-								{/each}
-							</Table.Body>
-						</Table.Root>
-					</div>
-				</div>
-			{:else}
-				<EmptyState
-					type={reservations.length === 0 ? 'empty' : 'no-results'}
-					title={reservations.length === 0 ? 'No reservations yet' : 'No reservations found'}
-					description={reservations.length === 0 ? 'Create your first reservation to get started.' : 'Try adjusting your filters.'}
-					actionLabel="New Reservation"
-					onAction={() => (showAddDialog = true)}
-				/>
-			{/if}
-			<div class="px-6">
-						<div class="flex items-center justify-between border-t pt-4">
-				<p class="text-sm text-muted-foreground">
-					Showing {Math.min((data.page - 1) * data.limit + 1, data.total)} to {Math.min(data.page * data.limit, data.total)} of {data.total} results
-				</p>
-				<div class="flex gap-1">
-					<Button size="sm" variant="outline" disabled={data.page <= 1}
-						onclick={() => goto(`?page=${data.page - 1}&limit=${data.limit}`)}>Previous</Button>
-					<Button size="sm" variant="outline" disabled={data.page >= data.totalPages}
-						onclick={() => goto(`?page=${data.page + 1}&limit=${data.limit}`)}>Next</Button>
-				</div>
+										{/if}
+									</div>
+								</Table.Cell>
+								<Table.Cell class="hidden sm:table-cell">
+									<div class="flex items-center gap-1">
+										<IconCalendar class="h-4 w-4 text-muted-foreground" />
+										<div>
+											<div>{formatDate(reservation.reservationDate)}</div>
+											<div class="text-sm text-muted-foreground">{reservation.reservationTime}</div>
+										</div>
+									</div>
+								</Table.Cell>
+								<Table.Cell class="hidden md:table-cell">
+									<div class="flex items-center gap-1">
+										<IconUsers class="h-4 w-4 text-muted-foreground" />
+										{reservation.partySize}
+									</div>
+								</Table.Cell>
+								<Table.Cell class="hidden lg:table-cell">
+									<Badge variant="outline">{getTableName(reservation.tableId)}</Badge>
+								</Table.Cell>
+								<Table.Cell>
+									<StatusPill
+										label={getStatusBadge(reservation.status).text}
+										status={(
+											{
+												confirmed: 'success',
+												pending: 'warning',
+												cancelled: 'error',
+												completed: 'info',
+												no_show: 'neutral',
+												seated: 'primary'
+											} as Record<
+												string,
+												'success' | 'warning' | 'error' | 'info' | 'neutral' | 'primary'
+											>
+										)[reservation.status] || 'neutral'}
+									/>
+								</Table.Cell>
+								<Table.Cell class="hidden lg:table-cell">
+									<span class="max-w-[150px] truncate text-sm text-muted-foreground">
+										{reservation.notes || '-'}
+									</span>
+								</Table.Cell>
+								<Table.Cell class="text-right">
+									<div class="flex justify-end gap-1">
+										{#if reservation.status === 'pending'}
+											<Button
+												variant="ghost"
+												size="icon"
+												class="h-8 w-8 p-0 text-success"
+												onclick={() => handleConfirm(reservation.id)}
+												aria-label="Confirm reservation"
+											>
+												<IconCheck class="h-4 w-4" />
+											</Button>
+										{/if}
+										<Button
+											variant="ghost"
+											size="icon"
+											class="h-8 w-8 p-0"
+											onclick={() => editReservation(reservation)}
+											aria-label="Edit reservation"
+										>
+											<IconPencil class="h-4 w-4" />
+										</Button>
+										{#if reservation.status !== 'cancelled' && reservation.status !== 'completed'}
+											<Button
+												variant="ghost"
+												size="icon"
+												class="h-8 w-8 p-0 text-destructive"
+												onclick={() => handleCancel(reservation.id)}
+												aria-label="Cancel reservation"
+											>
+												<IconX class="h-4 w-4" />
+											</Button>
+										{/if}
+										<Button
+											variant="ghost"
+											size="icon"
+											class="h-8 w-8 p-0 text-destructive"
+											onclick={() => handleDelete(reservation.id)}
+											aria-label="Delete reservation"
+										>
+											<IconTrash class="h-4 w-4" />
+										</Button>
+									</div>
+								</Table.Cell>
+							</Table.Row>
+						{/each}
+					</Table.Body>
+				</Table.Root>
 			</div>
+		</div>
+	{:else}
+		<EmptyState
+			type={reservations.length === 0 ? 'empty' : 'no-results'}
+			title={reservations.length === 0 ? 'No reservations yet' : 'No reservations found'}
+			description={reservations.length === 0
+				? 'Create your first reservation to get started.'
+				: 'Try adjusting your filters.'}
+			actionLabel="New Reservation"
+			onAction={() => (showAddDialog = true)}
+		/>
+	{/if}
+	<div>
+		<div class="flex items-center justify-between border-t pt-4">
+			<p class="text-sm text-muted-foreground">
+				Showing {Math.min((data.page - 1) * data.limit + 1, data.total)} to {Math.min(
+					data.page * data.limit,
+					data.total
+				)} of {data.total} results
+			</p>
+			<div class="flex gap-1">
+				<Button
+					size="sm"
+					variant="outline"
+					disabled={data.page <= 1}
+					onclick={() => goto(`?page=${data.page - 1}&limit=${data.limit}`)}>Previous</Button
+				>
+				<Button
+					size="sm"
+					variant="outline"
+					disabled={data.page >= data.totalPages}
+					onclick={() => goto(`?page=${data.page + 1}&limit=${data.limit}`)}>Next</Button
+				>
 			</div>
 		</div>
 	</div>
-</div>
+</PageShell>
 
 <!-- Add Reservation Dialog -->
 <Dialog.Root bind:open={showAddDialog}>
@@ -488,7 +530,12 @@
 			</div>
 			<div class="grid gap-2">
 				<label for="email" class="text-sm font-medium">Email</label>
-				<Input id="email" type="email" bind:value={newReservation.customerEmail} placeholder="email@example.com" />
+				<Input
+					id="email"
+					type="email"
+					bind:value={newReservation.customerEmail}
+					placeholder="email@example.com"
+				/>
 			</div>
 			<div class="grid grid-cols-2 gap-4">
 				<div class="grid gap-2">
@@ -527,7 +574,9 @@
 			</div>
 		</div>
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (showAddDialog = false)} disabled={isSubmitting}>Cancel</Button>
+			<Button variant="outline" onclick={() => (showAddDialog = false)} disabled={isSubmitting}
+				>Cancel</Button
+			>
 			<Button onclick={addReservation} disabled={isSubmitting}>
 				{#if isSubmitting}
 					<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
@@ -539,7 +588,10 @@
 </Dialog.Root>
 
 <!-- Edit Reservation Dialog -->
-<Dialog.Root open={!!editingReservation} onOpenChange={(open) => !open && (editingReservation = null)}>
+<Dialog.Root
+	open={!!editingReservation}
+	onOpenChange={(open) => !open && (editingReservation = null)}
+>
 	<Dialog.Content class="sm:max-w-lg">
 		<Dialog.Header>
 			<Dialog.Title>Edit Reservation</Dialog.Title>
@@ -570,14 +622,23 @@
 				<div class="grid grid-cols-2 gap-4">
 					<div class="grid gap-2">
 						<label for="edit-party" class="text-sm font-medium">Party Size</label>
-						<Input id="edit-party" type="number" min="1" max="20" bind:value={editingReservation.partySize} />
+						<Input
+							id="edit-party"
+							type="number"
+							min="1"
+							max="20"
+							bind:value={editingReservation.partySize}
+						/>
 					</div>
 					<div class="grid gap-2">
 						<!-- svelte-ignore a11y_label_has_associated_control -->
 						<label class="text-sm font-medium">Table</label>
 						<Select.Root type="single" bind:value={editingReservation.tableId}>
 							<Select.Trigger class="w-full">
-								{editingReservation.tableId ? (tables.find((t) => t.id === editingReservation?.tableId)?.displayName || 'Select table') : 'Select table'}
+								{editingReservation.tableId
+									? tables.find((t) => t.id === editingReservation?.tableId)?.displayName ||
+										'Select table'
+									: 'Select table'}
 							</Select.Trigger>
 							<Select.Content>
 								<Select.Item value="">Select table</Select.Item>
@@ -594,7 +655,11 @@
 				</div>
 			</div>
 			<Dialog.Footer>
-				<Button variant="outline" onclick={() => (editingReservation = null)} disabled={isSubmitting}>Cancel</Button>
+				<Button
+					variant="outline"
+					onclick={() => (editingReservation = null)}
+					disabled={isSubmitting}>Cancel</Button
+				>
 				<Button onclick={saveReservation} disabled={isSubmitting}>
 					{#if isSubmitting}
 						<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />

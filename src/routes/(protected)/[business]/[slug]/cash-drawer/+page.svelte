@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Card from '$lib/components/ui/card';
@@ -47,9 +47,7 @@
 		}
 	});
 
-	const denomTotal = $derived(
-		denominations.reduce((sum, d) => sum + d * (denomCounts[d] || 0), 0)
-	);
+	const denomTotal = $derived(denominations.reduce((sum, d) => sum + d * (denomCounts[d] || 0), 0));
 
 	// Sync denom total to actual amount
 	$effect(() => {
@@ -58,9 +56,7 @@
 		}
 	});
 
-	const cashInTotal = $derived(
-		currentSession?.cashIn?.reduce((sum, t) => sum + t.amount, 0) ?? 0
-	);
+	const cashInTotal = $derived(currentSession?.cashIn?.reduce((sum, t) => sum + t.amount, 0) ?? 0);
 	const cashOutTotal = $derived(
 		currentSession?.cashOut?.reduce((sum, t) => sum + t.amount, 0) ?? 0
 	);
@@ -97,7 +93,7 @@
 			const result = await closeDrawer(businessId, {
 				actualAmount,
 				denominations: Object.keys(denomData).length > 0 ? denomData : undefined,
-				notes: closeNotes || undefined,
+				notes: closeNotes || undefined
 			});
 			currentSession = null;
 			showCloseDialog = false;
@@ -126,13 +122,9 @@
 			<p class="text-muted-foreground">Manage shift cash and reconciliation</p>
 		</div>
 		{#if currentSession}
-			<Button variant="destructive" onclick={() => (showCloseDialog = true)}>
-				Close Drawer
-			</Button>
+			<Button variant="destructive" onclick={() => (showCloseDialog = true)}>Close Drawer</Button>
 		{:else}
-			<Button onclick={() => (showOpenDialog = true)}>
-				Open Drawer
-			</Button>
+			<Button onclick={() => (showOpenDialog = true)}>Open Drawer</Button>
 		{/if}
 	</div>
 
@@ -145,22 +137,24 @@
 					<Badge variant="default">Open</Badge>
 				</div>
 				<Card.Description>
-					Opened by {currentSession.openedBy?.name ?? 'Unknown'} at {formatTime(currentSession.openedAt)}
+					Opened by {currentSession.openedBy?.name ?? 'Unknown'} at {formatTime(
+						currentSession.openedAt
+					)}
 				</Card.Description>
 			</Card.Header>
 			<Card.Content>
-				<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+				<div class="grid grid-cols-2 gap-4 md:grid-cols-4">
 					<div>
 						<p class="text-sm text-muted-foreground">Opening Amount</p>
 						<p class="text-lg font-semibold">{formatCurrency(currentSession.openingAmount)}</p>
 					</div>
 					<div>
 						<p class="text-sm text-muted-foreground">Cash In</p>
-						<p class="text-lg font-semibold text-green-600">{formatCurrency(cashInTotal)}</p>
+						<p class="text-lg font-semibold text-success">{formatCurrency(cashInTotal)}</p>
 					</div>
 					<div>
 						<p class="text-sm text-muted-foreground">Cash Out</p>
-						<p class="text-lg font-semibold text-red-600">{formatCurrency(cashOutTotal)}</p>
+						<p class="text-lg font-semibold text-destructive">{formatCurrency(cashOutTotal)}</p>
 					</div>
 					<div>
 						<p class="text-sm text-muted-foreground">Expected</p>
@@ -171,18 +165,26 @@
 				{#if currentSession.cashIn.length > 0 || currentSession.cashOut.length > 0}
 					<Separator class="my-4" />
 					<div>
-						<h3 class="text-sm font-medium mb-2">Transactions</h3>
-						<div class="space-y-1 max-h-60 overflow-y-auto">
+						<h3 class="mb-2 text-sm font-medium">Transactions</h3>
+						<div class="max-h-60 space-y-1 overflow-y-auto">
 							{#each [...currentSession.cashIn, ...currentSession.cashOut].sort((a, b) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime()) as txn}
-								<div class="flex justify-between items-center py-1.5 px-2 rounded hover:bg-muted text-sm">
+								<div
+									class="flex items-center justify-between rounded px-2 py-1.5 text-sm hover:bg-muted"
+								>
 									<div>
 										<span class="font-medium">{txn.description || txn.type}</span>
 										{#if txn.orderNumber}
-											<span class="text-muted-foreground ml-1">#{txn.orderNumber}</span>
+											<span class="ml-1 text-muted-foreground">#{txn.orderNumber}</span>
 										{/if}
 									</div>
-									<span class={txn.type === 'refund' || txn.type === 'payout' ? 'text-red-600' : 'text-green-600'}>
-										{txn.type === 'refund' || txn.type === 'payout' ? '-' : '+'}{formatCurrency(txn.amount)}
+									<span
+										class={txn.type === 'refund' || txn.type === 'payout'
+											? 'text-destructive'
+											: 'text-success'}
+									>
+										{txn.type === 'refund' || txn.type === 'payout' ? '-' : '+'}{formatCurrency(
+											txn.amount
+										)}
 									</span>
 								</div>
 							{/each}
@@ -203,18 +205,18 @@
 	<!-- History -->
 	{#if history.length > 0}
 		<div>
-			<h2 class="text-lg font-semibold mb-3">Session History</h2>
-			<div class="border rounded-lg overflow-hidden">
+			<h2 class="mb-3 text-lg font-semibold">Session History</h2>
+			<div class="overflow-hidden rounded-lg border">
 				<table class="w-full text-sm">
 					<thead class="bg-muted/50">
 						<tr>
-							<th class="text-left p-3 font-medium">Opened</th>
-							<th class="text-left p-3 font-medium">Closed</th>
-							<th class="text-left p-3 font-medium">Staff</th>
-							<th class="text-right p-3 font-medium">Opening</th>
-							<th class="text-right p-3 font-medium">Expected</th>
-							<th class="text-right p-3 font-medium">Actual</th>
-							<th class="text-right p-3 font-medium">Difference</th>
+							<th class="p-3 text-left font-medium">Opened</th>
+							<th class="p-3 text-left font-medium">Closed</th>
+							<th class="p-3 text-left font-medium">Staff</th>
+							<th class="p-3 text-right font-medium">Opening</th>
+							<th class="p-3 text-right font-medium">Expected</th>
+							<th class="p-3 text-right font-medium">Actual</th>
+							<th class="p-3 text-right font-medium">Difference</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -224,12 +226,22 @@
 								<td class="p-3">{session.closedAt ? formatTime(session.closedAt) : '—'}</td>
 								<td class="p-3">{session.openedBy?.name ?? 'Unknown'}</td>
 								<td class="p-3 text-right">{formatCurrency(session.openingAmount)}</td>
-								<td class="p-3 text-right">{session.expectedAmount != null ? formatCurrency(session.expectedAmount) : '—'}</td>
-								<td class="p-3 text-right">{session.actualAmount != null ? formatCurrency(session.actualAmount) : '—'}</td>
+								<td class="p-3 text-right"
+									>{session.expectedAmount != null
+										? formatCurrency(session.expectedAmount)
+										: '—'}</td
+								>
+								<td class="p-3 text-right"
+									>{session.actualAmount != null ? formatCurrency(session.actualAmount) : '—'}</td
+								>
 								<td class="p-3 text-right">
 									{#if session.difference != null}
-										<span class={Number(session.difference) >= 0 ? 'text-green-600' : 'text-red-600'}>
-											{Number(session.difference) >= 0 ? '+' : ''}{formatCurrency(session.difference)}
+										<span
+											class={Number(session.difference) >= 0 ? 'text-success' : 'text-destructive'}
+										>
+											{Number(session.difference) >= 0 ? '+' : ''}{formatCurrency(
+												session.difference
+											)}
 										</span>
 									{:else}
 										—
@@ -251,8 +263,8 @@
 			<Dialog.Title>Open Cash Drawer</Dialog.Title>
 			<Dialog.Description>Enter the starting cash amount</Dialog.Description>
 		</Dialog.Header>
-		<div class="py-4">
-			<Label for="opening-amount">Opening Amount</Label>
+		<Field.Field class="py-4">
+			<Field.Label for="opening-amount">Opening Amount</Field.Label>
 			<Input
 				id="opening-amount"
 				type="number"
@@ -260,11 +272,12 @@
 				min="0"
 				step="0.01"
 				placeholder="0.00"
-				class="mt-1"
 			/>
-		</div>
+		</Field.Field>
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (showOpenDialog = false)} disabled={isOpening}>Cancel</Button>
+			<Button variant="outline" onclick={() => (showOpenDialog = false)} disabled={isOpening}
+				>Cancel</Button
+			>
 			<Button onclick={handleOpenDrawer} disabled={isOpening}>
 				{isOpening ? 'Opening...' : 'Open Drawer'}
 			</Button>
@@ -280,12 +293,12 @@
 			<Dialog.Description>Count cash and reconcile</Dialog.Description>
 		</Dialog.Header>
 		<div class="space-y-4 py-4">
-			<div>
-				<Label class="mb-2 block">Denomination Count</Label>
+			<Field.Field>
+				<Field.Label>Denomination Count</Field.Label>
 				<div class="grid grid-cols-2 gap-2">
 					{#each denominations as denom}
 						<div class="flex items-center gap-2">
-							<span class="text-sm w-12 text-right font-medium">₹{denom}</span>
+							<span class="w-12 text-right text-sm font-medium">₹{denom}</span>
 							<span class="text-muted-foreground">×</span>
 							<Input
 								type="number"
@@ -295,56 +308,50 @@
 									const val = parseInt(e.currentTarget.value) || 0;
 									denomCounts = { ...denomCounts, [denom]: val };
 								}}
-								class="w-20 h-8"
+								class="h-8 w-20"
 							/>
-							<span class="text-xs text-muted-foreground w-16 text-right">
+							<span class="w-16 text-right text-xs text-muted-foreground">
 								= ₹{(denom * (denomCounts[denom] || 0)).toLocaleString()}
 							</span>
 						</div>
 					{/each}
 				</div>
-				<p class="text-sm font-medium mt-2">Denomination Total: {formatCurrency(denomTotal)}</p>
-			</div>
+				<p class="mt-2 text-sm font-medium">Denomination Total: {formatCurrency(denomTotal)}</p>
+			</Field.Field>
 
 			<Separator />
 
-			<div>
-				<Label for="actual-amount">Actual Cash Amount</Label>
-				<Input
-					id="actual-amount"
-					type="number"
-					bind:value={actualAmount}
-					min="0"
-					step="0.01"
-					class="mt-1"
-				/>
-				<p class="text-xs text-muted-foreground mt-1">Expected: {formatCurrency(expectedAmount)}</p>
+			<Field.Field>
+				<Field.Label for="actual-amount">Actual Cash Amount</Field.Label>
+				<Input id="actual-amount" type="number" bind:value={actualAmount} min="0" step="0.01" />
+				<Field.Description>Expected: {formatCurrency(expectedAmount)}</Field.Description>
 				{#if actualAmount === 0 && expectedAmount > 0}
-					<p class="text-sm mt-1 text-orange-600 font-medium">
+					<p class="mt-1 text-sm font-medium text-warning">
 						Did you count the cash? Expected amount is {formatCurrency(expectedAmount)}
 					</p>
 				{/if}
 				{#if actualAmount > 0}
 					{@const diff = actualAmount - expectedAmount}
-					<p class="text-sm mt-1 {diff >= 0 ? 'text-green-600' : 'text-red-600'}">
+					<p class="mt-1 text-sm {diff >= 0 ? 'text-success' : 'text-destructive'}">
 						Difference: {diff >= 0 ? '+' : ''}{formatCurrency(diff)}
 					</p>
 				{/if}
-			</div>
+			</Field.Field>
 
-			<div>
-				<Label for="close-notes">Notes (optional)</Label>
+			<Field.Field>
+				<Field.Label for="close-notes">Notes (optional)</Field.Label>
 				<Textarea
 					id="close-notes"
 					bind:value={closeNotes}
 					placeholder="Any discrepancies or notes..."
 					rows={2}
-					class="mt-1"
 				/>
-			</div>
+			</Field.Field>
 		</div>
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (showCloseDialog = false)} disabled={isClosing}>Cancel</Button>
+			<Button variant="outline" onclick={() => (showCloseDialog = false)} disabled={isClosing}
+				>Cancel</Button
+			>
 			<Button variant="destructive" onclick={handleCloseDrawer} disabled={isClosing}>
 				{isClosing ? 'Closing...' : 'Close Drawer'}
 			</Button>

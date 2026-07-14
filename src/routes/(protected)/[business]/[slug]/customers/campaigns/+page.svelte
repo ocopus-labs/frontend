@@ -204,7 +204,13 @@
 	<!-- Page Header -->
 	<PageHeader title="Campaigns" description="Send targeted messages to your customer segments">
 		{#snippet actions()}
-			<Button size="sm" onclick={() => { resetForm(); showCreateDialog = true; }}>
+			<Button
+				size="sm"
+				onclick={() => {
+					resetForm();
+					showCreateDialog = true;
+				}}
+			>
 				<IconPlus class="mr-2 h-4 w-4" />
 				Create Campaign
 			</Button>
@@ -230,7 +236,7 @@
 		<Card.Root>
 			<Card.Content class="p-4">
 				<p class="text-sm text-muted-foreground">Sent</p>
-				<p class="text-2xl font-bold text-emerald-600">
+				<p class="text-2xl font-bold text-chart-5">
 					{campaigns.filter((c) => c.status === 'sent').length}
 				</p>
 			</Card.Content>
@@ -238,7 +244,7 @@
 		<Card.Root>
 			<Card.Content class="p-4">
 				<p class="text-sm text-muted-foreground">Scheduled</p>
-				<p class="text-2xl font-bold text-blue-600">
+				<p class="text-2xl font-bold text-chart-3">
 					{campaigns.filter((c) => c.status === 'scheduled').length}
 				</p>
 			</Card.Content>
@@ -252,7 +258,10 @@
 			title="No campaigns yet"
 			description="Create your first campaign to start reaching your customers."
 			actionLabel="Create Campaign"
-			onAction={() => { resetForm(); showCreateDialog = true; }}
+			onAction={() => {
+				resetForm();
+				showCreateDialog = true;
+			}}
 		/>
 	{:else}
 		<Card.Root>
@@ -263,9 +272,9 @@
 						<Table.Head class="hidden md:table-cell">Segment</Table.Head>
 						<Table.Head>Channel</Table.Head>
 						<Table.Head>Status</Table.Head>
-						<Table.Head class="hidden lg:table-cell text-right">Sent</Table.Head>
-						<Table.Head class="hidden lg:table-cell text-right">Delivered</Table.Head>
-						<Table.Head class="hidden lg:table-cell text-right">Opened</Table.Head>
+						<Table.Head class="hidden text-right lg:table-cell">Sent</Table.Head>
+						<Table.Head class="hidden text-right lg:table-cell">Delivered</Table.Head>
+						<Table.Head class="hidden text-right lg:table-cell">Opened</Table.Head>
 						<Table.Head class="hidden sm:table-cell">Created</Table.Head>
 						<Table.Head class="text-right">Actions</Table.Head>
 					</Table.Row>
@@ -275,10 +284,7 @@
 						{@const statusInfo = getStatusInfo(campaign.status as CampaignStatus)}
 						{@const channelInfo = getChannelBadge(campaign.channel)}
 						{@const stats = campaign.stats || { sent: 0, delivered: 0, opened: 0, failed: 0 }}
-						<Table.Row
-							class="cursor-pointer"
-							onclick={() => handleViewStats(campaign.id)}
-						>
+						<Table.Row class="cursor-pointer" onclick={() => handleViewStats(campaign.id)}>
 							<Table.Cell class="font-medium">{campaign.name}</Table.Cell>
 							<Table.Cell class="hidden md:table-cell">
 								{#if campaign.segment}
@@ -301,22 +307,25 @@
 							<Table.Cell>
 								<StatusPill label={statusInfo.label} status={statusInfo.status} />
 							</Table.Cell>
-							<Table.Cell class="hidden lg:table-cell text-right">
+							<Table.Cell class="hidden text-right lg:table-cell">
 								{stats.sent}
 							</Table.Cell>
-							<Table.Cell class="hidden lg:table-cell text-right">
+							<Table.Cell class="hidden text-right lg:table-cell">
 								{stats.delivered}
 							</Table.Cell>
-							<Table.Cell class="hidden lg:table-cell text-right">
+							<Table.Cell class="hidden text-right lg:table-cell">
 								{stats.opened}
 							</Table.Cell>
-							<Table.Cell class="hidden sm:table-cell text-muted-foreground">
+							<Table.Cell class="hidden text-muted-foreground sm:table-cell">
 								{formatDate(campaign.createdAt)}
 							</Table.Cell>
 							<Table.Cell class="text-right">
 								<!-- svelte-ignore a11y_click_events_have_key_events -->
 								<!-- svelte-ignore a11y_no_static_element_interactions -->
-								<div class="flex items-center justify-end gap-1" onclick={(e) => e.stopPropagation()}>
+								<div
+									class="flex items-center justify-end gap-1"
+									onclick={(e) => e.stopPropagation()}
+								>
 									{#if campaign.status === 'draft' || campaign.status === 'scheduled'}
 										<Button
 											variant="ghost"
@@ -367,9 +376,7 @@
 	<Dialog.Content class="max-w-lg">
 		<Dialog.Header>
 			<Dialog.Title>Create Campaign</Dialog.Title>
-			<Dialog.Description>
-				Compose a message and choose your audience.
-			</Dialog.Description>
+			<Dialog.Description>Compose a message and choose your audience.</Dialog.Description>
 		</Dialog.Header>
 
 		<div class="grid gap-4 py-4">
@@ -398,9 +405,7 @@
 						{/each}
 					</Select.Content>
 				</Select.Root>
-				<p class="text-xs text-muted-foreground">
-					Leave as "All Customers" to send to everyone.
-				</p>
+				<p class="text-xs text-muted-foreground">Leave as "All Customers" to send to everyone.</p>
 			</div>
 
 			<!-- Channel -->
@@ -519,11 +524,15 @@
 					<div class="grid gap-1">
 						<div class="flex items-center justify-between text-sm">
 							<span class="font-medium">Sent</span>
-							<span>{funnel.sent} <span class="text-muted-foreground">({funnelPercent(funnel.sent, total)}%)</span></span>
+							<span
+								>{funnel.sent}
+								<span class="text-muted-foreground">({funnelPercent(funnel.sent, total)}%)</span
+								></span
+							>
 						</div>
 						<div class="h-2 overflow-hidden rounded-full bg-muted">
 							<div
-								class="h-full rounded-full bg-blue-500 transition-all"
+								class="h-full rounded-full bg-chart-3 transition-all"
 								style="width: {funnelPercent(funnel.sent, total)}%"
 							></div>
 						</div>
@@ -537,11 +546,16 @@
 					<div class="grid gap-1">
 						<div class="flex items-center justify-between text-sm">
 							<span class="font-medium">Delivered</span>
-							<span>{funnel.delivered} <span class="text-muted-foreground">({funnelPercent(funnel.delivered, total)}%)</span></span>
+							<span
+								>{funnel.delivered}
+								<span class="text-muted-foreground"
+									>({funnelPercent(funnel.delivered, total)}%)</span
+								></span
+							>
 						</div>
 						<div class="h-2 overflow-hidden rounded-full bg-muted">
 							<div
-								class="h-full rounded-full bg-emerald-500 transition-all"
+								class="h-full rounded-full bg-chart-5 transition-all"
 								style="width: {funnelPercent(funnel.delivered, total)}%"
 							></div>
 						</div>
@@ -555,11 +569,15 @@
 					<div class="grid gap-1">
 						<div class="flex items-center justify-between text-sm">
 							<span class="font-medium">Opened</span>
-							<span>{funnel.opened} <span class="text-muted-foreground">({funnelPercent(funnel.opened, total)}%)</span></span>
+							<span
+								>{funnel.opened}
+								<span class="text-muted-foreground">({funnelPercent(funnel.opened, total)}%)</span
+								></span
+							>
 						</div>
 						<div class="h-2 overflow-hidden rounded-full bg-muted">
 							<div
-								class="h-full rounded-full bg-violet-500 transition-all"
+								class="h-full rounded-full bg-chart-4 transition-all"
 								style="width: {funnelPercent(funnel.opened, total)}%"
 							></div>
 						</div>
@@ -570,7 +588,11 @@
 						<div class="mt-2 grid gap-1">
 							<div class="flex items-center justify-between text-sm">
 								<span class="font-medium text-destructive">Failed</span>
-								<span class="text-destructive">{funnel.failed} <span class="text-muted-foreground">({funnelPercent(funnel.failed, total)}%)</span></span>
+								<span class="text-destructive"
+									>{funnel.failed}
+									<span class="text-muted-foreground">({funnelPercent(funnel.failed, total)}%)</span
+									></span
+								>
 							</div>
 							<div class="h-2 overflow-hidden rounded-full bg-muted">
 								<div
@@ -586,11 +608,13 @@
 						<div class="mt-1 grid gap-1">
 							<div class="flex items-center justify-between text-sm">
 								<span class="font-medium text-muted-foreground">Pending</span>
-								<span class="text-muted-foreground">{funnel.pending} ({funnelPercent(funnel.pending, total)}%)</span>
+								<span class="text-muted-foreground"
+									>{funnel.pending} ({funnelPercent(funnel.pending, total)}%)</span
+								>
 							</div>
 							<div class="h-2 overflow-hidden rounded-full bg-muted">
 								<div
-									class="h-full rounded-full bg-amber-400 transition-all"
+									class="h-full rounded-full bg-chart-6 transition-all"
 									style="width: {funnelPercent(funnel.pending, total)}%"
 								></div>
 							</div>
@@ -605,11 +629,11 @@
 						<p class="text-xs text-muted-foreground">Sent</p>
 					</div>
 					<div class="rounded-md border p-2 text-center">
-						<p class="text-lg font-bold text-emerald-600">{statsData.stats.delivered}</p>
+						<p class="text-lg font-bold text-chart-5">{statsData.stats.delivered}</p>
 						<p class="text-xs text-muted-foreground">Delivered</p>
 					</div>
 					<div class="rounded-md border p-2 text-center">
-						<p class="text-lg font-bold text-violet-600">{statsData.stats.opened}</p>
+						<p class="text-lg font-bold text-chart-4">{statsData.stats.opened}</p>
 						<p class="text-xs text-muted-foreground">Opened</p>
 					</div>
 					<div class="rounded-md border p-2 text-center">

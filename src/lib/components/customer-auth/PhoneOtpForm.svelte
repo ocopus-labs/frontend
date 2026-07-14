@@ -2,7 +2,7 @@
 	import { customerPhoneNumber } from '$lib/customer-auth';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
+	import * as Field from '$lib/components/ui/field/index.js';
 
 	interface Props {
 		onSuccess?: () => void;
@@ -88,8 +88,8 @@
 
 {#if step === 'phone'}
 	<form onsubmit={handleSend} class="flex flex-col gap-3">
-		<div class="flex flex-col gap-1.5">
-			<Label for="phone-input">Phone number</Label>
+		<Field.Field>
+			<Field.Label for="phone-input">Phone number</Field.Label>
 			<Input
 				id="phone-input"
 				type="tel"
@@ -99,7 +99,7 @@
 				inputmode="tel"
 				disabled={sending}
 			/>
-		</div>
+		</Field.Field>
 		{#if error}
 			<p class="text-sm text-destructive">{error}</p>
 		{/if}
@@ -112,8 +112,8 @@
 		<p class="text-sm text-muted-foreground">
 			Code sent to <span class="font-medium text-foreground">{phone}</span>.
 		</p>
-		<div class="flex flex-col gap-1.5">
-			<Label for="otp-input">6-digit code</Label>
+		<Field.Field>
+			<Field.Label for="otp-input">6-digit code</Field.Label>
 			<Input
 				id="otp-input"
 				type="text"
@@ -124,7 +124,7 @@
 				autocomplete="one-time-code"
 				disabled={verifying}
 			/>
-		</div>
+		</Field.Field>
 		{#if error}
 			<p class="text-sm text-destructive">{error}</p>
 		{/if}

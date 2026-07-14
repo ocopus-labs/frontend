@@ -2,7 +2,7 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Textarea } from '$lib/components/ui/textarea/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import * as Select from '$lib/components/ui/select/index.js';
 	import * as Accordion from '$lib/components/ui/accordion/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
@@ -119,13 +119,13 @@
 		</div>
 
 		<div class="mx-auto max-w-7xl px-6 text-center lg:px-8">
-			<p class="animate-fade-up text-sm font-semibold uppercase tracking-wider text-primary">
+			<p class="animate-fade-up text-sm font-semibold tracking-wider text-primary uppercase">
 				Contact
 			</p>
-			<h1 class="animate-fade-up delay-100 mt-3 font-display text-4xl md:text-5xl lg:text-6xl">
+			<h1 class="animate-fade-up font-display mt-3 text-4xl delay-100 md:text-5xl lg:text-6xl">
 				Get in <span class="italic">touch</span>
 			</h1>
-			<p class="animate-fade-up delay-200 mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
+			<p class="animate-fade-up mx-auto mt-4 max-w-xl text-lg text-muted-foreground delay-200">
 				Have a question or need help choosing the right plan? We would love to hear from you.
 			</p>
 		</div>
@@ -145,8 +145,8 @@
 
 						<form onsubmit={handleSubmit} class="mt-6 space-y-5">
 							<div class="grid gap-5 sm:grid-cols-2">
-								<div class="space-y-2">
-									<Label for="name">Name *</Label>
+								<Field.Field>
+									<Field.Label for="name">Name *</Field.Label>
 									<Input
 										id="name"
 										bind:value={name}
@@ -154,11 +154,11 @@
 										class={errors.name ? 'border-destructive' : ''}
 									/>
 									{#if errors.name}
-										<p class="text-xs text-destructive">{errors.name}</p>
+										<Field.Error>{errors.name}</Field.Error>
 									{/if}
-								</div>
-								<div class="space-y-2">
-									<Label for="email">Email *</Label>
+								</Field.Field>
+								<Field.Field>
+									<Field.Label for="email">Email *</Field.Label>
 									<Input
 										id="email"
 										type="email"
@@ -167,14 +167,14 @@
 										class={errors.email ? 'border-destructive' : ''}
 									/>
 									{#if errors.email}
-										<p class="text-xs text-destructive">{errors.email}</p>
+										<Field.Error>{errors.email}</Field.Error>
 									{/if}
-								</div>
+								</Field.Field>
 							</div>
 
 							<div class="grid gap-5 sm:grid-cols-2">
-								<div class="space-y-2">
-									<Label for="subject">Subject *</Label>
+								<Field.Field>
+									<Field.Label for="subject">Subject *</Field.Label>
 									<Input
 										id="subject"
 										bind:value={subject}
@@ -182,15 +182,14 @@
 										class={errors.subject ? 'border-destructive' : ''}
 									/>
 									{#if errors.subject}
-										<p class="text-xs text-destructive">{errors.subject}</p>
+										<Field.Error>{errors.subject}</Field.Error>
 									{/if}
-								</div>
-								<div class="space-y-2">
-									<Label for="business-type">Business Type</Label>
+								</Field.Field>
+								<Field.Field>
+									<Field.Label for="business-type">Business Type</Field.Label>
 									<Select.Root type="single" bind:value={businessType}>
 										<Select.Trigger id="business-type">
-											{businessTypes.find((b) => b.value === businessType)?.label ??
-												'Select type'}
+											{businessTypes.find((b) => b.value === businessType)?.label ?? 'Select type'}
 										</Select.Trigger>
 										<Select.Content>
 											{#each businessTypes as bt}
@@ -198,11 +197,11 @@
 											{/each}
 										</Select.Content>
 									</Select.Root>
-								</div>
+								</Field.Field>
 							</div>
 
-							<div class="space-y-2">
-								<Label for="message">Message *</Label>
+							<Field.Field>
+								<Field.Label for="message">Message *</Field.Label>
 								<Textarea
 									id="message"
 									bind:value={message}
@@ -211,9 +210,9 @@
 									class={errors.message ? 'border-destructive' : ''}
 								/>
 								{#if errors.message}
-									<p class="text-xs text-destructive">{errors.message}</p>
+									<Field.Error>{errors.message}</Field.Error>
 								{/if}
-							</div>
+							</Field.Field>
 
 							<Button type="submit" class="w-full sm:w-auto" disabled={submitting}>
 								{#if submitting}

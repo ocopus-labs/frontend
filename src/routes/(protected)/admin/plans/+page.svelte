@@ -5,7 +5,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import { Textarea } from '$lib/components/ui/textarea/index.js';
 	import { Switch } from '$lib/components/ui/switch';
 	import { Separator } from '$lib/components/ui/separator';
@@ -268,7 +268,7 @@
 							<Table.Cell>
 								<div>
 									<span class="font-medium">{plan.name}</span>
-									<p class="text-xs text-muted-foreground font-mono">{plan.slug}</p>
+									<p class="font-mono text-xs text-muted-foreground">{plan.slug}</p>
 								</div>
 							</Table.Cell>
 							<Table.Cell>
@@ -364,12 +364,12 @@
 		>
 			<!-- Basic Info -->
 			<div class="space-y-4">
-				<h3 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+				<h3 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
 					Basic Info
 				</h3>
 				<div class="grid grid-cols-2 gap-4">
 					<div class="space-y-2">
-						<Label for="plan-name">Name</Label>
+						<Field.Label for="plan-name">Name</Field.Label>
 						<Input
 							id="plan-name"
 							bind:value={formName}
@@ -380,7 +380,7 @@
 						/>
 					</div>
 					<div class="space-y-2">
-						<Label for="plan-slug">Slug</Label>
+						<Field.Label for="plan-slug">Slug</Field.Label>
 						<Input
 							id="plan-slug"
 							bind:value={formSlug}
@@ -394,7 +394,7 @@
 					</div>
 				</div>
 				<div class="space-y-2">
-					<Label for="plan-display-name">Display Name</Label>
+					<Field.Label for="plan-display-name">Display Name</Field.Label>
 					<Input
 						id="plan-display-name"
 						bind:value={formDisplayName}
@@ -403,7 +403,7 @@
 					/>
 				</div>
 				<div class="space-y-2">
-					<Label for="plan-description">Description</Label>
+					<Field.Label for="plan-description">Description</Field.Label>
 					<Textarea
 						id="plan-description"
 						bind:value={formDescription}
@@ -417,12 +417,10 @@
 
 			<!-- Pricing -->
 			<div class="space-y-4">
-				<h3 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-					Pricing
-				</h3>
+				<h3 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">Pricing</h3>
 				<div class="grid grid-cols-3 gap-4">
 					<div class="space-y-2">
-						<Label for="plan-price-monthly">Monthly Price</Label>
+						<Field.Label for="plan-price-monthly">Monthly Price</Field.Label>
 						<Input
 							id="plan-price-monthly"
 							type="number"
@@ -433,7 +431,7 @@
 						/>
 					</div>
 					<div class="space-y-2">
-						<Label for="plan-price-yearly">Yearly Price</Label>
+						<Field.Label for="plan-price-yearly">Yearly Price</Field.Label>
 						<Input
 							id="plan-price-yearly"
 							type="number"
@@ -449,13 +447,8 @@
 						/>
 					</div>
 					<div class="space-y-2">
-						<Label for="plan-currency">Currency</Label>
-						<Input
-							id="plan-currency"
-							bind:value={formCurrency}
-							placeholder="INR"
-							maxlength={10}
-						/>
+						<Field.Label for="plan-currency">Currency</Field.Label>
+						<Input id="plan-currency" bind:value={formCurrency} placeholder="INR" maxlength={10} />
 					</div>
 				</div>
 			</div>
@@ -464,13 +457,11 @@
 
 			<!-- Limits -->
 			<div class="space-y-4">
-				<h3 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-					Limits
-				</h3>
+				<h3 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">Limits</h3>
 				<div class="space-y-4">
 					<div class="flex items-center justify-between gap-4">
 						<div class="flex-1 space-y-2">
-							<Label for="plan-max-locations">Max Locations</Label>
+							<Field.Label for="plan-max-locations">Max Locations</Field.Label>
 							<Input
 								id="plan-max-locations"
 								type="number"
@@ -481,12 +472,12 @@
 						</div>
 						<div class="flex items-center gap-2 pt-6">
 							<Switch bind:checked={formUnlimitedLocations} id="unlimited-locations" />
-							<Label for="unlimited-locations" class="text-sm">Unlimited</Label>
+							<Field.Label for="unlimited-locations" class="text-sm">Unlimited</Field.Label>
 						</div>
 					</div>
 					<div class="flex items-center justify-between gap-4">
 						<div class="flex-1 space-y-2">
-							<Label for="plan-max-team">Max Team Members</Label>
+							<Field.Label for="plan-max-team">Max Team Members</Field.Label>
 							<Input
 								id="plan-max-team"
 								type="number"
@@ -497,12 +488,12 @@
 						</div>
 						<div class="flex items-center gap-2 pt-6">
 							<Switch bind:checked={formUnlimitedTeam} id="unlimited-team" />
-							<Label for="unlimited-team" class="text-sm">Unlimited</Label>
+							<Field.Label for="unlimited-team" class="text-sm">Unlimited</Field.Label>
 						</div>
 					</div>
 					<div class="flex items-center justify-between gap-4">
 						<div class="flex-1 space-y-2">
-							<Label for="plan-max-orders">Max Orders / Month</Label>
+							<Field.Label for="plan-max-orders">Max Orders / Month</Field.Label>
 							<Input
 								id="plan-max-orders"
 								type="number"
@@ -513,7 +504,7 @@
 						</div>
 						<div class="flex items-center gap-2 pt-6">
 							<Switch bind:checked={formUnlimitedOrders} id="unlimited-orders" />
-							<Label for="unlimited-orders" class="text-sm">Unlimited</Label>
+							<Field.Label for="unlimited-orders" class="text-sm">Unlimited</Field.Label>
 						</div>
 					</div>
 				</div>
@@ -523,32 +514,32 @@
 
 			<!-- Features -->
 			<div class="space-y-4">
-				<h3 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+				<h3 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
 					Features
 				</h3>
 				<div class="grid grid-cols-2 gap-4">
 					<div class="flex items-center justify-between rounded-lg border p-3">
-						<Label for="feature-kitchen" class="cursor-pointer">Kitchen Display</Label>
+						<Field.Label for="feature-kitchen" class="cursor-pointer">Kitchen Display</Field.Label>
 						<Switch bind:checked={featureKitchenDisplay} id="feature-kitchen" />
 					</div>
 					<div class="flex items-center justify-between rounded-lg border p-3">
-						<Label for="feature-analytics" class="cursor-pointer">Analytics</Label>
+						<Field.Label for="feature-analytics" class="cursor-pointer">Analytics</Field.Label>
 						<Switch bind:checked={featureAnalytics} id="feature-analytics" />
 					</div>
 					<div class="flex items-center justify-between rounded-lg border p-3">
-						<Label for="feature-inventory" class="cursor-pointer">Inventory</Label>
+						<Field.Label for="feature-inventory" class="cursor-pointer">Inventory</Field.Label>
 						<Switch bind:checked={featureInventory} id="feature-inventory" />
 					</div>
 					<div class="flex items-center justify-between rounded-lg border p-3">
-						<Label for="feature-expenses" class="cursor-pointer">Expenses</Label>
+						<Field.Label for="feature-expenses" class="cursor-pointer">Expenses</Field.Label>
 						<Switch bind:checked={featureExpenses} id="feature-expenses" />
 					</div>
 					<div class="flex items-center justify-between rounded-lg border p-3">
-						<Label for="feature-api" class="cursor-pointer">API Access</Label>
+						<Field.Label for="feature-api" class="cursor-pointer">API Access</Field.Label>
 						<Switch bind:checked={featureApi} id="feature-api" />
 					</div>
 					<div class="flex items-center justify-between rounded-lg border p-3">
-						<Label for="feature-whitelabel" class="cursor-pointer">White Label</Label>
+						<Field.Label for="feature-whitelabel" class="cursor-pointer">White Label</Field.Label>
 						<Switch bind:checked={featureWhiteLabel} id="feature-whitelabel" />
 					</div>
 				</div>
@@ -558,11 +549,11 @@
 
 			<!-- Integration -->
 			<div class="space-y-4">
-				<h3 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+				<h3 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
 					Integration
 				</h3>
 				<div class="space-y-2">
-					<Label for="plan-dodo-id">Dodo Product ID</Label>
+					<Field.Label for="plan-dodo-id">Dodo Product ID</Field.Label>
 					<Input
 						id="plan-dodo-id"
 						bind:value={formDodoProductId}
@@ -576,25 +567,20 @@
 
 			<!-- Visibility -->
 			<div class="space-y-4">
-				<h3 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+				<h3 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
 					Visibility
 				</h3>
 				<div class="grid grid-cols-2 gap-4">
 					<div class="flex items-center justify-between rounded-lg border p-3">
 						<div>
-							<Label for="plan-public" class="cursor-pointer">Public</Label>
+							<Field.Label for="plan-public" class="cursor-pointer">Public</Field.Label>
 							<p class="text-xs text-muted-foreground">Visible on pricing page</p>
 						</div>
 						<Switch bind:checked={formIsPublic} id="plan-public" />
 					</div>
 					<div class="space-y-2">
-						<Label for="plan-sort-order">Sort Order</Label>
-						<Input
-							id="plan-sort-order"
-							type="number"
-							bind:value={formSortOrder}
-							min={0}
-						/>
+						<Field.Label for="plan-sort-order">Sort Order</Field.Label>
+						<Input id="plan-sort-order" type="number" bind:value={formSortOrder} min={0} />
 					</div>
 				</div>
 			</div>

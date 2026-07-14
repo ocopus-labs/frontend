@@ -23,7 +23,10 @@
 		businesses = [],
 		subscription = null,
 		...restProps
-	}: ComponentProps<typeof Sidebar.Root> & { businesses?: Business[]; subscription?: Subscription | null } = $props();
+	}: ComponentProps<typeof Sidebar.Root> & {
+		businesses?: Business[];
+		subscription?: Subscription | null;
+	} = $props();
 
 	const navItems = [
 		{
@@ -79,6 +82,9 @@
 
 <Sidebar.Root {collapsible} {...restProps}>
 	<Sidebar.Header>
+		<div class="flex items-center justify-end group-data-[collapsible=icon]:justify-center">
+			<Sidebar.Trigger />
+		</div>
 		<Sidebar.Menu>
 			<Sidebar.MenuItem>
 				<Sidebar.MenuButton size="lg" class="cursor-default hover:bg-transparent">
@@ -105,10 +111,7 @@
 			<Sidebar.Menu>
 				{#each navItems as item (item.title)}
 					<Sidebar.MenuItem>
-						<Sidebar.MenuButton
-							tooltipContent={item.title}
-							isActive={isActive(item.url)}
-						>
+						<Sidebar.MenuButton tooltipContent={item.title} isActive={isActive(item.url)}>
 							{#snippet child({ props })}
 								<a href={item.url} {...props}>
 									<item.icon />
@@ -127,10 +130,7 @@
 			<Sidebar.Menu>
 				{#each settingsItems as item (item.title)}
 					<Sidebar.MenuItem>
-						<Sidebar.MenuButton
-							tooltipContent={item.title}
-							isActive={isActive(item.url)}
-						>
+						<Sidebar.MenuButton tooltipContent={item.title} isActive={isActive(item.url)}>
 							{#snippet child({ props })}
 								<a href={item.url} {...props}>
 									<item.icon />

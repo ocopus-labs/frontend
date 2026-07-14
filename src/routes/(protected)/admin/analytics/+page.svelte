@@ -3,7 +3,7 @@
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import type { PageData } from './$types';
@@ -92,16 +92,16 @@
 	<Card.Root>
 		<Card.Content class="pt-6">
 			<div class="flex flex-wrap items-end gap-4">
-				<div class="space-y-2">
-					<Label for="startDate">Start Date</Label>
+				<Field.Field>
+					<Field.Label for="startDate">Start Date</Field.Label>
 					<Input type="date" id="startDate" bind:value={startDate} class="w-[180px]" />
-				</div>
-				<div class="space-y-2">
-					<Label for="endDate">End Date</Label>
+				</Field.Field>
+				<Field.Field>
+					<Field.Label for="endDate">End Date</Field.Label>
 					<Input type="date" id="endDate" bind:value={endDate} class="w-[180px]" />
-				</div>
+				</Field.Field>
 				<Button onclick={applyDateFilter}>
-					<Calendar class="h-4 w-4 mr-2" />
+					<Calendar class="mr-2 h-4 w-4" />
 					Apply Filter
 				</Button>
 			</div>
@@ -170,13 +170,11 @@
 					<BarChart
 						data={dailyChartData}
 						xKey="date"
-						series={[
-							{ key: 'orders', label: 'Orders', color: 'var(--primary)' }
-						]}
+						series={[{ key: 'orders', label: 'Orders', color: 'var(--primary)' }]}
 						title=""
 					/>
 				{:else}
-					<p class="text-sm text-muted-foreground text-center py-8">No data available</p>
+					<p class="py-8 text-center text-sm text-muted-foreground">No data available</p>
 				{/if}
 			</Card.Content>
 		</Card.Root>
@@ -203,7 +201,8 @@
 								<div>
 									<p class="font-medium">{business.name}</p>
 									<p class="text-xs text-muted-foreground capitalize">
-										{business.type} - {business.order_count} {Number(business.order_count) === 1 ? 'order' : 'orders'}
+										{business.type} - {business.order_count}
+										{Number(business.order_count) === 1 ? 'order' : 'orders'}
 									</p>
 								</div>
 							</div>
@@ -212,9 +211,7 @@
 							</Badge>
 						</div>
 					{:else}
-						<p class="text-sm text-muted-foreground text-center py-4">
-							No data available
-						</p>
+						<p class="text-sm text-muted-foreground text-center py-4">No data available</p>
 					{/each}
 				</div>
 			</Card.Content>
@@ -236,13 +233,11 @@
 					<BarChart
 						data={userGrowthChartData}
 						xKey="date"
-						series={[
-							{ key: 'users', label: 'New Users', color: 'var(--primary)' }
-						]}
+						series={[{ key: 'users', label: 'New Users', color: 'var(--primary)' }]}
 						title=""
 					/>
 				{:else}
-					<p class="text-sm text-muted-foreground text-center py-8">No data available</p>
+					<p class="py-8 text-center text-sm text-muted-foreground">No data available</p>
 				{/if}
 			</Card.Content>
 		</Card.Root>
@@ -260,13 +255,11 @@
 					<BarChart
 						data={businessGrowthChartData}
 						xKey="date"
-						series={[
-							{ key: 'businesses', label: 'New Businesses', color: 'var(--primary)' }
-						]}
+						series={[{ key: 'businesses', label: 'New Businesses', color: 'var(--primary)' }]}
 						title=""
 					/>
 				{:else}
-					<p class="text-sm text-muted-foreground text-center py-8">No data available</p>
+					<p class="py-8 text-center text-sm text-muted-foreground">No data available</p>
 				{/if}
 			</Card.Content>
 		</Card.Root>

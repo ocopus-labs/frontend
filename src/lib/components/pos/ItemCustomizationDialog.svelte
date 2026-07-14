@@ -3,6 +3,7 @@
 	import { RadioGroup, RadioGroupItem } from '$lib/components/ui/radio-group';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Label } from '$lib/components/ui/label';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Button } from '$lib/components/ui/button';
 	import { createI18nUtils } from '$lib/utils/i18n';
@@ -125,7 +126,7 @@
 				<!-- Size Selection -->
 				{#if selectedItem.modifiers?.sizes && selectedItem.modifiers.sizes.length > 0}
 					<div class="space-y-2 sm:space-y-3">
-						<Label class="text-sm font-medium">Size</Label>
+						<Field.Label class="text-sm font-medium">Size</Field.Label>
 						<RadioGroup bind:value={selectedSize} onValueChange={onSizeChange}>
 							{#each selectedItem.modifiers.sizes as size}
 								<div class="flex items-center space-x-2">
@@ -147,7 +148,7 @@
 				<!-- Spice Level Selection -->
 				{#if selectedItem.modifiers?.spiceLevels && selectedItem.modifiers.spiceLevels.length > 0}
 					<div class="space-y-2 sm:space-y-3">
-						<Label class="text-sm font-medium">Spice Level</Label>
+						<Field.Label class="text-sm font-medium">Spice Level</Field.Label>
 						<RadioGroup bind:value={selectedSpiceLevel} onValueChange={onSpiceLevelChange}>
 							{#each selectedItem.modifiers.spiceLevels as spice}
 								<div class="flex items-center space-x-2">
@@ -172,7 +173,7 @@
 				<!-- Milk Type Selection -->
 				{#if selectedItem.modifiers?.milkTypes && selectedItem.modifiers.milkTypes.length > 0}
 					<div class="space-y-2 sm:space-y-3">
-						<Label class="text-sm font-medium">Milk Type</Label>
+						<Field.Label class="text-sm font-medium">Milk Type</Field.Label>
 						<RadioGroup bind:value={selectedMilkType} onValueChange={onMilkTypeChange}>
 							{#each selectedItem.modifiers.milkTypes as milk}
 								<div class="flex items-center space-x-2">
@@ -194,7 +195,7 @@
 				<!-- Preparation Options -->
 				{#if selectedItem.modifiers?.preparation && selectedItem.modifiers.preparation.length > 0}
 					<div class="space-y-2 sm:space-y-3">
-						<Label class="text-sm font-medium">Preparation</Label>
+						<Field.Label class="text-sm font-medium">Preparation</Field.Label>
 						<div class="grid grid-cols-2 gap-2 sm:gap-3">
 							{#each selectedItem.modifiers.preparation as prep}
 								<div class="flex items-center space-x-2">
@@ -213,7 +214,7 @@
 				<!-- Add-ons -->
 				{#if selectedItem.modifiers?.addOns && selectedItem.modifiers.addOns.length > 0}
 					<div class="space-y-2 sm:space-y-3">
-						<Label class="text-sm font-medium">Add-ons</Label>
+						<Field.Label class="text-sm font-medium">Add-ons</Field.Label>
 						<div class="space-y-2">
 							{#each selectedItem.modifiers.addOns as addOn}
 								<div class="flex items-center space-x-2">
@@ -238,7 +239,7 @@
 				<!-- Removals -->
 				{#if selectedItem.modifiers?.removals && selectedItem.modifiers.removals.length > 0}
 					<div class="space-y-2 sm:space-y-3">
-						<Label class="text-sm font-medium">Removals</Label>
+						<Field.Label class="text-sm font-medium">Removals</Field.Label>
 						<div class="space-y-2">
 							{#each selectedItem.modifiers.removals as removal}
 								<div class="flex items-center space-x-2">
@@ -258,7 +259,9 @@
 
 				<!-- Special Instructions -->
 				<div class="space-y-2 sm:space-y-3">
-					<Label for="special-instructions" class="text-sm font-medium">Special Instructions</Label>
+					<Field.Label for="special-instructions" class="text-sm font-medium"
+						>Special Instructions</Field.Label
+					>
 					<Textarea
 						id="special-instructions"
 						placeholder="Any special requests or preparation notes..."
@@ -274,7 +277,7 @@
 					class="flex flex-col gap-3 border-t pt-3 sm:flex-row sm:items-center sm:justify-between sm:pt-4"
 				>
 					<div class="flex items-center gap-2">
-						<Label class="text-sm font-medium">Quantity:</Label>
+						<Field.Label class="text-sm font-medium">Quantity:</Field.Label>
 						<div class="flex items-center gap-1">
 							<Button
 								size="sm"

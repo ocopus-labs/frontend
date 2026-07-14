@@ -40,10 +40,14 @@
 	let { data }: { data: PageData } = $props();
 
 	const customer = $derived((data as any).customer);
-	const orderStats = $derived((data as any).orderStats || { totalOrders: 0, totalSpent: 0, lastOrderDate: null });
+	const orderStats = $derived(
+		(data as any).orderStats || { totalOrders: 0, totalSpent: 0, lastOrderDate: null }
+	);
 	const orders = $derived(customer?.orders || []);
 	const loyaltyAccount = $derived((data as any).loyaltyAccount as LoyaltyAccount | null);
-	const loyaltyTransactions = $derived((data as any).loyaltyTransactions as LoyaltyTransaction[] || []);
+	const loyaltyTransactions = $derived(
+		((data as any).loyaltyTransactions as LoyaltyTransaction[]) || []
+	);
 	const loyaltySettings = $derived((data as any).loyaltySettings as LoyaltySettings | null);
 	const tierProgress = $derived((data as any).tierProgress as LoyaltyTierProgress | null);
 
@@ -143,10 +147,12 @@
 			copyReferralCode();
 			return;
 		}
-		navigator.share({
-			title: 'Referral Code',
-			text: `Use my referral code: ${referralCode}`
-		}).catch(() => {});
+		navigator
+			.share({
+				title: 'Referral Code',
+				text: `Use my referral code: ${referralCode}`
+			})
+			.catch(() => {});
 	}
 
 	function goBack() {
@@ -181,7 +187,8 @@
 		isSubmitting = true;
 		const businessId = (data as any).businessId;
 
-		const hasAddress = formAddressStreet || formAddressCity || formAddressState || formAddressPostalCode;
+		const hasAddress =
+			formAddressStreet || formAddressCity || formAddressState || formAddressPostalCode;
 		const address = hasAddress
 			? {
 					street: formAddressStreet || undefined,
@@ -256,7 +263,10 @@
 	}
 </script>
 
-<MobilePageHeader title="Customer Details" backHref={`/${$page.params.business}/${$page.params.slug}/customers`} />
+<MobilePageHeader
+	title="Customer Details"
+	backHref={`/${$page.params.business}/${$page.params.slug}/customers`}
+/>
 {#if !customer}
 	<div class="flex flex-col items-center justify-center gap-4 p-12">
 		<p class="text-muted-foreground">Customer not found</p>
@@ -298,8 +308,9 @@
 						{@const addr = customer.address as any}
 						<div class="flex justify-between">
 							<span class="text-sm text-muted-foreground">Address</span>
-							<span class="text-sm font-medium text-right">
-								{[addr.street, addr.city, addr.state, addr.postalCode].filter(Boolean).join(', ') || '-'}
+							<span class="text-right text-sm font-medium">
+								{[addr.street, addr.city, addr.state, addr.postalCode].filter(Boolean).join(', ') ||
+									'-'}
 							</span>
 						</div>
 					{/if}
@@ -311,7 +322,10 @@
 					{/if}
 					<div class="flex justify-between">
 						<span class="text-sm text-muted-foreground">Status</span>
-						<StatusPill label={customer.status} status={customer.status === 'active' ? 'success' : 'neutral'} />
+						<StatusPill
+							label={customer.status}
+							status={customer.status === 'active' ? 'success' : 'neutral'}
+						/>
 					</div>
 					{#if customer.notes}
 						<div class="border-t pt-3">
@@ -387,10 +401,7 @@
 						</div>
 						<div class="text-center">
 							{#if tierProgress?.currentTier}
-								<Badge
-									class="text-sm"
-									style={tierBadgeStyle}
-								>
+								<Badge class="text-sm" style={tierBadgeStyle}>
 									{tierProgress.currentTier.name}
 								</Badge>
 							{:else}
@@ -419,17 +430,17 @@
 						</div>
 					{:else if tierProgress?.currentTier}
 						<div class="mt-4 border-t pt-4">
-							<p class="text-center text-sm text-muted-foreground">
-								Highest tier reached
-							</p>
+							<p class="text-center text-sm text-muted-foreground">Highest tier reached</p>
 						</div>
 					{/if}
 
 					<!-- Point Expiry Warning -->
 					{#if hasExpiringPoints}
-						<div class="mt-3 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-950">
-							<IconAlertTriangle class="h-4 w-4 shrink-0 text-amber-600" />
-							<p class="text-xs text-amber-700 dark:text-amber-400">Some points are expiring within 30 days</p>
+						<div
+							class="mt-3 flex items-center gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2"
+						>
+							<IconAlertTriangle class="h-4 w-4 shrink-0 text-warning" />
+							<p class="text-xs text-warning">Some points are expiring within 30 days</p>
 						</div>
 					{/if}
 
@@ -438,16 +449,36 @@
 						<p class="mb-2 text-sm font-medium">Referral Code</p>
 						{#if referralCode}
 							<div class="flex items-center gap-2">
-								<code class="flex-1 rounded-md bg-muted px-3 py-2 text-center text-sm font-mono font-semibold tracking-wider">{referralCode}</code>
-								<Button variant="outline" size="icon" class="h-9 w-9 shrink-0" onclick={copyReferralCode} title="Copy code">
+								<code
+									class="flex-1 rounded-md bg-muted px-3 py-2 text-center font-mono text-sm font-semibold tracking-wider"
+									>{referralCode}</code
+								>
+								<Button
+									variant="outline"
+									size="icon"
+									class="h-9 w-9 shrink-0"
+									onclick={copyReferralCode}
+									title="Copy code"
+								>
 									<IconCopy class="h-4 w-4" />
 								</Button>
-								<Button variant="outline" size="icon" class="h-9 w-9 shrink-0" onclick={shareReferralCode} title="Share code">
+								<Button
+									variant="outline"
+									size="icon"
+									class="h-9 w-9 shrink-0"
+									onclick={shareReferralCode}
+									title="Share code"
+								>
 									<IconShare class="h-4 w-4" />
 								</Button>
 							</div>
 						{:else}
-							<Button variant="outline" size="sm" onclick={handleGenerateReferral} disabled={isGeneratingReferral}>
+							<Button
+								variant="outline"
+								size="sm"
+								onclick={handleGenerateReferral}
+								disabled={isGeneratingReferral}
+							>
 								{#if isGeneratingReferral}
 									<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
 								{/if}
@@ -463,7 +494,9 @@
 								{#each loyaltyTransactions as txn}
 									<div class="flex items-center justify-between text-sm">
 										<div>
-											<span class="font-medium {txn.points > 0 ? 'text-green-600' : 'text-red-600'}">
+											<span
+												class="font-medium {txn.points > 0 ? 'text-success' : 'text-destructive'}"
+											>
 												{txn.points > 0 ? '+' : ''}{txn.points}
 											</span>
 											<span class="ml-2 text-muted-foreground">{txn.description}</span>
@@ -508,8 +541,12 @@
 									onclick={() => viewOrder(order.id)}
 								>
 									<Table.Cell class="font-medium">{order.orderNumber}</Table.Cell>
-									<Table.Cell class="hidden sm:table-cell">{new Date(order.createdAt).toLocaleDateString()}</Table.Cell>
-									<Table.Cell class="capitalize hidden lg:table-cell">{order.orderType.replace('_', ' ')}</Table.Cell>
+									<Table.Cell class="hidden sm:table-cell"
+										>{new Date(order.createdAt).toLocaleDateString()}</Table.Cell
+									>
+									<Table.Cell class="hidden capitalize lg:table-cell"
+										>{order.orderType.replace('_', ' ')}</Table.Cell
+									>
 									<Table.Cell>
 										<StatusPill
 											label={order.status}
@@ -583,11 +620,20 @@
 
 				<div class="grid gap-2">
 					<label for="edit-notes" class="text-sm font-medium">Notes</label>
-					<Textarea id="edit-notes" bind:value={formNotes} placeholder="Customer notes..." rows={2} />
+					<Textarea
+						id="edit-notes"
+						bind:value={formNotes}
+						placeholder="Customer notes..."
+						rows={2}
+					/>
 				</div>
 				<div class="grid gap-2">
 					<label for="edit-tags" class="text-sm font-medium">Tags</label>
-					<Input id="edit-tags" bind:value={formTags} placeholder="VIP, Regular, etc. (comma-separated)" />
+					<Input
+						id="edit-tags"
+						bind:value={formTags}
+						placeholder="VIP, Regular, etc. (comma-separated)"
+					/>
 				</div>
 
 				<div class="grid gap-2">
@@ -595,7 +641,7 @@
 					<select
 						id="edit-status"
 						bind:value={formStatus}
-						class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 					>
 						<option value="active">Active</option>
 						<option value="inactive">Inactive</option>
@@ -625,7 +671,9 @@
 
 			<div class="grid gap-4 py-4">
 				<div class="grid gap-2">
-					<label for="adjust-points" class="text-sm font-medium">Points (use negative to deduct)</label>
+					<label for="adjust-points" class="text-sm font-medium"
+						>Points (use negative to deduct)</label
+					>
 					<Input
 						id="adjust-points"
 						type="number"

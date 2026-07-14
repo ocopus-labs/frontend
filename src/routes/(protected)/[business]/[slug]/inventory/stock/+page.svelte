@@ -6,8 +6,8 @@
 	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
-import { Checkbox } from '$lib/components/ui/checkbox';
-	import PageHeader from '$lib/components/global/page-header.svelte';
+	import { Checkbox } from '$lib/components/ui/checkbox';
+	import PageShell from '$lib/components/global/page-shell.svelte';
 	import {
 		IconPlus,
 		IconPencil,
@@ -47,7 +47,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 
 	let { data }: { data: PageData } = $props();
 
-	const userRole = $derived((data as any).userRole as string ?? '');
+	const userRole = $derived(((data as any).userRole as string) ?? '');
 
 	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
 
@@ -61,7 +61,9 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 	let stockFilter = $state('all');
 	let showAddDialog = $state(false);
 	let editingItem = $state<InventoryItem | null>(null);
-	let adjustingStock = $state<{ item: InventoryItem; adjustment: number; reason: string } | null>(null);
+	let adjustingStock = $state<{ item: InventoryItem; adjustment: number; reason: string } | null>(
+		null
+	);
 	let isSubmitting = $state(false);
 	let deleteItemDialogOpen = $state(false);
 	let deleteItemId = $state<string | null>(null);
@@ -152,7 +154,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 
 	// Issue 2.4: Negative stock guard
 	const adjustmentWouldGoNegative = $derived(
-		adjustingStock ? (adjustingStock.item.currentStock + adjustingStock.adjustment) < 0 : false
+		adjustingStock ? adjustingStock.item.currentStock + adjustingStock.adjustment < 0 : false
 	);
 
 	// Pagination
@@ -178,7 +180,10 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 		return units.find((u) => u.value === unit)?.label || unit;
 	}
 
-	function getStockStatus(item: InventoryItem): { status: 'success' | 'warning' | 'error'; text: string } {
+	function getStockStatus(item: InventoryItem): {
+		status: 'success' | 'warning' | 'error';
+		text: string;
+	} {
 		const ratio = item.currentStock / item.minimumStock;
 		if (ratio < 0.5) return { status: 'error', text: 'Critical' };
 		if (ratio < 1) return { status: 'warning', text: 'Low' };
@@ -188,7 +193,10 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 	// Issue 2.6: SKU auto-generation
 	function generateSku(category: string, name: string): string {
 		const catLabel = categories.find((c) => c.value === category)?.label || category;
-		const prefix = catLabel.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase();
+		const prefix = catLabel
+			.replace(/[^a-zA-Z]/g, '')
+			.substring(0, 3)
+			.toUpperCase();
 		const initials = name
 			.split(/\s+/)
 			.map((w) => w[0] || '')
@@ -363,320 +371,350 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 	}
 </script>
 
-<div class="flex flex-1 flex-col">
-	<div class="@container/main flex flex-1 flex-col gap-4">
-		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<PageHeader title="Inventory Stock" description="Track and manage your inventory levels">
-				{#snippet actions()}
-					<Button variant="outline" onclick={handleExportInventory}>
-						<IconDownload class="mr-2 h-4 w-4" />
-						Export
-					</Button>
-					{#if canModify(userRole)}
-						<Button onclick={openAddDialog}>
-							<IconPlus class="mr-2 h-4 w-4" />
-							Add Item
-						</Button>
-					{/if}
-				{/snippet}
-			</PageHeader>
+<PageShell title="Inventory Stock" description="Track and manage your inventory levels">
+	{#snippet actions()}
+		<Button variant="outline" onclick={handleExportInventory}>
+			<IconDownload class="mr-2 h-4 w-4" />
+			Export
+		</Button>
+		{#if canModify(userRole)}
+			<Button onclick={openAddDialog}>
+				<IconPlus class="mr-2 h-4 w-4" />
+				Add Item
+			</Button>
+		{/if}
+	{/snippet}
 
-			<!-- Stats -->
-			<div class="grid grid-cols-1 gap-4 px-6 sm:grid-cols-3">
-				<StatCard
-					label="Total Items"
-					value={stats.totalItems}
-				/>
-				<StatCard
-					label="Low Stock Items"
-					value={stats.lowStock}
-				/>
-				<StatCard
-					label="Total Value"
-					value={formatCurrency(stats.totalValue)}
-				/>
-			</div>
+	<!-- Stats -->
+	<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+		<StatCard label="Total Items" value={stats.totalItems} />
+		<StatCard label="Low Stock Items" value={stats.lowStock} />
+		<StatCard label="Total Value" value={formatCurrency(stats.totalValue)} />
+	</div>
 
-			<!-- Filters -->
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center">
-				<SearchInput
-					bind:value={searchQuery}
-					placeholder="Search inventory..."
-					debounceMs={300}
-					class="max-w-sm"
-				/>
-				<div class="flex gap-2">
-					<FilterDropdown
-						bind:value={categoryFilter}
-						placeholder="All Categories"
-						allOptionLabel="All Categories"
-						options={categories}
-					/>
-					<FilterDropdown
-						bind:value={stockFilter}
-						placeholder="All Stock Levels"
-						allOptionLabel="All Stock Levels"
-						options={[
-							{ value: 'low', label: 'Low Stock' },
-							{ value: 'ok', label: 'In Stock' }
-						]}
-					/>
-				</div>
-			</div>
-
-			<!-- Inventory List -->
-			{#if filteredInventory.length > 0}
-				<!-- Mobile: Card list -->
-				<div class="flex flex-col gap-2 px-4 md:hidden">
-					{#each filteredInventory as item (item.id)}
-						<div class="rounded-lg border bg-card p-3 {item.currentStock < item.minimumStock ? 'border-amber-300 dark:border-amber-800' : ''}">
-							<div class="flex items-center justify-between">
-								<span class="font-medium text-sm">{item.name}</span>
-								<StatusPill
-									label={getStockStatus(item).text}
-									status={getStockStatus(item).status}
-								/>
-							</div>
-							<div class="mt-1 flex items-center justify-between text-sm text-muted-foreground">
-								<span>{item.sku} · {getCategoryLabel(item.category)}</span>
-								<span class="font-medium text-foreground">{item.currentStock} {item.unit}</span>
-							</div>
-							{#if canModify(userRole)}
-								<div class="mt-2 flex gap-1">
-									<Button variant="outline" size="sm" class="h-7 flex-1 text-xs" onclick={() => openStockAdjustment(item)}>Adjust</Button>
-									<Button variant="ghost" size="icon" class="h-7 w-7" onclick={() => editItem(item)}><IconPencil class="h-3.5 w-3.5" /></Button>
-								</div>
-							{/if}
-						</div>
-					{/each}
-				</div>
-
-				<!-- Desktop: Table -->
-				<div class="hidden md:block px-6">
-					<div class="overflow-x-auto rounded-md border">
-						<Table.Root>
-							<Table.Header>
-								<Table.Row>
-									<Table.Head>Item</Table.Head>
-									<Table.Head>SKU</Table.Head>
-									<Table.Head>Category</Table.Head>
-									<Table.Head>Quantity</Table.Head>
-									<Table.Head>Status</Table.Head>
-									<Table.Head>Cost/Unit</Table.Head>
-									<Table.Head class="text-right">Actions</Table.Head>
-								</Table.Row>
-							</Table.Header>
-							<Table.Body>
-								{#each filteredInventory as item (item.id)}
-									<Table.Row class={item.currentStock < item.minimumStock ? 'bg-warning/5' : ''}>
-										<Table.Cell class="font-medium">{item.name}</Table.Cell>
-										<Table.Cell class="text-muted-foreground">{item.sku}</Table.Cell>
-										<Table.Cell>
-											<Badge variant="outline">{getCategoryLabel(item.category)}</Badge>
-										</Table.Cell>
-										<Table.Cell>
-											<div>
-												<span class="font-medium">{item.currentStock}</span>
-												<span class="text-muted-foreground"> {item.unit}</span>
-											</div>
-											<div class="text-xs text-muted-foreground">Min: {item.minimumStock}</div>
-										</Table.Cell>
-										<Table.Cell>
-											<StatusPill
-												label={getStockStatus(item).text}
-												status={getStockStatus(item).status}
-											/>
-										</Table.Cell>
-										<Table.Cell>{formatCurrency(item.costPerUnit)}</Table.Cell>
-										<Table.Cell class="text-right">
-											<div class="flex justify-end gap-1">
-												<Button variant="ghost" size="icon" onclick={() => openHistory(item)} title="Transaction history" aria-label="Transaction history">
-													<IconHistory class="h-4 w-4" />
-												</Button>
-												{#if canModify(userRole)}
-													<Button
-														variant="ghost"
-														size="sm"
-														class="h-8"
-														onclick={() => openStockAdjustment(item)}
-														title="Adjust stock"
-													>
-														<IconTrendingUp class="mr-1 h-4 w-4" />
-														Adjust
-													</Button>
-													<Button variant="ghost" size="icon" onclick={() => editItem(item)} title="Edit item" aria-label="Edit item">
-														<IconPencil class="h-4 w-4" />
-													</Button>
-													<Button
-														variant="ghost"
-														size="icon"
-														class="text-destructive hover:text-destructive"
-														onclick={() => triggerDeleteItem(item.id)}
-														title="Delete item"
-														aria-label="Delete item"
-													>
-														<IconTrash class="h-4 w-4" />
-													</Button>
-												{/if}
-											</div>
-										</Table.Cell>
-									</Table.Row>
-								{/each}
-							</Table.Body>
-						</Table.Root>
-					</div>
-				</div>
-			{:else}
-				<EmptyState type="empty" title="No inventory items" description="Add your first inventory item to get started." />
-			{/if}
-
-			<!-- Pagination -->
-			{#if totalPages > 1}
-				<div class="flex items-center justify-between px-6">
-					<p class="text-sm text-muted-foreground">
-						Showing {paginationOffset + 1}–{Math.min(paginationOffset + paginationLimit, totalItems)} of {totalItems} {totalItems === 1 ? 'item' : 'items'}
-					</p>
-					<div class="flex items-center gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={currentPage <= 1}
-							onclick={() => goToPage(currentPage - 1)}
-						>
-							<IconChevronLeft class="mr-1 h-4 w-4" />
-							Previous
-						</Button>
-						<span class="text-sm">
-							Page {currentPage} of {totalPages}
-						</span>
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={currentPage >= totalPages}
-							onclick={() => goToPage(currentPage + 1)}
-						>
-							Next
-							<IconChevronRight class="ml-1 h-4 w-4" />
-						</Button>
-					</div>
-				</div>
-			{/if}
+	<!-- Filters -->
+	<div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+		<SearchInput
+			bind:value={searchQuery}
+			placeholder="Search inventory..."
+			debounceMs={300}
+			class="max-w-sm"
+		/>
+		<div class="flex gap-2">
+			<FilterDropdown
+				bind:value={categoryFilter}
+				placeholder="All Categories"
+				allOptionLabel="All Categories"
+				options={categories}
+			/>
+			<FilterDropdown
+				bind:value={stockFilter}
+				placeholder="All Stock Levels"
+				allOptionLabel="All Stock Levels"
+				options={[
+					{ value: 'low', label: 'Low Stock' },
+					{ value: 'ok', label: 'In Stock' }
+				]}
+			/>
 		</div>
 	</div>
 
-		<!-- Reorder Suggestions -->
-		{#if (data as any).reorderSuggestions?.length > 0}
-			<div class="px-4 pt-4 lg:px-6">
-				<Card.Root>
-					<Card.Header>
-						<Card.Title class="flex items-center gap-2">
-							<IconTrendingUp class="h-4 w-4 text-amber-500" />
-							Reorder Suggestions
-						</Card.Title>
-						<Card.Description>
-							Items running low based on recent consumption patterns
-						</Card.Description>
-					</Card.Header>
-					<Card.Content>
-						<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-							{#each (data as any).reorderSuggestions as suggestion (suggestion.inventoryItemId)}
-								<Card.Root class="border-l-4 {suggestion.estimatedDaysRemaining <= 2 ? 'border-l-red-500' : suggestion.estimatedDaysRemaining <= 5 ? 'border-l-amber-500' : 'border-l-blue-500'}">
-									<Card.Content class="p-4">
-										<div class="flex items-start justify-between">
-											<div class="min-w-0 flex-1">
-												<p class="truncate text-sm font-semibold">{suggestion.name}</p>
-												<p class="text-xs text-muted-foreground">SKU: {suggestion.sku}</p>
-											</div>
-											<Badge variant={suggestion.estimatedDaysRemaining <= 2 ? 'destructive' : 'secondary'} class="shrink-0">
-												{suggestion.estimatedDaysRemaining <= 0 ? 'Out' : suggestion.estimatedDaysRemaining + 'd left'}
-											</Badge>
-										</div>
-										<div class="mt-3 grid grid-cols-2 gap-2 text-xs">
-											<div>
-												<p class="text-muted-foreground">Current Stock</p>
-												<p class="font-medium">{suggestion.currentStock} {suggestion.unit}</p>
-											</div>
-											<div>
-												<p class="text-muted-foreground">Daily Usage</p>
-												<p class="font-medium">{suggestion.avgDailyConsumption} {suggestion.unit}/day</p>
-											</div>
-											<div>
-												<p class="text-muted-foreground">Min Stock</p>
-												<p class="font-medium">{suggestion.minimumStock} {suggestion.unit}</p>
-											</div>
-											<div>
-												<p class="text-muted-foreground">Suggested Order</p>
-												<p class="font-semibold text-primary">{suggestion.suggestedOrderQuantity} {suggestion.unit}</p>
-											</div>
-										</div>
-										{#if suggestion.linkedMenuItems.length > 0}
-											<div class="mt-2 flex flex-wrap gap-1">
-												{#each suggestion.linkedMenuItems.slice(0, 3) as menuItem}
-													<Badge variant="outline" class="text-xs">{menuItem}</Badge>
-												{/each}
-												{#if suggestion.linkedMenuItems.length > 3}
-													<Badge variant="outline" class="text-xs">+{suggestion.linkedMenuItems.length - 3} more</Badge>
-												{/if}
-											</div>
-										{/if}
-									</Card.Content>
-								</Card.Root>
-							{/each}
+	<!-- Inventory List -->
+	{#if filteredInventory.length > 0}
+		<!-- Mobile: Card list -->
+		<div class="flex flex-col gap-2 md:hidden">
+			{#each filteredInventory as item (item.id)}
+				<div
+					class="rounded-lg border bg-card p-3 {item.currentStock < item.minimumStock
+						? 'border-warning/40'
+						: ''}"
+				>
+					<div class="flex items-center justify-between">
+						<span class="text-sm font-medium">{item.name}</span>
+						<StatusPill label={getStockStatus(item).text} status={getStockStatus(item).status} />
+					</div>
+					<div class="mt-1 flex items-center justify-between text-sm text-muted-foreground">
+						<span>{item.sku} · {getCategoryLabel(item.category)}</span>
+						<span class="font-medium text-foreground">{item.currentStock} {item.unit}</span>
+					</div>
+					{#if canModify(userRole)}
+						<div class="mt-2 flex gap-1">
+							<Button
+								variant="outline"
+								size="sm"
+								class="h-7 flex-1 text-xs"
+								onclick={() => openStockAdjustment(item)}>Adjust</Button
+							>
+							<Button variant="ghost" size="icon" class="h-7 w-7" onclick={() => editItem(item)}
+								><IconPencil class="h-3.5 w-3.5" /></Button
+							>
 						</div>
-					</Card.Content>
-				</Card.Root>
-			</div>
-		{/if}
+					{/if}
+				</div>
+			{/each}
+		</div>
 
-		<!-- Demand Planning Table -->
-		{#if (data as any).demandPredictions?.length > 0}
-			<div class="px-4 pt-4 pb-4 lg:px-6">
-				<Card.Root>
-					<Card.Header>
-						<Card.Title class="flex items-center gap-2">
-							<IconTrendingUp class="h-4 w-4 text-violet-500" />
-							Demand Planning
-						</Card.Title>
-						<Card.Description>
-							Predicted item demand based on same-day sales from the last 4 weeks
-						</Card.Description>
-					</Card.Header>
-					<Card.Content>
-						<Table.Root>
-							<Table.Header>
-								<Table.Row>
-									<Table.Head>Item</Table.Head>
-									<Table.Head>Category</Table.Head>
-									<Table.Head class="text-right">Predicted Qty</Table.Head>
-									<Table.Head class="text-right">Avg Qty</Table.Head>
-									<Table.Head class="text-right">Data Points</Table.Head>
-								</Table.Row>
-							</Table.Header>
-							<Table.Body>
-								{#each (data as any).demandPredictions.slice(0, 20) as prediction (prediction.menuItemId)}
-									<Table.Row>
-										<Table.Cell class="font-medium">{prediction.menuItemName}</Table.Cell>
-										<Table.Cell>
-											<Badge variant="outline">{prediction.category}</Badge>
-										</Table.Cell>
-										<Table.Cell class="text-right font-semibold tabular-nums">
-											{prediction.predictedQuantity}
-										</Table.Cell>
-										<Table.Cell class="text-right tabular-nums text-muted-foreground">
-											{prediction.avgQuantity}
-										</Table.Cell>
-										<Table.Cell class="text-right tabular-nums text-muted-foreground">
-											{prediction.weekCount} {prediction.weekCount === 1 ? 'week' : 'weeks'}
-										</Table.Cell>
-									</Table.Row>
-								{/each}
-							</Table.Body>
-						</Table.Root>
-					</Card.Content>
-				</Card.Root>
+		<!-- Desktop: Table -->
+		<div class="hidden md:block">
+			<div class="overflow-x-auto rounded-md border">
+				<Table.Root>
+					<Table.Header>
+						<Table.Row>
+							<Table.Head>Item</Table.Head>
+							<Table.Head>SKU</Table.Head>
+							<Table.Head>Category</Table.Head>
+							<Table.Head>Quantity</Table.Head>
+							<Table.Head>Status</Table.Head>
+							<Table.Head>Cost/Unit</Table.Head>
+							<Table.Head class="text-right">Actions</Table.Head>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						{#each filteredInventory as item (item.id)}
+							<Table.Row class={item.currentStock < item.minimumStock ? 'bg-warning/5' : ''}>
+								<Table.Cell class="font-medium">{item.name}</Table.Cell>
+								<Table.Cell class="text-muted-foreground">{item.sku}</Table.Cell>
+								<Table.Cell>
+									<Badge variant="outline">{getCategoryLabel(item.category)}</Badge>
+								</Table.Cell>
+								<Table.Cell>
+									<div>
+										<span class="font-medium">{item.currentStock}</span>
+										<span class="text-muted-foreground"> {item.unit}</span>
+									</div>
+									<div class="text-xs text-muted-foreground">Min: {item.minimumStock}</div>
+								</Table.Cell>
+								<Table.Cell>
+									<StatusPill
+										label={getStockStatus(item).text}
+										status={getStockStatus(item).status}
+									/>
+								</Table.Cell>
+								<Table.Cell>{formatCurrency(item.costPerUnit)}</Table.Cell>
+								<Table.Cell class="text-right">
+									<div class="flex justify-end gap-1">
+										<Button
+											variant="ghost"
+											size="icon"
+											onclick={() => openHistory(item)}
+											title="Transaction history"
+											aria-label="Transaction history"
+										>
+											<IconHistory class="h-4 w-4" />
+										</Button>
+										{#if canModify(userRole)}
+											<Button
+												variant="ghost"
+												size="sm"
+												class="h-8"
+												onclick={() => openStockAdjustment(item)}
+												title="Adjust stock"
+											>
+												<IconTrendingUp class="mr-1 h-4 w-4" />
+												Adjust
+											</Button>
+											<Button
+												variant="ghost"
+												size="icon"
+												onclick={() => editItem(item)}
+												title="Edit item"
+												aria-label="Edit item"
+											>
+												<IconPencil class="h-4 w-4" />
+											</Button>
+											<Button
+												variant="ghost"
+												size="icon"
+												class="text-destructive hover:text-destructive"
+												onclick={() => triggerDeleteItem(item.id)}
+												title="Delete item"
+												aria-label="Delete item"
+											>
+												<IconTrash class="h-4 w-4" />
+											</Button>
+										{/if}
+									</div>
+								</Table.Cell>
+							</Table.Row>
+						{/each}
+					</Table.Body>
+				</Table.Root>
 			</div>
-		{/if}
-</div>
+		</div>
+	{:else}
+		<EmptyState
+			type="empty"
+			title="No inventory items"
+			description="Add your first inventory item to get started."
+		/>
+	{/if}
+
+	<!-- Pagination -->
+	{#if totalPages > 1}
+		<div class="flex items-center justify-between">
+			<p class="text-sm text-muted-foreground">
+				Showing {paginationOffset + 1}–{Math.min(paginationOffset + paginationLimit, totalItems)} of {totalItems}
+				{totalItems === 1 ? 'item' : 'items'}
+			</p>
+			<div class="flex items-center gap-2">
+				<Button
+					variant="outline"
+					size="sm"
+					disabled={currentPage <= 1}
+					onclick={() => goToPage(currentPage - 1)}
+				>
+					<IconChevronLeft class="mr-1 h-4 w-4" />
+					Previous
+				</Button>
+				<span class="text-sm">
+					Page {currentPage} of {totalPages}
+				</span>
+				<Button
+					variant="outline"
+					size="sm"
+					disabled={currentPage >= totalPages}
+					onclick={() => goToPage(currentPage + 1)}
+				>
+					Next
+					<IconChevronRight class="ml-1 h-4 w-4" />
+				</Button>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Reorder Suggestions -->
+	{#if (data as any).reorderSuggestions?.length > 0}
+		<div class="pt-4">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title class="flex items-center gap-2">
+						<IconTrendingUp class="h-4 w-4 text-amber-500" />
+						Reorder Suggestions
+					</Card.Title>
+					<Card.Description>
+						Items running low based on recent consumption patterns
+					</Card.Description>
+				</Card.Header>
+				<Card.Content>
+					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+						{#each (data as any).reorderSuggestions as suggestion (suggestion.inventoryItemId)}
+							<Card.Root
+								class="border-l-4 {suggestion.estimatedDaysRemaining <= 2
+									? 'border-l-destructive'
+									: suggestion.estimatedDaysRemaining <= 5
+										? 'border-l-warning'
+										: 'border-l-primary'}"
+							>
+								<Card.Content class="p-4">
+									<div class="flex items-start justify-between">
+										<div class="min-w-0 flex-1">
+											<p class="truncate text-sm font-semibold">{suggestion.name}</p>
+											<p class="text-xs text-muted-foreground">SKU: {suggestion.sku}</p>
+										</div>
+										<Badge
+											variant={suggestion.estimatedDaysRemaining <= 2 ? 'destructive' : 'secondary'}
+											class="shrink-0"
+										>
+											{suggestion.estimatedDaysRemaining <= 0
+												? 'Out'
+												: suggestion.estimatedDaysRemaining + 'd left'}
+										</Badge>
+									</div>
+									<div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+										<div>
+											<p class="text-muted-foreground">Current Stock</p>
+											<p class="font-medium">{suggestion.currentStock} {suggestion.unit}</p>
+										</div>
+										<div>
+											<p class="text-muted-foreground">Daily Usage</p>
+											<p class="font-medium">
+												{suggestion.avgDailyConsumption}
+												{suggestion.unit}/day
+											</p>
+										</div>
+										<div>
+											<p class="text-muted-foreground">Min Stock</p>
+											<p class="font-medium">{suggestion.minimumStock} {suggestion.unit}</p>
+										</div>
+										<div>
+											<p class="text-muted-foreground">Suggested Order</p>
+											<p class="font-semibold text-primary">
+												{suggestion.suggestedOrderQuantity}
+												{suggestion.unit}
+											</p>
+										</div>
+									</div>
+									{#if suggestion.linkedMenuItems.length > 0}
+										<div class="mt-2 flex flex-wrap gap-1">
+											{#each suggestion.linkedMenuItems.slice(0, 3) as menuItem}
+												<Badge variant="outline" class="text-xs">{menuItem}</Badge>
+											{/each}
+											{#if suggestion.linkedMenuItems.length > 3}
+												<Badge variant="outline" class="text-xs"
+													>+{suggestion.linkedMenuItems.length - 3} more</Badge
+												>
+											{/if}
+										</div>
+									{/if}
+								</Card.Content>
+							</Card.Root>
+						{/each}
+					</div>
+				</Card.Content>
+			</Card.Root>
+		</div>
+	{/if}
+
+	<!-- Demand Planning Table -->
+	{#if (data as any).demandPredictions?.length > 0}
+		<div class="pt-4 pb-4">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title class="flex items-center gap-2">
+						<IconTrendingUp class="h-4 w-4 text-violet-500" />
+						Demand Planning
+					</Card.Title>
+					<Card.Description>
+						Predicted item demand based on same-day sales from the last 4 weeks
+					</Card.Description>
+				</Card.Header>
+				<Card.Content>
+					<Table.Root>
+						<Table.Header>
+							<Table.Row>
+								<Table.Head>Item</Table.Head>
+								<Table.Head>Category</Table.Head>
+								<Table.Head class="text-right">Predicted Qty</Table.Head>
+								<Table.Head class="text-right">Avg Qty</Table.Head>
+								<Table.Head class="text-right">Data Points</Table.Head>
+							</Table.Row>
+						</Table.Header>
+						<Table.Body>
+							{#each (data as any).demandPredictions.slice(0, 20) as prediction (prediction.menuItemId)}
+								<Table.Row>
+									<Table.Cell class="font-medium">{prediction.menuItemName}</Table.Cell>
+									<Table.Cell>
+										<Badge variant="outline">{prediction.category}</Badge>
+									</Table.Cell>
+									<Table.Cell class="text-right font-semibold tabular-nums">
+										{prediction.predictedQuantity}
+									</Table.Cell>
+									<Table.Cell class="text-right text-muted-foreground tabular-nums">
+										{prediction.avgQuantity}
+									</Table.Cell>
+									<Table.Cell class="text-right text-muted-foreground tabular-nums">
+										{prediction.weekCount}
+										{prediction.weekCount === 1 ? 'week' : 'weeks'}
+									</Table.Cell>
+								</Table.Row>
+							{/each}
+						</Table.Body>
+					</Table.Root>
+				</Card.Content>
+			</Card.Root>
+		</div>
+	{/if}
+</PageShell>
 
 <!-- Add Item Dialog -->
 <Dialog.Root bind:open={showAddDialog}>
@@ -697,7 +735,9 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 						id="sku"
 						bind:value={newItem.sku}
 						placeholder="Auto-generated"
-						oninput={() => { skuManuallyEdited = true; }}
+						oninput={() => {
+							skuManuallyEdited = true;
+						}}
 					/>
 					{#if !skuManuallyEdited && newItem.name.trim()}
 						<p class="text-xs text-muted-foreground">Auto-generated from name & category</p>
@@ -709,7 +749,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 					<label for="category" class="text-sm font-medium">Category</label>
 					<Select.Root type="single" bind:value={newItem.category}>
 						<Select.Trigger class="w-full">
-							{categories.find(c => c.value === newItem.category)?.label || 'Select category'}
+							{categories.find((c) => c.value === newItem.category)?.label || 'Select category'}
 						</Select.Trigger>
 						<Select.Content>
 							{#each categories as category}
@@ -722,7 +762,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 					<label for="unit" class="text-sm font-medium">Unit</label>
 					<Select.Root type="single" bind:value={newItem.unit}>
 						<Select.Trigger class="w-full">
-							{units.find(u => u.value === newItem.unit)?.label || 'Select unit'}
+							{units.find((u) => u.value === newItem.unit)?.label || 'Select unit'}
 						</Select.Trigger>
 						<Select.Content>
 							{#each units as unit}
@@ -799,7 +839,8 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 						<label for="edit-category" class="text-sm font-medium">Category</label>
 						<Select.Root type="single" bind:value={editingItem.category}>
 							<Select.Trigger class="w-full">
-								{categories.find(c => c.value === editingItem?.category)?.label || 'Select category'}
+								{categories.find((c) => c.value === editingItem?.category)?.label ||
+									'Select category'}
 							</Select.Trigger>
 							<Select.Content>
 								{#each categories as category}
@@ -812,7 +853,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 						<label for="edit-unit" class="text-sm font-medium">Unit</label>
 						<Select.Root type="single" bind:value={editingItem.unit}>
 							<Select.Trigger class="w-full">
-								{units.find(u => u.value === editingItem?.unit)?.label || 'Select unit'}
+								{units.find((u) => u.value === editingItem?.unit)?.label || 'Select unit'}
 							</Select.Trigger>
 							<Select.Content>
 								{#each units as unit}
@@ -825,11 +866,22 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 				<div class="grid grid-cols-2 gap-4">
 					<div class="grid gap-2">
 						<label for="edit-minimumStock" class="text-sm font-medium">Min Stock</label>
-						<Input id="edit-minimumStock" type="number" min="0" bind:value={editingItem.minimumStock} />
+						<Input
+							id="edit-minimumStock"
+							type="number"
+							min="0"
+							bind:value={editingItem.minimumStock}
+						/>
 					</div>
 					<div class="grid gap-2">
 						<label for="edit-cost" class="text-sm font-medium">Cost/Unit</label>
-						<Input id="edit-cost" type="number" step="0.01" min="0" bind:value={editingItem.costPerUnit} />
+						<Input
+							id="edit-cost"
+							type="number"
+							step="0.01"
+							min="0"
+							bind:value={editingItem.costPerUnit}
+						/>
 					</div>
 				</div>
 				<div class="grid gap-2">
@@ -838,11 +890,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 						<label for="edit-trackExpiry" class="text-sm font-medium">Track expiry date</label>
 					</div>
 					{#if editTrackExpiry}
-						<Input
-							id="edit-expiryDate"
-							type="date"
-							bind:value={editExpiryDate}
-						/>
+						<Input id="edit-expiryDate" type="date" bind:value={editExpiryDate} />
 					{/if}
 				</div>
 			</div>
@@ -905,27 +953,27 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 							bind:value={adjustingStock.adjustment}
 							class="text-center"
 						/>
-						<Button
-							variant="outline"
-							size="sm"
-							onclick={() => (adjustingStock!.adjustment += 1)}
-						>
+						<Button variant="outline" size="sm" onclick={() => (adjustingStock!.adjustment += 1)}>
 							+1
 						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							onclick={() => (adjustingStock!.adjustment += 5)}
-						>
+						<Button variant="outline" size="sm" onclick={() => (adjustingStock!.adjustment += 5)}>
 							+5
 						</Button>
 					</div>
 				</div>
 				<div class="grid gap-2">
 					<label for="reason" class="text-sm font-medium">Reason (optional)</label>
-					<Input id="reason" bind:value={adjustingStock.reason} placeholder="e.g., Received shipment" />
+					<Input
+						id="reason"
+						bind:value={adjustingStock.reason}
+						placeholder="e.g., Received shipment"
+					/>
 				</div>
-				<div class="rounded-lg p-3 {adjustmentWouldGoNegative ? 'bg-destructive/5 border border-destructive/20' : 'bg-muted'}">
+				<div
+					class="rounded-lg p-3 {adjustmentWouldGoNegative
+						? 'border border-destructive/20 bg-destructive/5'
+						: 'bg-muted'}"
+				>
 					<p class="text-sm">
 						New quantity: <strong class={adjustmentWouldGoNegative ? 'text-destructive' : ''}>
 							{adjustingStock.item.currentStock + adjustingStock.adjustment}

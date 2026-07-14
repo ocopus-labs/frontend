@@ -55,9 +55,7 @@
 	let validationResult = $state<{ valid: boolean; error?: string } | null>(null);
 
 	const selectedRegime = $derived(regimes.find((r) => r.id === regime));
-	const regionEntries = $derived(
-		selectedRegime ? Object.entries(selectedRegime.regions) : []
-	);
+	const regionEntries = $derived(selectedRegime ? Object.entries(selectedRegime.regions) : []);
 
 	// Sync state from loaded settings
 	$effect(() => {
@@ -100,11 +98,7 @@
 		isValidating = true;
 		const businessId = (data as any).businessId;
 		try {
-			validationResult = await validateTaxNumber(
-				businessId,
-				regime,
-				registrationNumber.trim()
-			);
+			validationResult = await validateTaxNumber(businessId, regime, registrationNumber.trim());
 		} catch (error) {
 			toast.error(userFriendlyError(error));
 		} finally {
@@ -182,7 +176,10 @@
 	];
 </script>
 
-<MobilePageHeader title="Tax & Invoicing" backHref={`/${$page.params.business}/${$page.params.slug}/settings`} />
+<MobilePageHeader
+	title="Tax & Invoicing"
+	backHref={`/${$page.params.business}/${$page.params.slug}/settings`}
+/>
 <div class="flex flex-col gap-6 p-6">
 	<PageHeader
 		back
@@ -219,8 +216,7 @@
 			<Card.Header>
 				<Card.Title class="text-base">Tax Compliance</Card.Title>
 				<Card.Description
-					>Enable tax compliance features including component breakdowns and sequential
-					invoicing</Card.Description
+					>Enable tax compliance features including component breakdowns and sequential invoicing</Card.Description
 				>
 			</Card.Header>
 			<Card.Content>
@@ -250,7 +246,7 @@
 						<label for="regime" class="text-sm font-medium">Tax Regime</label>
 						<select
 							id="regime"
-							class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+							class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
 							bind:value={regime}
 						>
 							{#each regimes as r}
@@ -283,7 +279,7 @@
 							</div>
 							{#if validationResult}
 								{#if validationResult.valid}
-									<p class="text-sm text-green-600">Valid {selectedRegime.registrationLabel}</p>
+									<p class="text-sm text-success">Valid {selectedRegime.registrationLabel}</p>
 								{:else}
 									<p class="text-sm text-destructive">{validationResult.error}</p>
 								{/if}
@@ -306,7 +302,7 @@
 								>
 								<select
 									id="region"
-									class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+									class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
 									value={regionCode}
 									onchange={(e) => handleRegionSelect((e.target as HTMLSelectElement).value)}
 								>
@@ -322,7 +318,7 @@
 							<label for="default-rate" class="text-sm font-medium">Default Tax Rate (%)</label>
 							<select
 								id="default-rate"
-								class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+								class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
 								bind:value={defaultTaxRate}
 							>
 								{#each selectedRegime.standardRates as rate}
@@ -345,16 +341,14 @@
 						<label for="invoice-prefix" class="text-sm font-medium">Invoice Prefix</label>
 						<Input id="invoice-prefix" bind:value={invoicePrefix} placeholder="INV" />
 						<p class="text-xs text-muted-foreground">
-							e.g., {invoicePrefix || 'INV'}/{financialYearStart === 4
-								? '2025-26'
-								: '2026'}/0001
+							e.g., {invoicePrefix || 'INV'}/{financialYearStart === 4 ? '2025-26' : '2026'}/0001
 						</p>
 					</div>
 					<div class="grid gap-2">
 						<label for="fy-start" class="text-sm font-medium">Financial Year Starts</label>
 						<select
 							id="fy-start"
-							class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+							class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
 							bind:value={financialYearStart}
 						>
 							{#each MONTHS as m}
@@ -376,9 +370,7 @@
 						<div class="flex items-center justify-between">
 							<div>
 								<p class="text-sm font-medium">Composition Scheme</p>
-								<p class="text-sm text-muted-foreground">
-									Registered under GST Composition Scheme
-								</p>
+								<p class="text-sm text-muted-foreground">Registered under GST Composition Scheme</p>
 							</div>
 							<Switch bind:checked={gstCompositionScheme} />
 						</div>
@@ -414,9 +406,7 @@
 						<div class="flex items-center justify-between">
 							<div>
 								<p class="text-sm font-medium">Reverse Charge</p>
-								<p class="text-sm text-muted-foreground">
-									Reverse charge mechanism applicable
-								</p>
+								<p class="text-sm text-muted-foreground">Reverse charge mechanism applicable</p>
 							</div>
 							<Switch bind:checked={vatReverseCharge} />
 						</div>

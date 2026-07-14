@@ -70,7 +70,9 @@
 	});
 
 	const loyaltySettings = $derived((data as any).loyaltySettings as LoyaltySettings | null);
-	const loyaltyLeaderboard = $derived((data as any).loyaltyLeaderboard as LoyaltyLeaderboardEntry[] || []);
+	const loyaltyLeaderboard = $derived(
+		((data as any).loyaltyLeaderboard as LoyaltyLeaderboardEntry[]) || []
+	);
 	const loyaltyEnabled = $derived(loyaltySettings?.enabled === true);
 
 	// Build lookup map for loyalty data by customer ID
@@ -81,7 +83,9 @@
 		}, {})
 	);
 
-	const stats = $derived((data as any).stats || { total: 0, active: 0, inactive: 0, newThisMonth: 0 });
+	const stats = $derived(
+		(data as any).stats || { total: 0, active: 0, inactive: 0, newThisMonth: 0 }
+	);
 	const insights = $derived((data as any).insights as CustomerInsights | null);
 	const pagination = $derived((data as any).pagination || { limit: 25, offset: 0 });
 	const total = $derived((data as any).total || 0);
@@ -143,7 +147,8 @@
 		isSubmitting = true;
 		const businessId = (data as any).businessId;
 
-		const hasAddress = formAddressStreet || formAddressCity || formAddressState || formAddressPostalCode;
+		const hasAddress =
+			formAddressStreet || formAddressCity || formAddressState || formAddressPostalCode;
 		const address = hasAddress
 			? {
 					street: formAddressStreet || undefined,
@@ -283,22 +288,10 @@
 
 	<!-- Stats Cards -->
 	<div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-		<StatCard
-			label="Total"
-			value={stats.total}
-		/>
-		<StatCard
-			label="Active"
-			value={stats.active}
-		/>
-		<StatCard
-			label="Inactive"
-			value={stats.inactive}
-		/>
-		<StatCard
-			label="New This Month"
-			value={stats.newThisMonth}
-		/>
+		<StatCard label="Total" value={stats.total} />
+		<StatCard label="Active" value={stats.active} />
+		<StatCard label="Inactive" value={stats.inactive} />
+		<StatCard label="New This Month" value={stats.newThisMonth} />
 	</div>
 
 	<!-- Customer Insights Panel -->
@@ -309,8 +302,12 @@
 				<Card.Root>
 					<Card.Content class="p-4">
 						<p class="text-sm text-muted-foreground">Avg. Lifetime Value</p>
-						<p class="text-2xl font-bold text-violet-600">
-							{new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Number(insights.avgClv))}
+						<p class="text-2xl font-bold text-chart-4">
+							{new Intl.NumberFormat(undefined, {
+								style: 'currency',
+								currency: 'USD',
+								maximumFractionDigits: 0
+							}).format(Number(insights.avgClv))}
 						</p>
 						<p class="mt-1 text-xs text-muted-foreground">per customer</p>
 					</Card.Content>
@@ -318,8 +315,12 @@
 				<Card.Root>
 					<Card.Content class="p-4">
 						<p class="text-sm text-muted-foreground">Max Lifetime Value</p>
-						<p class="text-2xl font-bold text-indigo-600">
-							{new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Number(insights.maxClv))}
+						<p class="text-2xl font-bold text-chart-3">
+							{new Intl.NumberFormat(undefined, {
+								style: 'currency',
+								currency: 'USD',
+								maximumFractionDigits: 0
+							}).format(Number(insights.maxClv))}
 						</p>
 						<p class="mt-1 text-xs text-muted-foreground">top spender</p>
 					</Card.Content>
@@ -327,14 +328,14 @@
 				<Card.Root>
 					<Card.Content class="p-4">
 						<p class="text-sm text-muted-foreground">Retention Rate</p>
-						<p class="text-2xl font-bold text-emerald-600">{insights.retentionRate}%</p>
+						<p class="text-2xl font-bold text-chart-5">{insights.retentionRate}%</p>
 						<p class="mt-1 text-xs text-muted-foreground">last 90 days</p>
 					</Card.Content>
 				</Card.Root>
 				<Card.Root>
 					<Card.Content class="p-4">
 						<p class="text-sm text-muted-foreground">Repeat Customers</p>
-						<p class="text-2xl font-bold text-amber-600">{insights.repeatCustomers}</p>
+						<p class="text-2xl font-bold text-chart-6">{insights.repeatCustomers}</p>
 						<p class="mt-1 text-xs text-muted-foreground">2+ orders in 90d</p>
 					</Card.Content>
 				</Card.Root>
@@ -345,7 +346,9 @@
 				<Card.Root>
 					<Card.Header class="pb-2">
 						<Card.Title class="text-base">Top Customers by Spending</Card.Title>
-						<Card.Description>Top 10 customers ranked by total completed order value</Card.Description>
+						<Card.Description
+							>Top 10 customers ranked by total completed order value</Card.Description
+						>
 					</Card.Header>
 					<Table.Root>
 						<Table.Header>
@@ -355,22 +358,28 @@
 								<Table.Head>Phone</Table.Head>
 								<Table.Head class="text-right">Orders</Table.Head>
 								<Table.Head class="text-right">Total Spent</Table.Head>
-								<Table.Head class="hidden sm:table-cell text-right">Last Order</Table.Head>
+								<Table.Head class="hidden text-right sm:table-cell">Last Order</Table.Head>
 								<Table.Head class="text-right">Actions</Table.Head>
 							</Table.Row>
 						</Table.Header>
 						<Table.Body>
 							{#each insights.topCustomers as customer, i}
 								<Table.Row>
-									<Table.Cell class="text-muted-foreground font-medium">{i + 1}</Table.Cell>
+									<Table.Cell class="font-medium text-muted-foreground">{i + 1}</Table.Cell>
 									<Table.Cell class="font-medium">{customer.name}</Table.Cell>
 									<Table.Cell>{customer.phone}</Table.Cell>
 									<Table.Cell class="text-right">{customer.orderCount}</Table.Cell>
 									<Table.Cell class="text-right font-medium">
-										{new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(customer.totalSpent)}
+										{new Intl.NumberFormat(undefined, {
+											style: 'currency',
+											currency: 'USD',
+											maximumFractionDigits: 2
+										}).format(customer.totalSpent)}
 									</Table.Cell>
-									<Table.Cell class="hidden sm:table-cell text-right text-muted-foreground">
-										{customer.lastOrderDate ? new Date(customer.lastOrderDate).toLocaleDateString() : '-'}
+									<Table.Cell class="hidden text-right text-muted-foreground sm:table-cell">
+										{customer.lastOrderDate
+											? new Date(customer.lastOrderDate).toLocaleDateString()
+											: '-'}
 									</Table.Cell>
 									<Table.Cell class="text-right">
 										<Button
@@ -472,7 +481,10 @@
 								{/if}
 							</Table.Cell>
 							<Table.Cell>
-								<StatusPill label={customer.status} status={customer.status === 'active' ? 'success' : 'neutral'} />
+								<StatusPill
+									label={customer.status}
+									status={customer.status === 'active' ? 'success' : 'neutral'}
+								/>
 							</Table.Cell>
 							<Table.Cell class="hidden sm:table-cell">
 								{new Date(customer.createdAt).toLocaleDateString()}
@@ -515,7 +527,8 @@
 		{#if totalPages > 1}
 			<div class="flex items-center justify-between">
 				<p class="text-sm text-muted-foreground">
-					Showing {pagination.offset + 1} - {Math.min(pagination.offset + pagination.limit, total)} of {total}
+					Showing {pagination.offset + 1} - {Math.min(pagination.offset + pagination.limit, total)} of
+					{total}
 				</p>
 				<div class="flex items-center gap-2">
 					<Button
@@ -597,7 +610,7 @@
 					<select
 						id="status"
 						bind:value={formStatus}
-						class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 					>
 						<option value="active">Active</option>
 						<option value="inactive">Inactive</option>

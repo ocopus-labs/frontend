@@ -7,7 +7,8 @@
 	import { IconCheck, IconEye, IconPrinter, IconRefresh } from '@tabler/icons-svelte';
 	import { SearchInput, FilterDropdown } from '$lib/components/search';
 	import { EmptyState, StatusPill } from '$lib/components/data-display';
-	import PageHeader from '$lib/components/global/page-header.svelte';
+	import PageShell from '$lib/components/global/page-shell.svelte';
+	import QrBadge from '$lib/components/global/qr-badge.svelte';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import { invalidate, invalidateAll, goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -22,7 +23,7 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const userRole = $derived((data as any).userRole as string ?? '');
+	const userRole = $derived(((data as any).userRole as string) ?? '');
 
 	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
 
@@ -33,19 +34,26 @@
 	// Transform API orders to display format
 	// Exclude pending_approval — those belong on the dedicated pending-approval page
 	let orders = $derived(
-		(data.orders || []).filter((order: Order) => order.status !== 'pending_approval').map((order: Order) => ({
-			id: order.orderNumber,
-			orderId: order.id,
-			customer: order.customerInfo?.name || 'Walk-in',
-			table: order.tableNumber || (order.orderType === 'dine_in' ? 'Table' : order.orderType.replace('_', ' ')),
-			type: formatOrderType(order.orderType),
-			status: order.status,
-			total: order.pricing.total,
-			date: new Date(order.createdAt).toLocaleDateString(),
-			time: new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-			items: order.items.length,
-			orderSource: order.orderSource
-		}))
+		(data.orders || [])
+			.filter((order: Order) => order.status !== 'pending_approval')
+			.map((order: Order) => ({
+				id: order.orderNumber,
+				orderId: order.id,
+				customer: order.customerInfo?.name || 'Walk-in',
+				table:
+					order.tableNumber ||
+					(order.orderType === 'dine_in' ? 'Table' : order.orderType.replace('_', ' ')),
+				type: formatOrderType(order.orderType),
+				status: order.status,
+				total: order.pricing.total,
+				date: new Date(order.createdAt).toLocaleDateString(),
+				time: new Date(order.createdAt).toLocaleTimeString([], {
+					hour: '2-digit',
+					minute: '2-digit'
+				}),
+				items: order.items.length,
+				orderSource: order.orderSource
+			}))
 	);
 
 	let searchQuery = $state('');
@@ -65,18 +73,30 @@
 		})
 	);
 
-	function getStatusPillStatus(status: string): 'success' | 'warning' | 'error' | 'info' | 'neutral' {
+	function getStatusPillStatus(
+		status: string
+	): 'success' | 'warning' | 'error' | 'info' | 'neutral' {
 		switch (status) {
-			case 'completed': return 'success';
-			case 'ready': return 'success';
-			case 'serving': return 'success';
-			case 'preparing': return 'warning';
-			case 'active': return 'info';
-			case 'pending_approval': return 'warning';
-			case 'pending': return 'neutral';
-			case 'cancelled': return 'error';
-			case 'refunded': return 'error';
-			default: return 'neutral';
+			case 'completed':
+				return 'success';
+			case 'ready':
+				return 'success';
+			case 'serving':
+				return 'success';
+			case 'preparing':
+				return 'warning';
+			case 'active':
+				return 'info';
+			case 'pending_approval':
+				return 'warning';
+			case 'pending':
+				return 'neutral';
+			case 'cancelled':
+				return 'error';
+			case 'refunded':
+				return 'error';
+			default:
+				return 'neutral';
 		}
 	}
 
@@ -163,169 +183,210 @@
 	}
 </script>
 
-<div class="flex flex-1 flex-col" ontouchstart={onPullStart} ontouchmove={onPullMove} ontouchend={onPullEnd}>
+<div
+	class="flex flex-1 flex-col"
+	ontouchstart={onPullStart}
+	ontouchmove={onPullMove}
+	ontouchend={onPullEnd}
+>
 	{#if pulling || isRefreshing}
 		<div class="flex items-center justify-center py-3 text-muted-foreground md:hidden">
 			<IconRefresh class="h-4 w-4 animate-spin" />
 			<span class="ml-2 text-sm">{isRefreshing ? 'Refreshing...' : 'Release to refresh'}</span>
 		</div>
 	{/if}
-	<div class="@container/main flex flex-1 flex-col gap-4">
-		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<PageHeader title="Orders" description="Manage and track all your restaurant orders">
-				{#snippet actions()}
-					<div aria-live="polite">
-						<Button variant="outline" size="sm" onclick={refreshOrders} disabled={isRefreshing}>
-							<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
-							{isRefreshing ? 'Refreshing...' : 'Refresh'}
-						</Button>
-					</div>
-				{/snippet}
-			</PageHeader>
+	<PageShell title="Orders" description="Manage and track all your restaurant orders">
+		{#snippet actions()}
+			<div aria-live="polite">
+				<Button variant="outline" size="sm" onclick={refreshOrders} disabled={isRefreshing}>
+					<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
+					{isRefreshing ? 'Refreshing...' : 'Refresh'}
+				</Button>
+			</div>
+		{/snippet}
 
-			<!-- Filters and Search -->
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
-				<SearchInput
-					bind:value={searchQuery}
-					placeholder="Search orders..."
-					debounceMs={300}
-					class="max-w-sm"
+		<!-- Filters and Search -->
+		<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+			<SearchInput
+				bind:value={searchQuery}
+				placeholder="Search orders..."
+				debounceMs={300}
+				class="max-w-sm"
+			/>
+			<div class="flex gap-2">
+				<FilterDropdown
+					bind:value={statusFilter}
+					placeholder="All Status"
+					allOptionLabel="All Status"
+					options={[
+						{ value: 'active', label: 'Active' },
+						{ value: 'preparing', label: 'Preparing' },
+						{ value: 'ready', label: 'Ready' },
+						{ value: 'serving', label: 'Serving' }
+					]}
 				/>
-				<div class="flex gap-2">
-					<FilterDropdown
-						bind:value={statusFilter}
-						placeholder="All Status"
-						allOptionLabel="All Status"
-						options={[
-							{ value: 'active', label: 'Active' },
-							{ value: 'preparing', label: 'Preparing' },
-							{ value: 'ready', label: 'Ready' },
-							{ value: 'serving', label: 'Serving' }
-						]}
-					/>
-					<FilterDropdown
-						bind:value={typeFilter}
-						placeholder="All Types"
-						allOptionLabel="All Types"
-						options={[
-							{ value: 'Dine-In', label: 'Dine-In' },
-							{ value: 'Takeaway', label: 'Takeaway' },
-							{ value: 'Delivery', label: 'Delivery' }
-						]}
-					/>
-				</div>
+				<FilterDropdown
+					bind:value={typeFilter}
+					placeholder="All Types"
+					allOptionLabel="All Types"
+					options={[
+						{ value: 'Dine-In', label: 'Dine-In' },
+						{ value: 'Takeaway', label: 'Takeaway' },
+						{ value: 'Delivery', label: 'Delivery' }
+					]}
+				/>
 			</div>
-
-			<!-- Mobile: Card list -->
-			<div class="flex flex-col gap-2 md:hidden">
-				{#each filteredOrders as order (order.id)}
-					<button
-						type="button"
-						class="block w-full rounded-lg border bg-card p-3 text-left active:scale-[0.99] transition-transform"
-						onclick={() => viewOrder(order.orderId)}
-					>
-						<div class="flex items-center justify-between">
-							<span class="font-medium">
-								{order.id}
-								{#if order.orderSource === 'customer_qr'}
-									<span class="inline-flex items-center rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-900 dark:text-violet-200">QR</span>
-								{/if}
-							</span>
-							<StatusPill
-								label={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-								status={getStatusPillStatus(order.status)}
-							/>
-						</div>
-						<div class="mt-1 flex items-center justify-between text-sm text-muted-foreground">
-							<span>{order.customer} · {order.items} items · {order.table}</span>
-							<span class="font-medium text-foreground">{formatCurrency(order.total)}</span>
-						</div>
-						<div class="mt-1 text-xs text-muted-foreground">{order.time}</div>
-						{#if order.status === 'pending_approval' && order.orderSource === 'customer_qr'}
-							<div class="mt-2 flex gap-2">
-								<Button size="sm" variant="default" class="flex-1" onclick={(e: MouseEvent) => { e.stopPropagation(); handleAccept(order.orderId); }}>Accept</Button>
-								<Button size="sm" variant="destructive" class="flex-1" onclick={(e: MouseEvent) => { e.stopPropagation(); handleReject(order.orderId); }}>Reject</Button>
-							</div>
-						{/if}
-					</button>
-				{/each}
-			</div>
-
-			<!-- Desktop: Table -->
-			<div class="hidden md:block overflow-x-auto rounded-md border">
-				<Table.Root>
-					<Table.Header>
-						<Table.Row>
-							<Table.Head>Order ID</Table.Head>
-							<Table.Head>Customer</Table.Head>
-							<Table.Head>Table/Type</Table.Head>
-							<Table.Head>Status</Table.Head>
-							<Table.Head>Items</Table.Head>
-							<Table.Head>Total</Table.Head>
-							<Table.Head>Date & Time</Table.Head>
-							<Table.Head class="text-right">Actions</Table.Head>
-						</Table.Row>
-					</Table.Header>
-					<Table.Body>
-						{#each filteredOrders as order (order.id)}
-							<Table.Row>
-								<Table.Cell class="font-medium">
-									<div class="flex items-center gap-1.5">
-										{order.id}
-										{#if order.orderSource === 'customer_qr'}
-											<span class="inline-flex items-center rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-900 dark:text-violet-200">QR</span>
-										{/if}
-									</div>
-								</Table.Cell>
-								<Table.Cell>{order.customer}</Table.Cell>
-								<Table.Cell>{order.table}</Table.Cell>
-								<Table.Cell>
-									<StatusPill
-										label={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-										status={getStatusPillStatus(order.status)}
-									/>
-								</Table.Cell>
-								<Table.Cell>{order.items}</Table.Cell>
-								<Table.Cell>{formatCurrency(order.total)}</Table.Cell>
-								<Table.Cell>
-									<div class="text-sm">
-										<div>{order.date}</div>
-										<div class="text-muted-foreground">{order.time}</div>
-									</div>
-								</Table.Cell>
-								<Table.Cell class="text-right">
-									<div class="flex justify-end gap-2">
-										{#if order.status === 'pending_approval' && order.orderSource === 'customer_qr'}
-											<Button size="sm" variant="default" onclick={() => handleAccept(order.orderId)}>
-												Accept
-											</Button>
-											<Button size="sm" variant="destructive" onclick={() => handleReject(order.orderId)}>
-												Reject
-											</Button>
-										{:else if canModify(userRole) && order.status && !['completed', 'cancelled', 'refunded'].includes(order.status)}
-											<Button variant="ghost" size="icon" onclick={() => triggerCompleteOrder(order.orderId)} aria-label="Mark order complete" title="Mark Complete">
-												<IconCheck class="h-4 w-4 text-green-600" />
-											</Button>
-										{/if}
-										<Button variant="ghost" size="icon" onclick={() => viewOrder(order.orderId)} aria-label="View order">
-											<IconEye class="h-4 w-4" />
-										</Button>
-										<Button variant="ghost" size="icon" onclick={() => printOrder(order.orderId)} aria-label="Print order">
-											<IconPrinter class="h-4 w-4" />
-										</Button>
-									</div>
-								</Table.Cell>
-							</Table.Row>
-						{/each}
-					</Table.Body>
-				</Table.Root>
-			</div>
-
-			{#if filteredOrders.length === 0}
-				<EmptyState type="no-results" title="No active orders" description="Orders will appear here when placed." />
-			{/if}
 		</div>
-	</div>
+
+		<!-- Mobile: Card list -->
+		<div class="flex flex-col gap-2 md:hidden">
+			{#each filteredOrders as order (order.id)}
+				<button
+					type="button"
+					class="block w-full rounded-lg border bg-card p-3 text-left transition-transform active:scale-[0.99]"
+					onclick={() => viewOrder(order.orderId)}
+				>
+					<div class="flex items-center justify-between">
+						<span class="font-medium">
+							{order.id}
+							{#if order.orderSource === 'customer_qr'}
+								<QrBadge />
+							{/if}
+						</span>
+						<StatusPill
+							label={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+							status={getStatusPillStatus(order.status)}
+						/>
+					</div>
+					<div class="mt-1 flex items-center justify-between text-sm text-muted-foreground">
+						<span>{order.customer} · {order.items} items · {order.table}</span>
+						<span class="font-medium text-foreground">{formatCurrency(order.total)}</span>
+					</div>
+					<div class="mt-1 text-xs text-muted-foreground">{order.time}</div>
+					{#if order.status === 'pending_approval' && order.orderSource === 'customer_qr'}
+						<div class="mt-2 flex gap-2">
+							<Button
+								size="sm"
+								variant="default"
+								class="flex-1"
+								onclick={(e: MouseEvent) => {
+									e.stopPropagation();
+									handleAccept(order.orderId);
+								}}>Accept</Button
+							>
+							<Button
+								size="sm"
+								variant="destructive"
+								class="flex-1"
+								onclick={(e: MouseEvent) => {
+									e.stopPropagation();
+									handleReject(order.orderId);
+								}}>Reject</Button
+							>
+						</div>
+					{/if}
+				</button>
+			{/each}
+		</div>
+
+		<!-- Desktop: Table -->
+		<div class="hidden overflow-x-auto rounded-md border md:block">
+			<Table.Root>
+				<Table.Header>
+					<Table.Row>
+						<Table.Head>Order ID</Table.Head>
+						<Table.Head>Customer</Table.Head>
+						<Table.Head>Table/Type</Table.Head>
+						<Table.Head>Status</Table.Head>
+						<Table.Head>Items</Table.Head>
+						<Table.Head>Total</Table.Head>
+						<Table.Head>Date & Time</Table.Head>
+						<Table.Head class="text-right">Actions</Table.Head>
+					</Table.Row>
+				</Table.Header>
+				<Table.Body>
+					{#each filteredOrders as order (order.id)}
+						<Table.Row>
+							<Table.Cell class="font-medium">
+								<div class="flex items-center gap-1.5">
+									{order.id}
+									{#if order.orderSource === 'customer_qr'}
+										<QrBadge />
+									{/if}
+								</div>
+							</Table.Cell>
+							<Table.Cell>{order.customer}</Table.Cell>
+							<Table.Cell>{order.table}</Table.Cell>
+							<Table.Cell>
+								<StatusPill
+									label={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+									status={getStatusPillStatus(order.status)}
+								/>
+							</Table.Cell>
+							<Table.Cell>{order.items}</Table.Cell>
+							<Table.Cell>{formatCurrency(order.total)}</Table.Cell>
+							<Table.Cell>
+								<div class="text-sm">
+									<div>{order.date}</div>
+									<div class="text-muted-foreground">{order.time}</div>
+								</div>
+							</Table.Cell>
+							<Table.Cell class="text-right">
+								<div class="flex justify-end gap-2">
+									{#if order.status === 'pending_approval' && order.orderSource === 'customer_qr'}
+										<Button size="sm" variant="default" onclick={() => handleAccept(order.orderId)}>
+											Accept
+										</Button>
+										<Button
+											size="sm"
+											variant="destructive"
+											onclick={() => handleReject(order.orderId)}
+										>
+											Reject
+										</Button>
+									{:else if canModify(userRole) && order.status && !['completed', 'cancelled', 'refunded'].includes(order.status)}
+										<Button
+											variant="ghost"
+											size="icon"
+											onclick={() => triggerCompleteOrder(order.orderId)}
+											aria-label="Mark order complete"
+											title="Mark Complete"
+										>
+											<IconCheck class="h-4 w-4 text-success" />
+										</Button>
+									{/if}
+									<Button
+										variant="ghost"
+										size="icon"
+										onclick={() => viewOrder(order.orderId)}
+										aria-label="View order"
+									>
+										<IconEye class="h-4 w-4" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="icon"
+										onclick={() => printOrder(order.orderId)}
+										aria-label="Print order"
+									>
+										<IconPrinter class="h-4 w-4" />
+									</Button>
+								</div>
+							</Table.Cell>
+						</Table.Row>
+					{/each}
+				</Table.Body>
+			</Table.Root>
+		</div>
+
+		{#if filteredOrders.length === 0}
+			<EmptyState
+				type="no-results"
+				title="No active orders"
+				description="Orders will appear here when placed."
+			/>
+		{/if}
+	</PageShell>
 </div>
 
 <ConfirmDialog
@@ -334,5 +395,8 @@
 	description="Are you sure you want to mark this order as completed? This action cannot be undone."
 	confirmLabel="Complete Order"
 	onConfirm={confirmCompleteOrder}
-	onCancel={() => { completeDialogOpen = false; completeTargetId = ''; }}
+	onCancel={() => {
+		completeDialogOpen = false;
+		completeTargetId = '';
+	}}
 />

@@ -15,6 +15,7 @@
 		IconFileTypePdf
 	} from '@tabler/icons-svelte';
 	import StatCard from '$lib/components/global/stat-card.svelte';
+	import PageShell from '$lib/components/global/page-shell.svelte';
 	import { toast } from 'svelte-sonner';
 	import * as Select from '$lib/components/ui/select';
 	import type { ExpenseSummary, ExpenseCategory } from '$lib/api';
@@ -171,16 +172,16 @@
 		if (cat?.color) return cat.color;
 		// Fallback colors
 		const colors: Record<string, string> = {
-			Inventory: 'bg-blue-500',
-			Staff: 'bg-green-500',
-			Utilities: 'bg-yellow-500',
-			Rent: 'bg-red-500',
-			Maintenance: 'bg-orange-500',
-			Supplies: 'bg-purple-500',
-			Marketing: 'bg-pink-500',
-			Other: 'bg-gray-500'
+			Inventory: 'bg-chart-3',
+			Staff: 'bg-chart-5',
+			Utilities: 'bg-chart-6',
+			Rent: 'bg-chart-7',
+			Maintenance: 'bg-chart-1',
+			Supplies: 'bg-chart-4',
+			Marketing: 'bg-chart-2',
+			Other: 'bg-muted-foreground'
 		};
-		return colors[category] || 'bg-gray-500';
+		return colors[category] || 'bg-muted-foreground';
 	}
 
 	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
@@ -196,234 +197,252 @@
 	}
 </script>
 
-<div class="flex flex-1 flex-col">
-	<div class="@container/main flex flex-1 flex-col gap-4">
-		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
-				<div>
-					<h1 class="text-2xl font-bold">Expense Reports</h1>
-					<p class="text-muted-foreground">Comprehensive expense analysis and insights</p>
-				</div>
-				<div class="flex gap-2">
-					<Select.Root type="single" value={dateRange} onValueChange={(v) => { dateRange = v; handleDateRangeChange(); }}>
-						<Select.Trigger class="w-[160px]">
-							{({ '7d': 'Last 7 days', '30d': 'Last 30 days', '90d': 'Last 90 days', '1y': 'Last year' } as Record<string, string>)[dateRange] || 'Last 90 days'}
-						</Select.Trigger>
-						<Select.Content>
-							<Select.Item value="7d">Last 7 days</Select.Item>
-							<Select.Item value="30d">Last 30 days</Select.Item>
-							<Select.Item value="90d">Last 90 days</Select.Item>
-							<Select.Item value="1y">Last year</Select.Item>
-						</Select.Content>
-					</Select.Root>
-					<Button variant="outline" onclick={exportPdf} disabled={isExporting}>
-						<IconFileTypePdf class="mr-2 h-4 w-4" />
-						{isExporting ? 'Exporting...' : 'PDF'}
-					</Button>
-					<Button variant="outline" onclick={exportCsv}>
-						<IconFileSpreadsheet class="mr-2 h-4 w-4" />
-						CSV
-					</Button>
-				</div>
-			</div>
+<PageShell title="Expense Reports" description="Comprehensive expense analysis and insights">
+	{#snippet actions()}
+		<div class="flex gap-2">
+			<Select.Root
+				type="single"
+				value={dateRange}
+				onValueChange={(v) => {
+					dateRange = v;
+					handleDateRangeChange();
+				}}
+			>
+				<Select.Trigger class="w-[160px]">
+					{(
+						{
+							'7d': 'Last 7 days',
+							'30d': 'Last 30 days',
+							'90d': 'Last 90 days',
+							'1y': 'Last year'
+						} as Record<string, string>
+					)[dateRange] || 'Last 90 days'}
+				</Select.Trigger>
+				<Select.Content>
+					<Select.Item value="7d">Last 7 days</Select.Item>
+					<Select.Item value="30d">Last 30 days</Select.Item>
+					<Select.Item value="90d">Last 90 days</Select.Item>
+					<Select.Item value="1y">Last year</Select.Item>
+				</Select.Content>
+			</Select.Root>
+			<Button variant="outline" onclick={exportPdf} disabled={isExporting}>
+				<IconFileTypePdf class="mr-2 h-4 w-4" />
+				{isExporting ? 'Exporting...' : 'PDF'}
+			</Button>
+			<Button variant="outline" onclick={exportCsv}>
+				<IconFileSpreadsheet class="mr-2 h-4 w-4" />
+				CSV
+			</Button>
+		</div>
+	{/snippet}
 
-			<div bind:this={reportContentEl} class="report-content">
-			<!-- Summary Cards -->
-			<div class="grid grid-cols-1 gap-4 px-6 sm:grid-cols-2 lg:grid-cols-4">
-				<StatCard
-					label="Total Expenses"
-					value={formatCurrency(summary.totalAmount)}
-					trend={{ value: Number(overallTrend().toFixed(1)), label: "vs previous period" }}
-				/>
-				<StatCard
-					label="Monthly Average"
-					value={formatCurrency(avgMonthly())}
-					subtitle="per month"
-				/>
-				<StatCard
-					label="Highest Month"
-					value={formatCurrency(highestMonth().amount)}
-					subtitle={formatMonth(highestMonth().month)}
-				/>
-				<StatCard
-					label="Lowest Month"
-					value={formatCurrency(lowestMonth().amount)}
-					subtitle={formatMonth(lowestMonth().month)}
-				/>
-			</div>
+	<div bind:this={reportContentEl} class="report-content">
+		<!-- Summary Cards -->
+		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+			<StatCard
+				label="Total Expenses"
+				value={formatCurrency(summary.totalAmount)}
+				trend={{ value: Number(overallTrend().toFixed(1)), label: 'vs previous period' }}
+			/>
+			<StatCard label="Monthly Average" value={formatCurrency(avgMonthly())} subtitle="per month" />
+			<StatCard
+				label="Highest Month"
+				value={formatCurrency(highestMonth().amount)}
+				subtitle={formatMonth(highestMonth().month)}
+			/>
+			<StatCard
+				label="Lowest Month"
+				value={formatCurrency(lowestMonth().amount)}
+				subtitle={formatMonth(lowestMonth().month)}
+			/>
+		</div>
 
-			<!-- Trend Chart -->
-			<div class="mt-4 px-6">
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Expense Trend</Card.Title>
-						<Card.Description>Historical expense data over time</Card.Description>
-					</Card.Header>
-					<Card.Content>
-						<p class="py-8 text-center text-sm text-muted-foreground">Chart will be available when analytics data is connected.</p>
-					</Card.Content>
-				</Card.Root>
-			</div>
+		<!-- Trend Chart -->
+		<div class="mt-4">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Expense Trend</Card.Title>
+					<Card.Description>Historical expense data over time</Card.Description>
+				</Card.Header>
+				<Card.Content>
+					<p class="py-8 text-center text-sm text-muted-foreground">
+						Chart will be available when analytics data is connected.
+					</p>
+				</Card.Content>
+			</Card.Root>
+		</div>
 
-			<!-- Category Analysis and Pie Chart -->
-			<div class="mt-4 grid grid-cols-1 gap-4 px-6 lg:grid-cols-2">
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Category Analysis</Card.Title>
-						<Card.Description>Spending breakdown by category with trends</Card.Description>
-					</Card.Header>
-					<Card.Content>
-						{#if categoryAnalysis().length > 0}
-							<Table.Root>
-								<Table.Header>
+		<!-- Category Analysis and Pie Chart -->
+		<div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Category Analysis</Card.Title>
+					<Card.Description>Spending breakdown by category with trends</Card.Description>
+				</Card.Header>
+				<Card.Content>
+					{#if categoryAnalysis().length > 0}
+						<Table.Root>
+							<Table.Header>
+								<Table.Row>
+									<Table.Head>Category</Table.Head>
+									<Table.Head>Total</Table.Head>
+									<Table.Head class="hidden md:table-cell">% of Total</Table.Head>
+									<Table.Head class="hidden lg:table-cell">Trend</Table.Head>
+								</Table.Row>
+							</Table.Header>
+							<Table.Body>
+								{#each categoryAnalysis() as category}
 									<Table.Row>
-										<Table.Head>Category</Table.Head>
-										<Table.Head>Total</Table.Head>
-										<Table.Head class="hidden md:table-cell">% of Total</Table.Head>
-										<Table.Head class="hidden lg:table-cell">Trend</Table.Head>
-									</Table.Row>
-								</Table.Header>
-								<Table.Body>
-									{#each categoryAnalysis() as category}
-										<Table.Row>
-											<Table.Cell>
-												<div class="flex items-center gap-2">
+										<Table.Cell>
+											<div class="flex items-center gap-2">
+												<div
+													class="h-3 w-3 rounded-full"
+													style="background-color: {category.color.startsWith('#')
+														? category.color
+														: ''}"
+													class:bg-chart-3={category.color === 'bg-chart-3'}
+													class:bg-chart-5={category.color === 'bg-chart-5'}
+													class:bg-chart-6={category.color === 'bg-chart-6'}
+													class:bg-chart-7={category.color === 'bg-chart-7'}
+													class:bg-chart-1={category.color === 'bg-chart-1'}
+													class:bg-chart-4={category.color === 'bg-chart-4'}
+													class:bg-chart-2={category.color === 'bg-chart-2'}
+													class:bg-muted-foreground={category.color === 'bg-muted-foreground'}
+												></div>
+												{category.category}
+											</div>
+										</Table.Cell>
+										<Table.Cell class="font-medium">{formatCurrency(category.total)}</Table.Cell>
+										<Table.Cell class="hidden md:table-cell">
+											<div class="flex items-center gap-2">
+												<div class="h-2 w-16 rounded-full bg-muted">
 													<div
-														class="h-3 w-3 rounded-full"
-														style="background-color: {category.color.startsWith('#') ? category.color : ''}"
-														class:bg-blue-500={category.color === 'bg-blue-500'}
-														class:bg-green-500={category.color === 'bg-green-500'}
-														class:bg-yellow-500={category.color === 'bg-yellow-500'}
-														class:bg-red-500={category.color === 'bg-red-500'}
-														class:bg-orange-500={category.color === 'bg-orange-500'}
-														class:bg-purple-500={category.color === 'bg-purple-500'}
-														class:bg-pink-500={category.color === 'bg-pink-500'}
-														class:bg-gray-500={category.color === 'bg-gray-500'}
+														class="h-full rounded-full"
+														style="width: {category.percentage}%; background-color: {category.color.startsWith(
+															'#'
+														)
+															? category.color
+															: ''}"
 													></div>
-													{category.category}
 												</div>
-											</Table.Cell>
-											<Table.Cell class="font-medium">{formatCurrency(category.total)}</Table.Cell>
-											<Table.Cell class="hidden md:table-cell">
-												<div class="flex items-center gap-2">
-													<div class="h-2 w-16 rounded-full bg-muted">
-														<div
-															class="h-full rounded-full"
-															style="width: {category.percentage}%; background-color: {category.color.startsWith('#') ? category.color : ''}"
-														></div>
-													</div>
-													<span class="text-sm text-muted-foreground">{category.percentage.toFixed(1)}%</span>
-												</div>
-											</Table.Cell>
-											<Table.Cell class="hidden lg:table-cell">
-												{#if category.trend > 0}
-													<span class="flex items-center gap-1 text-destructive">
-														<IconTrendingUp class="h-4 w-4" />
-														+{category.trend}%
-													</span>
-												{:else if category.trend < 0}
-													<span class="flex items-center gap-1 text-success">
-														<IconTrendingDown class="h-4 w-4" />
-														{category.trend}%
-													</span>
-												{:else}
-													<span class="text-muted-foreground">0%</span>
-												{/if}
-											</Table.Cell>
-										</Table.Row>
-									{/each}
-								</Table.Body>
-							</Table.Root>
-						{:else}
-							<p class="py-8 text-center text-muted-foreground">No expense data for this period</p>
-						{/if}
-					</Card.Content>
-				</Card.Root>
+												<span class="text-sm text-muted-foreground"
+													>{category.percentage.toFixed(1)}%</span
+												>
+											</div>
+										</Table.Cell>
+										<Table.Cell class="hidden lg:table-cell">
+											{#if category.trend > 0}
+												<span class="flex items-center gap-1 text-destructive">
+													<IconTrendingUp class="h-4 w-4" />
+													+{category.trend}%
+												</span>
+											{:else if category.trend < 0}
+												<span class="flex items-center gap-1 text-success">
+													<IconTrendingDown class="h-4 w-4" />
+													{category.trend}%
+												</span>
+											{:else}
+												<span class="text-muted-foreground">0%</span>
+											{/if}
+										</Table.Cell>
+									</Table.Row>
+								{/each}
+							</Table.Body>
+						</Table.Root>
+					{:else}
+						<p class="py-8 text-center text-muted-foreground">No expense data for this period</p>
+					{/if}
+				</Card.Content>
+			</Card.Root>
 
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Spending Distribution</Card.Title>
-					</Card.Header>
-					<Card.Content class="flex items-center justify-center">
-						<PieChart />
-					</Card.Content>
-				</Card.Root>
-			</div>
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Spending Distribution</Card.Title>
+				</Card.Header>
+				<Card.Content class="flex items-center justify-center">
+					<PieChart />
+				</Card.Content>
+			</Card.Root>
+		</div>
 
-			<!-- Status Breakdown -->
-			<div class="mt-4 px-6">
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Expense Status</Card.Title>
-						<Card.Description>Breakdown by approval status</Card.Description>
-					</Card.Header>
-					<Card.Content>
-						<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-							<Card.Root>
-								<Card.Content class="pt-6">
-									<div class="flex items-start justify-between">
-										<div>
-											<p class="font-medium">Total</p>
-											<p class="text-2xl font-bold">{formatCurrency(summary.totalAmount)}</p>
-											<p class="text-sm text-muted-foreground">all expenses</p>
-										</div>
-										<Badge variant="outline">All</Badge>
+		<!-- Status Breakdown -->
+		<div class="mt-4">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Expense Status</Card.Title>
+					<Card.Description>Breakdown by approval status</Card.Description>
+				</Card.Header>
+				<Card.Content>
+					<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+						<Card.Root>
+							<Card.Content class="pt-6">
+								<div class="flex items-start justify-between">
+									<div>
+										<p class="font-medium">Total</p>
+										<p class="text-2xl font-bold">{formatCurrency(summary.totalAmount)}</p>
+										<p class="text-sm text-muted-foreground">all expenses</p>
 									</div>
-								</Card.Content>
-							</Card.Root>
-							<Card.Root>
-								<Card.Content class="pt-6">
-									<div class="flex items-start justify-between">
-										<div>
-											<p class="font-medium">Pending</p>
-											<p class="text-2xl font-bold text-warning">{formatCurrency(summary.pendingAmount)}</p>
-											<p class="text-sm text-muted-foreground">awaiting approval</p>
-										</div>
-										<Badge variant="secondary">Pending</Badge>
+									<Badge variant="outline">All</Badge>
+								</div>
+							</Card.Content>
+						</Card.Root>
+						<Card.Root>
+							<Card.Content class="pt-6">
+								<div class="flex items-start justify-between">
+									<div>
+										<p class="font-medium">Pending</p>
+										<p class="text-2xl font-bold text-warning">
+											{formatCurrency(summary.pendingAmount)}
+										</p>
+										<p class="text-sm text-muted-foreground">awaiting approval</p>
 									</div>
-								</Card.Content>
-							</Card.Root>
-							<Card.Root>
-								<Card.Content class="pt-6">
-									<div class="flex items-start justify-between">
-										<div>
-											<p class="font-medium">Approved</p>
-											<p class="text-2xl font-bold text-info">{formatCurrency(summary.approvedAmount)}</p>
-											<p class="text-sm text-muted-foreground">ready to pay</p>
-										</div>
-										<Badge>Approved</Badge>
+									<Badge variant="secondary">Pending</Badge>
+								</div>
+							</Card.Content>
+						</Card.Root>
+						<Card.Root>
+							<Card.Content class="pt-6">
+								<div class="flex items-start justify-between">
+									<div>
+										<p class="font-medium">Approved</p>
+										<p class="text-info text-2xl font-bold">
+											{formatCurrency(summary.approvedAmount)}
+										</p>
+										<p class="text-sm text-muted-foreground">ready to pay</p>
 									</div>
-								</Card.Content>
-							</Card.Root>
-							<Card.Root>
-								<Card.Content class="pt-6">
-									<div class="flex items-start justify-between">
-										<div>
-											<p class="font-medium">Paid</p>
-											<p class="text-2xl font-bold text-success">{formatCurrency(summary.paidAmount)}</p>
-											<p class="text-sm text-muted-foreground">completed</p>
-										</div>
-										<Badge variant="outline">Paid</Badge>
+									<Badge>Approved</Badge>
+								</div>
+							</Card.Content>
+						</Card.Root>
+						<Card.Root>
+							<Card.Content class="pt-6">
+								<div class="flex items-start justify-between">
+									<div>
+										<p class="font-medium">Paid</p>
+										<p class="text-2xl font-bold text-success">
+											{formatCurrency(summary.paidAmount)}
+										</p>
+										<p class="text-sm text-muted-foreground">completed</p>
 									</div>
-								</Card.Content>
-							</Card.Root>
-						</div>
-					</Card.Content>
-				</Card.Root>
-			</div>
+									<Badge variant="outline">Paid</Badge>
+								</div>
+							</Card.Content>
+						</Card.Root>
+					</div>
+				</Card.Content>
+			</Card.Root>
+		</div>
 
-			<!-- Monthly Comparison -->
-			<div class="mt-4 px-6">
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Monthly Comparison</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<BarChart />
-					</Card.Content>
-				</Card.Root>
-			</div>
-			</div>
+		<!-- Monthly Comparison -->
+		<div class="mt-4">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Monthly Comparison</Card.Title>
+				</Card.Header>
+				<Card.Content>
+					<BarChart />
+				</Card.Content>
+			</Card.Root>
 		</div>
 	</div>
-</div>
+</PageShell>

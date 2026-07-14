@@ -15,7 +15,8 @@
 	import StatCard from '$lib/components/global/stat-card.svelte';
 	import { SearchInput, FilterDropdown } from '$lib/components/search';
 	import { EmptyState, StatusPill } from '$lib/components/data-display';
-	import PageHeader from '$lib/components/global/page-header.svelte';
+	import PageShell from '$lib/components/global/page-shell.svelte';
+	import QrBadge from '$lib/components/global/qr-badge.svelte';
 	import { toast } from 'svelte-sonner';
 	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -45,7 +46,10 @@
 			status: order.status,
 			total: order.pricing.total,
 			date: new Date(order.createdAt).toLocaleDateString(),
-			time: new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+			time: new Date(order.createdAt).toLocaleTimeString([], {
+				hour: '2-digit',
+				minute: '2-digit'
+			}),
 			items: order.items.map((item) => item.name),
 			orderSource: order.orderSource
 		}))
@@ -79,16 +83,26 @@
 			.reduce((sum, o) => sum + o.total, 0)
 	});
 
-	function getStatusPillStatus(status: string): 'success' | 'warning' | 'error' | 'info' | 'neutral' {
+	function getStatusPillStatus(
+		status: string
+	): 'success' | 'warning' | 'error' | 'info' | 'neutral' {
 		switch (status) {
-			case 'completed': return 'success';
-			case 'ready': return 'success';
-			case 'serving': return 'success';
-			case 'cancelled': return 'error';
-			case 'refunded': return 'error';
-			case 'preparing': return 'warning';
-			case 'active': return 'info';
-			default: return 'neutral';
+			case 'completed':
+				return 'success';
+			case 'ready':
+				return 'success';
+			case 'serving':
+				return 'success';
+			case 'cancelled':
+				return 'error';
+			case 'refunded':
+				return 'error';
+			case 'preparing':
+				return 'warning';
+			case 'active':
+				return 'info';
+			default:
+				return 'neutral';
 		}
 	}
 
@@ -141,178 +155,180 @@
 	}
 </script>
 
-<div class="flex flex-1 flex-col">
-	<div class="@container/main flex flex-1 flex-col gap-4">
-		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<PageHeader title="Order History" description="Complete history of all orders">
-				{#snippet actions()}
-					<Button variant="outline" size="sm" onclick={refreshOrders} disabled={isRefreshing}>
-						<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
-						Refresh
-					</Button>
-					<Button onclick={exportHistory}>
-						<IconDownload class="mr-2 h-4 w-4" />
-						Export History
-					</Button>
-				{/snippet}
-			</PageHeader>
+<PageShell title="Order History" description="Complete history of all orders">
+	{#snippet actions()}
+		<Button variant="outline" size="sm" onclick={refreshOrders} disabled={isRefreshing}>
+			<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
+			Refresh
+		</Button>
+		<Button onclick={exportHistory}>
+			<IconDownload class="mr-2 h-4 w-4" />
+			Export History
+		</Button>
+	{/snippet}
 
-			<!-- Stats Cards -->
-			<div class="grid grid-cols-2 gap-4 px-6 sm:grid-cols-4">
-				<StatCard
-					label="Total Orders"
-					value={stats.total}
+	<!-- Stats Cards -->
+	<div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+		<StatCard label="Total Orders" value={stats.total} />
+		<StatCard label="Completed" value={stats.completed} />
+		<StatCard label="Cancelled/Refunded" value={stats.cancelled + stats.refunded} />
+		<StatCard label="Revenue" value={formatCurrency(stats.revenue)} />
+	</div>
+
+	<!-- Filters -->
+	<div class="flex flex-col gap-4">
+		<div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+			<SearchInput
+				bind:value={searchQuery}
+				placeholder="Search orders..."
+				debounceMs={300}
+				class="max-w-sm"
+			/>
+			<div class="flex flex-wrap gap-2">
+				<FilterDropdown
+					bind:value={statusFilter}
+					placeholder="All Status"
+					allOptionLabel="All Status"
+					options={[
+						{ value: 'active', label: 'Active' },
+						{ value: 'preparing', label: 'Preparing' },
+						{ value: 'ready', label: 'Ready' },
+						{ value: 'serving', label: 'Serving' },
+						{ value: 'completed', label: 'Completed' },
+						{ value: 'cancelled', label: 'Cancelled' },
+						{ value: 'refunded', label: 'Refunded' }
+					]}
 				/>
-				<StatCard
-					label="Completed"
-					value={stats.completed}
+				<FilterDropdown
+					bind:value={typeFilter}
+					placeholder="All Types"
+					allOptionLabel="All Types"
+					options={[
+						{ value: 'Dine-In', label: 'Dine-In' },
+						{ value: 'Takeaway', label: 'Takeaway' },
+						{ value: 'Delivery', label: 'Delivery' }
+					]}
 				/>
-				<StatCard
-					label="Cancelled/Refunded"
-					value={stats.cancelled + stats.refunded}
+				<Input
+					type="date"
+					bind:value={startDate}
+					class="w-auto"
+					placeholder="Start date"
+					onchange={applyDateFilter}
 				/>
-				<StatCard
-					label="Revenue"
-					value={formatCurrency(stats.revenue)}
+				<Input
+					type="date"
+					bind:value={endDate}
+					class="w-auto"
+					placeholder="End date"
+					onchange={applyDateFilter}
 				/>
 			</div>
-
-			<!-- Filters -->
-			<div class="flex flex-col gap-4 px-6">
-				<div class="flex flex-col gap-4 sm:flex-row sm:items-center">
-					<SearchInput
-						bind:value={searchQuery}
-						placeholder="Search orders..."
-						debounceMs={300}
-						class="max-w-sm"
-					/>
-					<div class="flex flex-wrap gap-2">
-						<FilterDropdown
-							bind:value={statusFilter}
-							placeholder="All Status"
-							allOptionLabel="All Status"
-							options={[
-								{ value: 'active', label: 'Active' },
-								{ value: 'preparing', label: 'Preparing' },
-								{ value: 'ready', label: 'Ready' },
-								{ value: 'serving', label: 'Serving' },
-								{ value: 'completed', label: 'Completed' },
-								{ value: 'cancelled', label: 'Cancelled' },
-								{ value: 'refunded', label: 'Refunded' }
-							]}
-						/>
-						<FilterDropdown
-							bind:value={typeFilter}
-							placeholder="All Types"
-							allOptionLabel="All Types"
-							options={[
-								{ value: 'Dine-In', label: 'Dine-In' },
-								{ value: 'Takeaway', label: 'Takeaway' },
-								{ value: 'Delivery', label: 'Delivery' }
-							]}
-						/>
-						<Input type="date" bind:value={startDate} class="w-auto" placeholder="Start date" onchange={applyDateFilter} />
-						<Input type="date" bind:value={endDate} class="w-auto" placeholder="End date" onchange={applyDateFilter} />
-					</div>
-				</div>
-			</div>
-
-			<!-- Orders Table -->
-			<div class="px-6">
-				<div class="overflow-x-auto rounded-md border">
-					<Table.Root>
-						<Table.Header>
-							<Table.Row>
-								<Table.Head>Order ID</Table.Head>
-								<Table.Head class="hidden sm:table-cell">Customer</Table.Head>
-								<Table.Head class="hidden lg:table-cell">Type</Table.Head>
-								<Table.Head class="hidden lg:table-cell">Items</Table.Head>
-								<Table.Head>Total</Table.Head>
-								<Table.Head>Status</Table.Head>
-								<Table.Head class="hidden md:table-cell">Date & Time</Table.Head>
-								<Table.Head class="text-right">Action</Table.Head>
-							</Table.Row>
-						</Table.Header>
-						<Table.Body>
-							{#each filteredOrders as order (order.id)}
-								<Table.Row>
-									<Table.Cell class="font-medium">
-										<div class="flex items-center gap-1.5">
-											{order.id}
-											{#if order.orderSource === 'customer_qr'}
-												<span class="inline-flex items-center rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-900 dark:text-violet-200">QR</span>
-											{/if}
-										</div>
-									</Table.Cell>
-									<Table.Cell class="hidden sm:table-cell">{order.customer}</Table.Cell>
-									<Table.Cell class="hidden lg:table-cell">
-										<Badge variant="outline">{order.type}</Badge>
-									</Table.Cell>
-									<Table.Cell class="hidden lg:table-cell">
-										<div class="max-w-[200px] truncate text-sm text-muted-foreground">
-											{order.items.join(', ')}
-										</div>
-									</Table.Cell>
-									<Table.Cell class="font-medium">{formatCurrency(order.total)}</Table.Cell>
-									<Table.Cell>
-										<StatusPill
-											label={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-											status={getStatusPillStatus(order.status)}
-										/>
-									</Table.Cell>
-									<Table.Cell class="hidden md:table-cell">
-										<div class="text-sm">
-											<div>{order.date}</div>
-											<div class="text-muted-foreground">{order.time}</div>
-										</div>
-									</Table.Cell>
-									<Table.Cell class="text-right">
-										<Button variant="ghost" size="icon" onclick={() => viewOrder(order.orderId)} aria-label="View order">
-											<IconEye class="h-4 w-4" />
-										</Button>
-									</Table.Cell>
-								</Table.Row>
-							{/each}
-						</Table.Body>
-					</Table.Root>
-				</div>
-			</div>
-
-			{#if filteredOrders.length === 0}
-				<EmptyState type="no-results" title="No orders found" description="Try adjusting your filters or date range." />
-			{/if}
-
-			<!-- Pagination -->
-			{#if totalPages > 1}
-				<div class="flex items-center justify-between px-6">
-					<p class="text-sm text-muted-foreground">
-						Showing {paginationOffset + 1}–{Math.min(paginationOffset + paginationLimit, totalOrders)} of {totalOrders} orders
-					</p>
-					<div class="flex items-center gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={currentPage <= 1}
-							onclick={() => goToPage(currentPage - 1)}
-						>
-							<IconChevronLeft class="mr-1 h-4 w-4" />
-							Previous
-						</Button>
-						<span class="text-sm">
-							Page {currentPage} of {totalPages}
-						</span>
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={currentPage >= totalPages}
-							onclick={() => goToPage(currentPage + 1)}
-						>
-							Next
-							<IconChevronRight class="ml-1 h-4 w-4" />
-						</Button>
-					</div>
-				</div>
-			{/if}
 		</div>
 	</div>
-</div>
+
+	<!-- Orders Table -->
+	<div class="overflow-x-auto rounded-md border">
+		<Table.Root>
+			<Table.Header>
+				<Table.Row>
+					<Table.Head>Order ID</Table.Head>
+					<Table.Head class="hidden sm:table-cell">Customer</Table.Head>
+					<Table.Head class="hidden lg:table-cell">Type</Table.Head>
+					<Table.Head class="hidden lg:table-cell">Items</Table.Head>
+					<Table.Head>Total</Table.Head>
+					<Table.Head>Status</Table.Head>
+					<Table.Head class="hidden md:table-cell">Date & Time</Table.Head>
+					<Table.Head class="text-right">Action</Table.Head>
+				</Table.Row>
+			</Table.Header>
+			<Table.Body>
+				{#each filteredOrders as order (order.id)}
+					<Table.Row>
+						<Table.Cell class="font-medium">
+							<div class="flex items-center gap-1.5">
+								{order.id}
+								{#if order.orderSource === 'customer_qr'}
+									<QrBadge />
+								{/if}
+							</div>
+						</Table.Cell>
+						<Table.Cell class="hidden sm:table-cell">{order.customer}</Table.Cell>
+						<Table.Cell class="hidden lg:table-cell">
+							<Badge variant="outline">{order.type}</Badge>
+						</Table.Cell>
+						<Table.Cell class="hidden lg:table-cell">
+							<div class="max-w-[200px] truncate text-sm text-muted-foreground">
+								{order.items.join(', ')}
+							</div>
+						</Table.Cell>
+						<Table.Cell class="font-medium">{formatCurrency(order.total)}</Table.Cell>
+						<Table.Cell>
+							<StatusPill
+								label={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+								status={getStatusPillStatus(order.status)}
+							/>
+						</Table.Cell>
+						<Table.Cell class="hidden md:table-cell">
+							<div class="text-sm">
+								<div>{order.date}</div>
+								<div class="text-muted-foreground">{order.time}</div>
+							</div>
+						</Table.Cell>
+						<Table.Cell class="text-right">
+							<Button
+								variant="ghost"
+								size="icon"
+								onclick={() => viewOrder(order.orderId)}
+								aria-label="View order"
+							>
+								<IconEye class="h-4 w-4" />
+							</Button>
+						</Table.Cell>
+					</Table.Row>
+				{/each}
+			</Table.Body>
+		</Table.Root>
+	</div>
+
+	{#if filteredOrders.length === 0}
+		<EmptyState
+			type="no-results"
+			title="No orders found"
+			description="Try adjusting your filters or date range."
+		/>
+	{/if}
+
+	<!-- Pagination -->
+	{#if totalPages > 1}
+		<div class="flex items-center justify-between">
+			<p class="text-sm text-muted-foreground">
+				Showing {paginationOffset + 1}–{Math.min(paginationOffset + paginationLimit, totalOrders)} of
+				{totalOrders} orders
+			</p>
+			<div class="flex items-center gap-2">
+				<Button
+					variant="outline"
+					size="sm"
+					disabled={currentPage <= 1}
+					onclick={() => goToPage(currentPage - 1)}
+				>
+					<IconChevronLeft class="mr-1 h-4 w-4" />
+					Previous
+				</Button>
+				<span class="text-sm">
+					Page {currentPage} of {totalPages}
+				</span>
+				<Button
+					variant="outline"
+					size="sm"
+					disabled={currentPage >= totalPages}
+					onclick={() => goToPage(currentPage + 1)}
+				>
+					Next
+					<IconChevronRight class="ml-1 h-4 w-4" />
+				</Button>
+			</div>
+		</div>
+	{/if}
+</PageShell>

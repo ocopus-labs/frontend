@@ -5,7 +5,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import BulkActionBar from '$lib/components/admin/bulk-action-bar.svelte';
@@ -17,7 +17,14 @@
 
 	import { formatCurrency } from '$lib/utils/i18n';
 	import { formatDate, getStatusBadgeVariant } from '$lib/utils/formatting';
-	import { cancelAdminSubscription, extendAdminTrial, bulkSubscriptionAction, changeSubscriptionPlan, getAdminPlans, type AdminPlan } from '$lib/api/admin';
+	import {
+		cancelAdminSubscription,
+		extendAdminTrial,
+		bulkSubscriptionAction,
+		changeSubscriptionPlan,
+		getAdminPlans,
+		type AdminPlan
+	} from '$lib/api/admin';
 
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
@@ -92,9 +99,13 @@
 	async function confirmBulkAction() {
 		try {
 			const result = await bulkSubscriptionAction({ ids: [...selectedIds], action: bulkAction });
-			toast.success(`${result.processed} subscription${result.processed !== 1 ? 's' : ''} canceled`);
+			toast.success(
+				`${result.processed} subscription${result.processed !== 1 ? 's' : ''} canceled`
+			);
 			if (result.failed > 0) {
-				toast.warning(`${result.failed} subscription${result.failed !== 1 ? 's' : ''} failed to cancel`);
+				toast.warning(
+					`${result.failed} subscription${result.failed !== 1 ? 's' : ''} failed to cancel`
+				);
 			}
 			selectedIds = new Set();
 			bulkDialogOpen = false;
@@ -185,7 +196,11 @@
 		}
 		isActioning = true;
 		try {
-			await changeSubscriptionPlan(changePlanTargetId, changePlanSelectedPlanId, changePlanReason || undefined);
+			await changeSubscriptionPlan(
+				changePlanTargetId,
+				changePlanSelectedPlanId,
+				changePlanReason || undefined
+			);
 			toast.success('Subscription plan changed successfully');
 			changePlanDialogOpen = false;
 			await invalidate('app:subscriptions');
@@ -245,7 +260,7 @@
 				<Download class="mr-2 h-4 w-4" />
 				Export CSV
 			</Button>
-			<Badge variant="secondary" class="text-lg px-4 py-2">
+			<Badge variant="secondary" class="px-4 py-2 text-lg">
 				{data.total} total
 			</Badge>
 		</div>
@@ -255,9 +270,13 @@
 	<Card.Root>
 		<Card.Content class="pt-6">
 			<div class="flex flex-wrap gap-4">
-				<Select.Root type="single" value={statusFilter} onValueChange={(v) => handleStatusChange(v)}>
+				<Select.Root
+					type="single"
+					value={statusFilter}
+					onValueChange={(v) => handleStatusChange(v)}
+				>
 					<Select.Trigger class="w-[180px]">
-						{statusOptions.find(o => o.value === statusFilter)?.label || 'All Statuses'}
+						{statusOptions.find((o) => o.value === statusFilter)?.label || 'All Statuses'}
 					</Select.Trigger>
 					<Select.Content>
 						{#each statusOptions as option}
@@ -299,15 +318,13 @@
 								<Checkbox
 									checked={selectedIds.has(subscription.id)}
 									onCheckedChange={() => toggleSelect(subscription.id)}
-									aria-label="Select subscription for {subscription.user.name || subscription.user.email}"
+									aria-label="Select subscription for {subscription.user.name ||
+										subscription.user.email}"
 								/>
 							</Table.Cell>
 							<Table.Cell>
 								<div>
-									<a
-										href="/admin/users/{subscription.user.id}"
-										class="font-medium hover:underline"
-									>
+									<a href="/admin/users/{subscription.user.id}" class="font-medium hover:underline">
 										{subscription.user.name || 'Unnamed User'}
 									</a>
 									<p class="text-xs text-muted-foreground">{subscription.user.email}</p>
@@ -320,7 +337,10 @@
 								</div>
 							</Table.Cell>
 							<Table.Cell class="font-mono">
-								{formatCurrencyValue(subscription.plan.priceMonthly, subscription.plan.currency || 'USD')}/mo
+								{formatCurrencyValue(
+									subscription.plan.priceMonthly,
+									subscription.plan.currency || 'USD'
+								)}/mo
 							</Table.Cell>
 							<Table.Cell>
 								<Badge variant={getStatusBadgeVariant(subscription.status)}>
@@ -330,10 +350,10 @@
 									<Badge variant="outline" class="ml-1">Canceling</Badge>
 								{/if}
 							</Table.Cell>
-							<Table.Cell class="text-muted-foreground text-sm">
+							<Table.Cell class="text-sm text-muted-foreground">
 								{formatDate(subscription.currentPeriodEnd)}
 							</Table.Cell>
-							<Table.Cell class="text-muted-foreground text-sm">
+							<Table.Cell class="text-sm text-muted-foreground">
 								{formatDate(subscription.createdAt)}
 							</Table.Cell>
 							<Table.Cell>
@@ -342,7 +362,12 @@
 										<Button
 											variant="ghost"
 											size="sm"
-											onclick={() => triggerChangePlan(subscription.id, subscription.user.name || subscription.user.email, subscription.plan.id)}
+											onclick={() =>
+												triggerChangePlan(
+													subscription.id,
+													subscription.user.name || subscription.user.email,
+													subscription.plan.id
+												)}
 											disabled={isActioning}
 											aria-label="Change plan"
 											title="Change plan"
@@ -354,7 +379,11 @@
 										<Button
 											variant="ghost"
 											size="sm"
-											onclick={() => triggerCancel(subscription.id, subscription.user.name || subscription.user.email)}
+											onclick={() =>
+												triggerCancel(
+													subscription.id,
+													subscription.user.name || subscription.user.email
+												)}
 											disabled={isActioning}
 											aria-label="Cancel subscription"
 										>
@@ -365,7 +394,11 @@
 										<Button
 											variant="ghost"
 											size="sm"
-											onclick={() => triggerExtendTrial(subscription.id, subscription.user.name || subscription.user.email)}
+											onclick={() =>
+												triggerExtendTrial(
+													subscription.id,
+													subscription.user.name || subscription.user.email
+												)}
 											disabled={isActioning}
 											aria-label="Extend trial"
 										>
@@ -391,10 +424,8 @@
 	{#if data.totalPages > 1}
 		<div class="flex items-center justify-between">
 			<p class="text-sm text-muted-foreground">
-				Showing {(data.page - 1) * data.limit + 1} to {Math.min(
-					data.page * data.limit,
-					data.total
-				)} of {data.total} subscriptions
+				Showing {(data.page - 1) * data.limit + 1} to {Math.min(data.page * data.limit, data.total)} of
+				{data.total} subscriptions
 			</p>
 			<div class="flex items-center gap-2">
 				<Button
@@ -426,9 +457,7 @@
 <!-- Bulk Action Bar -->
 <BulkActionBar
 	selectedCount={selectedIds.size}
-	actions={[
-		{ label: 'Cancel Selected', value: 'cancel', variant: 'destructive' }
-	]}
+	actions={[{ label: 'Cancel Selected', value: 'cancel', variant: 'destructive' }]}
 	onAction={handleBulkAction}
 	onClear={() => (selectedIds = new Set())}
 />
@@ -462,7 +491,10 @@
 	showInput={true}
 	inputLabel="Days to extend (1-90)"
 	inputPlaceholder="7"
-	onConfirm={(val) => { extendDays = Number(val) || 7; confirmExtendTrial(); }}
+	onConfirm={(val) => {
+		extendDays = Number(val) || 7;
+		confirmExtendTrial();
+	}}
 />
 
 <!-- Change Plan Dialog -->
@@ -474,8 +506,12 @@
 			role="button"
 			tabindex="-1"
 			aria-label="Close dialog"
-			onclick={() => { changePlanDialogOpen = false; }}
-			onkeydown={(e) => { if (e.key === 'Escape') changePlanDialogOpen = false; }}
+			onclick={() => {
+				changePlanDialogOpen = false;
+			}}
+			onkeydown={(e) => {
+				if (e.key === 'Escape') changePlanDialogOpen = false;
+			}}
 		></div>
 		<!-- Dialog -->
 		<div class="relative z-50 w-full max-w-md rounded-lg border bg-background p-6 shadow-lg">
@@ -485,18 +521,21 @@
 			</p>
 
 			<div class="mt-4 space-y-4">
-				<div class="space-y-1.5">
-					<Label for="change-plan-select">New Plan</Label>
+				<Field.Field>
+					<Field.Label for="change-plan-select">New Plan</Field.Label>
 					{#if isLoadingPlans}
 						<p class="text-sm text-muted-foreground">Loading plans...</p>
 					{:else}
 						<Select.Root
 							type="single"
 							value={changePlanSelectedPlanId}
-							onValueChange={(v) => { changePlanSelectedPlanId = v; }}
+							onValueChange={(v) => {
+								changePlanSelectedPlanId = v;
+							}}
 						>
 							<Select.Trigger id="change-plan-select" class="w-full">
-								{availablePlans.find(p => p.id === changePlanSelectedPlanId)?.displayName || 'Select a plan'}
+								{availablePlans.find((p) => p.id === changePlanSelectedPlanId)?.displayName ||
+									'Select a plan'}
 							</Select.Trigger>
 							<Select.Content>
 								{#each availablePlans as plan}
@@ -510,26 +549,36 @@
 							</Select.Content>
 						</Select.Root>
 					{/if}
-				</div>
+				</Field.Field>
 
-				<div class="space-y-1.5">
-					<Label for="change-plan-reason">Reason <span class="text-muted-foreground">(optional)</span></Label>
+				<Field.Field>
+					<Field.Label for="change-plan-reason"
+						>Reason <span class="text-muted-foreground">(optional)</span></Field.Label
+					>
 					<Input
 						id="change-plan-reason"
 						type="text"
 						placeholder="e.g. Admin override, promotional upgrade..."
 						bind:value={changePlanReason}
 					/>
-				</div>
+				</Field.Field>
 			</div>
 
 			<div class="mt-6 flex justify-end gap-2">
-				<Button variant="outline" onclick={() => { changePlanDialogOpen = false; }}>
+				<Button
+					variant="outline"
+					onclick={() => {
+						changePlanDialogOpen = false;
+					}}
+				>
 					Cancel
 				</Button>
 				<Button
 					onclick={confirmChangePlan}
-					disabled={isActioning || isLoadingPlans || !changePlanSelectedPlanId || changePlanSelectedPlanId === changePlanCurrentPlanId}
+					disabled={isActioning ||
+						isLoadingPlans ||
+						!changePlanSelectedPlanId ||
+						changePlanSelectedPlanId === changePlanCurrentPlanId}
 				>
 					{isActioning ? 'Changing...' : 'Change Plan'}
 				</Button>

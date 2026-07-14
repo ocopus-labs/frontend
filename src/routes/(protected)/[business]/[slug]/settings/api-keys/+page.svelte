@@ -9,7 +9,7 @@
 	import * as Tabs from '$lib/components/ui/tabs';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import PageHeader from '$lib/components/global/page-header.svelte';
+	import PageShell from '$lib/components/global/page-shell.svelte';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import { EmptyState } from '$lib/components/data-display';
 	import { toast } from 'svelte-sonner';
@@ -234,9 +234,7 @@
 	async function confirmRevoke() {
 		try {
 			await revokeApiKey(data.businessId, revokeTargetId);
-			apiKeys = apiKeys.map((k) =>
-				k.id === revokeTargetId ? { ...k, isActive: false } : k
-			);
+			apiKeys = apiKeys.map((k) => (k.id === revokeTargetId ? { ...k, isActive: false } : k));
 			toast.success('API key revoked');
 		} catch (error) {
 			toast.error(userFriendlyError(error, 'Failed to revoke API key'));
@@ -252,9 +250,7 @@
 		try {
 			const result = await rotateApiKey(data.businessId, rotateTargetId);
 			// Replace old key with new one, mark old as inactive
-			apiKeys = apiKeys.map((k) =>
-				k.id === rotateTargetId ? { ...k, isActive: false } : k
-			);
+			apiKeys = apiKeys.map((k) => (k.id === rotateTargetId ? { ...k, isActive: false } : k));
 			apiKeys = [result.apiKey, ...apiKeys];
 			generatedKey = result.key;
 			showKeyDialog = true;
@@ -299,269 +295,275 @@
 	}
 </script>
 
-<div class="flex flex-1 flex-col">
-	<div class="@container/main flex flex-1 flex-col gap-4">
-		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<PageHeader back title="API Keys" description="Manage API keys for MCP integrations and AI agents">
-				{#snippet actions()}
-					<Button onclick={() => (showCreateDialog = true)}>
-						<IconPlus class="mr-2 h-4 w-4" />
-						Create API Key
-					</Button>
-				{/snippet}
-			</PageHeader>
+<PageShell back title="API Keys" description="Manage API keys for MCP integrations and AI agents">
+	{#snippet actions()}
+		<Button onclick={() => (showCreateDialog = true)}>
+			<IconPlus class="mr-2 h-4 w-4" />
+			Create API Key
+		</Button>
+	{/snippet}
 
-			<Tabs.Root value="keys" class="px-6">
-				<Tabs.List>
-					<Tabs.Trigger value="keys">API Keys</Tabs.Trigger>
-					<Tabs.Trigger value="guide">Setup Guide</Tabs.Trigger>
-				</Tabs.List>
+	<Tabs.Root value="keys">
+		<Tabs.List>
+			<Tabs.Trigger value="keys">API Keys</Tabs.Trigger>
+			<Tabs.Trigger value="guide">Setup Guide</Tabs.Trigger>
+		</Tabs.List>
 
-				<!-- Keys Tab -->
-				<Tabs.Content value="keys" class="space-y-4 pt-4">
-					<!-- Stats -->
-					<div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
-						<Card.Root>
-							<Card.Header class="pb-2">
-								<Card.Title class="text-sm font-medium">Active Keys</Card.Title>
-							</Card.Header>
-							<Card.Content>
-								<div class="flex items-center gap-2">
-									<IconKey class="h-5 w-5 text-muted-foreground" />
-									<span class="text-2xl font-bold">{activeKeys.length}</span>
-								</div>
-							</Card.Content>
-						</Card.Root>
-						<Card.Root>
-							<Card.Header class="pb-2">
-								<Card.Title class="text-sm font-medium">Revoked</Card.Title>
-							</Card.Header>
-							<Card.Content>
-								<span class="text-2xl font-bold text-muted-foreground">{revokedKeys.length}</span>
-							</Card.Content>
-						</Card.Root>
-						<Card.Root>
-							<Card.Header class="pb-2">
-								<Card.Title class="text-sm font-medium">Max Keys</Card.Title>
-							</Card.Header>
-							<Card.Content>
-								<span class="text-2xl font-bold">{activeKeys.length} / 5</span>
-							</Card.Content>
-						</Card.Root>
+		<!-- Keys Tab -->
+		<Tabs.Content value="keys" class="space-y-4 pt-4">
+			<!-- Stats -->
+			<div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+				<Card.Root>
+					<Card.Header class="pb-2">
+						<Card.Title class="text-sm font-medium">Active Keys</Card.Title>
+					</Card.Header>
+					<Card.Content>
+						<div class="flex items-center gap-2">
+							<IconKey class="h-5 w-5 text-muted-foreground" />
+							<span class="text-2xl font-bold">{activeKeys.length}</span>
+						</div>
+					</Card.Content>
+				</Card.Root>
+				<Card.Root>
+					<Card.Header class="pb-2">
+						<Card.Title class="text-sm font-medium">Revoked</Card.Title>
+					</Card.Header>
+					<Card.Content>
+						<span class="text-2xl font-bold text-muted-foreground">{revokedKeys.length}</span>
+					</Card.Content>
+				</Card.Root>
+				<Card.Root>
+					<Card.Header class="pb-2">
+						<Card.Title class="text-sm font-medium">Max Keys</Card.Title>
+					</Card.Header>
+					<Card.Content>
+						<span class="text-2xl font-bold">{activeKeys.length} / 5</span>
+					</Card.Content>
+				</Card.Root>
+			</div>
+
+			<!-- Active Keys Table -->
+			{#if activeKeys.length > 0}
+				<div>
+					<h3 class="mb-3 text-sm font-medium text-muted-foreground">Active Keys</h3>
+					<div class="overflow-x-auto rounded-md border">
+						<Table.Root>
+							<Table.Header>
+								<Table.Row>
+									<Table.Head>Name</Table.Head>
+									<Table.Head class="hidden sm:table-cell">Key</Table.Head>
+									<Table.Head class="hidden md:table-cell">Scopes</Table.Head>
+									<Table.Head class="hidden lg:table-cell">Last Used</Table.Head>
+									<Table.Head class="hidden lg:table-cell">Expires</Table.Head>
+									<Table.Head class="text-right">Actions</Table.Head>
+								</Table.Row>
+							</Table.Header>
+							<Table.Body>
+								{#each activeKeys as key (key.id)}
+									<Table.Row>
+										<Table.Cell>
+											<div class="flex items-center gap-2">
+												<IconKey class="h-4 w-4 text-muted-foreground" />
+												<span class="font-medium">{key.name}</span>
+											</div>
+										</Table.Cell>
+										<Table.Cell class="hidden sm:table-cell">
+											<code class="rounded bg-muted px-2 py-0.5 text-xs">
+												{key.keyPrefix}...
+											</code>
+										</Table.Cell>
+										<Table.Cell class="hidden md:table-cell">
+											<div class="flex flex-wrap gap-1">
+												{#each key.scopes.slice(0, 3) as scope}
+													<Badge variant="secondary" class="text-xs">{scope}</Badge>
+												{/each}
+												{#if key.scopes.length > 3}
+													<Badge variant="outline" class="text-xs">+{key.scopes.length - 3}</Badge>
+												{/if}
+											</div>
+										</Table.Cell>
+										<Table.Cell class="hidden text-sm text-muted-foreground lg:table-cell">
+											{formatRelativeTime(key.lastUsedAt)}
+										</Table.Cell>
+										<Table.Cell class="hidden text-sm lg:table-cell">
+											{#if key.expiresAt}
+												{#if new Date(key.expiresAt) < new Date()}
+													<Badge variant="destructive" class="text-xs">Expired</Badge>
+												{:else}
+													{formatDate(key.expiresAt)}
+												{/if}
+											{:else}
+												<span class="text-muted-foreground">Never</span>
+											{/if}
+										</Table.Cell>
+										<Table.Cell class="text-right">
+											<div class="flex justify-end gap-1">
+												<Button
+													variant="ghost"
+													size="icon"
+													onclick={() => handleRotate(key.id)}
+													aria-label="Rotate key"
+												>
+													<IconRefresh class="h-4 w-4" />
+												</Button>
+												<Button
+													variant="ghost"
+													size="icon"
+													class="text-destructive hover:text-destructive"
+													onclick={() => handleRevoke(key.id)}
+													aria-label="Revoke key"
+												>
+													<IconTrash class="h-4 w-4" />
+												</Button>
+											</div>
+										</Table.Cell>
+									</Table.Row>
+								{/each}
+							</Table.Body>
+						</Table.Root>
 					</div>
+				</div>
+			{:else}
+				<EmptyState
+					type="empty"
+					title="No API keys yet"
+					description="Create an API key to connect AI agents to your business via MCP."
+					actionLabel="Create API Key"
+					onAction={() => (showCreateDialog = true)}
+				/>
+			{/if}
 
-					<!-- Active Keys Table -->
-					{#if activeKeys.length > 0}
-						<div>
-							<h3 class="mb-3 text-sm font-medium text-muted-foreground">Active Keys</h3>
-							<div class="overflow-x-auto rounded-md border">
-								<Table.Root>
-									<Table.Header>
-										<Table.Row>
-											<Table.Head>Name</Table.Head>
-											<Table.Head class="hidden sm:table-cell">Key</Table.Head>
-											<Table.Head class="hidden md:table-cell">Scopes</Table.Head>
-											<Table.Head class="hidden lg:table-cell">Last Used</Table.Head>
-											<Table.Head class="hidden lg:table-cell">Expires</Table.Head>
-											<Table.Head class="text-right">Actions</Table.Head>
-										</Table.Row>
-									</Table.Header>
-									<Table.Body>
-										{#each activeKeys as key (key.id)}
-											<Table.Row>
-												<Table.Cell>
-													<div class="flex items-center gap-2">
-														<IconKey class="h-4 w-4 text-muted-foreground" />
-														<span class="font-medium">{key.name}</span>
-													</div>
-												</Table.Cell>
-												<Table.Cell class="hidden sm:table-cell">
-													<code class="rounded bg-muted px-2 py-0.5 text-xs">
-														{key.keyPrefix}...
-													</code>
-												</Table.Cell>
-												<Table.Cell class="hidden md:table-cell">
-													<div class="flex flex-wrap gap-1">
-														{#each key.scopes.slice(0, 3) as scope}
-															<Badge variant="secondary" class="text-xs">{scope}</Badge>
-														{/each}
-														{#if key.scopes.length > 3}
-															<Badge variant="outline" class="text-xs">+{key.scopes.length - 3}</Badge>
-														{/if}
-													</div>
-												</Table.Cell>
-												<Table.Cell class="text-muted-foreground text-sm hidden lg:table-cell">
-													{formatRelativeTime(key.lastUsedAt)}
-												</Table.Cell>
-												<Table.Cell class="text-sm hidden lg:table-cell">
-													{#if key.expiresAt}
-														{#if new Date(key.expiresAt) < new Date()}
-															<Badge variant="destructive" class="text-xs">Expired</Badge>
-														{:else}
-															{formatDate(key.expiresAt)}
-														{/if}
-													{:else}
-														<span class="text-muted-foreground">Never</span>
-													{/if}
-												</Table.Cell>
-												<Table.Cell class="text-right">
-													<div class="flex justify-end gap-1">
-														<Button
-															variant="ghost"
-															size="icon"
-															onclick={() => handleRotate(key.id)}
-															aria-label="Rotate key"
-														>
-															<IconRefresh class="h-4 w-4" />
-														</Button>
-														<Button
-															variant="ghost"
-															size="icon"
-															class="text-destructive hover:text-destructive"
-															onclick={() => handleRevoke(key.id)}
-															aria-label="Revoke key"
-														>
-															<IconTrash class="h-4 w-4" />
-														</Button>
-													</div>
-												</Table.Cell>
-											</Table.Row>
-										{/each}
-									</Table.Body>
-								</Table.Root>
-							</div>
-						</div>
-					{:else}
-						<EmptyState
-							type="empty"
-							title="No API keys yet"
-							description="Create an API key to connect AI agents to your business via MCP."
-							actionLabel="Create API Key"
-							onAction={() => (showCreateDialog = true)}
-						/>
-					{/if}
+			<!-- Revoked Keys -->
+			{#if revokedKeys.length > 0}
+				<div>
+					<h3 class="mb-3 text-sm font-medium text-muted-foreground">Revoked Keys</h3>
+					<div class="overflow-x-auto rounded-md border opacity-60">
+						<Table.Root>
+							<Table.Header>
+								<Table.Row>
+									<Table.Head>Name</Table.Head>
+									<Table.Head class="hidden sm:table-cell">Key</Table.Head>
+									<Table.Head class="hidden lg:table-cell">Created</Table.Head>
+									<Table.Head>Status</Table.Head>
+								</Table.Row>
+							</Table.Header>
+							<Table.Body>
+								{#each revokedKeys as key (key.id)}
+									<Table.Row>
+										<Table.Cell class="font-medium">{key.name}</Table.Cell>
+										<Table.Cell class="hidden sm:table-cell">
+											<code class="rounded bg-muted px-2 py-0.5 text-xs">{key.keyPrefix}...</code>
+										</Table.Cell>
+										<Table.Cell class="hidden text-muted-foreground lg:table-cell"
+											>{formatDate(key.createdAt)}</Table.Cell
+										>
+										<Table.Cell>
+											<Badge variant="secondary" class="text-xs">Revoked</Badge>
+										</Table.Cell>
+									</Table.Row>
+								{/each}
+							</Table.Body>
+						</Table.Root>
+					</div>
+				</div>
+			{/if}
+		</Tabs.Content>
 
-					<!-- Revoked Keys -->
-					{#if revokedKeys.length > 0}
-						<div>
-							<h3 class="mb-3 text-sm font-medium text-muted-foreground">Revoked Keys</h3>
-							<div class="overflow-x-auto rounded-md border opacity-60">
-								<Table.Root>
-									<Table.Header>
-										<Table.Row>
-											<Table.Head>Name</Table.Head>
-											<Table.Head class="hidden sm:table-cell">Key</Table.Head>
-											<Table.Head class="hidden lg:table-cell">Created</Table.Head>
-											<Table.Head>Status</Table.Head>
-										</Table.Row>
-									</Table.Header>
-									<Table.Body>
-										{#each revokedKeys as key (key.id)}
-											<Table.Row>
-												<Table.Cell class="font-medium">{key.name}</Table.Cell>
-												<Table.Cell class="hidden sm:table-cell">
-													<code class="rounded bg-muted px-2 py-0.5 text-xs">{key.keyPrefix}...</code>
-												</Table.Cell>
-												<Table.Cell class="text-muted-foreground hidden lg:table-cell">{formatDate(key.createdAt)}</Table.Cell>
-												<Table.Cell>
-													<Badge variant="secondary" class="text-xs">Revoked</Badge>
-												</Table.Cell>
-											</Table.Row>
-										{/each}
-									</Table.Body>
-								</Table.Root>
-							</div>
-						</div>
-					{/if}
-				</Tabs.Content>
+		<!-- Setup Guide Tab -->
+		<Tabs.Content value="guide" class="space-y-6 pt-4">
+			<div class="space-y-2">
+				<p class="text-sm text-muted-foreground">
+					Connect any MCP-compatible AI application to your business. Create an API key in the
+					<strong>API Keys</strong> tab, then add the configuration below to your preferred app.
+				</p>
+				<div class="flex items-center gap-2 rounded-md border bg-muted/50 px-3 py-2">
+					<span class="text-xs text-muted-foreground">MCP Endpoint:</span>
+					<code class="text-xs font-medium">{mcpEndpoint}</code>
+					<Button
+						variant="ghost"
+						size="icon"
+						class="ml-auto h-6 w-6"
+						onclick={() => copyText(mcpEndpoint)}
+						aria-label="Copy endpoint URL"
+					>
+						<IconCopy class="h-3.5 w-3.5" />
+					</Button>
+				</div>
+			</div>
 
-				<!-- Setup Guide Tab -->
-				<Tabs.Content value="guide" class="space-y-6 pt-4">
-					<div class="space-y-2">
-						<p class="text-sm text-muted-foreground">
-							Connect any MCP-compatible AI application to your business. Create an API key in the
-							<strong>API Keys</strong> tab, then add the configuration below to your preferred app.
-						</p>
-						<div class="flex items-center gap-2 rounded-md border bg-muted/50 px-3 py-2">
-							<span class="text-xs text-muted-foreground">MCP Endpoint:</span>
-							<code class="text-xs font-medium">{mcpEndpoint}</code>
-							<Button variant="ghost" size="icon" class="ml-auto h-6 w-6" onclick={() => copyText(mcpEndpoint)} aria-label="Copy endpoint URL">
+			<!-- App-specific guides -->
+			{#each guides as guide (guide.name)}
+				<Card.Root>
+					<Card.Header>
+						<Card.Title class="text-sm font-medium">{guide.name}</Card.Title>
+						<Card.Description>
+							{#each guide.configPaths as configPath}
+								<code class="text-xs">{configPath}</code>
+								{#if guide.configPaths.length > 1}<br />{/if}
+							{/each}
+						</Card.Description>
+					</Card.Header>
+					<Card.Content class="space-y-3">
+						{#if guide.notes}
+							<p class="text-xs text-muted-foreground">{guide.notes}</p>
+						{/if}
+						<div class="relative">
+							<pre
+								class="overflow-x-auto rounded-md bg-muted p-3 text-xs leading-relaxed">{guide.config}</pre>
+							<Button
+								variant="ghost"
+								size="icon"
+								class="absolute top-2 right-2 h-7 w-7 bg-muted hover:bg-accent"
+								onclick={() => copyText(guide.config)}
+								aria-label="Copy {guide.name} configuration"
+							>
 								<IconCopy class="h-3.5 w-3.5" />
 							</Button>
 						</div>
+					</Card.Content>
+				</Card.Root>
+			{/each}
+
+			<!-- Claude Code CLI -->
+			<Card.Root>
+				<Card.Header>
+					<Card.Title class="text-sm font-medium">Claude Code (CLI)</Card.Title>
+					<Card.Description>
+						<code class="text-xs">Run in your terminal</code>
+					</Card.Description>
+				</Card.Header>
+				<Card.Content>
+					<div class="relative">
+						<pre
+							class="overflow-x-auto rounded-md bg-muted p-3 text-xs leading-relaxed">{claudeCliCommand}</pre>
+						<Button
+							variant="ghost"
+							size="icon"
+							class="absolute top-2 right-2 h-7 w-7 bg-muted hover:bg-accent"
+							onclick={() => copyText(claudeCliCommand)}
+							aria-label="Copy CLI command"
+						>
+							<IconCopy class="h-3.5 w-3.5" />
+						</Button>
 					</div>
+				</Card.Content>
+			</Card.Root>
 
-					<!-- App-specific guides -->
-					{#each guides as guide (guide.name)}
-						<Card.Root>
-							<Card.Header>
-								<Card.Title class="text-sm font-medium">{guide.name}</Card.Title>
-								<Card.Description>
-									{#each guide.configPaths as configPath}
-										<code class="text-xs">{configPath}</code>
-										{#if guide.configPaths.length > 1}<br />{/if}
-									{/each}
-								</Card.Description>
-							</Card.Header>
-							<Card.Content class="space-y-3">
-								{#if guide.notes}
-									<p class="text-xs text-muted-foreground">{guide.notes}</p>
-								{/if}
-								<div class="relative">
-									<pre class="overflow-x-auto rounded-md bg-muted p-3 text-xs leading-relaxed">{guide.config}</pre>
-									<Button
-										variant="ghost"
-										size="icon"
-										class="absolute right-2 top-2 h-7 w-7 bg-muted hover:bg-accent"
-										onclick={() => copyText(guide.config)}
-										aria-label="Copy {guide.name} configuration"
-									>
-										<IconCopy class="h-3.5 w-3.5" />
-									</Button>
-								</div>
-							</Card.Content>
-						</Card.Root>
-					{/each}
-
-					<!-- Claude Code CLI -->
-					<Card.Root>
-						<Card.Header>
-							<Card.Title class="text-sm font-medium">Claude Code (CLI)</Card.Title>
-							<Card.Description>
-								<code class="text-xs">Run in your terminal</code>
-							</Card.Description>
-						</Card.Header>
-						<Card.Content>
-							<div class="relative">
-								<pre class="overflow-x-auto rounded-md bg-muted p-3 text-xs leading-relaxed">{claudeCliCommand}</pre>
-								<Button
-									variant="ghost"
-									size="icon"
-									class="absolute right-2 top-2 h-7 w-7 bg-muted hover:bg-accent"
-									onclick={() => copyText(claudeCliCommand)}
-									aria-label="Copy CLI command"
-								>
-									<IconCopy class="h-3.5 w-3.5" />
-								</Button>
-							</div>
-						</Card.Content>
-					</Card.Root>
-
-					<p class="text-xs text-muted-foreground">
-						Replace <code class="rounded bg-muted px-1 font-medium">YOUR_API_KEY</code> with an active API key from the API Keys tab. The agent can then call tools like
-						<code class="rounded bg-muted px-1">list-orders</code>,
-						<code class="rounded bg-muted px-1">get-menu</code>,
-						<code class="rounded bg-muted px-1">create-order</code>, etc. based on the key's scopes and permissions.
-					</p>
-				</Tabs.Content>
-			</Tabs.Root>
-		</div>
-	</div>
-</div>
+			<p class="text-xs text-muted-foreground">
+				Replace <code class="rounded bg-muted px-1 font-medium">YOUR_API_KEY</code> with an active
+				API key from the API Keys tab. The agent can then call tools like
+				<code class="rounded bg-muted px-1">list-orders</code>,
+				<code class="rounded bg-muted px-1">get-menu</code>,
+				<code class="rounded bg-muted px-1">create-order</code>, etc. based on the key's scopes and
+				permissions.
+			</p>
+		</Tabs.Content>
+	</Tabs.Root>
+</PageShell>
 
 <!-- Create API Key Dialog -->
 <Dialog.Root bind:open={showCreateDialog}>
-	<Dialog.Content class="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+	<Dialog.Content class="max-h-[85vh] overflow-y-auto sm:max-w-lg">
 		<Dialog.Header>
 			<Dialog.Title>Create API Key</Dialog.Title>
 			<Dialog.Description>Generate a new API key for AI agent access</Dialog.Description>
@@ -585,7 +587,7 @@
 				<select
 					id="expires"
 					bind:value={expiresIn}
-					class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+					class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
 				>
 					<option value="never">No expiration</option>
 					<option value="7">7 days</option>
@@ -597,12 +599,19 @@
 
 			<!-- Scopes -->
 			<div class="grid gap-2">
-				<label class="text-sm font-medium">Scopes * <span class="font-normal text-muted-foreground">(what the key can access)</span></label>
+				<label class="text-sm font-medium"
+					>Scopes * <span class="font-normal text-muted-foreground">(what the key can access)</span
+					></label
+				>
 				<div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
 					{#each AVAILABLE_SCOPES as scope}
 						<button
 							type="button"
-							class="flex items-center gap-2 rounded-md border p-2 text-left text-sm transition-colors hover:bg-accent {selectedScopes.includes(scope.value) ? 'border-primary bg-primary/5' : ''}"
+							class="flex items-center gap-2 rounded-md border p-2 text-left text-sm transition-colors hover:bg-accent {selectedScopes.includes(
+								scope.value
+							)
+								? 'border-primary bg-primary/5'
+								: ''}"
 							onclick={() => toggleScope(scope.value)}
 						>
 							<Checkbox checked={selectedScopes.includes(scope.value)} />
@@ -617,12 +626,20 @@
 			<!-- Permissions -->
 			{#if filteredPermissions.length > 0}
 				<div class="grid gap-2">
-					<label class="text-sm font-medium">Permissions * <span class="font-normal text-muted-foreground">(what actions are allowed)</span></label>
+					<label class="text-sm font-medium"
+						>Permissions * <span class="font-normal text-muted-foreground"
+							>(what actions are allowed)</span
+						></label
+					>
 					<div class="grid gap-1.5">
 						{#each filteredPermissions as perm}
 							<button
 								type="button"
-								class="flex items-center gap-2 rounded-md border p-2 text-left text-sm transition-colors hover:bg-accent {selectedPermissions.includes(perm.value) ? 'border-primary bg-primary/5' : ''}"
+								class="flex items-center gap-2 rounded-md border p-2 text-left text-sm transition-colors hover:bg-accent {selectedPermissions.includes(
+									perm.value
+								)
+									? 'border-primary bg-primary/5'
+									: ''}"
 								onclick={() => togglePermission(perm.value)}
 							>
 								<Checkbox checked={selectedPermissions.includes(perm.value)} />
@@ -635,7 +652,14 @@
 			{/if}
 		</div>
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => { showCreateDialog = false; resetForm(); }} disabled={isSubmitting}>
+			<Button
+				variant="outline"
+				onclick={() => {
+					showCreateDialog = false;
+					resetForm();
+				}}
+				disabled={isSubmitting}
+			>
 				Cancel
 			</Button>
 			<Button onclick={handleCreate} disabled={isSubmitting}>
@@ -660,11 +684,13 @@
 		<div class="space-y-4 py-4">
 			<div class="flex items-center gap-2 rounded-md border border-warning/50 bg-warning/10 p-3">
 				<IconAlertTriangle class="h-5 w-5 shrink-0 text-warning" />
-				<p class="text-sm text-warning">This is the only time you'll see this key. Copy it and store it securely.</p>
+				<p class="text-sm text-warning">
+					This is the only time you'll see this key. Copy it and store it securely.
+				</p>
 			</div>
 			<div class="flex items-center gap-2">
 				<div class="flex-1 overflow-hidden rounded-md bg-muted p-3">
-					<code class="break-all text-sm">
+					<code class="text-sm break-all">
 						{#if showKeyValue}
 							{generatedKey}
 						{:else}
@@ -673,7 +699,12 @@
 					</code>
 				</div>
 				<div class="flex flex-col gap-1">
-					<Button variant="outline" size="icon" onclick={() => (showKeyValue = !showKeyValue)} aria-label={showKeyValue ? 'Hide key' : 'Show key'}>
+					<Button
+						variant="outline"
+						size="icon"
+						onclick={() => (showKeyValue = !showKeyValue)}
+						aria-label={showKeyValue ? 'Hide key' : 'Show key'}
+					>
 						{#if showKeyValue}
 							<IconEyeOff class="h-4 w-4" />
 						{:else}

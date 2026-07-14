@@ -4,7 +4,7 @@
 	import * as Avatar from '$lib/components/ui/avatar';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Select from '$lib/components/ui/select';
 	import { authClient, useSession } from '$lib/auth';
@@ -158,9 +158,7 @@
 <div class="max-w-2xl space-y-8">
 	<div>
 		<h1 class="text-3xl font-bold tracking-tight">Account Settings</h1>
-		<p class="mt-2 text-muted-foreground">
-			Manage your account information and preferences.
-		</p>
+		<p class="mt-2 text-muted-foreground">Manage your account information and preferences.</p>
 	</div>
 
 	<!-- Profile Section -->
@@ -177,32 +175,38 @@
 					<Avatar.Fallback class="text-2xl">{initials()}</Avatar.Fallback>
 				</Avatar.Root>
 				<div>
-					<Button variant="outline" size="sm" onclick={() => { photoUrl = ''; photoDialogOpen = true; }}>
+					<Button
+						variant="outline"
+						size="sm"
+						onclick={() => {
+							photoUrl = '';
+							photoDialogOpen = true;
+						}}
+					>
 						<Camera class="mr-2 size-4" />
 						Change Photo
 					</Button>
-					<p class="mt-2 text-xs text-muted-foreground">
-						Provide a URL to your profile image.
-					</p>
+					<p class="mt-2 text-xs text-muted-foreground">Provide a URL to your profile image.</p>
 				</div>
 			</div>
 
 			<Separator />
 
 			<!-- Name -->
-			<div class="grid gap-2">
-				<Label for="name">Full Name</Label>
+			<Field.Field>
+				<Field.Label for="name">Full Name</Field.Label>
 				<Input id="name" bind:value={name} placeholder="Your name" />
-			</div>
+			</Field.Field>
 
 			<!-- Email -->
-			<div class="grid gap-2">
-				<Label for="email">Email Address</Label>
+			<Field.Field>
+				<Field.Label for="email">Email Address</Field.Label>
 				<Input id="email" type="email" bind:value={email} placeholder="your@email.com" disabled />
-				<p class="text-xs text-muted-foreground">
-					Contact <a href="mailto:{SUPPORT_EMAIL}" class="underline">{SUPPORT_EMAIL}</a> to change your email address.
-				</p>
-			</div>
+				<Field.Description>
+					Contact <a href="mailto:{SUPPORT_EMAIL}" class="underline">{SUPPORT_EMAIL}</a> to change your
+					email address.
+				</Field.Description>
+			</Field.Field>
 		</Card.Content>
 		<Card.Footer>
 			<Button onclick={handleSave} disabled={isSaving}>
@@ -225,7 +229,9 @@
 					<p class="text-sm text-muted-foreground">Select your preferred language</p>
 				</div>
 				<Select.Root type="single" bind:value={language}>
-					<Select.Trigger class="h-9 w-[180px] rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+					<Select.Trigger
+						class="h-9 w-[180px] rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
+					>
 						{language === 'en' ? 'English' : language}
 					</Select.Trigger>
 					<Select.Content>
@@ -240,7 +246,9 @@
 					<p class="text-sm text-muted-foreground">Set your local timezone</p>
 				</div>
 				<Select.Root type="single" bind:value={timezone}>
-					<Select.Trigger class="h-9 max-w-[220px] rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+					<Select.Trigger
+						class="h-9 max-w-[220px] rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
+					>
 						{timezone.replace(/_/g, ' ')}
 					</Select.Trigger>
 					<Select.Content>
@@ -257,7 +265,9 @@
 					<p class="text-sm text-muted-foreground">Choose how dates are displayed</p>
 				</div>
 				<Select.Root type="single" bind:value={dateFormat}>
-					<Select.Trigger class="h-9 w-[180px] rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+					<Select.Trigger
+						class="h-9 w-[180px] rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
+					>
 						{dateFormat}
 					</Select.Trigger>
 					<Select.Content>
@@ -286,9 +296,7 @@
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="font-medium">Delete Account</p>
-					<p class="text-sm text-muted-foreground">
-						Permanently delete your account and all data
-					</p>
+					<p class="text-sm text-muted-foreground">Permanently delete your account and all data</p>
 				</div>
 				<Button variant="destructive" size="sm" onclick={() => (deleteDialogOpen = true)}>
 					Delete Account
@@ -306,8 +314,8 @@
 			<Dialog.Description>Enter the URL of your new profile image.</Dialog.Description>
 		</Dialog.Header>
 		<div class="space-y-4 py-4">
-			<div class="grid gap-2">
-				<Label for="photoUrl">Image URL</Label>
+			<Field.Field>
+				<Field.Label for="photoUrl">Image URL</Field.Label>
 				<Input
 					id="photoUrl"
 					type="url"
@@ -315,14 +323,18 @@
 					placeholder="https://example.com/photo.jpg"
 					autofocus
 				/>
-			</div>
+			</Field.Field>
 			{#if photoUrl}
 				<img
 					src={photoUrl}
 					alt="Preview"
 					class="h-20 w-20 rounded-full object-cover"
-					onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-					onload={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'block'; }}
+					onerror={(e) => {
+						(e.currentTarget as HTMLImageElement).style.display = 'none';
+					}}
+					onload={(e) => {
+						(e.currentTarget as HTMLImageElement).style.display = 'block';
+					}}
 				/>
 			{/if}
 		</div>

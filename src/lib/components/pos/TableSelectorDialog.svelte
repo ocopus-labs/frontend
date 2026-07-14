@@ -32,15 +32,15 @@
 	function getStatusColor(status: Table['status']) {
 		switch (status) {
 			case 'available':
-				return 'bg-green-100 border-green-500 text-green-800 hover:bg-green-200';
+				return 'bg-success/15 border-success text-foreground hover:bg-success/25';
 			case 'occupied':
-				return 'bg-red-100 border-red-300 text-red-600 opacity-60 cursor-not-allowed';
+				return 'bg-destructive/10 border-destructive/40 text-destructive opacity-60 cursor-not-allowed';
 			case 'reserved':
-				return 'bg-yellow-100 border-yellow-300 text-yellow-700 opacity-60 cursor-not-allowed';
+				return 'bg-warning/10 border-warning/40 text-warning opacity-60 cursor-not-allowed';
 			case 'maintenance':
-				return 'bg-orange-100 border-orange-300 text-orange-600 opacity-60 cursor-not-allowed';
+				return 'bg-muted border-muted-foreground/40 text-muted-foreground opacity-60 cursor-not-allowed';
 			default:
-				return 'bg-gray-100 border-gray-300 text-gray-500 opacity-60 cursor-not-allowed';
+				return 'bg-muted border-border text-muted-foreground opacity-60 cursor-not-allowed';
 		}
 	}
 

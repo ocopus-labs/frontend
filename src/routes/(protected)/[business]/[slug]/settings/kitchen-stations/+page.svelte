@@ -4,12 +4,18 @@
 	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import * as Card from '$lib/components/ui/card';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
-	import { IconPlus, IconPencil, IconTrash, IconLoader2, IconAlertTriangle } from '@tabler/icons-svelte';
+	import {
+		IconPlus,
+		IconPencil,
+		IconTrash,
+		IconLoader2,
+		IconAlertTriangle
+	} from '@tabler/icons-svelte';
 	import PageHeader from '$lib/components/global/page-header.svelte';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import { toast } from 'svelte-sonner';
@@ -74,7 +80,7 @@
 		'#3b82f6', // blue
 		'#8b5cf6', // violet
 		'#ec4899', // pink
-		'#14b8a6'  // teal
+		'#14b8a6' // teal
 	];
 
 	// Categories visible in the dialog = station's own categories + unassigned
@@ -173,7 +179,10 @@
 	}
 </script>
 
-<MobilePageHeader title="Kitchen Stations" backHref={`/${$page.params.business}/${$page.params.slug}/settings`} />
+<MobilePageHeader
+	title="Kitchen Stations"
+	backHref={`/${$page.params.business}/${$page.params.slug}/settings`}
+/>
 <div class="flex flex-col gap-6 p-6">
 	<PageHeader
 		back
@@ -190,12 +199,14 @@
 
 	<!-- Unassigned categories warning -->
 	{#if unassignedCategories.length > 0}
-		<div class="flex items-center gap-3 rounded-md border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
+		<div
+			class="flex items-center gap-3 rounded-md border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning"
+		>
 			<IconAlertTriangle class="h-4 w-4 shrink-0" />
 			<span>
 				{unassignedCategories.length}
-				{unassignedCategories.length === 1 ? 'category is' : 'categories are'} not assigned to any
-				station — items in these categories will appear on all KDS screens.
+				{unassignedCategories.length === 1 ? 'category is' : 'categories are'} not assigned to any station
+				— items in these categories will appear on all KDS screens.
 			</span>
 		</div>
 	{/if}
@@ -204,7 +215,9 @@
 	{#if stations.length === 0}
 		<Card.Root>
 			<Card.Content class="py-16 text-center">
-				<p class="text-muted-foreground">No kitchen stations yet. Add one to start routing orders.</p>
+				<p class="text-muted-foreground">
+					No kitchen stations yet. Add one to start routing orders.
+				</p>
 				<Button class="mt-4" onclick={openAdd}>
 					<IconPlus class="mr-2 h-4 w-4" />
 					Add Station
@@ -279,21 +292,21 @@
 			</Dialog.Description>
 		</Dialog.Header>
 
-		<div class="grid gap-5 py-4">
+		<Field.Group class="py-4">
 			<!-- Name -->
-			<div class="grid gap-2">
-				<Label for="station-name">Station Name</Label>
+			<Field.Field>
+				<Field.Label for="station-name">Station Name</Field.Label>
 				<Input
 					id="station-name"
 					bind:value={formName}
 					placeholder="e.g. Grill, Fryer, Pastry"
 					autofocus
 				/>
-			</div>
+			</Field.Field>
 
 			<!-- Color -->
-			<div class="grid gap-2">
-				<Label>Display Color</Label>
+			<Field.Field>
+				<Field.Label>Display Color</Field.Label>
 				<div class="flex flex-wrap items-center gap-2">
 					{#each PRESET_COLORS as color}
 						<button
@@ -314,16 +327,16 @@
 					/>
 					<span class="ml-1 text-xs text-muted-foreground">{formColor}</span>
 				</div>
-			</div>
+			</Field.Field>
 
 			<!-- Categories -->
-			<div class="grid gap-2">
-				<Label>
+			<Field.Field>
+				<Field.Label>
 					Assign Categories
-					<span class="ml-1 font-normal text-muted-foreground text-xs">
+					<span class="ml-1 text-xs font-normal text-muted-foreground">
 						({formCategoryIds.length} selected)
 					</span>
-				</Label>
+				</Field.Label>
 				{#if dialogCategories().length === 0}
 					<p class="text-sm text-muted-foreground">
 						All categories are already assigned to other stations.
@@ -346,15 +359,11 @@
 						{/each}
 					</div>
 				{/if}
-			</div>
-		</div>
+			</Field.Field>
+		</Field.Group>
 
 		<Dialog.Footer>
-			<Button
-				variant="outline"
-				onclick={() => (showDialog = false)}
-				disabled={isSubmitting}
-			>
+			<Button variant="outline" onclick={() => (showDialog = false)} disabled={isSubmitting}>
 				Cancel
 			</Button>
 			<Button onclick={handleSave} disabled={isSubmitting}>

@@ -101,6 +101,9 @@
 
 <Sidebar.Root {collapsible} {...restProps}>
 	<Sidebar.Header>
+		<div class="flex items-center justify-end group-data-[collapsible=icon]:justify-center">
+			<Sidebar.Trigger />
+		</div>
 		<Sidebar.Menu>
 			<Sidebar.MenuItem>
 				<Sidebar.MenuButton size="lg" class="cursor-default hover:bg-transparent">

@@ -5,7 +5,7 @@
 	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
-	import PageHeader from '$lib/components/global/page-header.svelte';
+	import PageShell from '$lib/components/global/page-shell.svelte';
 	import {
 		IconPlus,
 		IconSend,
@@ -40,7 +40,7 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const userRole = $derived((data as any).userRole as string ?? '');
+	const userRole = $derived(((data as any).userRole as string) ?? '');
 	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
 
 	function formatCurrency(amount: number): string {
@@ -72,7 +72,10 @@
 		{ value: 'cancelled', label: 'Cancelled' }
 	];
 
-	function getStatusBadge(status: PurchaseOrderStatus): { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string } {
+	function getStatusBadge(status: PurchaseOrderStatus): {
+		variant: 'default' | 'secondary' | 'destructive' | 'outline';
+		label: string;
+	} {
 		switch (status) {
 			case 'draft':
 				return { variant: 'outline', label: 'Draft' };
@@ -201,166 +204,196 @@
 	}
 </script>
 
-<div class="flex flex-1 flex-col">
-	<div class="@container/main flex flex-1 flex-col gap-4">
-		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<PageHeader title="Purchase Orders" description="Create and manage purchase orders for inventory replenishment">
-				{#snippet actions()}
-					{#if canModify(userRole)}
-						<Button onclick={navigateToNew}>
-							<IconPlus class="mr-2 h-4 w-4" />
-							New Purchase Order
-						</Button>
-					{/if}
-				{/snippet}
-			</PageHeader>
+<PageShell
+	title="Purchase Orders"
+	description="Create and manage purchase orders for inventory replenishment"
+>
+	{#snippet actions()}
+		{#if canModify(userRole)}
+			<Button onclick={navigateToNew}>
+				<IconPlus class="mr-2 h-4 w-4" />
+				New Purchase Order
+			</Button>
+		{/if}
+	{/snippet}
 
-			<!-- Filters -->
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center">
-				<SearchInput
-					bind:value={searchQuery}
-					placeholder="Search by order number or supplier..."
-					debounceMs={300}
-					class="max-w-sm"
-				/>
-				<FilterDropdown
-					bind:value={statusFilter}
-					placeholder="All Statuses"
-					allOptionLabel="All Statuses"
-					options={statusOptions}
-				/>
-			</div>
-
-			<!-- Order List -->
-			{#if filteredOrders.length > 0}
-				<!-- Mobile: Card list -->
-				<div class="flex flex-col gap-2 px-4 md:hidden">
-					{#each filteredOrders as order (order.id)}
-						{@const badge = getStatusBadge(order.status)}
-						<button
-							class="w-full rounded-lg border bg-card p-3 text-left transition-colors hover:bg-accent/50"
-							onclick={() => viewDetail(order)}
-						>
-							<div class="flex items-center justify-between">
-								<span class="font-medium text-sm">{order.orderNumber}</span>
-								<Badge variant={badge.variant}>{badge.label}</Badge>
-							</div>
-							<div class="mt-1 flex items-center justify-between text-sm text-muted-foreground">
-								<span>{formatDate(order.orderDate)}</span>
-								<span class="font-medium text-foreground">{formatCurrency(order.totalAmount)}</span>
-							</div>
-						</button>
-					{/each}
-				</div>
-
-				<!-- Desktop: Table -->
-				<div class="hidden md:block px-6">
-					<div class="overflow-x-auto rounded-md border">
-						<Table.Root>
-							<Table.Header>
-								<Table.Row>
-									<Table.Head>Order Number</Table.Head>
-									<Table.Head>Supplier</Table.Head>
-									<Table.Head>Status</Table.Head>
-									<Table.Head>Order Date</Table.Head>
-									<Table.Head>Expected Date</Table.Head>
-									<Table.Head class="text-right">Total</Table.Head>
-									<Table.Head class="text-right">Actions</Table.Head>
-								</Table.Row>
-							</Table.Header>
-							<Table.Body>
-								{#each filteredOrders as order (order.id)}
-									{@const badge = getStatusBadge(order.status)}
-									<Table.Row class="cursor-pointer hover:bg-accent/50" onclick={() => viewDetail(order)}>
-										<Table.Cell class="font-medium">{order.orderNumber}</Table.Cell>
-										<Table.Cell class="text-muted-foreground">{order.supplierId}</Table.Cell>
-										<Table.Cell>
-											<Badge variant={badge.variant}>{badge.label}</Badge>
-										</Table.Cell>
-										<Table.Cell>{formatDate(order.orderDate)}</Table.Cell>
-										<Table.Cell>{order.expectedDate ? formatDate(order.expectedDate) : '-'}</Table.Cell>
-										<Table.Cell class="text-right font-medium">{formatCurrency(order.totalAmount)}</Table.Cell>
-										<Table.Cell class="text-right">
-											<div role="toolbar" tabindex="-1" class="flex justify-end gap-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
-												<Button variant="ghost" size="icon" onclick={() => viewDetail(order)} title="View details" aria-label="View details">
-													<IconEye class="h-4 w-4" />
-												</Button>
-												{#if canModify(userRole)}
-													{#if order.status === 'draft'}
-														<Button variant="ghost" size="sm" class="h-8" onclick={() => handleSend(order.id)} title="Mark as sent">
-															<IconSend class="mr-1 h-4 w-4" />
-															Send
-														</Button>
-													{/if}
-													{#if order.status === 'sent' || order.status === 'partially_received'}
-														<Button variant="ghost" size="sm" class="h-8" onclick={() => openReceiveDialog(order)} title="Receive items">
-															<IconPackage class="mr-1 h-4 w-4" />
-															Receive
-														</Button>
-													{/if}
-													{#if order.status !== 'received' && order.status !== 'cancelled'}
-														<Button
-															variant="ghost"
-															size="icon"
-															class="text-destructive hover:text-destructive"
-															onclick={() => triggerCancel(order.id)}
-															title="Cancel order"
-															aria-label="Cancel order"
-														>
-															<IconX class="h-4 w-4" />
-														</Button>
-													{/if}
-												{/if}
-											</div>
-										</Table.Cell>
-									</Table.Row>
-								{/each}
-							</Table.Body>
-						</Table.Root>
-					</div>
-				</div>
-			{:else}
-				<EmptyState
-					type="empty"
-					title="No purchase orders"
-					description="Create your first purchase order to start tracking inventory replenishment."
-				/>
-			{/if}
-
-			<!-- Pagination -->
-			{#if totalPages > 1}
-				<div class="flex items-center justify-between px-6">
-					<p class="text-sm text-muted-foreground">
-						Showing {(currentPage - 1) * paginationLimit + 1}--{Math.min(currentPage * paginationLimit, totalItems)} of {totalItems} {totalItems === 1 ? 'order' : 'orders'}
-					</p>
-					<div class="flex items-center gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={currentPage <= 1}
-							onclick={() => goToPage(currentPage - 1)}
-						>
-							<IconChevronLeft class="mr-1 h-4 w-4" />
-							Previous
-						</Button>
-						<span class="text-sm">
-							Page {currentPage} of {totalPages}
-						</span>
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={currentPage >= totalPages}
-							onclick={() => goToPage(currentPage + 1)}
-						>
-							Next
-							<IconChevronRight class="ml-1 h-4 w-4" />
-						</Button>
-					</div>
-				</div>
-			{/if}
-		</div>
+	<!-- Filters -->
+	<div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+		<SearchInput
+			bind:value={searchQuery}
+			placeholder="Search by order number or supplier..."
+			debounceMs={300}
+			class="max-w-sm"
+		/>
+		<FilterDropdown
+			bind:value={statusFilter}
+			placeholder="All Statuses"
+			allOptionLabel="All Statuses"
+			options={statusOptions}
+		/>
 	</div>
-</div>
+
+	<!-- Order List -->
+	{#if filteredOrders.length > 0}
+		<!-- Mobile: Card list -->
+		<div class="flex flex-col gap-2 md:hidden">
+			{#each filteredOrders as order (order.id)}
+				{@const badge = getStatusBadge(order.status)}
+				<button
+					class="w-full rounded-lg border bg-card p-3 text-left transition-colors hover:bg-accent/50"
+					onclick={() => viewDetail(order)}
+				>
+					<div class="flex items-center justify-between">
+						<span class="text-sm font-medium">{order.orderNumber}</span>
+						<Badge variant={badge.variant}>{badge.label}</Badge>
+					</div>
+					<div class="mt-1 flex items-center justify-between text-sm text-muted-foreground">
+						<span>{formatDate(order.orderDate)}</span>
+						<span class="font-medium text-foreground">{formatCurrency(order.totalAmount)}</span>
+					</div>
+				</button>
+			{/each}
+		</div>
+
+		<!-- Desktop: Table -->
+		<div class="hidden md:block">
+			<div class="overflow-x-auto rounded-md border">
+				<Table.Root>
+					<Table.Header>
+						<Table.Row>
+							<Table.Head>Order Number</Table.Head>
+							<Table.Head>Supplier</Table.Head>
+							<Table.Head>Status</Table.Head>
+							<Table.Head>Order Date</Table.Head>
+							<Table.Head>Expected Date</Table.Head>
+							<Table.Head class="text-right">Total</Table.Head>
+							<Table.Head class="text-right">Actions</Table.Head>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						{#each filteredOrders as order (order.id)}
+							{@const badge = getStatusBadge(order.status)}
+							<Table.Row
+								class="cursor-pointer hover:bg-accent/50"
+								onclick={() => viewDetail(order)}
+							>
+								<Table.Cell class="font-medium">{order.orderNumber}</Table.Cell>
+								<Table.Cell class="text-muted-foreground">{order.supplierId}</Table.Cell>
+								<Table.Cell>
+									<Badge variant={badge.variant}>{badge.label}</Badge>
+								</Table.Cell>
+								<Table.Cell>{formatDate(order.orderDate)}</Table.Cell>
+								<Table.Cell>{order.expectedDate ? formatDate(order.expectedDate) : '-'}</Table.Cell>
+								<Table.Cell class="text-right font-medium"
+									>{formatCurrency(order.totalAmount)}</Table.Cell
+								>
+								<Table.Cell class="text-right">
+									<div
+										role="toolbar"
+										tabindex="-1"
+										class="flex justify-end gap-1"
+										onclick={(e) => e.stopPropagation()}
+										onkeydown={(e) => e.stopPropagation()}
+									>
+										<Button
+											variant="ghost"
+											size="icon"
+											onclick={() => viewDetail(order)}
+											title="View details"
+											aria-label="View details"
+										>
+											<IconEye class="h-4 w-4" />
+										</Button>
+										{#if canModify(userRole)}
+											{#if order.status === 'draft'}
+												<Button
+													variant="ghost"
+													size="sm"
+													class="h-8"
+													onclick={() => handleSend(order.id)}
+													title="Mark as sent"
+												>
+													<IconSend class="mr-1 h-4 w-4" />
+													Send
+												</Button>
+											{/if}
+											{#if order.status === 'sent' || order.status === 'partially_received'}
+												<Button
+													variant="ghost"
+													size="sm"
+													class="h-8"
+													onclick={() => openReceiveDialog(order)}
+													title="Receive items"
+												>
+													<IconPackage class="mr-1 h-4 w-4" />
+													Receive
+												</Button>
+											{/if}
+											{#if order.status !== 'received' && order.status !== 'cancelled'}
+												<Button
+													variant="ghost"
+													size="icon"
+													class="text-destructive hover:text-destructive"
+													onclick={() => triggerCancel(order.id)}
+													title="Cancel order"
+													aria-label="Cancel order"
+												>
+													<IconX class="h-4 w-4" />
+												</Button>
+											{/if}
+										{/if}
+									</div>
+								</Table.Cell>
+							</Table.Row>
+						{/each}
+					</Table.Body>
+				</Table.Root>
+			</div>
+		</div>
+	{:else}
+		<EmptyState
+			type="empty"
+			title="No purchase orders"
+			description="Create your first purchase order to start tracking inventory replenishment."
+		/>
+	{/if}
+
+	<!-- Pagination -->
+	{#if totalPages > 1}
+		<div class="flex items-center justify-between">
+			<p class="text-sm text-muted-foreground">
+				Showing {(currentPage - 1) * paginationLimit + 1}--{Math.min(
+					currentPage * paginationLimit,
+					totalItems
+				)} of {totalItems}
+				{totalItems === 1 ? 'order' : 'orders'}
+			</p>
+			<div class="flex items-center gap-2">
+				<Button
+					variant="outline"
+					size="sm"
+					disabled={currentPage <= 1}
+					onclick={() => goToPage(currentPage - 1)}
+				>
+					<IconChevronLeft class="mr-1 h-4 w-4" />
+					Previous
+				</Button>
+				<span class="text-sm">
+					Page {currentPage} of {totalPages}
+				</span>
+				<Button
+					variant="outline"
+					size="sm"
+					disabled={currentPage >= totalPages}
+					onclick={() => goToPage(currentPage + 1)}
+				>
+					Next
+					<IconChevronRight class="ml-1 h-4 w-4" />
+				</Button>
+			</div>
+		</div>
+	{/if}
+</PageShell>
 
 <!-- Detail Dialog -->
 <Dialog.Root open={!!viewingOrder} onOpenChange={(open) => !open && (viewingOrder = null)}>
@@ -368,7 +401,9 @@
 		<Dialog.Header>
 			<Dialog.Title>Purchase Order Details</Dialog.Title>
 			<Dialog.Description>
-				{viewingOrder?.orderNumber} - {viewingOrder ? getStatusBadge(viewingOrder.status).label : ''}
+				{viewingOrder?.orderNumber} - {viewingOrder
+					? getStatusBadge(viewingOrder.status).label
+					: ''}
 			</Dialog.Description>
 		</Dialog.Header>
 		{#if viewingOrder}
@@ -380,7 +415,9 @@
 					</div>
 					<div>
 						<p class="text-muted-foreground">Expected Date</p>
-						<p class="font-medium">{viewingOrder.expectedDate ? formatDate(viewingOrder.expectedDate) : '-'}</p>
+						<p class="font-medium">
+							{viewingOrder.expectedDate ? formatDate(viewingOrder.expectedDate) : '-'}
+						</p>
 					</div>
 					<div>
 						<p class="text-muted-foreground">Supplier</p>
@@ -414,14 +451,25 @@
 								<Table.Row>
 									<Table.Cell class="font-medium">{item.inventoryItem.name}</Table.Cell>
 									<Table.Cell class="text-muted-foreground">{item.inventoryItem.sku}</Table.Cell>
-									<Table.Cell class="text-right">{item.quantity} {item.inventoryItem.unit}</Table.Cell>
+									<Table.Cell class="text-right"
+										>{item.quantity} {item.inventoryItem.unit}</Table.Cell
+									>
 									<Table.Cell class="text-right">
-										<span class={Number(item.receivedQuantity) >= Number(item.quantity) ? 'text-green-600 dark:text-green-400' : Number(item.receivedQuantity) > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}>
-											{item.receivedQuantity} {item.inventoryItem.unit}
+										<span
+											class={Number(item.receivedQuantity) >= Number(item.quantity)
+												? 'text-success'
+												: Number(item.receivedQuantity) > 0
+													? 'text-warning'
+													: 'text-muted-foreground'}
+										>
+											{item.receivedQuantity}
+											{item.inventoryItem.unit}
 										</span>
 									</Table.Cell>
 									<Table.Cell class="text-right">{formatCurrency(item.unitPrice)}</Table.Cell>
-									<Table.Cell class="text-right">{formatCurrency(Number(item.quantity) * Number(item.unitPrice))}</Table.Cell>
+									<Table.Cell class="text-right"
+										>{formatCurrency(Number(item.quantity) * Number(item.unitPrice))}</Table.Cell
+									>
 								</Table.Row>
 							{/each}
 						</Table.Body>
@@ -431,7 +479,11 @@
 			<Dialog.Footer>
 				{#if canModify(userRole)}
 					{#if viewingOrder.status === 'draft'}
-						<Button variant="outline" onclick={() => handleSend(viewingOrder!.id)} disabled={isSubmitting}>
+						<Button
+							variant="outline"
+							onclick={() => handleSend(viewingOrder!.id)}
+							disabled={isSubmitting}
+						>
 							{#if isSubmitting}
 								<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
 							{/if}
@@ -440,13 +492,25 @@
 						</Button>
 					{/if}
 					{#if viewingOrder.status === 'sent' || viewingOrder.status === 'partially_received'}
-						<Button onclick={() => { openReceiveDialog(viewingOrder!); viewingOrder = null; }}>
+						<Button
+							onclick={() => {
+								openReceiveDialog(viewingOrder!);
+								viewingOrder = null;
+							}}
+						>
 							<IconPackage class="mr-2 h-4 w-4" />
 							Receive Items
 						</Button>
 					{/if}
 					{#if viewingOrder.status !== 'received' && viewingOrder.status !== 'cancelled'}
-						<Button variant="destructive" onclick={() => { triggerCancel(viewingOrder!.id); viewingOrder = null; }} disabled={isSubmitting}>
+						<Button
+							variant="destructive"
+							onclick={() => {
+								triggerCancel(viewingOrder!.id);
+								viewingOrder = null;
+							}}
+							disabled={isSubmitting}
+						>
 							Cancel Order
 						</Button>
 					{/if}
@@ -472,10 +536,11 @@
 					{#each receivingOrder.items as item (item.id)}
 						{@const remaining = Number(item.quantity) - Number(item.receivedQuantity)}
 						<div class="flex items-center gap-4 border-b py-3 last:border-b-0">
-							<div class="flex-1 min-w-0">
-								<p class="font-medium text-sm truncate">{item.inventoryItem.name}</p>
+							<div class="min-w-0 flex-1">
+								<p class="truncate text-sm font-medium">{item.inventoryItem.name}</p>
 								<p class="text-xs text-muted-foreground">
-									Ordered: {item.quantity} {item.inventoryItem.unit}
+									Ordered: {item.quantity}
+									{item.inventoryItem.unit}
 									{#if Number(item.receivedQuantity) > 0}
 										| Already received: {item.receivedQuantity}
 									{/if}

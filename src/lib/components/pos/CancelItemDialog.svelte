@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { Label } from '$lib/components/ui/label';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as RadioGroup from '$lib/components/ui/radio-group';
@@ -15,13 +16,7 @@
 		isProcessing?: boolean;
 	}
 
-	let {
-		open,
-		itemName,
-		onConfirm,
-		onCancel,
-		isProcessing = false
-	}: Props = $props();
+	let { open, itemName, onConfirm, onCancel, isProcessing = false }: Props = $props();
 
 	let reason = $state<CancellationReason>('customer_changed_mind');
 	let note = $state('');
@@ -50,7 +45,7 @@
 	<Dialog.Content class="max-w-md">
 		<Dialog.Header>
 			<Dialog.Title class="flex items-center gap-2">
-				<IconX class="h-5 w-5 text-red-500" />
+				<IconX class="h-5 w-5 text-destructive" />
 				Cancel Item
 			</Dialog.Title>
 			<Dialog.Description>
@@ -58,9 +53,9 @@
 			</Dialog.Description>
 		</Dialog.Header>
 
-		<div class="space-y-4 py-4">
-			<div class="space-y-2">
-				<Label>Reason</Label>
+		<Field.Group class="py-4">
+			<Field.Field>
+				<Field.Label>Reason</Field.Label>
 				<RadioGroup.Root bind:value={reason} class="space-y-2">
 					{#each reasons as r}
 						<div class="flex items-center space-x-2">
@@ -69,10 +64,10 @@
 						</div>
 					{/each}
 				</RadioGroup.Root>
-			</div>
+			</Field.Field>
 
-			<div class="space-y-2">
-				<Label for="cancel-note">Note (optional)</Label>
+			<Field.Field>
+				<Field.Label for="cancel-note">Note (optional)</Field.Label>
 				<Textarea
 					id="cancel-note"
 					bind:value={note}
@@ -80,14 +75,12 @@
 					maxlength={200}
 					rows={2}
 				/>
-				<p class="text-muted-foreground text-xs">{note.length}/200</p>
-			</div>
-		</div>
+				<Field.Description>{note.length}/200</Field.Description>
+			</Field.Field>
+		</Field.Group>
 
 		<Dialog.Footer>
-			<Button variant="outline" onclick={onCancel} disabled={isProcessing}>
-				Go Back
-			</Button>
+			<Button variant="outline" onclick={onCancel} disabled={isProcessing}>Go Back</Button>
 			<Button variant="destructive" onclick={handleConfirm} disabled={isProcessing}>
 				{isProcessing ? 'Cancelling...' : 'Cancel Item'}
 			</Button>

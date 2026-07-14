@@ -2,6 +2,12 @@ import type { PageLoad } from './$types';
 import { getCachedMenu, getCachedTables } from '$lib/stores/pos-cache';
 import { BUSINESS_TYPE_CONFIG } from '$lib/types/business';
 
+// POS order entry is a fully interactive, authenticated screen whose data
+// comes from client-only caches (in-memory store + IndexedDB) and requires the
+// user's session cookie. SSR provides no benefit here and breaks both: the
+// server has no auth cookie (→ 401) and no IndexedDB (→ crash). Load client-side.
+export const ssr = false;
+
 export const load: PageLoad = async ({ parent, depends }) => {
   depends('app:menu');
   const { business } = await parent();

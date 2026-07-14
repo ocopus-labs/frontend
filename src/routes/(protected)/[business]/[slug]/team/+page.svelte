@@ -10,7 +10,7 @@
 	import { IconLoader2 } from '@tabler/icons-svelte';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import PermissionEditor from '$lib/components/team/permission-editor.svelte';
-	import PageHeader from '$lib/components/global/page-header.svelte';
+	import PageShell from '$lib/components/global/page-shell.svelte';
 	import StatCard from '$lib/components/global/stat-card.svelte';
 	import {
 		IconPlus,
@@ -59,7 +59,10 @@
 	// Elapsed time for active shift
 	let elapsedMins = $state(0);
 	$effect(() => {
-		if (!currentShift) { elapsedMins = 0; return; }
+		if (!currentShift) {
+			elapsedMins = 0;
+			return;
+		}
 		const update = () => {
 			elapsedMins = Math.floor((Date.now() - new Date(currentShift!.clockInAt).getTime()) / 60000);
 		};
@@ -93,7 +96,9 @@
 		try {
 			const result = await clockOut(data.businessId);
 			currentShift = null;
-			toast.success(`Clocked out — shift duration: ${formatElapsed(result.shift.durationMins ?? 0)}`);
+			toast.success(
+				`Clocked out — shift duration: ${formatElapsed(result.shift.durationMins ?? 0)}`
+			);
 		} catch (err) {
 			toast.error(userFriendlyError(err, 'Failed to clock out'));
 		} finally {
@@ -116,12 +121,15 @@
 
 	// Check if user can manage permissions (owner or manager)
 	const canManagePermissions = $derived(
-		data.userRole === 'restaurant_owner' ||
-		data.userRole === 'owner' ||
-		data.userRole === 'manager'
+		data.userRole === 'restaurant_owner' || data.userRole === 'owner' || data.userRole === 'manager'
 	);
 
-	const roleLabelMap: Record<string, string> = { manager: 'Manager', staff: 'Staff', accountant: 'Accountant', viewer: 'Viewer' };
+	const roleLabelMap: Record<string, string> = {
+		manager: 'Manager',
+		staff: 'Staff',
+		accountant: 'Accountant',
+		viewer: 'Viewer'
+	};
 
 	function openPermissionEditor(member: TeamMember) {
 		selectedMember = member;
@@ -186,9 +194,17 @@
 			case 'active':
 				return { variant: 'default' as const, text: 'Active', class: 'bg-success/10 text-success' };
 			case 'inactive':
-				return { variant: 'secondary' as const, text: 'Inactive', class: 'bg-gray-100 text-gray-800' };
+				return {
+					variant: 'secondary' as const,
+					text: 'Inactive',
+					class: 'bg-muted text-muted-foreground'
+				};
 			case 'suspended':
-				return { variant: 'destructive' as const, text: 'Suspended', class: 'bg-destructive/10 text-destructive' };
+				return {
+					variant: 'destructive' as const,
+					text: 'Suspended',
+					class: 'bg-destructive/10 text-destructive'
+				};
 			default:
 				return { variant: 'outline' as const, text: status, class: '' };
 		}
@@ -251,7 +267,9 @@
 
 	async function confirmSuspend(reason?: string) {
 		try {
-			const result = await suspendTeamMember(data.businessId, suspendTargetId, { reason: reason || undefined });
+			const result = await suspendTeamMember(data.businessId, suspendTargetId, {
+				reason: reason || undefined
+			});
 			members = members.map((m) => (m.id === suspendTargetId ? result.member : m));
 			toast.success('Member suspended');
 		} catch (error) {
@@ -295,307 +313,336 @@
 	}
 </script>
 
-<div class="flex flex-1 flex-col">
-	<div class="@container/main flex flex-1 flex-col gap-4">
-		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<PageHeader title="Team Management" description="Manage your team members and roles">
-				{#snippet actions()}
-					<Button variant="outline" onclick={handleExportTeam}>
-						<IconDownload class="mr-2 h-4 w-4" />
-						Export
-					</Button>
-					{#if canModify(data.userRole)}
-						<Button onclick={() => (showInviteDialog = true)}>
-							<IconPlus class="mr-2 h-4 w-4" />
-							Invite Member
-						</Button>
-					{/if}
-				{/snippet}
-			</PageHeader>
+<PageShell title="Team Management" description="Manage your team members and roles">
+	{#snippet actions()}
+		<Button variant="outline" onclick={handleExportTeam}>
+			<IconDownload class="mr-2 h-4 w-4" />
+			Export
+		</Button>
+		{#if canModify(data.userRole)}
+			<Button onclick={() => (showInviteDialog = true)}>
+				<IconPlus class="mr-2 h-4 w-4" />
+				Invite Member
+			</Button>
+		{/if}
+	{/snippet}
 
-			<!-- My Shift -->
-			<div class="px-6">
-				<Card.Root class="border-l-4 {currentShift ? 'border-l-success' : 'border-l-muted'}">
-					<Card.Content class="flex items-center justify-between gap-4 py-4">
-						<div class="flex items-center gap-3">
-							<div class="flex h-10 w-10 items-center justify-center rounded-full {currentShift ? 'bg-success/10' : 'bg-muted'}">
-								<IconClock class="h-5 w-5 {currentShift ? 'text-success' : 'text-muted-foreground'}" />
-							</div>
-							<div>
-								<p class="text-sm font-medium">My Shift</p>
-								{#if currentShift}
-									<p class="text-xs text-muted-foreground">
-										On duty &middot; {formatElapsed(elapsedMins)} elapsed
-									</p>
-								{:else}
-									<p class="text-xs text-muted-foreground">Not clocked in</p>
-								{/if}
-							</div>
-						</div>
+	<!-- My Shift -->
+	<div>
+		<Card.Root class="border-l-4 {currentShift ? 'border-l-success' : 'border-l-muted'}">
+			<Card.Content class="flex items-center justify-between gap-4 py-4">
+				<div class="flex items-center gap-3">
+					<div
+						class="flex h-10 w-10 items-center justify-center rounded-full {currentShift
+							? 'bg-success/10'
+							: 'bg-muted'}"
+					>
+						<IconClock class="h-5 w-5 {currentShift ? 'text-success' : 'text-muted-foreground'}" />
+					</div>
+					<div>
+						<p class="text-sm font-medium">My Shift</p>
 						{#if currentShift}
-							<Button
-								variant="outline"
-								class="border-destructive text-destructive hover:bg-destructive/10"
-								onclick={handleClockOut}
-								disabled={isClockingOut}
-							>
-								{#if isClockingOut}
-									<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
-								{:else}
-									<IconClockStop class="mr-2 h-4 w-4" />
-								{/if}
-								Clock Out
-							</Button>
+							<p class="text-xs text-muted-foreground">
+								On duty &middot; {formatElapsed(elapsedMins)} elapsed
+							</p>
 						{:else}
-							<Button
-								variant="outline"
-								class="border-success text-success hover:bg-success/10"
-								onclick={handleClockIn}
-								disabled={isClockingIn}
-							>
-								{#if isClockingIn}
-									<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
-								{:else}
-									<IconClockPlay class="mr-2 h-4 w-4" />
-								{/if}
-								Clock In
-							</Button>
+							<p class="text-xs text-muted-foreground">Not clocked in</p>
 						{/if}
-					</Card.Content>
-				</Card.Root>
-			</div>
-
-			<!-- Stats -->
-			<div class="grid grid-cols-2 gap-4 px-6 sm:grid-cols-4">
-				<StatCard
-					label="Total Members"
-					value={stats.total}
-				/>
-				<StatCard
-					label="Active"
-					value={stats.active}
-				/>
-				<StatCard
-					label="Inactive"
-					value={stats.inactive}
-				/>
-				<StatCard
-					label="Suspended"
-					value={stats.suspended}
-				/>
-			</div>
-
-			<!-- Filters -->
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center">
-				<SearchInput
-					bind:value={searchQuery}
-					placeholder="Search members..."
-					debounceMs={300}
-					class="max-w-sm"
-				/>
-				<div class="flex gap-2">
-					<FilterDropdown
-						bind:value={statusFilter}
-						placeholder="All Status"
-						allOptionLabel="All Status"
-						options={[
-							{ value: 'active', label: 'Active' },
-							{ value: 'inactive', label: 'Inactive' },
-							{ value: 'suspended', label: 'Suspended' }
-						]}
-					/>
-					<FilterDropdown
-						bind:value={roleFilter}
-						placeholder="All Roles"
-						allOptionLabel="All Roles"
-						options={[
-							{ value: 'manager', label: 'Manager' },
-							{ value: 'staff', label: 'Staff' },
-							{ value: 'accountant', label: 'Accountant' },
-							{ value: 'viewer', label: 'Viewer' }
-						]}
-					/>
-				</div>
-			</div>
-
-			<!-- Team List -->
-			{#if filteredMembers.length > 0}
-				<!-- Mobile: Card list -->
-				<div class="flex flex-col gap-2 px-4 md:hidden">
-					{#each filteredMembers as member (member.id)}
-						<div class="rounded-lg border bg-card p-3 {member.status === 'suspended' ? 'bg-destructive/5' : ''}">
-							<div class="flex items-center justify-between">
-								<div class="flex items-center gap-2.5">
-									<div class="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-medium">
-										{#if member.user.image}
-											<img src={member.user.image} alt={member.user.name} class="h-8 w-8 rounded-full object-cover" loading="lazy" />
-										{:else}
-											{member.user.name.charAt(0).toUpperCase()}
-										{/if}
-									</div>
-									<div>
-										<p class="text-sm font-medium">{member.user.name}</p>
-										<p class="text-xs text-muted-foreground">{member.user.email}</p>
-									</div>
-								</div>
-								<StatusPill
-									label={getStatusBadge(member.status).text}
-									status={member.status === "active" ? "success" : member.status === "suspended" ? "error" : "info"}
-								/>
-							</div>
-							<div class="mt-2 flex items-center justify-between">
-								<Badge variant={getRoleBadge(member.role).variant} class="text-xs">
-									{getRoleBadge(member.role).text}
-								</Badge>
-								{#if canModify(data.userRole)}
-									<div class="flex gap-1">
-										<Button variant="ghost" size="sm" class="h-7 text-xs" onclick={() => editMember(member)}>Edit</Button>
-										<Button variant="ghost" size="icon" class="h-7 w-7 text-destructive" onclick={() => handleRemove(member.id)} aria-label="Remove">
-											<IconTrash class="h-3.5 w-3.5" />
-										</Button>
-									</div>
-								{/if}
-							</div>
-						</div>
-					{/each}
-				</div>
-
-				<!-- Desktop: Table -->
-				<div class="hidden md:block px-6">
-					<div class="overflow-x-auto rounded-md border">
-						<Table.Root>
-							<Table.Header>
-								<Table.Row>
-									<Table.Head>Member</Table.Head>
-									<Table.Head>Role</Table.Head>
-									<Table.Head>Status</Table.Head>
-									<Table.Head>Joined</Table.Head>
-									<Table.Head>Last Active</Table.Head>
-									<Table.Head class="text-right">Actions</Table.Head>
-								</Table.Row>
-							</Table.Header>
-							<Table.Body>
-								{#each filteredMembers as member (member.id)}
-									<Table.Row class={member.status === 'suspended' ? 'bg-destructive/5' : ''}>
-										<Table.Cell>
-											<div class="flex items-center gap-3">
-												<div class="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-													{#if member.user.image}
-														<img
-															src={member.user.image}
-															alt={member.user.name}
-															loading="lazy"
-															class="h-10 w-10 rounded-full object-cover"
-														/>
-													{:else}
-														<span class="text-sm font-medium">
-															{member.user.name.charAt(0).toUpperCase()}
-														</span>
-													{/if}
-												</div>
-												<div>
-													<p class="font-medium">{member.user.name}</p>
-													<p class="text-sm text-muted-foreground">{member.user.email}</p>
-												</div>
-											</div>
-										</Table.Cell>
-										<Table.Cell>
-											<Badge variant={getRoleBadge(member.role).variant}>
-												{getRoleBadge(member.role).text}
-											</Badge>
-										</Table.Cell>
-										<Table.Cell>
-											<StatusPill
-												label={getStatusBadge(member.status).text}
-												status={member.status === "active" ? "success" : member.status === "suspended" ? "error" : "info"}
-											/>
-										</Table.Cell>
-										<Table.Cell class="text-muted-foreground">
-											{formatDate(member.joinedAt)}
-										</Table.Cell>
-										<Table.Cell class="text-muted-foreground">
-											{formatDate(member.lastActiveAt)}
-										</Table.Cell>
-										<Table.Cell class="text-right">
-											<div class="flex justify-end gap-1">
-												{#if canModify(data.userRole)}
-													{#if canManagePermissions && member.role !== 'restaurant_owner'}
-														<Button
-															variant="ghost"
-															size="icon"
-															onclick={() => openPermissionEditor(member)}
-															aria-label="Edit permissions"
-														>
-															<IconShield class="h-4 w-4" />
-														</Button>
-													{/if}
-													<Button variant="ghost" size="sm" onclick={() => editMember(member)}>
-														Edit
-													</Button>
-													{#if member.status === 'suspended'}
-														<Button
-															variant="ghost"
-															size="icon"
-															class="text-success"
-															onclick={() => handleReactivate(member.id)}
-															aria-label="Reactivate member"
-														>
-															<IconPlayerPlay class="h-4 w-4" />
-														</Button>
-													{:else if member.status === 'active'}
-														<Button
-															variant="ghost"
-															size="icon"
-															class="text-warning"
-															onclick={() => handleSuspend(member.id)}
-															aria-label="Suspend member"
-														>
-															<IconPlayerPause class="h-4 w-4" />
-														</Button>
-													{/if}
-													<Button
-														variant="ghost"
-														size="icon"
-														class="text-destructive hover:text-destructive"
-														onclick={() => handleRemove(member.id)}
-														aria-label="Remove member"
-													>
-														<IconTrash class="h-4 w-4" />
-													</Button>
-												{/if}
-											</div>
-										</Table.Cell>
-									</Table.Row>
-								{/each}
-							</Table.Body>
-						</Table.Root>
 					</div>
 				</div>
-			{:else}
-				<EmptyState
-					type={members.length === 0 ? 'empty' : 'no-results'}
-					title={members.length === 0 ? 'No team members yet' : 'No members found'}
-					description={members.length === 0 ? 'Invite your first team member to get started.' : 'Try adjusting your search or filters.'}
-					actionLabel={canModify(data.userRole) ? 'Invite Member' : undefined}
-					onAction={canModify(data.userRole) ? () => (showInviteDialog = true) : undefined}
-				/>
-			{/if}
-			<div class="px-6">
-						<div class="flex items-center justify-between border-t pt-4">
-				<p class="text-sm text-muted-foreground">
-					Showing {Math.min((data.page - 1) * data.limit + 1, data.total)} to {Math.min(data.page * data.limit, data.total)} of {data.total} results
-				</p>
-				<div class="flex gap-1">
-					<Button size="sm" variant="outline" disabled={data.page <= 1}
-						onclick={() => goto(`?page=${data.page - 1}&limit=${data.limit}`)}>Previous</Button>
-					<Button size="sm" variant="outline" disabled={data.page >= data.totalPages}
-						onclick={() => goto(`?page=${data.page + 1}&limit=${data.limit}`)}>Next</Button>
+				{#if currentShift}
+					<Button
+						variant="outline"
+						class="border-destructive text-destructive hover:bg-destructive/10"
+						onclick={handleClockOut}
+						disabled={isClockingOut}
+					>
+						{#if isClockingOut}
+							<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+						{:else}
+							<IconClockStop class="mr-2 h-4 w-4" />
+						{/if}
+						Clock Out
+					</Button>
+				{:else}
+					<Button
+						variant="outline"
+						class="border-success text-success hover:bg-success/10"
+						onclick={handleClockIn}
+						disabled={isClockingIn}
+					>
+						{#if isClockingIn}
+							<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+						{:else}
+							<IconClockPlay class="mr-2 h-4 w-4" />
+						{/if}
+						Clock In
+					</Button>
+				{/if}
+			</Card.Content>
+		</Card.Root>
+	</div>
+
+	<!-- Stats -->
+	<div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+		<StatCard label="Total Members" value={stats.total} />
+		<StatCard label="Active" value={stats.active} />
+		<StatCard label="Inactive" value={stats.inactive} />
+		<StatCard label="Suspended" value={stats.suspended} />
+	</div>
+
+	<!-- Filters -->
+	<div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+		<SearchInput
+			bind:value={searchQuery}
+			placeholder="Search members..."
+			debounceMs={300}
+			class="max-w-sm"
+		/>
+		<div class="flex gap-2">
+			<FilterDropdown
+				bind:value={statusFilter}
+				placeholder="All Status"
+				allOptionLabel="All Status"
+				options={[
+					{ value: 'active', label: 'Active' },
+					{ value: 'inactive', label: 'Inactive' },
+					{ value: 'suspended', label: 'Suspended' }
+				]}
+			/>
+			<FilterDropdown
+				bind:value={roleFilter}
+				placeholder="All Roles"
+				allOptionLabel="All Roles"
+				options={[
+					{ value: 'manager', label: 'Manager' },
+					{ value: 'staff', label: 'Staff' },
+					{ value: 'accountant', label: 'Accountant' },
+					{ value: 'viewer', label: 'Viewer' }
+				]}
+			/>
+		</div>
+	</div>
+
+	<!-- Team List -->
+	{#if filteredMembers.length > 0}
+		<!-- Mobile: Card list -->
+		<div class="flex flex-col gap-2 md:hidden">
+			{#each filteredMembers as member (member.id)}
+				<div
+					class="rounded-lg border bg-card p-3 {member.status === 'suspended'
+						? 'bg-destructive/5'
+						: ''}"
+				>
+					<div class="flex items-center justify-between">
+						<div class="flex items-center gap-2.5">
+							<div
+								class="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-medium"
+							>
+								{#if member.user.image}
+									<img
+										src={member.user.image}
+										alt={member.user.name}
+										class="h-8 w-8 rounded-full object-cover"
+										loading="lazy"
+									/>
+								{:else}
+									{member.user.name.charAt(0).toUpperCase()}
+								{/if}
+							</div>
+							<div>
+								<p class="text-sm font-medium">{member.user.name}</p>
+								<p class="text-xs text-muted-foreground">{member.user.email}</p>
+							</div>
+						</div>
+						<StatusPill
+							label={getStatusBadge(member.status).text}
+							status={member.status === 'active'
+								? 'success'
+								: member.status === 'suspended'
+									? 'error'
+									: 'info'}
+						/>
+					</div>
+					<div class="mt-2 flex items-center justify-between">
+						<Badge variant={getRoleBadge(member.role).variant} class="text-xs">
+							{getRoleBadge(member.role).text}
+						</Badge>
+						{#if canModify(data.userRole)}
+							<div class="flex gap-1">
+								<Button
+									variant="ghost"
+									size="sm"
+									class="h-7 text-xs"
+									onclick={() => editMember(member)}>Edit</Button
+								>
+								<Button
+									variant="ghost"
+									size="icon"
+									class="h-7 w-7 text-destructive"
+									onclick={() => handleRemove(member.id)}
+									aria-label="Remove"
+								>
+									<IconTrash class="h-3.5 w-3.5" />
+								</Button>
+							</div>
+						{/if}
+					</div>
 				</div>
+			{/each}
+		</div>
+
+		<!-- Desktop: Table -->
+		<div class="hidden md:block">
+			<div class="overflow-x-auto rounded-md border">
+				<Table.Root>
+					<Table.Header>
+						<Table.Row>
+							<Table.Head>Member</Table.Head>
+							<Table.Head>Role</Table.Head>
+							<Table.Head>Status</Table.Head>
+							<Table.Head>Joined</Table.Head>
+							<Table.Head>Last Active</Table.Head>
+							<Table.Head class="text-right">Actions</Table.Head>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						{#each filteredMembers as member (member.id)}
+							<Table.Row class={member.status === 'suspended' ? 'bg-destructive/5' : ''}>
+								<Table.Cell>
+									<div class="flex items-center gap-3">
+										<div class="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+											{#if member.user.image}
+												<img
+													src={member.user.image}
+													alt={member.user.name}
+													loading="lazy"
+													class="h-10 w-10 rounded-full object-cover"
+												/>
+											{:else}
+												<span class="text-sm font-medium">
+													{member.user.name.charAt(0).toUpperCase()}
+												</span>
+											{/if}
+										</div>
+										<div>
+											<p class="font-medium">{member.user.name}</p>
+											<p class="text-sm text-muted-foreground">{member.user.email}</p>
+										</div>
+									</div>
+								</Table.Cell>
+								<Table.Cell>
+									<Badge variant={getRoleBadge(member.role).variant}>
+										{getRoleBadge(member.role).text}
+									</Badge>
+								</Table.Cell>
+								<Table.Cell>
+									<StatusPill
+										label={getStatusBadge(member.status).text}
+										status={member.status === 'active'
+											? 'success'
+											: member.status === 'suspended'
+												? 'error'
+												: 'info'}
+									/>
+								</Table.Cell>
+								<Table.Cell class="text-muted-foreground">
+									{formatDate(member.joinedAt)}
+								</Table.Cell>
+								<Table.Cell class="text-muted-foreground">
+									{formatDate(member.lastActiveAt)}
+								</Table.Cell>
+								<Table.Cell class="text-right">
+									<div class="flex justify-end gap-1">
+										{#if canModify(data.userRole)}
+											{#if canManagePermissions && member.role !== 'restaurant_owner'}
+												<Button
+													variant="ghost"
+													size="icon"
+													onclick={() => openPermissionEditor(member)}
+													aria-label="Edit permissions"
+												>
+													<IconShield class="h-4 w-4" />
+												</Button>
+											{/if}
+											<Button variant="ghost" size="sm" onclick={() => editMember(member)}>
+												Edit
+											</Button>
+											{#if member.status === 'suspended'}
+												<Button
+													variant="ghost"
+													size="icon"
+													class="text-success"
+													onclick={() => handleReactivate(member.id)}
+													aria-label="Reactivate member"
+												>
+													<IconPlayerPlay class="h-4 w-4" />
+												</Button>
+											{:else if member.status === 'active'}
+												<Button
+													variant="ghost"
+													size="icon"
+													class="text-warning"
+													onclick={() => handleSuspend(member.id)}
+													aria-label="Suspend member"
+												>
+													<IconPlayerPause class="h-4 w-4" />
+												</Button>
+											{/if}
+											<Button
+												variant="ghost"
+												size="icon"
+												class="text-destructive hover:text-destructive"
+												onclick={() => handleRemove(member.id)}
+												aria-label="Remove member"
+											>
+												<IconTrash class="h-4 w-4" />
+											</Button>
+										{/if}
+									</div>
+								</Table.Cell>
+							</Table.Row>
+						{/each}
+					</Table.Body>
+				</Table.Root>
 			</div>
+		</div>
+	{:else}
+		<EmptyState
+			type={members.length === 0 ? 'empty' : 'no-results'}
+			title={members.length === 0 ? 'No team members yet' : 'No members found'}
+			description={members.length === 0
+				? 'Invite your first team member to get started.'
+				: 'Try adjusting your search or filters.'}
+			actionLabel={canModify(data.userRole) ? 'Invite Member' : undefined}
+			onAction={canModify(data.userRole) ? () => (showInviteDialog = true) : undefined}
+		/>
+	{/if}
+	<div>
+		<div class="flex items-center justify-between border-t pt-4">
+			<p class="text-sm text-muted-foreground">
+				Showing {Math.min((data.page - 1) * data.limit + 1, data.total)} to {Math.min(
+					data.page * data.limit,
+					data.total
+				)} of {data.total} results
+			</p>
+			<div class="flex gap-1">
+				<Button
+					size="sm"
+					variant="outline"
+					disabled={data.page <= 1}
+					onclick={() => goto(`?page=${data.page - 1}&limit=${data.limit}`)}>Previous</Button
+				>
+				<Button
+					size="sm"
+					variant="outline"
+					disabled={data.page >= data.totalPages}
+					onclick={() => goto(`?page=${data.page + 1}&limit=${data.limit}`)}>Next</Button
+				>
 			</div>
 		</div>
 	</div>
-</div>
+</PageShell>
 
 <!-- Invite Member Dialog -->
 <Dialog.Root bind:open={showInviteDialog}>
@@ -608,7 +655,9 @@
 			<div class="grid gap-2">
 				<label for="email" class="text-sm font-medium">Email *</label>
 				<div class="relative">
-					<IconMail class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+					<IconMail
+						class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+					/>
 					<Input
 						id="email"
 						autofocus
@@ -635,11 +684,7 @@
 			</div>
 			<div class="grid gap-2">
 				<label for="message" class="text-sm font-medium">Personal Message (optional)</label>
-				<Input
-					id="message"
-					bind:value={newInvite.message}
-					placeholder="Join our team!"
-				/>
+				<Input id="message" bind:value={newInvite.message} placeholder="Join our team!" />
 			</div>
 		</div>
 		<Dialog.Footer>

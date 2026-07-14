@@ -4,7 +4,7 @@
 	import { toast } from 'svelte-sonner';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import { Switch } from '$lib/components/ui/switch/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
@@ -90,36 +90,36 @@
 					<Card.Description>Basic platform configuration</Card.Description>
 				</Card.Header>
 				<Card.Content class="space-y-4">
-					<div class="grid gap-2">
-						<Label for="platform-name">Platform Name</Label>
+					<Field.Field>
+						<Field.Label for="platform-name">Platform Name</Field.Label>
 						<Input
 							id="platform-name"
 							bind:value={settings['platform.name']}
 							placeholder="RestaurantPro"
 						/>
-					</div>
-					<div class="grid gap-2">
-						<Label for="support-email">Support Email</Label>
+					</Field.Field>
+					<Field.Field>
+						<Field.Label for="support-email">Support Email</Field.Label>
 						<Input
 							id="support-email"
 							type="email"
 							bind:value={settings['platform.support_email']}
 							placeholder="support@example.com"
 						/>
-					</div>
-					<div class="grid gap-2">
-						<Label for="default-plan">Default Plan Slug</Label>
+					</Field.Field>
+					<Field.Field>
+						<Field.Label for="default-plan">Default Plan Slug</Field.Label>
 						<Input
 							id="default-plan"
 							bind:value={settings['platform.default_plan_slug']}
 							placeholder="free"
 						/>
-						<p class="text-sm text-muted-foreground">
+						<Field.Description>
 							The subscription plan assigned to new users by default
-						</p>
-					</div>
-					<div class="grid gap-2">
-						<Label for="max-free">Max Free Businesses Per User</Label>
+						</Field.Description>
+					</Field.Field>
+					<Field.Field>
+						<Field.Label for="max-free">Max Free Businesses Per User</Field.Label>
 						<Input
 							id="max-free"
 							type="number"
@@ -127,7 +127,7 @@
 							min="0"
 							max="10"
 						/>
-					</div>
+					</Field.Field>
 				</Card.Content>
 			</Card.Root>
 
@@ -140,10 +140,8 @@
 				<Card.Content class="space-y-6">
 					<div class="flex items-center justify-between">
 						<div class="space-y-0.5">
-							<Label>Allow New Registrations</Label>
-							<p class="text-sm text-muted-foreground">
-								When disabled, no new users can sign up
-							</p>
+							<Field.Label>Allow New Registrations</Field.Label>
+							<p class="text-sm text-muted-foreground">When disabled, no new users can sign up</p>
 						</div>
 						<Switch
 							checked={settings['platform.registration_enabled'] === 'true'}
@@ -153,7 +151,7 @@
 					<Separator />
 					<div class="flex items-center justify-between">
 						<div class="space-y-0.5">
-							<Label>Require Email Verification</Label>
+							<Field.Label>Require Email Verification</Field.Label>
 							<p class="text-sm text-muted-foreground">
 								Users must verify their email before accessing the platform
 							</p>
@@ -175,7 +173,7 @@
 				<Card.Content>
 					<div class="flex items-center justify-between">
 						<div class="space-y-0.5">
-							<Label>Maintenance Mode</Label>
+							<Field.Label>Maintenance Mode</Field.Label>
 							<p class="text-sm text-muted-foreground">
 								When enabled, only super admins can access the platform. All other users see a
 								maintenance page.

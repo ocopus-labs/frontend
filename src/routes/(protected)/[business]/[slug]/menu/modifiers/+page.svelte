@@ -9,6 +9,7 @@
 	import { EmptyState } from '$lib/components/data-display';
 	import { toast } from 'svelte-sonner';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
+	import PageShell from '$lib/components/global/page-shell.svelte';
 	import { formatCurrency as i18nFormatCurrency, CURRENCY_CONFIG } from '$lib/utils/i18n';
 	import type { CurrencyCode } from '$lib/utils/i18n';
 	import { createModifierGroup, updateModifierGroup, deleteModifierGroup } from '$lib/api';
@@ -59,7 +60,12 @@
 	);
 
 	function resetNewModifier() {
-		newModifier = { name: '', required: false, multiSelect: false, options: [{ name: '', price: 0 }] };
+		newModifier = {
+			name: '',
+			required: false,
+			multiSelect: false,
+			options: [{ name: '', price: 0 }]
+		};
 	}
 
 	function addOption() {
@@ -113,7 +119,12 @@
 		if (editingModifier) {
 			editingModifier.options = [
 				...editingModifier.options,
-				{ id: crypto.randomUUID(), name: '', price: 0, sortOrder: editingModifier.options.length + 1 }
+				{
+					id: crypto.randomUUID(),
+					name: '',
+					price: 0,
+					sortOrder: editingModifier.options.length + 1
+				}
 			];
 		}
 	}
@@ -180,90 +191,89 @@
 	}
 </script>
 
-<div class="flex flex-1 flex-col">
-	<div class="@container/main flex flex-1 flex-col gap-4">
-		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
-				<div>
-					<h1 class="text-2xl font-bold">Modifiers</h1>
-					<p class="text-muted-foreground">Manage customization options for menu items</p>
-				</div>
-				<Button onclick={() => (showAddDialog = true)}>
-					<IconPlus class="mr-2 h-4 w-4" />
-					Add Modifier
-				</Button>
-			</div>
+<PageShell title="Modifiers" description="Manage customization options for menu items">
+	{#snippet actions()}
+		<Button onclick={() => (showAddDialog = true)}>
+			<IconPlus class="mr-2 h-4 w-4" />
+			Add Modifier
+		</Button>
+	{/snippet}
 
-			<!-- Search -->
-			<div class="px-6">
-				<div class="relative max-w-sm">
-					<IconSearch
-						class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-					/>
-					<Input placeholder="Search modifiers..." bind:value={searchQuery} class="pl-9" />
-				</div>
-			</div>
-
-			<!-- Modifiers List -->
-			<div class="grid gap-4 px-6">
-				{#each filteredModifiers as modifier (modifier.id)}
-					<Card.Root>
-						<Card.Header>
-							<div class="flex items-start justify-between">
-								<div>
-									<Card.Title class="flex items-center gap-2">
-										{modifier.name}
-										{#if modifier.required}
-											<Badge variant="destructive">Required</Badge>
-										{/if}
-										{#if modifier.multiSelect}
-											<Badge variant="secondary">Multi-select</Badge>
-										{/if}
-									</Card.Title>
-									<Card.Description>
-										{modifier.options.length} option{modifier.options.length === 1 ? '' : 's'}
-									</Card.Description>
-								</div>
-								<div class="flex gap-1">
-									<Button variant="ghost" size="icon" onclick={() => editModifier(modifier)}>
-										<IconPencil class="h-4 w-4" />
-									</Button>
-									<Button
-										variant="ghost"
-										size="icon"
-										onclick={() => triggerDeleteModifier(modifier.id)}
-										class="text-destructive hover:text-destructive"
-									>
-										<IconTrash class="h-4 w-4" />
-									</Button>
-								</div>
-							</div>
-						</Card.Header>
-						<Card.Content>
-							<div class="flex flex-wrap gap-2">
-								{#each modifier.options as option}
-									<Badge variant="outline">
-										{option.name}
-										{#if option.price > 0}
-											(+{formatCurrency(option.price)})
-										{/if}
-									</Badge>
-								{/each}
-							</div>
-						</Card.Content>
-					</Card.Root>
-				{/each}
-			</div>
-
-			{#if filteredModifiers.length === 0}
-				<EmptyState type="empty" title="No modifiers" description="Create modifier groups to customize menu items." />
-			{/if}
+	<!-- Search -->
+	<div>
+		<div class="relative max-w-sm">
+			<IconSearch class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+			<Input placeholder="Search modifiers..." bind:value={searchQuery} class="pl-9" />
 		</div>
 	</div>
-</div>
+
+	<!-- Modifiers List -->
+	<div class="grid gap-4">
+		{#each filteredModifiers as modifier (modifier.id)}
+			<Card.Root>
+				<Card.Header>
+					<div class="flex items-start justify-between">
+						<div>
+							<Card.Title class="flex items-center gap-2">
+								{modifier.name}
+								{#if modifier.required}
+									<Badge variant="destructive">Required</Badge>
+								{/if}
+								{#if modifier.multiSelect}
+									<Badge variant="secondary">Multi-select</Badge>
+								{/if}
+							</Card.Title>
+							<Card.Description>
+								{modifier.options.length} option{modifier.options.length === 1 ? '' : 's'}
+							</Card.Description>
+						</div>
+						<div class="flex gap-1">
+							<Button variant="ghost" size="icon" onclick={() => editModifier(modifier)}>
+								<IconPencil class="h-4 w-4" />
+							</Button>
+							<Button
+								variant="ghost"
+								size="icon"
+								onclick={() => triggerDeleteModifier(modifier.id)}
+								class="text-destructive hover:text-destructive"
+							>
+								<IconTrash class="h-4 w-4" />
+							</Button>
+						</div>
+					</div>
+				</Card.Header>
+				<Card.Content>
+					<div class="flex flex-wrap gap-2">
+						{#each modifier.options as option}
+							<Badge variant="outline">
+								{option.name}
+								{#if option.price > 0}
+									(+{formatCurrency(option.price)})
+								{/if}
+							</Badge>
+						{/each}
+					</div>
+				</Card.Content>
+			</Card.Root>
+		{/each}
+	</div>
+
+	{#if filteredModifiers.length === 0}
+		<EmptyState
+			type="empty"
+			title="No modifiers"
+			description="Create modifier groups to customize menu items."
+		/>
+	{/if}
+</PageShell>
 
 <!-- Add Modifier Dialog -->
-<Dialog.Root bind:open={showAddDialog} onOpenChange={(open) => { if (!open) resetNewModifier(); }}>
+<Dialog.Root
+	bind:open={showAddDialog}
+	onOpenChange={(open) => {
+		if (!open) resetNewModifier();
+	}}
+>
 	<Dialog.Content class="max-h-[90vh] overflow-y-auto sm:max-w-lg">
 		<Dialog.Header>
 			<Dialog.Title>Add Modifier</Dialog.Title>
@@ -272,7 +282,12 @@
 		<div class="grid gap-4 py-4">
 			<div class="grid gap-2">
 				<label for="name" class="text-sm font-medium">Name</label>
-				<Input id="name" autofocus bind:value={newModifier.name} placeholder="e.g., Size, Toppings" />
+				<Input
+					id="name"
+					autofocus
+					bind:value={newModifier.name}
+					placeholder="e.g., Size, Toppings"
+				/>
 			</div>
 
 			<div class="flex items-center gap-6">
@@ -290,20 +305,12 @@
 				<label class="text-sm font-medium">Options</label>
 				{#each newModifier.options as option, i}
 					<div class="flex items-center gap-2">
-						<Input
-							bind:value={option.name}
-							placeholder="Option name"
-							class="flex-1"
-						/>
+						<Input bind:value={option.name} placeholder="Option name" class="flex-1" />
 						<div class="relative w-24">
-							<span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{CURRENCY_CONFIG[currency]?.symbol || '$'}</span>
-							<Input
-								type="number"
-								step="0.01"
-								min="0"
-								bind:value={option.price}
-								class="pl-6"
-							/>
+							<span class="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
+								>{CURRENCY_CONFIG[currency]?.symbol || '$'}</span
+							>
+							<Input type="number" step="0.01" min="0" bind:value={option.price} class="pl-6" />
 						</div>
 						{#if newModifier.options.length > 1}
 							<Button variant="ghost" size="sm" onclick={() => removeOption(i)}>
@@ -319,7 +326,9 @@
 			</div>
 		</div>
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (showAddDialog = false)} disabled={saving}>Cancel</Button>
+			<Button variant="outline" onclick={() => (showAddDialog = false)} disabled={saving}
+				>Cancel</Button
+			>
 			<Button onclick={addModifier} disabled={saving}>
 				{#if saving}
 					<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
@@ -341,7 +350,12 @@
 			<div class="grid gap-4 py-4">
 				<div class="grid gap-2">
 					<label for="edit-name" class="text-sm font-medium">Name</label>
-					<Input id="edit-name" autofocus bind:value={editingModifier.name} placeholder="Modifier name" />
+					<Input
+						id="edit-name"
+						autofocus
+						bind:value={editingModifier.name}
+						placeholder="Modifier name"
+					/>
 				</div>
 
 				<div class="flex items-center gap-6">
@@ -359,20 +373,12 @@
 					<label class="text-sm font-medium">Options</label>
 					{#each editingModifier.options as option, i}
 						<div class="flex items-center gap-2">
-							<Input
-								bind:value={option.name}
-								placeholder="Option name"
-								class="flex-1"
-							/>
+							<Input bind:value={option.name} placeholder="Option name" class="flex-1" />
 							<div class="relative w-24">
-								<span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{CURRENCY_CONFIG[currency]?.symbol || '$'}</span>
-								<Input
-									type="number"
-									step="0.01"
-									min="0"
-									bind:value={option.price}
-									class="pl-6"
-								/>
+								<span class="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
+									>{CURRENCY_CONFIG[currency]?.symbol || '$'}</span
+								>
+								<Input type="number" step="0.01" min="0" bind:value={option.price} class="pl-6" />
 							</div>
 							{#if editingModifier.options.length > 1}
 								<Button variant="ghost" size="sm" onclick={() => removeEditOption(i)}>
@@ -388,7 +394,9 @@
 				</div>
 			</div>
 			<Dialog.Footer>
-				<Button variant="outline" onclick={() => (editingModifier = null)} disabled={saving}>Cancel</Button>
+				<Button variant="outline" onclick={() => (editingModifier = null)} disabled={saving}
+					>Cancel</Button
+				>
 				<Button onclick={saveModifier} disabled={saving}>
 					{#if saving}
 						<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />

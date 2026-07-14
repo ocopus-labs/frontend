@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import {
 		IconCash,
@@ -303,11 +303,9 @@
 			await new Promise<void>((resolve, reject) => {
 				if ((window as any).Razorpay) return resolve();
 				existing.addEventListener('load', () => resolve(), { once: true });
-				existing.addEventListener(
-					'error',
-					() => reject(new Error('Failed to load Razorpay')),
-					{ once: true }
-				);
+				existing.addEventListener('error', () => reject(new Error('Failed to load Razorpay')), {
+					once: true
+				});
 			});
 			return;
 		}
@@ -380,9 +378,7 @@
 					theme: { color: '#3b82f6' }
 				});
 				rzp.on('payment.failed', (response: any) => {
-					reject(
-						new Error(response?.error?.description ?? 'Razorpay payment failed')
-					);
+					reject(new Error(response?.error?.description ?? 'Razorpay payment failed'));
 				});
 				rzp.open();
 			});
@@ -396,13 +392,7 @@
 
 	// Fetch UPI QR when method is UPI and amount changes (debounced)
 	$effect(() => {
-		if (
-			open &&
-			mode === 'single' &&
-			paymentMethod === 'upi' &&
-			businessId &&
-			paymentAmount > 0
-		) {
+		if (open && mode === 'single' && paymentMethod === 'upi' && businessId && paymentAmount > 0) {
 			if (qrDebounceTimer) clearTimeout(qrDebounceTimer);
 			qrDebounceTimer = setTimeout(async () => {
 				isLoadingQr = true;
@@ -615,7 +605,7 @@
 				<!-- Payment Method Selection -->
 				<div class="space-y-3">
 					<div class="flex items-center justify-between">
-						<Label class="text-sm font-medium">Payment Method</Label>
+						<Field.Label class="text-sm font-medium">Payment Method</Field.Label>
 						{#if isLoadingCredentials}
 							<span class="flex items-center gap-1 text-xs text-muted-foreground">
 								<IconLoader2 class="h-3 w-3 animate-spin" />
@@ -646,7 +636,7 @@
 
 				<!-- Amount to Pay -->
 				<div class="space-y-2">
-					<Label for="paymentAmount">Amount to Pay</Label>
+					<Field.Label for="paymentAmount">Amount to Pay</Field.Label>
 					<div class="flex gap-2">
 						<Input
 							id="paymentAmount"
@@ -673,7 +663,7 @@
 				<!-- Cash Payment Options -->
 				{#if paymentMethod === 'cash'}
 					<div class="space-y-3">
-						<Label for="cashReceived">Cash Received</Label>
+						<Field.Label for="cashReceived">Cash Received</Field.Label>
 						<Input
 							id="cashReceived"
 							type="number"
@@ -698,9 +688,9 @@
 
 						<!-- Change Display -->
 						{#if change > 0}
-							<div class="rounded-lg bg-emerald-50 p-3 dark:bg-emerald-950">
+							<div class="rounded-lg bg-success/10 p-3">
 								<p class="text-sm text-muted-foreground">Change to return:</p>
-								<p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+								<p class="text-2xl font-bold text-success">
 									{i18n.formatCurrency(change)}
 								</p>
 							</div>
@@ -711,24 +701,24 @@
 				<!-- UPI QR Code -->
 				{#if paymentMethod === 'upi' && businessId}
 					<div class="space-y-3">
-						<Label class="text-sm font-medium">Scan to Pay</Label>
-						<div class="flex flex-col items-center gap-2 rounded-lg border border-border bg-muted/30 p-4">
+						<Field.Label class="text-sm font-medium">Scan to Pay</Field.Label>
+						<div
+							class="flex flex-col items-center gap-2 rounded-lg border border-border bg-muted/30 p-4"
+						>
 							{#if isLoadingQr}
 								<div class="flex h-[200px] w-[200px] items-center justify-center">
 									<IconLoader2 class="h-8 w-8 animate-spin text-muted-foreground" />
 								</div>
 								<p class="text-xs text-muted-foreground">Generating QR code...</p>
 							{:else if upiQrDataUrl}
-								<img
-									src={upiQrDataUrl}
-									alt="UPI Payment QR Code"
-									class="h-[200px] w-[200px]"
-								/>
+								<img src={upiQrDataUrl} alt="UPI Payment QR Code" class="h-[200px] w-[200px]" />
 								<p class="text-xs text-muted-foreground">
 									Ask customer to scan and pay {i18n.formatCurrency(paymentAmount)}
 								</p>
 							{:else}
-								<div class="flex h-[200px] w-[200px] items-center justify-center rounded-lg border border-dashed border-border">
+								<div
+									class="flex h-[200px] w-[200px] items-center justify-center rounded-lg border border-dashed border-border"
+								>
 									<p class="text-center text-xs text-muted-foreground">
 										UPI QR not available.<br />Configure in Settings &gt; UPI Payments.
 									</p>
@@ -741,8 +731,8 @@
 				<!-- Card Transaction Reference (required) -->
 				{#if paymentMethod === 'card'}
 					<div class="space-y-2">
-						<Label for="transactionRef"
-							>Transaction Reference <span class="text-destructive">*</span></Label
+						<Field.Label for="transactionRef"
+							>Transaction Reference <span class="text-destructive">*</span></Field.Label
 						>
 						<Input
 							id="transactionRef"
@@ -763,7 +753,11 @@
 				<!-- UPI Reference (optional) -->
 				{#if paymentMethod === 'upi'}
 					<div class="space-y-2">
-						<Label for="upiRef" class="text-sm">UTR / Reference Number <span class="text-muted-foreground font-normal">(optional)</span></Label>
+						<Field.Label for="upiRef" class="text-sm"
+							>UTR / Reference Number <span class="font-normal text-muted-foreground"
+								>(optional)</span
+							></Field.Label
+						>
 						<Input
 							id="upiRef"
 							type="text"
@@ -779,7 +773,7 @@
 				<!-- Stripe Card Input -->
 				{#if paymentMethod === 'stripe'}
 					<div class="space-y-3">
-						<Label class="text-sm font-medium">Card Details</Label>
+						<Field.Label class="text-sm font-medium">Card Details</Field.Label>
 						<div
 							bind:this={stripeCardContainer}
 							class="rounded-md border border-border bg-background p-3"
@@ -804,8 +798,8 @@
 							<div class="space-y-1">
 								<p class="text-sm font-medium">Razorpay Checkout</p>
 								<p class="text-xs text-muted-foreground">
-									Clicking "Pay" will open the Razorpay secure checkout widget. The customer
-									can pay with card, UPI, net banking, or wallets.
+									Clicking "Pay" will open the Razorpay secure checkout widget. The customer can pay
+									with card, UPI, net banking, or wallets.
 								</p>
 							</div>
 						</div>
@@ -817,7 +811,7 @@
 
 				<!-- Tip (single payment mode only) -->
 				<div class="space-y-2">
-					<Label for="tipAmount">Tip (optional)</Label>
+					<Field.Label for="tipAmount">Tip (optional)</Field.Label>
 					<Input
 						id="tipAmount"
 						type="number"
@@ -846,7 +840,7 @@
 							<span>{i18n.formatCurrency(cashReceived)}</span>
 						</div>
 						{#if change > 0}
-							<div class="flex justify-between text-sm text-emerald-600 dark:text-emerald-400">
+							<div class="flex justify-between text-sm text-success">
 								<span>Change:</span>
 								<span>{i18n.formatCurrency(change)}</span>
 							</div>
@@ -854,7 +848,7 @@
 					{/if}
 					{#if paymentAmount < balanceDue}
 						<div class="mt-2 border-t border-border pt-2">
-							<div class="flex justify-between text-sm text-amber-600 dark:text-amber-400">
+							<div class="flex justify-between text-sm text-warning">
 								<span>Remaining Balance:</span>
 								<span>{i18n.formatCurrency(balanceDue - paymentAmount)}</span>
 							</div>
@@ -865,7 +859,7 @@
 				<!-- SPLIT PAYMENT MODE -->
 				<div class="space-y-4">
 					<div class="flex items-center justify-between">
-						<Label class="text-sm font-medium">Payment Entries</Label>
+						<Field.Label class="text-sm font-medium">Payment Entries</Field.Label>
 						<div class="flex gap-2">
 							<Button variant="outline" size="sm" onclick={autoDistribute}>Split Evenly</Button>
 							<Button variant="outline" size="sm" onclick={addSplitEntry}>
@@ -925,7 +919,7 @@
 							<!-- Cash received for cash entries -->
 							{#if entry.method === 'cash'}
 								<div class="space-y-1">
-									<Label class="text-xs">Cash Received</Label>
+									<Field.Label class="text-xs">Cash Received</Field.Label>
 									<Input
 										type="number"
 										value={entry.cashReceived ?? entry.amount}
@@ -940,7 +934,7 @@
 										class="text-sm"
 									/>
 									{#if (entry.cashReceived ?? 0) > entry.amount}
-										<p class="text-xs text-emerald-600 dark:text-emerald-400">
+										<p class="text-xs text-success">
 											Change: {i18n.formatCurrency((entry.cashReceived ?? 0) - entry.amount)}
 										</p>
 									{/if}
@@ -964,7 +958,7 @@
 							</span>
 						</div>
 						{#if Math.abs(splitRemaining) >= 0.01}
-							<div class="flex justify-between text-sm text-amber-600 dark:text-amber-400">
+							<div class="flex justify-between text-sm text-warning">
 								<span>{splitRemaining > 0 ? 'Remaining:' : 'Over by:'}</span>
 								<span>{i18n.formatCurrency(Math.abs(splitRemaining))}</span>
 							</div>
@@ -991,12 +985,17 @@
 						{#if isStripeLoading}
 							<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
 						{/if}
-						{isStripeLoading ? 'Processing...' : `Pay ${i18n.formatCurrency(paymentAmount)} with Stripe`}
+						{isStripeLoading
+							? 'Processing...'
+							: `Pay ${i18n.formatCurrency(paymentAmount)} with Stripe`}
 					</Button>
 				{:else if paymentMethod === 'razorpay'}
 					<Button
 						onclick={handleRazorpayPayment}
-						disabled={isRazorpayLoading || isProcessing || paymentAmount <= 0 || !resolvedRazorpayKey}
+						disabled={isRazorpayLoading ||
+							isProcessing ||
+							paymentAmount <= 0 ||
+							!resolvedRazorpayKey}
 					>
 						{#if isRazorpayLoading}
 							<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />

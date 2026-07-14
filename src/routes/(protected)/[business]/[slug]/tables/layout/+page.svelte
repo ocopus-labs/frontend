@@ -8,7 +8,14 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
 	import { IconLoader2 } from '@tabler/icons-svelte';
-	import { IconPlus, IconUsers, IconExternalLink, IconQrcode, IconDownload, IconPrinter } from '@tabler/icons-svelte';
+	import {
+		IconPlus,
+		IconUsers,
+		IconExternalLink,
+		IconQrcode,
+		IconDownload,
+		IconPrinter
+	} from '@tabler/icons-svelte';
 	import { EmptyState } from '$lib/components/data-display';
 	import { toast } from 'svelte-sonner';
 	import { TableFloorPlan } from '$lib/components/pos';
@@ -88,7 +95,10 @@
 	const hasPendingChanges = $derived(pendingPositionChanges.size > 0);
 
 	// Auto-generate next table number (Issue 1.9)
-	function getNextTableNumber(existingTables: Table[]): { tableNumber: string; displayName: string } {
+	function getNextTableNumber(existingTables: Table[]): {
+		tableNumber: string;
+		displayName: string;
+	} {
 		let maxNum = 0;
 		for (const t of existingTables) {
 			const match = t.tableNumber.match(/(\d+)$/);
@@ -337,7 +347,11 @@
 		try {
 			const result = await endTableSession(data.businessId, editingTable.id);
 			tables = tables.map((t) => (t.id === editingTable!.id ? result.table : t));
-			editingTable = { ...editingTable, status: 'available' as TableStatus, currentSession: undefined };
+			editingTable = {
+				...editingTable,
+				status: 'available' as TableStatus,
+				currentSession: undefined
+			};
 			toast.success('Table session ended');
 		} catch (error) {
 			toast.error(userFriendlyError(error, 'Failed to end session'));
@@ -427,9 +441,7 @@
 			<div class="flex items-center gap-2">
 				{#if hasPendingChanges}
 					<Badge variant="secondary">{pendingPositionChanges.size} unsaved</Badge>
-					<Button variant="outline" size="sm" onclick={discardLayoutChanges}>
-						Discard
-					</Button>
+					<Button variant="outline" size="sm" onclick={discardLayoutChanges}>Discard</Button>
 					<Button size="sm" onclick={saveLayout} disabled={isSavingLayout}>
 						{#if isSavingLayout}
 							<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
@@ -437,7 +449,11 @@
 						Save Layout
 					</Button>
 				{/if}
-				<Button variant="outline" onclick={handleGenerateAllQrs} disabled={isGeneratingAllQrs || tables.length === 0}>
+				<Button
+					variant="outline"
+					onclick={handleGenerateAllQrs}
+					disabled={isGeneratingAllQrs || tables.length === 0}
+				>
 					{#if isGeneratingAllQrs}
 						<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
 					{:else}
@@ -491,14 +507,18 @@
 					<Card.Title class="text-sm font-medium">Maintenance</Card.Title>
 				</Card.Header>
 				<Card.Content>
-					<div class="text-2xl font-bold text-orange-600">{stats.maintenance}</div>
+					<div class="text-2xl font-bold text-warning">{stats.maintenance}</div>
 				</Card.Content>
 			</Card.Root>
 		</div>
 
 		<!-- Floor Plan -->
 		{#if tables.length === 0}
-			<EmptyState type="empty" title="No tables" description="Add tables to set up your floor plan." />
+			<EmptyState
+				type="empty"
+				title="No tables"
+				description="Add tables to set up your floor plan."
+			/>
 		{:else}
 			<div class="flex-1 px-6 pb-6">
 				<TableFloorPlan
@@ -530,7 +550,12 @@
 		<div class="grid gap-4 py-4">
 			<div class="grid gap-2">
 				<label for="tableNumber" class="text-sm font-medium">Table Number</label>
-				<Input id="tableNumber" autofocus bind:value={newTable.tableNumber} placeholder="e.g., T-16" />
+				<Input
+					id="tableNumber"
+					autofocus
+					bind:value={newTable.tableNumber}
+					placeholder="e.g., T-16"
+				/>
 			</div>
 			<div class="grid gap-2">
 				<label for="displayName" class="text-sm font-medium">Display Name</label>
@@ -548,17 +573,31 @@
 					<div class="flex gap-2">
 						<button
 							type="button"
-							class="flex flex-1 flex-col items-center gap-1 rounded-md border p-2 text-xs transition-colors {newTable.shape === 'square' ? 'border-primary bg-primary/10 text-primary' : 'border-input hover:bg-accent'}"
+							class="flex flex-1 flex-col items-center gap-1 rounded-md border p-2 text-xs transition-colors {newTable.shape ===
+							'square'
+								? 'border-primary bg-primary/10 text-primary'
+								: 'border-input hover:bg-accent'}"
 							onclick={() => (newTable.shape = 'square')}
 						>
 							<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-								<rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2" />
+								<rect
+									x="4"
+									y="4"
+									width="16"
+									height="16"
+									rx="2"
+									stroke="currentColor"
+									stroke-width="2"
+								/>
 							</svg>
 							Square
 						</button>
 						<button
 							type="button"
-							class="flex flex-1 flex-col items-center gap-1 rounded-md border p-2 text-xs transition-colors {newTable.shape === 'round' ? 'border-primary bg-primary/10 text-primary' : 'border-input hover:bg-accent'}"
+							class="flex flex-1 flex-col items-center gap-1 rounded-md border p-2 text-xs transition-colors {newTable.shape ===
+							'round'
+								? 'border-primary bg-primary/10 text-primary'
+								: 'border-input hover:bg-accent'}"
 							onclick={() => (newTable.shape = 'round')}
 						>
 							<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -568,11 +607,22 @@
 						</button>
 						<button
 							type="button"
-							class="flex flex-1 flex-col items-center gap-1 rounded-md border p-2 text-xs transition-colors {newTable.shape === 'rectangle' ? 'border-primary bg-primary/10 text-primary' : 'border-input hover:bg-accent'}"
+							class="flex flex-1 flex-col items-center gap-1 rounded-md border p-2 text-xs transition-colors {newTable.shape ===
+							'rectangle'
+								? 'border-primary bg-primary/10 text-primary'
+								: 'border-input hover:bg-accent'}"
 							onclick={() => (newTable.shape = 'rectangle')}
 						>
 							<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-								<rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="2" />
+								<rect
+									x="2"
+									y="6"
+									width="20"
+									height="12"
+									rx="2"
+									stroke="currentColor"
+									stroke-width="2"
+								/>
 							</svg>
 							Rect
 						</button>
@@ -626,14 +676,19 @@
 							<div class="text-sm">
 								<span class="font-medium">#{editingTable.currentSession.orderNumber}</span>
 								{#if editingTable.currentSession.startedAt}
-									<span class="text-muted-foreground"> &middot; {formatRelativeTime(editingTable.currentSession.startedAt)}</span>
+									<span class="text-muted-foreground">
+										&middot; {formatRelativeTime(editingTable.currentSession.startedAt)}</span
+									>
 								{/if}
 								{#if editingTable.currentSession.customerCount}
-									<span class="text-muted-foreground"> &middot; {editingTable.currentSession.customerCount} guests</span>
+									<span class="text-muted-foreground">
+										&middot; {editingTable.currentSession.customerCount} guests</span
+									>
 								{/if}
 							</div>
 							<a
-								href="/{$page.params.business}/{$page.params.slug}/orders/{editingTable.currentSession.orderId}"
+								href="/{$page.params.business}/{$page.params.slug}/orders/{editingTable
+									.currentSession.orderId}"
 								class="inline-flex items-center gap-1 text-xs text-primary hover:underline"
 							>
 								View <IconExternalLink class="h-3 w-3" />
@@ -677,9 +732,21 @@
 				<div class="grid gap-2">
 					<!-- svelte-ignore a11y_label_has_associated_control -->
 					<label class="text-sm font-medium">Status</label>
-					<Select.Root type="single" value={editingTable.status} onValueChange={(v) => handleStatusChangeInDialog(v as TableStatus)}>
+					<Select.Root
+						type="single"
+						value={editingTable.status}
+						onValueChange={(v) => handleStatusChangeInDialog(v as TableStatus)}
+					>
 						<Select.Trigger class="w-full">
-							{({ available: 'Available', occupied: 'Occupied', reserved: 'Reserved', maintenance: 'Maintenance', out_of_service: 'Out of Service' } as Record<string, string>)[editingTable.status] || editingTable.status}
+							{(
+								{
+									available: 'Available',
+									occupied: 'Occupied',
+									reserved: 'Reserved',
+									maintenance: 'Maintenance',
+									out_of_service: 'Out of Service'
+								} as Record<string, string>
+							)[editingTable.status] || editingTable.status}
 						</Select.Trigger>
 						<Select.Content>
 							<Select.Item value="available">Available</Select.Item>
@@ -691,11 +758,11 @@
 					</Select.Root>
 				</div>
 				{#if editingTable.status === 'occupied' && editingTable.currentSession}
-				<div>
-					<Button variant="outline" size="sm" class="w-full" onclick={handleEndSession}>
-						End Session &amp; Free Table
-					</Button>
-				</div>
+					<div>
+						<Button variant="outline" size="sm" class="w-full" onclick={handleEndSession}>
+							End Session &amp; Free Table
+						</Button>
+					</div>
 				{/if}
 
 				<!-- QR Code Section -->
@@ -703,12 +770,10 @@
 					<!-- svelte-ignore a11y_label_has_associated_control -->
 					<label class="text-sm font-medium">QR Code</label>
 					{#if editTableQr?.dataUrl}
-						<div class="flex flex-col items-center gap-3 rounded-lg border border-border bg-muted/30 p-4">
-							<img
-								src={editTableQr.dataUrl}
-								alt="Table QR Code"
-								class="h-[160px] w-[160px]"
-							/>
+						<div
+							class="flex flex-col items-center gap-3 rounded-lg border border-border bg-muted/30 p-4"
+						>
+							<img src={editTableQr.dataUrl} alt="Table QR Code" class="h-[160px] w-[160px]" />
 							<p class="text-xs text-muted-foreground">
 								{editTableQr.url}
 							</p>
@@ -716,7 +781,11 @@
 								<Button
 									variant="outline"
 									size="sm"
-									onclick={() => downloadQr(editTableQr!.dataUrl, editingTable!.displayName || editingTable!.tableNumber)}
+									onclick={() =>
+										downloadQr(
+											editTableQr!.dataUrl,
+											editingTable!.displayName || editingTable!.tableNumber
+										)}
 								>
 									<IconDownload class="mr-1 h-3.5 w-3.5" />
 									Download
@@ -724,7 +793,11 @@
 								<Button
 									variant="outline"
 									size="sm"
-									onclick={() => printQr(editTableQr!.dataUrl, editingTable!.displayName || editingTable!.tableNumber)}
+									onclick={() =>
+										printQr(
+											editTableQr!.dataUrl,
+											editingTable!.displayName || editingTable!.tableNumber
+										)}
 								>
 									<IconPrinter class="mr-1 h-3.5 w-3.5" />
 									Print
