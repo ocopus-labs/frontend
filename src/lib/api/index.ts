@@ -623,11 +623,13 @@ export {
 	createOnlineOrderPaymentIntent,
 	createOnlineOrderRazorpayOrder,
 	verifyOnlineOrderRazorpayPayment,
+	previewOnlineCoupon,
 	type OnlineBusinessConfig,
 	type OnlineMenuItem,
 	type OnlineMenuCategory,
 	type OnlineCheckoutPayload,
-	type OnlineCheckoutResult
+	type OnlineCheckoutResult,
+	type CouponPreview
 } from './online-order';
 
 // Online Ordering Settings API
@@ -636,6 +638,17 @@ export {
 	updateOnlineOrderingSettings,
 	type OnlineOrderingConfig
 } from './online-ordering';
+
+// Coupons (admin) API
+export {
+	listCoupons,
+	createCoupon,
+	updateCoupon,
+	deleteCoupon,
+	type Coupon,
+	type CouponInput,
+	type CouponDiscountType
+} from './coupon';
 
 // Reviews & ratings API
 export {

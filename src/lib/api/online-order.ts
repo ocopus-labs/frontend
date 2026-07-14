@@ -83,6 +83,7 @@ export interface OnlineCheckoutPayload {
 	deliveryAddress?: string;
 	deliveryNotes?: string;
 	paymentMethod: string;
+	couponCode?: string;
 }
 
 export interface OnlineCheckoutResult {
@@ -93,6 +94,7 @@ export interface OnlineCheckoutResult {
 		paymentStatus: string;
 		items: any[];
 		pricing: any;
+		discountsApplied?: any[];
 		orderType: string;
 		orderChannel: string;
 		deliveryAddress: string | null;
@@ -101,6 +103,19 @@ export interface OnlineCheckoutResult {
 	};
 	trackingToken: string;
 	estimatedPrepTime: number;
+	coupon?: {
+		code: string;
+		discountAmount: number;
+		freeDelivery: boolean;
+	};
+}
+
+export interface CouponPreview {
+	code: string;
+	description: string | null;
+	discountType: 'flat' | 'percent' | 'free_delivery';
+	discountAmount: number;
+	freeDelivery: boolean;
 }
 
 type FetchOption = { fetch?: typeof fetch };
@@ -130,6 +145,15 @@ export async function onlineCheckout(
 ): Promise<OnlineCheckoutResult> {
 	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
 	return api.post(`/order-online/${slug}/checkout`, data);
+}
+
+export async function previewOnlineCoupon(
+	slug: string,
+	data: { code: string; subtotal: number; orderType: 'takeaway' | 'delivery' },
+	options?: FetchOption
+): Promise<CouponPreview> {
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.post(`/order-online/${slug}/coupon/preview`, data);
 }
 
 export async function createOnlineOrderPaymentIntent(
