@@ -10,6 +10,8 @@
 	} from '$lib/api/customer-me';
 	import { toast } from 'svelte-sonner';
 	import { Shimmer } from '@shimmer-from-structure/svelte';
+	import { Input } from '$lib/components/ui/input';
+	import * as Field from '$lib/components/ui/field';
 	import MapPinIcon from '@lucide/svelte/icons/map-pin';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import PencilIcon from '@lucide/svelte/icons/pencil';
@@ -233,72 +235,76 @@
 	{/if}
 
 	{#if formOpen}
-		<div class="mt-3 space-y-3 rounded-xl border border-border bg-card p-4">
-			<div class="flex flex-wrap gap-2">
-				{#each LABEL_PRESETS as preset (preset)}
-					<button
-						type="button"
-						class="rounded-full px-3 py-1 text-xs font-medium transition-all {form.label === preset
-							? 'bg-primary text-primary-foreground'
-							: 'bg-muted text-muted-foreground hover:bg-muted'}"
-						onclick={() => (form.label = preset)}
-					>
-						{preset}
-					</button>
-				{/each}
-			</div>
+		<div class="mt-3 rounded-xl border border-border bg-card p-4">
+			<Field.Group>
+				<Field.Field>
+					<Field.Label>Label</Field.Label>
+					<div class="flex flex-wrap gap-2">
+						{#each LABEL_PRESETS as preset (preset)}
+							<button
+								type="button"
+								class="rounded-full px-3 py-1 text-xs font-medium transition-all {form.label ===
+								preset
+									? 'bg-primary text-primary-foreground'
+									: 'bg-muted text-muted-foreground hover:bg-muted'}"
+								onclick={() => (form.label = preset)}
+							>
+								{preset}
+							</button>
+						{/each}
+					</div>
+				</Field.Field>
 
-			<input
-				class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-				placeholder="Flat / House no, Building, Street *"
-				bind:value={form.line1}
-				maxlength="200"
-			/>
-			<input
-				class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-				placeholder="Area / Locality"
-				bind:value={form.line2}
-				maxlength="200"
-			/>
-			<input
-				class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-				placeholder="Landmark (optional)"
-				bind:value={form.landmark}
-				maxlength="120"
-			/>
-			<div class="flex gap-2">
-				<input
-					class="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
-					placeholder="City *"
-					bind:value={form.city}
-					maxlength="100"
-				/>
-				<input
-					class="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
-					placeholder="Pincode *"
-					bind:value={form.pincode}
-					inputmode="numeric"
-					maxlength="12"
-				/>
-			</div>
-			<input
-				class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-				placeholder="Contact phone (optional)"
-				bind:value={form.contactPhone}
-				inputmode="tel"
-				maxlength="20"
-			/>
+				<Field.Field>
+					<Field.Label for="addr-line1">Address *</Field.Label>
+					<Input
+						id="addr-line1"
+						placeholder="Flat / House no, Building, Street"
+						bind:value={form.line1}
+						maxlength={200}
+					/>
+				</Field.Field>
 
-			<label class="flex items-center gap-2 text-sm text-muted-foreground">
-				<input
-					type="checkbox"
-					bind:checked={form.isDefault}
-					class="h-4 w-4 rounded border-border"
-				/>
-				Set as default address
-			</label>
+				<Field.Field>
+					<Field.Label for="addr-line2">Area / Locality</Field.Label>
+					<Input id="addr-line2" bind:value={form.line2} maxlength={200} />
+				</Field.Field>
 
-			<div class="flex gap-2 pt-1">
+				<Field.Field>
+					<Field.Label for="addr-landmark">Landmark</Field.Label>
+					<Input id="addr-landmark" bind:value={form.landmark} maxlength={120} />
+				</Field.Field>
+
+				<div class="flex gap-3">
+					<Field.Field class="flex-1">
+						<Field.Label for="addr-city">City *</Field.Label>
+						<Input id="addr-city" bind:value={form.city} maxlength={100} />
+					</Field.Field>
+					<Field.Field class="flex-1">
+						<Field.Label for="addr-pincode">Pincode *</Field.Label>
+						<Input id="addr-pincode" bind:value={form.pincode} inputmode="numeric" maxlength={12} />
+					</Field.Field>
+				</div>
+
+				<Field.Field>
+					<Field.Label for="addr-phone">Contact phone</Field.Label>
+					<Input id="addr-phone" bind:value={form.contactPhone} inputmode="tel" maxlength={20} />
+				</Field.Field>
+
+				<Field.Field orientation="horizontal">
+					<input
+						id="addr-default"
+						type="checkbox"
+						bind:checked={form.isDefault}
+						class="h-4 w-4 rounded border-border"
+					/>
+					<Field.Label for="addr-default" class="text-muted-foreground">
+						Set as default address
+					</Field.Label>
+				</Field.Field>
+			</Field.Group>
+
+			<div class="mt-4 flex gap-2">
 				<button
 					class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
 					onclick={save}
