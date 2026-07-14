@@ -1,7 +1,10 @@
 <script lang="ts">
 	import type { CustomerOrder } from '$lib/api/customer-me';
-	import { getOrders } from '$lib/api/customer-me';
+	import { getOrders, reorder } from '$lib/api/customer-me';
+	import { goto } from '$app/navigation';
+	import { toast } from 'svelte-sonner';
 	import Loader2Icon from '@lucide/svelte/icons/loader-2';
+	import RotateCcwIcon from '@lucide/svelte/icons/rotate-ccw';
 	import { Shimmer } from '@shimmer-from-structure/svelte';
 
 	// Placeholder rows rendered while loading so <Shimmer> can measure the real
@@ -34,6 +37,41 @@
 	let loading = $state(true);
 	let loadingMore = $state(false);
 	let error = $state('');
+	let reordering = $state<Record<string, boolean>>({});
+
+	async function handleReorder(order: CustomerOrder) {
+		reordering = { ...reordering, [order.id]: true };
+		try {
+			const result = await reorder(order.id);
+			if (result.items.length === 0) {
+				toast.error('None of these items are available to reorder right now.');
+				return;
+			}
+			// Hydrate the same localStorage cart the ordering page reads on load.
+			const cartItems = result.items.map((it) => ({
+				cartId: crypto.randomUUID(),
+				menuItemId: it.menuItemId,
+				name: it.name,
+				image: it.image,
+				quantity: it.quantity,
+				basePrice: it.basePrice,
+				unitPrice: it.unitPrice
+			}));
+			localStorage.setItem(`online-cart:${result.slug}`, JSON.stringify(cartItems));
+
+			if (result.unavailable.length > 0) {
+				const names = result.unavailable.map((u) => u.name).join(', ');
+				toast.warning(`Some items are no longer available: ${names}`);
+			} else {
+				toast.success('Items added to your cart');
+			}
+			await goto(`/order-online/${result.slug}`);
+		} catch (e: unknown) {
+			toast.error(e instanceof Error ? e.message : 'Failed to reorder');
+		} finally {
+			reordering = { ...reordering, [order.id]: false };
+		}
+	}
 
 	async function fetchOrders(cursor?: string) {
 		try {
@@ -155,7 +193,23 @@
 							{/if}
 						</p>
 					</div>
-					<span class="shrink-0 text-sm font-bold text-primary">{getTotal(order)}</span>
+					<div class="flex shrink-0 flex-col items-end gap-2">
+						<span class="text-sm font-bold text-primary">{getTotal(order)}</span>
+						{#if !loading}
+							<button
+								class="flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium text-primary transition-all hover:bg-primary/10 active:scale-[0.98] disabled:opacity-50"
+								onclick={() => handleReorder(order)}
+								disabled={reordering[order.id]}
+							>
+								{#if reordering[order.id]}
+									<Loader2Icon class="h-3 w-3 animate-spin" />
+								{:else}
+									<RotateCcwIcon class="h-3 w-3" />
+								{/if}
+								Reorder
+							</button>
+						{/if}
+					</div>
 				</div>
 			{/each}
 		</div>

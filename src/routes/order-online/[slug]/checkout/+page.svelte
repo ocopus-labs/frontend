@@ -14,6 +14,7 @@
 		type OnlineCheckoutPayload
 	} from '$lib/api';
 	import { useCustomerSession } from '$lib/customer-auth';
+	import { listAddresses, type CustomerAddress } from '$lib/api/customer-me';
 	import { AuthModal, PhoneVerifyGate } from '$lib/components/customer-auth';
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
 	import UserIcon from '@lucide/svelte/icons/user';
@@ -177,6 +178,36 @@
 	});
 	let deliveryAddress = $state('');
 	let deliveryNotes = $state('');
+
+	// ── Saved addresses (logged-in customers) ──
+	let savedAddresses = $state<CustomerAddress[]>([]);
+	let selectedAddressId = $state<string | null>(null);
+	let addressesLoaded = $state(false);
+
+	function formatSavedAddress(a: CustomerAddress): string {
+		return [a.line1, a.line2, a.landmark, a.city, a.state, a.pincode].filter(Boolean).join(', ');
+	}
+
+	function pickSavedAddress(a: CustomerAddress) {
+		selectedAddressId = a.id;
+		deliveryAddress = formatSavedAddress(a);
+	}
+
+	// Load saved addresses once the customer is authenticated; prefill with default.
+	$effect(() => {
+		const user = $customerSession?.data?.user;
+		if (!user || addressesLoaded) return;
+		addressesLoaded = true;
+		listAddresses()
+			.then((res) => {
+				savedAddresses = res.addresses;
+				const def = res.addresses.find((a) => a.isDefault) ?? res.addresses[0];
+				if (def && !deliveryAddress.trim()) pickSavedAddress(def);
+			})
+			.catch(() => {
+				/* non-blocking — customer can still type a new address */
+			});
+	});
 	// Legacy acceptedPaymentMethods value (cash/online/upi/card) — kept for backward-compat payload
 	let paymentMethod = $state('cash');
 	// New gateway selector for the checkout UI
@@ -967,6 +998,56 @@
 								</div>
 							</div>
 							<div class="space-y-4">
+								{#if savedAddresses.length > 0}
+									<div class="space-y-2">
+										<span class="text-xs font-semibold text-muted-foreground">Saved addresses</span>
+										<div class="grid gap-2">
+											{#each savedAddresses as a (a.id)}
+												<button
+													type="button"
+													class="flex items-start gap-2 rounded-xl border px-3 py-2.5 text-left transition-colors {selectedAddressId ===
+													a.id
+														? 'border-primary bg-primary/5'
+														: 'border-border bg-muted/40 hover:border-primary/40'}"
+													onclick={() => pickSavedAddress(a)}
+												>
+													<MapPinIcon
+														class="mt-0.5 h-4 w-4 shrink-0 {selectedAddressId === a.id
+															? 'text-primary'
+															: 'text-muted-foreground'}"
+													/>
+													<span class="min-w-0">
+														<span class="flex items-center gap-1.5">
+															<span class="text-sm font-semibold">{a.label}</span>
+															{#if a.isDefault}
+																<span
+																	class="rounded-full bg-success/15 px-1.5 py-0.5 text-[9px] font-semibold text-success"
+																	>Default</span
+																>
+															{/if}
+														</span>
+														<span class="mt-0.5 block text-xs text-muted-foreground"
+															>{formatSavedAddress(a)}</span
+														>
+													</span>
+												</button>
+											{/each}
+											<button
+												type="button"
+												class="rounded-xl border border-dashed border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary {selectedAddressId ===
+												null
+													? 'border-primary text-primary'
+													: ''}"
+												onclick={() => {
+													selectedAddressId = null;
+													deliveryAddress = '';
+												}}
+											>
+												+ Use a new address
+											</button>
+										</div>
+									</div>
+								{/if}
 								<div class="space-y-1.5">
 									<label for="address" class="text-xs font-semibold text-muted-foreground"
 										>Full Address *</label
@@ -974,6 +1055,7 @@
 									<textarea
 										id="address"
 										bind:value={deliveryAddress}
+										oninput={() => (selectedAddressId = null)}
 										placeholder="House/flat number, street, area, landmark..."
 										rows="3"
 										class="w-full resize-none rounded-xl border border-border bg-muted/40 p-3 text-sm transition-colors outline-none focus:border-primary focus:bg-background focus:ring-1 focus:ring-primary"

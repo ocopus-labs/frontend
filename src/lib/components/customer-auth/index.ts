@@ -4,3 +4,4 @@ export { default as PhoneVerifyGate } from './PhoneVerifyGate.svelte';
 export { default as LoyaltyCard } from './LoyaltyCard.svelte';
 export { default as OrderHistoryList } from './OrderHistoryList.svelte';
 export { default as SessionList } from './SessionList.svelte';
+export { default as AddressBook } from './AddressBook.svelte';

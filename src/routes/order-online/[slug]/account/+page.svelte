@@ -10,13 +10,19 @@
 		type LoyaltyEntry,
 		type CustomerSession
 	} from '$lib/api/customer-me';
-	import { LoyaltyCard, OrderHistoryList, SessionList } from '$lib/components/customer-auth';
+	import {
+		LoyaltyCard,
+		OrderHistoryList,
+		SessionList,
+		AddressBook
+	} from '$lib/components/customer-auth';
 	import { APP_NAME } from '$lib/constants/config';
 	import { Shimmer } from '@shimmer-from-structure/svelte';
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
 	import UserIcon from '@lucide/svelte/icons/user';
 	import StarIcon from '@lucide/svelte/icons/star';
 	import ReceiptIcon from '@lucide/svelte/icons/receipt';
+	import MapPinIcon from '@lucide/svelte/icons/map-pin';
 	import ShieldIcon from '@lucide/svelte/icons/shield';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import Loader2Icon from '@lucide/svelte/icons/loader-2';
@@ -190,6 +196,17 @@
 					{/if}
 				</button>
 			</div>
+		</div>
+
+		<!-- Saved addresses section -->
+		<div class="rounded-2xl border border-border bg-card p-5 shadow-sm">
+			<div class="mb-4 flex items-center gap-2">
+				<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+					<MapPinIcon class="h-4 w-4 text-primary" />
+				</div>
+				<h2 class="text-sm font-bold">Saved Addresses</h2>
+			</div>
+			<AddressBook />
 		</div>
 
 		<!-- Loyalty section -->

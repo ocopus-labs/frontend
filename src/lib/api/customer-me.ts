@@ -44,6 +44,55 @@ export type CustomerSession = {
 	current: boolean;
 };
 
+export type CustomerAddress = {
+	id: string;
+	label: string;
+	contactName: string | null;
+	contactPhone: string | null;
+	line1: string;
+	line2: string | null;
+	landmark: string | null;
+	city: string;
+	state: string | null;
+	pincode: string;
+	latitude: number | null;
+	longitude: number | null;
+	isDefault: boolean;
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type AddressInput = {
+	label?: string;
+	contactName?: string;
+	contactPhone?: string;
+	line1: string;
+	line2?: string;
+	landmark?: string;
+	city: string;
+	state?: string;
+	pincode: string;
+	latitude?: number;
+	longitude?: number;
+	isDefault?: boolean;
+};
+
+export type ReorderCartItem = {
+	menuItemId: string;
+	name: string;
+	image?: string;
+	quantity: number;
+	basePrice: number;
+	unitPrice: number;
+};
+
+export type ReorderResult = {
+	slug: string;
+	restaurantName: string;
+	items: ReorderCartItem[];
+	unavailable: { name: string }[];
+};
+
 type FetchOption = { fetch?: typeof fetch };
 
 // ==================== API ====================
@@ -79,4 +128,50 @@ export async function getSessions(options?: FetchOption): Promise<{ sessions: Cu
 export async function revokeSession(id: string, options?: FetchOption): Promise<{ revoked: true }> {
 	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
 	return api.post(`/customer-auth/me/sessions/${encodeURIComponent(id)}/revoke`);
+}
+
+// ==================== Saved addresses ====================
+
+export async function listAddresses(
+	options?: FetchOption
+): Promise<{ addresses: CustomerAddress[] }> {
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.get('/customer-auth/me/addresses');
+}
+
+export async function createAddress(
+	input: AddressInput,
+	options?: FetchOption
+): Promise<{ address: CustomerAddress }> {
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.post('/customer-auth/me/addresses', input);
+}
+
+export async function updateAddress(
+	id: string,
+	input: Partial<AddressInput>,
+	options?: FetchOption
+): Promise<{ address: CustomerAddress }> {
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.patch(`/customer-auth/me/addresses/${encodeURIComponent(id)}`, input);
+}
+
+export async function setDefaultAddress(
+	id: string,
+	options?: FetchOption
+): Promise<{ updated: true }> {
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.post(`/customer-auth/me/addresses/${encodeURIComponent(id)}/default`);
+}
+
+export async function deleteAddress(id: string, options?: FetchOption): Promise<{ deleted: true }> {
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.delete(`/customer-auth/me/addresses/${encodeURIComponent(id)}`);
+}
+
+// ==================== Reorder ====================
+
+export async function reorder(orderId: string, options?: FetchOption): Promise<ReorderResult> {
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.post(`/customer-auth/me/orders/${encodeURIComponent(orderId)}/reorder`);
 }
