@@ -5,7 +5,9 @@
 	import { toast } from 'svelte-sonner';
 	import Loader2Icon from '@lucide/svelte/icons/loader-2';
 	import RotateCcwIcon from '@lucide/svelte/icons/rotate-ccw';
+	import StarIcon from '@lucide/svelte/icons/star';
 	import { Shimmer } from '@shimmer-from-structure/svelte';
+	import { ReviewOrderDialog } from '$lib/components/reviews';
 
 	// Placeholder rows rendered while loading so <Shimmer> can measure the real
 	// row layout and generate a structure-accurate skeleton (their text is made
@@ -38,6 +40,31 @@
 	let loadingMore = $state(false);
 	let error = $state('');
 	let reordering = $state<Record<string, boolean>>({});
+
+	// ── Review dialog ──
+	let reviewOpen = $state(false);
+	let reviewOrderId = $state('');
+	let reviewSlug = $state('');
+	let reviewItems = $state<Array<{ menuItemId: string; name: string }>>([]);
+
+	// Distinct rateable items from an order's items JSON.
+	function orderItems(order: CustomerOrder): Array<{ menuItemId: string; name: string }> {
+		const raw = (order.items as Array<{ menuItemId?: string; name?: string }>) ?? [];
+		const seen = new Map<string, { menuItemId: string; name: string }>();
+		for (const it of raw) {
+			if (it?.menuItemId && !seen.has(it.menuItemId)) {
+				seen.set(it.menuItemId, { menuItemId: it.menuItemId, name: it.name ?? 'Item' });
+			}
+		}
+		return [...seen.values()];
+	}
+
+	function openReview(order: CustomerOrder) {
+		reviewOrderId = order.id;
+		reviewSlug = order.restaurant?.slug ?? slug;
+		reviewItems = orderItems(order);
+		reviewOpen = true;
+	}
 
 	async function handleReorder(order: CustomerOrder) {
 		reordering = { ...reordering, [order.id]: true };
@@ -196,18 +223,29 @@
 					<div class="flex shrink-0 flex-col items-end gap-2">
 						<span class="text-sm font-bold text-primary">{getTotal(order)}</span>
 						{#if !loading}
-							<button
-								class="flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium text-primary transition-all hover:bg-primary/10 active:scale-[0.98] disabled:opacity-50"
-								onclick={() => handleReorder(order)}
-								disabled={reordering[order.id]}
-							>
-								{#if reordering[order.id]}
-									<Loader2Icon class="h-3 w-3 animate-spin" />
-								{:else}
-									<RotateCcwIcon class="h-3 w-3" />
+							<div class="flex items-center gap-1.5">
+								{#if order.status.toLowerCase() === 'completed'}
+									<button
+										class="flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium text-warning transition-all hover:bg-warning/10 active:scale-[0.98]"
+										onclick={() => openReview(order)}
+									>
+										<StarIcon class="h-3 w-3" />
+										Rate
+									</button>
 								{/if}
-								Reorder
-							</button>
+								<button
+									class="flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium text-primary transition-all hover:bg-primary/10 active:scale-[0.98] disabled:opacity-50"
+									onclick={() => handleReorder(order)}
+									disabled={reordering[order.id]}
+								>
+									{#if reordering[order.id]}
+										<Loader2Icon class="h-3 w-3 animate-spin" />
+									{:else}
+										<RotateCcwIcon class="h-3 w-3" />
+									{/if}
+									Reorder
+								</button>
+							</div>
 						{/if}
 					</div>
 				</div>
@@ -230,3 +268,10 @@
 		</button>
 	{/if}
 {/if}
+
+<ReviewOrderDialog
+	bind:open={reviewOpen}
+	slug={reviewSlug}
+	orderId={reviewOrderId}
+	items={reviewItems}
+/>

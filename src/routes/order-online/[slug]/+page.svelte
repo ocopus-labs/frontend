@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import * as Drawer from '$lib/components/ui/drawer';
 	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { StarRating } from '$lib/components/reviews';
 	import ShoppingCartIcon from '@lucide/svelte/icons/shopping-cart';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import MinusIcon from '@lucide/svelte/icons/minus';
@@ -481,6 +482,15 @@
 											<p class="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
 												{item.description}
 											</p>
+										{/if}
+
+										{#if item.reviewCount && item.avgRating != null}
+											<div class="mt-1 flex items-center gap-1">
+												<StarRating value={item.avgRating} size={12} />
+												<span class="text-[11px] text-muted-foreground">
+													{item.avgRating.toFixed(1)} ({item.reviewCount})
+												</span>
+											</div>
 										{/if}
 
 										<!-- Modifiers hint -->

@@ -13,12 +13,14 @@ import MonitorIcon from '@lucide/svelte/icons/monitor';
 import UsersIcon from '@lucide/svelte/icons/users';
 import SettingsIcon from '@lucide/svelte/icons/settings';
 import LandmarkIcon from '@lucide/svelte/icons/landmark';
+import StarIcon from '@lucide/svelte/icons/star';
 export interface NavSubItem {
 	title: string;
 	url: string;
 }
 
-export type SidebarRole = 'owner' | 'restaurant_owner' | 'manager' | 'staff' | 'viewer' | 'accountant';
+export type SidebarRole =
+	'owner' | 'restaurant_owner' | 'manager' | 'staff' | 'viewer' | 'accountant';
 
 export interface NavItem {
 	title: string;
@@ -112,7 +114,7 @@ export const sidebarData: Record<string, SidebarData> = {
 				title: 'Cash Drawer',
 				url: '/[business]/[slug]/cash-drawer',
 				icon: LandmarkIcon,
-				allowedRoles: ['owner', 'restaurant_owner', 'manager', 'staff'],
+				allowedRoles: ['owner', 'restaurant_owner', 'manager', 'staff']
 			},
 			{
 				title: 'Menu',
@@ -205,6 +207,13 @@ export const sidebarData: Record<string, SidebarData> = {
 						url: '/[business]/[slug]/customers'
 					}
 				]
+			},
+			{
+				title: 'Reviews',
+				url: '/[business]/[slug]/reviews',
+				icon: StarIcon,
+				requiredFeature: 'orders',
+				allowedRoles: ['owner', 'restaurant_owner', 'manager']
 			},
 			{
 				title: 'Inventory',
