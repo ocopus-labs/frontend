@@ -11,6 +11,8 @@
 	import { toast } from 'svelte-sonner';
 	import { Shimmer } from '@shimmer-from-structure/svelte';
 	import { Input } from '$lib/components/ui/input';
+	import { Button } from '$lib/components/ui/button';
+	import { Checkbox } from '$lib/components/ui/checkbox';
 	import * as Field from '$lib/components/ui/field';
 	import MapPinIcon from '@lucide/svelte/icons/map-pin';
 	import PlusIcon from '@lucide/svelte/icons/plus';
@@ -196,37 +198,43 @@
 						</div>
 						<div class="flex shrink-0 items-center gap-1">
 							{#if !a.isDefault}
-								<button
-									class="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-warning disabled:opacity-40"
+								<Button
+									variant="ghost"
+									size="icon-sm"
+									class="text-muted-foreground hover:text-warning"
 									onclick={() => makeDefault(a)}
 									disabled={busyId === a.id}
 									title="Set as default"
 									aria-label="Set as default"
 								>
 									{#if busyId === a.id}
-										<Loader2Icon class="h-3.5 w-3.5 animate-spin" />
+										<Loader2Icon class="animate-spin" />
 									{:else}
-										<StarIcon class="h-3.5 w-3.5" />
+										<StarIcon />
 									{/if}
-								</button>
+								</Button>
 							{/if}
-							<button
-								class="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								class="text-muted-foreground"
 								onclick={() => openEdit(a)}
 								title="Edit"
 								aria-label="Edit address"
 							>
-								<PencilIcon class="h-3.5 w-3.5" />
-							</button>
-							<button
-								class="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
+								<PencilIcon />
+							</Button>
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								class="text-muted-foreground hover:text-destructive"
 								onclick={() => remove(a)}
 								disabled={busyId === a.id}
 								title="Delete"
 								aria-label="Delete address"
 							>
-								<Trash2Icon class="h-3.5 w-3.5" />
-							</button>
+								<Trash2Icon />
+							</Button>
 						</div>
 					</div>
 				{/each}
@@ -241,16 +249,15 @@
 					<Field.Label>Label</Field.Label>
 					<div class="flex flex-wrap gap-2">
 						{#each LABEL_PRESETS as preset (preset)}
-							<button
+							<Button
 								type="button"
-								class="rounded-full px-3 py-1 text-xs font-medium transition-all {form.label ===
-								preset
-									? 'bg-primary text-primary-foreground'
-									: 'bg-muted text-muted-foreground hover:bg-muted'}"
+								size="sm"
+								variant={form.label === preset ? 'default' : 'secondary'}
+								class="rounded-full"
 								onclick={() => (form.label = preset)}
 							>
 								{preset}
-							</button>
+							</Button>
 						{/each}
 					</div>
 				</Field.Field>
@@ -292,12 +299,7 @@
 				</Field.Field>
 
 				<Field.Field orientation="horizontal">
-					<input
-						id="addr-default"
-						type="checkbox"
-						bind:checked={form.isDefault}
-						class="h-4 w-4 rounded border-border"
-					/>
+					<Checkbox id="addr-default" bind:checked={form.isDefault} />
 					<Field.Label for="addr-default" class="text-muted-foreground">
 						Set as default address
 					</Field.Label>
@@ -305,32 +307,19 @@
 			</Field.Group>
 
 			<div class="mt-4 flex gap-2">
-				<button
-					class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
-					onclick={save}
-					disabled={saving}
-				>
+				<Button class="flex-1" onclick={save} disabled={saving}>
 					{#if saving}
 						<Loader2Icon class="h-4 w-4 animate-spin" />
 					{/if}
 					{editingId ? 'Save changes' : 'Add address'}
-				</button>
-				<button
-					class="rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
-					onclick={cancelForm}
-					disabled={saving}
-				>
-					Cancel
-				</button>
+				</Button>
+				<Button variant="outline" onclick={cancelForm} disabled={saving}>Cancel</Button>
 			</div>
 		</div>
 	{:else}
-		<button
-			class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-			onclick={openAdd}
-		>
+		<Button variant="outline" class="mt-3 w-full border-dashed" onclick={openAdd}>
 			<PlusIcon class="h-4 w-4" />
 			Add new address
-		</button>
+		</Button>
 	{/if}
 {/if}
