@@ -650,6 +650,20 @@ export {
 	type CouponDiscountType
 } from './coupon';
 
+// Reviews & ratings API
+export {
+	submitReview,
+	getMyReviews,
+	getItemReviews,
+	adminListReviews,
+	adminDeleteReview,
+	type MenuItemReview,
+	type PublicReview,
+	type ItemReviewsResult,
+	type AdminReview,
+	type SubmitReviewInput
+} from './reviews';
+
 // Accounting API
 export {
 	createAccountingExport,

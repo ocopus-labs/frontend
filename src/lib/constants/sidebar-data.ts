@@ -13,6 +13,7 @@ import MonitorIcon from '@lucide/svelte/icons/monitor';
 import UsersIcon from '@lucide/svelte/icons/users';
 import SettingsIcon from '@lucide/svelte/icons/settings';
 import LandmarkIcon from '@lucide/svelte/icons/landmark';
+import StarIcon from '@lucide/svelte/icons/star';
 import TicketPercentIcon from '@lucide/svelte/icons/ticket-percent';
 export interface NavSubItem {
 	title: string;
@@ -212,6 +213,13 @@ export const sidebarData: Record<string, SidebarData> = {
 				title: 'Coupons',
 				url: '/[business]/[slug]/coupons',
 				icon: TicketPercentIcon,
+				requiredFeature: 'orders',
+				allowedRoles: ['owner', 'restaurant_owner', 'manager']
+			},
+			{
+				title: 'Reviews',
+				url: '/[business]/[slug]/reviews',
+				icon: StarIcon,
 				requiredFeature: 'orders',
 				allowedRoles: ['owner', 'restaurant_owner', 'manager']
 			},

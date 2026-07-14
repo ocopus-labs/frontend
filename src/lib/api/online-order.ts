@@ -51,6 +51,8 @@ export interface OnlineMenuItem {
 		addOns?: Array<{ id: string; name: string; price: number }>;
 	};
 	tags?: string[];
+	avgRating?: number | null;
+	reviewCount?: number;
 }
 
 export interface OnlineMenuCategory {
