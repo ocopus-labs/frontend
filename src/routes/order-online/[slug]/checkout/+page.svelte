@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { untrack } from 'svelte';
 	import { APP_NAME } from '$lib/constants/config';
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
@@ -10,12 +11,17 @@
 		createOnlineOrderPaymentIntent,
 		createOnlineOrderRazorpayOrder,
 		verifyOnlineOrderRazorpayPayment,
+		previewOnlineCoupon,
 		type OnlineBusinessConfig,
-		type OnlineCheckoutPayload
+		type OnlineCheckoutPayload,
+		type CouponPreview
 	} from '$lib/api';
 	import { useCustomerSession } from '$lib/customer-auth';
 	import { listAddresses, type CustomerAddress } from '$lib/api/customer-me';
 	import { AuthModal, PhoneVerifyGate } from '$lib/components/customer-auth';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import TicketPercentIcon from '@lucide/svelte/icons/ticket-percent';
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
 	import UserIcon from '@lucide/svelte/icons/user';
 	import PhoneIcon from '@lucide/svelte/icons/phone';
@@ -208,6 +214,62 @@
 				/* non-blocking — customer can still type a new address */
 			});
 	});
+	// ── Coupon ──
+	let couponInput = $state('');
+	let appliedCoupon = $state<CouponPreview | null>(null);
+	let couponError = $state('');
+	let couponBusy = $state(false);
+
+	// Discount reflected in the order summary. free_delivery doesn't touch the
+	// subtotal (delivery fee is settled after placement), so it shows 0 here.
+	const couponDiscount = $derived(appliedCoupon?.discountAmount ?? 0);
+	const summaryTotal = $derived(Math.max(cartTotal - couponDiscount, 0));
+
+	async function applyCoupon() {
+		const code = couponInput.trim();
+		if (!code) return;
+		couponBusy = true;
+		couponError = '';
+		try {
+			const preview = await previewOnlineCoupon(slug, {
+				code,
+				subtotal: cartTotal,
+				orderType
+			});
+			appliedCoupon = preview;
+			toast.success(
+				preview.freeDelivery
+					? 'Free delivery applied'
+					: `Coupon applied — ${formatPrice(preview.discountAmount)} off`
+			);
+		} catch (e) {
+			appliedCoupon = null;
+			couponError = e instanceof Error ? e.message : 'Invalid coupon code';
+		} finally {
+			couponBusy = false;
+		}
+	}
+
+	function removeCoupon() {
+		appliedCoupon = null;
+		couponInput = '';
+		couponError = '';
+	}
+
+	// A previewed discount is tied to the current cart + order type. If either
+	// changes, drop the preview so the customer re-applies against fresh numbers.
+	// (The server re-validates authoritatively at checkout regardless.)
+	$effect(() => {
+		void cartTotal;
+		void orderType;
+		untrack(() => {
+			if (appliedCoupon) {
+				appliedCoupon = null;
+				couponError = '';
+			}
+		});
+	});
+
 	// Legacy acceptedPaymentMethods value (cash/online/upi/card) — kept for backward-compat payload
 	let paymentMethod = $state('cash');
 	// New gateway selector for the checkout UI
@@ -529,6 +591,7 @@
 			customerPhone: customerPhone.trim(),
 			customerEmail: customerEmail.trim() || undefined,
 			paymentMethod,
+			...(appliedCoupon && { couponCode: appliedCoupon.code }),
 			items: cart.map((item) => ({
 				menuItemId: item.menuItemId,
 				name: item.name,
@@ -1413,9 +1476,82 @@
 							{/each}
 						</div>
 
-						<div class="mt-3 flex justify-between border-t border-dashed pt-3">
-							<span class="font-bold">Subtotal</span>
-							<span class="text-lg font-bold text-primary">{formatPrice(cartTotal)}</span>
+						<!-- Coupon -->
+						<div class="mt-3 border-t border-dashed pt-3">
+							{#if appliedCoupon}
+								<div
+									class="flex items-center justify-between gap-2 rounded-xl bg-success/10 px-3 py-2"
+								>
+									<div class="flex min-w-0 items-center gap-2">
+										<TicketPercentIcon class="h-4 w-4 shrink-0 text-success" />
+										<div class="min-w-0">
+											<p class="truncate text-sm font-semibold text-success">
+												{appliedCoupon.code}
+											</p>
+											{#if appliedCoupon.description}
+												<p class="truncate text-[11px] text-muted-foreground">
+													{appliedCoupon.description}
+												</p>
+											{/if}
+										</div>
+									</div>
+									<Button
+										variant="ghost"
+										size="sm"
+										class="text-muted-foreground"
+										onclick={removeCoupon}
+									>
+										Remove
+									</Button>
+								</div>
+							{:else}
+								<div class="flex gap-2">
+									<Input
+										placeholder="Coupon code"
+										bind:value={couponInput}
+										class="uppercase"
+										onkeydown={(e) => e.key === 'Enter' && applyCoupon()}
+									/>
+									<Button
+										variant="outline"
+										onclick={applyCoupon}
+										disabled={couponBusy || !couponInput.trim()}
+									>
+										{#if couponBusy}
+											<Loader2Icon class="h-4 w-4 animate-spin" />
+										{:else}
+											Apply
+										{/if}
+									</Button>
+								</div>
+								{#if couponError}
+									<p class="mt-1.5 text-[11px] text-destructive">{couponError}</p>
+								{/if}
+							{/if}
+						</div>
+
+						<div class="mt-3 space-y-1.5 border-t border-dashed pt-3">
+							<div class="flex justify-between text-sm">
+								<span class="text-muted-foreground">Subtotal</span>
+								<span class="font-semibold">{formatPrice(cartTotal)}</span>
+							</div>
+							{#if appliedCoupon}
+								<div class="flex justify-between text-sm">
+									<span class="text-success">
+										Discount{#if appliedCoupon.freeDelivery}
+											(free delivery){/if}
+									</span>
+									<span class="font-semibold text-success">
+										{appliedCoupon.freeDelivery && couponDiscount === 0
+											? 'Free delivery'
+											: `− ${formatPrice(couponDiscount)}`}
+									</span>
+								</div>
+							{/if}
+							<div class="flex justify-between border-t border-dashed pt-1.5">
+								<span class="font-bold">Total</span>
+								<span class="text-lg font-bold text-primary">{formatPrice(summaryTotal)}</span>
+							</div>
 						</div>
 						<p class="mt-1 text-[11px] text-muted-foreground">
 							Taxes will be added to the final total.
@@ -1451,7 +1587,7 @@
 							Place Order
 						{:else}
 							<LockIcon class="h-4 w-4" />
-							Pay {formatPrice(cartTotal)}
+							Pay {formatPrice(summaryTotal)}
 						{/if}
 					</button>
 
@@ -1468,7 +1604,7 @@
 									{#if pendingOrderNumber}
 										Order {pendingOrderNumber} ·
 									{/if}
-									{formatPrice(cartTotal)}
+									{formatPrice(summaryTotal)}
 								</p>
 							</div>
 						</div>
@@ -1491,7 +1627,7 @@
 							Processing Payment...
 						{:else}
 							<LockIcon class="h-4 w-4" />
-							Pay {formatPrice(cartTotal)}
+							Pay {formatPrice(summaryTotal)}
 						{/if}
 					</button>
 
