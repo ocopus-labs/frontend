@@ -180,10 +180,7 @@
 			if (requirePrepayment && hasDodo) {
 				try {
 					const trackingUrl = `${window.location.origin}/order/track/${result.trackingToken}`;
-					const checkout = await createDodoPaymentCheckout(
-						result.trackingToken,
-						trackingUrl
-					);
+					const checkout = await createDodoPaymentCheckout(result.trackingToken, trackingUrl);
 
 					if (checkout.checkoutUrl) {
 						window.location.href = checkout.checkoutUrl;
@@ -216,7 +213,9 @@
 
 	// Step labels adapt based on payment flow
 	const showPaymentStep = $derived(requirePrepayment && !hasDodo);
-	const stepLabels = $derived(showPaymentStep ? ['Details', 'Payment', 'Confirm'] : ['Details', 'Confirm']);
+	const stepLabels = $derived(
+		showPaymentStep ? ['Details', 'Payment', 'Confirm'] : ['Details', 'Confirm']
+	);
 	const currentStepIdx = $derived(
 		showPaymentStep
 			? step === 'identify'
@@ -230,15 +229,13 @@
 	);
 </script>
 
-<div class="flex min-h-svh flex-col bg-gray-50 dark:bg-background">
+<div class="flex min-h-svh flex-col bg-muted/40">
 	<!-- ═══ Header ═══ -->
-	<header
-		class="sticky top-0 z-20 border-b bg-white/95 backdrop-blur dark:bg-background/95"
-	>
+	<header class="sticky top-0 z-20 border-b bg-card/95 backdrop-blur">
 		<div class="flex items-center gap-3 px-4 py-3">
 			<button
 				onclick={goBack}
-				class="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 transition-colors hover:bg-gray-200 dark:bg-muted"
+				class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted transition-colors hover:bg-muted"
 				aria-label="Go back"
 			>
 				<ArrowLeftIcon class="h-4 w-4" />
@@ -261,7 +258,7 @@
 						<div
 							class="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-colors {active
 								? 'bg-primary text-primary-foreground'
-								: 'bg-gray-200 text-gray-500 dark:bg-muted dark:text-muted-foreground'}"
+								: 'bg-muted text-muted-foreground'}"
 						>
 							{#if i < currentStepIdx}
 								<CheckCircle2Icon class="h-3.5 w-3.5" />
@@ -269,19 +266,25 @@
 								{i + 1}
 							{/if}
 						</div>
-						<span class="text-xs font-medium {active ? 'text-primary' : 'text-gray-400'}">{label}</span>
+						<span class="text-xs font-medium {active ? 'text-primary' : 'text-muted-foreground'}"
+							>{label}</span
+						>
 					</div>
 					{#if !isLast}
-						<div class="h-0.5 flex-1 rounded-full {i < currentStepIdx ? 'bg-primary' : 'bg-gray-200 dark:bg-muted'}"></div>
+						<div
+							class="h-0.5 flex-1 rounded-full {i < currentStepIdx ? 'bg-primary' : 'bg-muted'}"
+						></div>
 					{/if}
 				</div>
 			{/each}
 		</div>
 	</header>
 
-	<div class="flex-1 px-4 py-4 space-y-4">
+	<div class="flex-1 space-y-4 px-4 py-4">
 		{#if errorMessage}
-			<div class="flex items-center gap-2 rounded-xl bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
+			<div
+				class="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+			>
 				<span class="shrink-0 text-lg">!</span>
 				{errorMessage}
 			</div>
@@ -289,7 +292,7 @@
 
 		<!-- ═══ Step 1: Identify ═══ -->
 		{#if step === 'identify'}
-			<div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card">
+			<div class="rounded-2xl border border-border bg-card p-5 shadow-sm">
 				<div class="mb-4 flex items-center gap-2">
 					<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
 						<UserIcon class="h-4 w-4 text-primary" />
@@ -301,28 +304,34 @@
 				</div>
 				<div class="space-y-4">
 					<div class="space-y-1.5">
-						<label for="name" class="text-xs font-semibold text-gray-600 dark:text-muted-foreground">Your Name</label>
+						<label for="name" class="text-xs font-semibold text-muted-foreground">Your Name</label>
 						<div class="relative">
-							<UserIcon class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+							<UserIcon
+								class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+							/>
 							<input
 								id="name"
 								type="text"
 								bind:value={customerName}
 								placeholder="Enter your name"
-								class="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-4 text-sm outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary dark:border-border dark:bg-muted"
+								class="h-11 w-full rounded-xl border border-border bg-muted/40 pr-4 pl-10 text-sm transition-colors outline-none focus:border-primary focus:bg-background focus:ring-1 focus:ring-primary"
 							/>
 						</div>
 					</div>
 					<div class="space-y-1.5">
-						<label for="phone" class="text-xs font-semibold text-gray-600 dark:text-muted-foreground">Phone Number</label>
+						<label for="phone" class="text-xs font-semibold text-muted-foreground"
+							>Phone Number</label
+						>
 						<div class="relative">
-							<PhoneIcon class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+							<PhoneIcon
+								class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+							/>
 							<input
 								id="phone"
 								type="tel"
 								bind:value={customerPhone}
 								placeholder="+91 XXXXX XXXXX"
-								class="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-4 text-sm outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary dark:border-border dark:bg-muted"
+								class="h-11 w-full rounded-xl border border-border bg-muted/40 pr-4 pl-10 text-sm transition-colors outline-none focus:border-primary focus:bg-background focus:ring-1 focus:ring-primary"
 							/>
 						</div>
 					</div>
@@ -330,14 +339,16 @@
 			</div>
 
 			<!-- Order Summary -->
-			<div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card">
+			<div class="rounded-2xl border border-border bg-card p-5 shadow-sm">
 				<div class="mb-3 flex items-center gap-2">
 					<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
 						<ReceiptIcon class="h-4 w-4 text-primary" />
 					</div>
 					<div>
 						<h2 class="text-sm font-bold">Order Summary</h2>
-						<p class="text-xs text-muted-foreground">Table {tableNumber} &middot; {cartItemCount} items</p>
+						<p class="text-xs text-muted-foreground">
+							Table {tableNumber} &middot; {cartItemCount} items
+						</p>
 					</div>
 				</div>
 				<div class="space-y-2.5">
@@ -351,25 +362,29 @@
 								{#if item.modifiers}
 									<div class="mt-0.5 flex flex-wrap gap-1">
 										{#if item.modifiers.size}
-											<span class="rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600 dark:bg-muted dark:text-muted-foreground">
+											<span
+												class="rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+											>
 												{item.modifiers.size.name}
 											</span>
 										{/if}
 										{#if item.modifiers.spiceLevel}
-											<span class="rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] text-orange-600 dark:bg-orange-900/20 dark:text-orange-300">
+											<span class="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
 												{item.modifiers.spiceLevel.name}
 											</span>
 										{/if}
 										{#if item.modifiers.addOns?.length}
 											{#each item.modifiers.addOns as addOn}
-												<span class="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600 dark:bg-blue-900/20 dark:text-blue-300">
+												<span
+													class="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600 dark:bg-blue-900/20 dark:text-blue-300"
+												>
 													+{addOn.name}
 												</span>
 											{/each}
 										{/if}
 									</div>
 									{#if item.modifiers.specialInstructions}
-										<p class="mt-0.5 text-[10px] italic text-muted-foreground">
+										<p class="mt-0.5 text-[10px] text-muted-foreground italic">
 											"{item.modifiers.specialInstructions}"
 										</p>
 									{/if}
@@ -380,7 +395,7 @@
 							</span>
 						</div>
 					{/each}
-					<div class="mt-2 border-t border-dashed pt-2.5 flex justify-between">
+					<div class="mt-2 flex justify-between border-t border-dashed pt-2.5">
 						<span class="text-sm font-bold">Total</span>
 						<span class="text-sm font-bold text-primary">{formatPrice(cartTotal)}</span>
 					</div>
@@ -394,9 +409,9 @@
 				Continue
 			</button>
 
-		<!-- ═══ Step 2: Payment (UPI deep link — only when Dodo not available) ═══ -->
+			<!-- ═══ Step 2: Payment (UPI deep link — only when Dodo not available) ═══ -->
 		{:else if step === 'payment'}
-			<div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card">
+			<div class="rounded-2xl border border-border bg-card p-5 shadow-sm">
 				<div class="mb-4 flex items-center gap-2">
 					<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
 						<WalletIcon class="h-4 w-4 text-primary" />
@@ -430,8 +445,10 @@
 						Opens GPay, PhonePe, Paytm or your default UPI app
 					</p>
 				{:else}
-					<div class="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 px-6 py-8">
-						<StoreIcon class="h-8 w-8 text-gray-300" />
+					<div
+						class="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-border px-6 py-8"
+					>
+						<StoreIcon class="h-8 w-8 text-muted-foreground/60" />
 						<p class="text-center text-xs text-muted-foreground">
 							UPI payment not configured. You can pay at the counter.
 						</p>
@@ -448,7 +465,7 @@
 					I've completed payment
 				</button>
 				<button
-					class="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 transition-all hover:bg-gray-50 active:scale-[0.98] dark:border-border dark:bg-card dark:text-foreground"
+					class="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-border bg-card px-5 py-3 text-sm font-medium text-foreground transition-all hover:bg-muted active:scale-[0.98]"
 					onclick={() => (step = 'confirm')}
 				>
 					<StoreIcon class="h-4 w-4" />
@@ -456,18 +473,18 @@
 				</button>
 			</div>
 
-		<!-- ═══ Step 3: Confirm ═══ -->
+			<!-- ═══ Step 3: Confirm ═══ -->
 		{:else if step === 'confirm'}
-			<div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-border dark:bg-card">
+			<div class="rounded-2xl border border-border bg-card p-5 shadow-sm">
 				<div class="mb-4 flex items-center gap-2">
-					<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
-						<ShieldCheckIcon class="h-4 w-4 text-green-600 dark:text-green-400" />
+					<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-success/15">
+						<ShieldCheckIcon class="h-4 w-4 text-success" />
 					</div>
 					<h2 class="text-sm font-bold">Review your order</h2>
 				</div>
 
 				<!-- Customer details -->
-				<div class="mb-4 rounded-xl bg-gray-50 p-3 dark:bg-muted/50">
+				<div class="mb-4 rounded-xl bg-muted/40 p-3">
 					<div class="grid gap-2 text-sm">
 						<div class="flex items-center justify-between">
 							<span class="flex items-center gap-1.5 text-muted-foreground">
@@ -502,18 +519,22 @@
 								{#if item.modifiers}
 									<div class="mt-0.5 flex flex-wrap gap-1">
 										{#if item.modifiers.size}
-											<span class="rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600 dark:bg-muted dark:text-muted-foreground">
+											<span
+												class="rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+											>
 												{item.modifiers.size.name}
 											</span>
 										{/if}
 										{#if item.modifiers.spiceLevel}
-											<span class="rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] text-orange-600 dark:bg-orange-900/20 dark:text-orange-300">
+											<span class="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
 												{item.modifiers.spiceLevel.name}
 											</span>
 										{/if}
 										{#if item.modifiers.addOns?.length}
 											{#each item.modifiers.addOns as addOn}
-												<span class="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600 dark:bg-blue-900/20 dark:text-blue-300">
+												<span
+													class="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600 dark:bg-blue-900/20 dark:text-blue-300"
+												>
 													+{addOn.name}
 												</span>
 											{/each}
@@ -528,7 +549,7 @@
 					{/each}
 				</div>
 
-				<div class="mt-3 border-t border-dashed pt-3 flex justify-between">
+				<div class="mt-3 flex justify-between border-t border-dashed pt-3">
 					<span class="font-bold">Total</span>
 					<span class="text-lg font-bold text-primary">{formatPrice(cartTotal)}</span>
 				</div>
@@ -536,12 +557,18 @@
 
 			<!-- Payment info banner -->
 			{#if requirePrepayment && hasDodo}
-				<div class="flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50/50 p-4 dark:border-blue-900/30 dark:bg-blue-900/10">
-					<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30">
+				<div
+					class="flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50/50 p-4 dark:border-blue-900/30 dark:bg-blue-900/10"
+				>
+					<div
+						class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30"
+					>
 						<CreditCardIcon class="h-5 w-5 text-blue-600 dark:text-blue-400" />
 					</div>
 					<div>
-						<p class="text-sm font-semibold text-blue-800 dark:text-blue-300">Secure online payment</p>
+						<p class="text-sm font-semibold text-blue-800 dark:text-blue-300">
+							Secure online payment
+						</p>
 						<p class="text-xs text-blue-600 dark:text-blue-400">
 							You'll be redirected to a secure payment page after placing your order.
 						</p>

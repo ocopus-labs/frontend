@@ -76,7 +76,7 @@
 			{#each loading ? placeholderSessions : sessions as s (s.id)}
 				{@const isMobile = s.userAgent ? /mobile|android|iphone/i.test(s.userAgent) : false}
 				<div
-					class="flex items-start justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 dark:border-border dark:bg-muted/40"
+					class="flex items-start justify-between gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3 dark:bg-muted/40"
 				>
 					<div class="flex min-w-0 flex-1 items-start gap-3">
 						<div class="mt-0.5 shrink-0 text-muted-foreground">
@@ -94,7 +94,7 @@
 								{/if}
 								{#if s.current}
 									<span
-										class="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-300"
+										class="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold text-success"
 									>
 										This device
 									</span>
@@ -109,7 +109,7 @@
 						</div>
 					</div>
 					<button
-						class="shrink-0 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-border dark:bg-card dark:text-muted-foreground"
+						class="shrink-0 rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground transition-all hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
 						onclick={() => handleRevoke(s.id)}
 						disabled={s.current || revoking[s.id]}
 						title={s.current ? 'Cannot revoke current session' : 'Revoke this session'}

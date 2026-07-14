@@ -118,13 +118,19 @@
 		if (!targetPlan) return '';
 		const changes: string[] = [];
 		if (targetPlan.maxOrdersPerMonth !== currentPlan.maxOrdersPerMonth) {
-			changes.push(`Orders: ${formatLimit(currentPlan.maxOrdersPerMonth)} → ${formatLimit(targetPlan.maxOrdersPerMonth)}/month`);
+			changes.push(
+				`Orders: ${formatLimit(currentPlan.maxOrdersPerMonth)} → ${formatLimit(targetPlan.maxOrdersPerMonth)}/month`
+			);
 		}
 		if (targetPlan.maxLocations !== currentPlan.maxLocations) {
-			changes.push(`Locations: ${formatLimit(currentPlan.maxLocations)} → ${formatLimit(targetPlan.maxLocations)}`);
+			changes.push(
+				`Locations: ${formatLimit(currentPlan.maxLocations)} → ${formatLimit(targetPlan.maxLocations)}`
+			);
 		}
 		if (targetPlan.maxTeamMembers !== currentPlan.maxTeamMembers) {
-			changes.push(`Team members: ${formatLimit(currentPlan.maxTeamMembers)} → ${formatLimit(targetPlan.maxTeamMembers)}`);
+			changes.push(
+				`Team members: ${formatLimit(currentPlan.maxTeamMembers)} → ${formatLimit(targetPlan.maxTeamMembers)}`
+			);
 		}
 		return `You are downgrading from ${currentPlan.displayName} to ${targetPlan.displayName}. The following limits will change:\n\n${changes.join('\n')}\n\nThis change takes effect at the end of your current billing period.`;
 	}
@@ -170,9 +176,7 @@
 	<div class="flex items-center justify-between">
 		<div>
 			<h1 class="text-3xl font-bold tracking-tight">Subscription</h1>
-			<p class="mt-2 text-muted-foreground">
-				Manage your subscription plan and usage.
-			</p>
+			<p class="mt-2 text-muted-foreground">Manage your subscription plan and usage.</p>
 		</div>
 		{#if data.subscription?.hasBillingAccount}
 			<Button variant="outline" onclick={handleManageBilling} disabled={openingPortal}>
@@ -246,10 +250,7 @@
 								</span>
 							</div>
 							{#if usage.orderLimit > 0}
-								<Progress
-									value={orderPercentage}
-									class="h-2"
-								/>
+								<Progress value={orderPercentage} class="h-2" />
 								{#if orderPercentage >= 80}
 									<p class="text-xs text-amber-600">
 										You're approaching your order limit. Consider upgrading.
@@ -279,21 +280,27 @@
 						<div class="flex items-center gap-3">
 							<Building2 class="size-5 text-muted-foreground" />
 							<div>
-								<p class="text-sm font-medium">{data.businesses?.length || 0} / {formatLimit(currentPlan?.maxLocations || 1)}</p>
+								<p class="text-sm font-medium">
+									{data.businesses?.length || 0} / {formatLimit(currentPlan?.maxLocations || 1)}
+								</p>
 								<p class="text-xs text-muted-foreground">Business locations</p>
 							</div>
 						</div>
 						<div class="flex items-center gap-3">
 							<TrendingUp class="size-5 text-muted-foreground" />
 							<div>
-								<p class="text-sm font-medium">- / {formatLimit(currentPlan?.maxOrdersPerMonth || 100)}</p>
+								<p class="text-sm font-medium">
+									- / {formatLimit(currentPlan?.maxOrdersPerMonth || 100)}
+								</p>
 								<p class="text-xs text-muted-foreground">Orders this month</p>
 							</div>
 						</div>
 						<div class="flex items-center gap-3">
 							<Shield class="size-5 text-muted-foreground" />
 							<div>
-								<p class="text-sm font-medium">{currentPlan?.features?.analytics === 'advanced' ? 'Advanced' : 'Basic'}</p>
+								<p class="text-sm font-medium">
+									{currentPlan?.features?.analytics === 'advanced' ? 'Advanced' : 'Basic'}
+								</p>
 								<p class="text-xs text-muted-foreground">Analytics</p>
 							</div>
 						</div>
@@ -306,8 +313,9 @@
 						<AlertCircle class="size-4" />
 						<Alert.Title>Subscription Ending</Alert.Title>
 						<Alert.Description>
-							Your subscription will end on {new Date(data.subscription.currentPeriodEnd).toLocaleDateString()}.
-							You'll be downgraded to the Free plan.
+							Your subscription will end on {new Date(
+								data.subscription.currentPeriodEnd
+							).toLocaleDateString()}. You'll be downgraded to the Free plan.
 						</Alert.Description>
 					</Alert.Root>
 				</Card.Footer>
@@ -335,7 +343,8 @@
 					<Card.Header class="text-center">
 						<Card.Title class="text-xl">{plan.displayName}</Card.Title>
 						<div class="mt-2">
-							<span class="text-4xl font-bold">{formatPrice(plan.priceMonthly, plan.currency)}</span>
+							<span class="text-4xl font-bold">{formatPrice(plan.priceMonthly, plan.currency)}</span
+							>
 							{#if plan.priceMonthly > 0}
 								<span class="text-muted-foreground">/month</span>
 							{/if}
@@ -348,7 +357,7 @@
 						<ul class="space-y-3">
 							{#each features as feature}
 								<li class="flex items-center gap-2 text-sm">
-									<Check class="size-4 shrink-0 text-green-500" />
+									<Check class="size-4 shrink-0 text-success" />
 									{feature}
 								</li>
 							{/each}
@@ -356,9 +365,7 @@
 					</Card.Content>
 					<Card.Footer>
 						{#if isCurrent}
-							<Button class="w-full" variant="outline" disabled>
-								Current Plan
-							</Button>
+							<Button class="w-full" variant="outline" disabled>Current Plan</Button>
 						{:else if isUpgrade}
 							<Button
 								class="w-full"
@@ -435,7 +442,9 @@
 		confirmLabel="Downgrade"
 		variant="destructive"
 		onConfirm={confirmDowngrade}
-		onCancel={() => { downgradeTargetSlug = null; }}
+		onCancel={() => {
+			downgradeTargetSlug = null;
+		}}
 	/>
 
 	<!-- FAQ / Info -->
@@ -451,13 +460,15 @@
 			<div>
 				<p class="text-sm font-medium">What happens when I hit my limit?</p>
 				<p class="text-sm text-muted-foreground">
-					You'll receive a notification and won't be able to create new orders until you upgrade or the new billing cycle starts.
+					You'll receive a notification and won't be able to create new orders until you upgrade or
+					the new billing cycle starts.
 				</p>
 			</div>
 			<div>
 				<p class="text-sm font-medium">Can I downgrade my plan?</p>
 				<p class="text-sm text-muted-foreground">
-					Yes, you can downgrade at any time. The change takes effect at the end of your current billing period.
+					Yes, you can downgrade at any time. The change takes effect at the end of your current
+					billing period.
 				</p>
 			</div>
 			<div>

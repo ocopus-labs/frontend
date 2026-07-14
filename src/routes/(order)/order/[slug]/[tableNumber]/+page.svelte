@@ -83,9 +83,7 @@
 	let activeCategory = $state<string | null>(null);
 
 	const filteredCategories = $derived(() => {
-		let cats = activeCategory
-			? categories.filter((c: any) => c.id === activeCategory)
-			: categories;
+		let cats = activeCategory ? categories.filter((c: any) => c.id === activeCategory) : categories;
 
 		if (searchQuery.trim()) {
 			const q = searchQuery.toLowerCase();
@@ -193,9 +191,7 @@
 
 	// ── Quick add (no modifiers) ──
 	function quickAdd(item: any) {
-		const existing = cart.find(
-			(c) => c.menuItemId === item.id && !c.modifiers
-		);
+		const existing = cart.find((c) => c.menuItemId === item.id && !c.modifiers);
 		if (existing) {
 			existing.quantity += 1;
 			cart = [...cart];
@@ -253,10 +249,10 @@
 	let showSearch = $state(false);
 </script>
 
-<div class="flex min-h-svh flex-col bg-gray-50 pb-24 dark:bg-background">
+<div class="flex min-h-svh flex-col bg-muted/40 pb-24">
 	<!-- ═══ Header ═══ -->
 	<header
-		class="sticky top-0 z-30 border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:bg-background/95"
+		class="sticky top-0 z-30 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80"
 	>
 		<div class="flex items-center gap-3 px-4 py-3">
 			{#if business.logo}
@@ -283,7 +279,7 @@
 				</div>
 			</div>
 			<button
-				class="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 transition-colors hover:bg-gray-200 dark:bg-muted"
+				class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted transition-colors hover:bg-muted"
 				onclick={() => (showSearch = !showSearch)}
 				aria-label="Search menu"
 			>
@@ -296,17 +292,17 @@
 			<div class="border-t px-4 py-2">
 				<div class="relative">
 					<SearchIcon
-						class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+						class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
 					/>
 					<input
 						type="text"
 						bind:value={searchQuery}
 						placeholder="Search for dishes..."
-						class="h-9 w-full rounded-lg border bg-gray-50 pl-9 pr-8 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:bg-muted"
+						class="h-9 w-full rounded-lg border bg-muted/40 pr-8 pl-9 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
 					/>
 					{#if searchQuery}
 						<button
-							class="absolute right-2 top-1/2 -translate-y-1/2"
+							class="absolute top-1/2 right-2 -translate-y-1/2"
 							onclick={() => (searchQuery = '')}
 						>
 							<XIcon class="h-4 w-4 text-muted-foreground" />
@@ -323,7 +319,7 @@
 					<button
 						class="shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-all {!activeCategory
 							? 'bg-primary text-primary-foreground shadow-sm'
-							: 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-muted dark:text-muted-foreground'}"
+							: 'bg-muted text-muted-foreground hover:bg-muted'}"
 						onclick={() => (activeCategory = null)}
 					>
 						All
@@ -333,7 +329,7 @@
 							class="shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-all {activeCategory ===
 							cat.id
 								? 'bg-primary text-primary-foreground shadow-sm'
-								: 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-muted dark:text-muted-foreground'}"
+								: 'bg-muted text-muted-foreground hover:bg-muted'}"
 							onclick={() => (activeCategory = cat.id)}
 						>
 							{cat.name}
@@ -349,7 +345,7 @@
 		{#each filteredCategories() as category}
 			<section>
 				<div class="mb-3 flex items-center gap-2">
-					<h2 class="text-base font-bold text-gray-900 dark:text-foreground">{category.name}</h2>
+					<h2 class="text-base font-bold text-foreground">{category.name}</h2>
 					<span class="text-xs text-muted-foreground">({category.items.length})</span>
 				</div>
 				{#if category.description}
@@ -361,7 +357,7 @@
 						{@const count = getItemCartCount(item.id)}
 						{@const hasModifiers = itemHasModifiers(item)}
 						<div
-							class="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-border dark:bg-card"
+							class="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
 						>
 							<div class="flex">
 								<!-- Item Info -->
@@ -371,13 +367,13 @@
 										<div class="mb-1.5 flex items-center gap-2">
 											{#if item.isVegetarian}
 												<span
-													class="inline-flex h-4 w-4 items-center justify-center rounded-sm border-2 border-green-600"
+													class="inline-flex h-4 w-4 items-center justify-center rounded-sm border-2 border-success"
 												>
-													<span class="h-2 w-2 rounded-full bg-green-600"></span>
+													<span class="h-2 w-2 rounded-full bg-success"></span>
 												</span>
 											{:else}
 												<span
-													class="inline-flex h-4 w-4 items-center justify-center rounded-sm border-2 border-red-600"
+													class="inline-flex h-4 w-4 items-center justify-center rounded-sm border-2 border-destructive"
 												>
 													<span
 														class="h-0 w-0 border-x-[4px] border-b-[8px] border-x-transparent border-b-red-600"
@@ -386,7 +382,7 @@
 											{/if}
 											{#if item.isVegan}
 												<span
-													class="inline-flex items-center gap-0.5 rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400"
+													class="inline-flex items-center gap-0.5 rounded-full bg-success/10 px-1.5 py-0.5 text-[10px] font-medium text-success"
 												>
 													<LeafIcon class="h-2.5 w-2.5" />
 													Vegan
@@ -401,11 +397,11 @@
 											{/if}
 										</div>
 
-										<h3 class="text-sm font-semibold leading-tight text-gray-900 dark:text-foreground">
+										<h3 class="text-sm leading-tight font-semibold text-foreground">
 											{item.name}
 										</h3>
 										{#if item.description}
-											<p class="mt-0.5 line-clamp-2 text-xs leading-relaxed text-gray-500 dark:text-muted-foreground">
+											<p class="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
 												{item.description}
 											</p>
 										{/if}
@@ -414,7 +410,7 @@
 										<div class="mt-1.5 flex flex-wrap items-center gap-2">
 											{#if item.preparationTime}
 												<span
-													class="inline-flex items-center gap-0.5 text-[10px] text-gray-400"
+													class="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground"
 												>
 													<ClockIcon class="h-3 w-3" />
 													{item.preparationTime} min
@@ -422,7 +418,7 @@
 											{/if}
 											{#if hasModifiers}
 												<span
-													class="inline-flex items-center gap-0.5 text-[10px] text-gray-400"
+													class="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground"
 												>
 													<SparklesIcon class="h-3 w-3" />
 													Customisable
@@ -433,19 +429,17 @@
 
 									<!-- Price + Add Button -->
 									<div class="mt-2.5 flex items-center justify-between">
-										<span class="text-sm font-bold text-gray-900 dark:text-foreground">
+										<span class="text-sm font-bold text-foreground">
 											{formatPrice(item.price)}
 										</span>
 										{#if count > 0 && !hasModifiers}
 											<div
-												class="flex items-center overflow-hidden rounded-lg border-2 border-primary bg-white shadow-sm dark:bg-card"
+												class="flex items-center overflow-hidden rounded-lg border-2 border-primary bg-card shadow-sm"
 											>
 												<button
 													class="flex h-8 w-8 items-center justify-center text-primary transition-colors hover:bg-primary/10"
 													onclick={() => {
-														const ci = cart.find(
-															(c) => c.menuItemId === item.id && !c.modifiers
-														);
+														const ci = cart.find((c) => c.menuItemId === item.id && !c.modifiers);
 														if (ci) updateCartQuantity(ci.cartId, -1);
 													}}
 												>
@@ -463,14 +457,14 @@
 											</div>
 										{:else}
 											<button
-												class="relative flex h-8 items-center gap-1 rounded-lg border-2 border-primary bg-white px-4 text-sm font-bold text-primary shadow-sm transition-all hover:bg-primary/5 active:scale-95 dark:bg-card"
+												class="relative flex h-8 items-center gap-1 rounded-lg border-2 border-primary bg-card px-4 text-sm font-bold text-primary shadow-sm transition-all hover:bg-primary/5 active:scale-95"
 												onclick={() => handleAddItem(item)}
 											>
 												ADD
 												<PlusIcon class="h-3.5 w-3.5" />
 												{#if count > 0}
 													<span
-														class="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground"
+														class="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground"
 													>
 														{count}
 													</span>
@@ -500,22 +494,18 @@
 
 		{#if categories.length === 0}
 			<div class="flex flex-col items-center justify-center py-20 text-center">
-				<div
-					class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-muted"
-				>
-					<StoreIcon class="h-8 w-8 text-gray-400" />
+				<div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+					<StoreIcon class="h-8 w-8 text-muted-foreground" />
 				</div>
-				<h2 class="text-lg font-semibold text-gray-600 dark:text-muted-foreground">
-					No menu available
-				</h2>
-				<p class="mt-1 text-sm text-gray-400">
+				<h2 class="text-lg font-semibold text-muted-foreground">No menu available</h2>
+				<p class="mt-1 text-sm text-muted-foreground">
 					This restaurant hasn't published their menu yet.
 				</p>
 			</div>
 		{:else if filteredCategories().length === 0 && searchQuery}
 			<div class="flex flex-col items-center justify-center py-16 text-center">
-				<SearchIcon class="mb-3 h-10 w-10 text-gray-300" />
-				<p class="text-sm text-gray-500">No dishes found for "{searchQuery}"</p>
+				<SearchIcon class="mb-3 h-10 w-10 text-muted-foreground/60" />
+				<p class="text-sm text-muted-foreground">No dishes found for "{searchQuery}"</p>
 			</div>
 		{/if}
 	</div>
@@ -538,13 +528,13 @@
 							<div class="mb-1 flex items-center gap-2">
 								{#if selectedMenuItem.isVegetarian}
 									<span
-										class="inline-flex h-4 w-4 items-center justify-center rounded-sm border-2 border-green-600"
+										class="inline-flex h-4 w-4 items-center justify-center rounded-sm border-2 border-success"
 									>
-										<span class="h-2 w-2 rounded-full bg-green-600"></span>
+										<span class="h-2 w-2 rounded-full bg-success"></span>
 									</span>
 								{:else}
 									<span
-										class="inline-flex h-4 w-4 items-center justify-center rounded-sm border-2 border-red-600"
+										class="inline-flex h-4 w-4 items-center justify-center rounded-sm border-2 border-destructive"
 									>
 										<span
 											class="h-0 w-0 border-x-[4px] border-b-[8px] border-x-transparent border-b-red-600"
@@ -553,7 +543,9 @@
 								{/if}
 							</div>
 							<h3 class="text-lg font-bold">{selectedMenuItem.name}</h3>
-							<p class="text-sm font-semibold text-primary">{formatPrice(selectedMenuItem.price)}</p>
+							<p class="text-sm font-semibold text-primary">
+								{formatPrice(selectedMenuItem.price)}
+							</p>
 							{#if selectedMenuItem.description}
 								<p class="mt-0.5 text-xs text-muted-foreground">{selectedMenuItem.description}</p>
 							{/if}
@@ -566,7 +558,9 @@
 							<div>
 								<div class="mb-2 flex items-center justify-between">
 									<h4 class="text-sm font-bold">Size</h4>
-									<span class="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-muted dark:text-muted-foreground">
+									<span
+										class="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+									>
 										Required
 									</span>
 								</div>
@@ -576,7 +570,7 @@
 										<button
 											class="rounded-xl border-2 px-4 py-2.5 text-sm font-medium transition-all {selected
 												? 'border-primary bg-primary/5 text-primary'
-												: 'border-gray-200 text-gray-700 hover:border-gray-300 dark:border-border dark:text-foreground'}"
+												: 'border-border text-foreground hover:border-input'}"
 											onclick={() => (modSize = size)}
 										>
 											<span>{size.name}</span>
@@ -594,7 +588,9 @@
 							<div>
 								<div class="mb-2 flex items-center justify-between">
 									<h4 class="text-sm font-bold">Spice Level</h4>
-									<span class="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-muted dark:text-muted-foreground">
+									<span
+										class="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+									>
 										Required
 									</span>
 								</div>
@@ -603,8 +599,8 @@
 										{@const selected = modSpice?.id === spice.id}
 										<button
 											class="rounded-xl border-2 px-4 py-2.5 text-sm font-medium transition-all {selected
-												? 'border-orange-500 bg-orange-50 text-orange-700 dark:border-orange-400 dark:bg-orange-900/20 dark:text-orange-300'
-												: 'border-gray-200 text-gray-700 hover:border-gray-300 dark:border-border dark:text-foreground'}"
+												? 'border-primary bg-primary/10 text-primary'
+												: 'border-border text-foreground hover:border-input'}"
 											onclick={() => (modSpice = spice)}
 										>
 											<span>{spice.name}</span>
@@ -622,7 +618,9 @@
 							<div>
 								<div class="mb-2 flex items-center justify-between">
 									<h4 class="text-sm font-bold">Add-ons</h4>
-									<span class="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-muted dark:text-muted-foreground">
+									<span
+										class="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+									>
 										Optional
 									</span>
 								</div>
@@ -632,14 +630,14 @@
 										<button
 											class="flex w-full items-center justify-between rounded-xl border-2 p-3 text-left transition-all {checked
 												? 'border-primary bg-primary/5'
-												: 'border-gray-100 hover:border-gray-200 dark:border-border'}"
+												: 'border-border hover:border-border'}"
 											onclick={() => toggleAddOn(addOn)}
 										>
 											<div class="flex items-center gap-3">
 												<div
 													class="flex h-5 w-5 items-center justify-center rounded-md border-2 {checked
 														? 'border-primary bg-primary'
-														: 'border-gray-300 dark:border-muted-foreground'}"
+														: 'border-input'}"
 												>
 													{#if checked}
 														<svg
@@ -678,18 +676,18 @@
 								bind:value={modInstructions}
 								placeholder="E.g. less oil, extra spicy, no onion..."
 								rows="2"
-								class="w-full resize-none rounded-xl border-2 border-gray-100 bg-gray-50 p-3 text-sm outline-none transition-colors focus:border-primary focus:bg-white dark:border-border dark:bg-muted dark:focus:bg-background"
+								class="w-full resize-none rounded-xl border-2 border-border bg-muted/40 p-3 text-sm transition-colors outline-none focus:border-primary focus:bg-background"
 							></textarea>
 						</div>
 					</div>
 				</div>
 
 				<!-- Sticky footer -->
-				<div class="sticky bottom-0 border-t bg-white px-4 py-3 dark:bg-background">
+				<div class="sticky bottom-0 border-t bg-card px-4 py-3">
 					<!-- Quantity selector -->
 					<div class="mb-3 flex items-center justify-center gap-4">
 						<button
-							class="flex h-9 w-9 items-center justify-center rounded-full border-2 border-gray-200 transition-colors hover:border-gray-300 disabled:opacity-40 dark:border-border"
+							class="flex h-9 w-9 items-center justify-center rounded-full border-2 border-border transition-colors hover:border-input disabled:opacity-40"
 							onclick={() => (modQty = Math.max(1, modQty - 1))}
 							disabled={modQty <= 1}
 						>
@@ -697,7 +695,7 @@
 						</button>
 						<span class="w-8 text-center text-lg font-bold">{modQty}</span>
 						<button
-							class="flex h-9 w-9 items-center justify-center rounded-full border-2 border-gray-200 transition-colors hover:border-gray-300 dark:border-border"
+							class="flex h-9 w-9 items-center justify-center rounded-full border-2 border-border transition-colors hover:border-input"
 							onclick={() => (modQty += 1)}
 						>
 							<PlusIcon class="h-4 w-4" />
@@ -725,25 +723,25 @@
 			<div class="flex-1 overflow-y-auto px-4 pb-2">
 				{#if cart.length === 0}
 					<div class="py-8 text-center">
-						<ShoppingCartIcon class="mx-auto mb-2 h-10 w-10 text-gray-300" />
+						<ShoppingCartIcon class="mx-auto mb-2 h-10 w-10 text-muted-foreground/60" />
 						<p class="text-sm text-muted-foreground">Your cart is empty</p>
 					</div>
 				{:else}
 					<div class="space-y-3">
 						{#each cart as item (item.cartId)}
-							<div class="rounded-xl border border-gray-100 bg-gray-50/50 p-3 dark:border-border dark:bg-muted/30">
+							<div class="rounded-xl border border-border bg-muted/30 p-3">
 								<div class="flex items-start gap-3">
 									<!-- Veg indicator -->
 									<span
-										class="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border-2 border-green-600"
+										class="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border-2 border-success"
 									>
-										<span class="h-2 w-2 rounded-full bg-green-600"></span>
+										<span class="h-2 w-2 rounded-full bg-success"></span>
 									</span>
 									<div class="min-w-0 flex-1">
 										<div class="flex items-start justify-between gap-2">
-											<h4 class="text-sm font-semibold leading-tight">{item.name}</h4>
+											<h4 class="text-sm leading-tight font-semibold">{item.name}</h4>
 											<button
-												class="shrink-0 text-gray-400 hover:text-destructive"
+												class="shrink-0 text-muted-foreground hover:text-destructive"
 												onclick={() => removeCartItem(item.cartId)}
 												aria-label="Remove item"
 											>
@@ -758,7 +756,9 @@
 													<p class="text-[11px] text-muted-foreground">
 														Size: {item.modifiers.size.name}
 														{#if item.modifiers.size.price > 0}
-															<span class="text-primary">(+{formatPrice(item.modifiers.size.price)})</span>
+															<span class="text-primary"
+																>(+{formatPrice(item.modifiers.size.price)})</span
+															>
 														{/if}
 													</p>
 												{/if}
@@ -773,7 +773,7 @@
 													</p>
 												{/if}
 												{#if item.modifiers.specialInstructions}
-													<p class="text-[11px] italic text-muted-foreground">
+													<p class="text-[11px] text-muted-foreground italic">
 														"{item.modifiers.specialInstructions}"
 													</p>
 												{/if}
@@ -783,17 +783,17 @@
 										<!-- Quantity & price -->
 										<div class="mt-2 flex items-center justify-between">
 											<div
-												class="flex items-center overflow-hidden rounded-lg border border-gray-200 dark:border-border"
+												class="flex items-center overflow-hidden rounded-lg border border-border"
 											>
 												<button
-													class="flex h-7 w-7 items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-muted"
+													class="flex h-7 w-7 items-center justify-center text-muted-foreground hover:bg-muted"
 													onclick={() => updateCartQuantity(item.cartId, -1)}
 												>
 													<MinusIcon class="h-3 w-3" />
 												</button>
 												<span class="w-7 text-center text-xs font-bold">{item.quantity}</span>
 												<button
-													class="flex h-7 w-7 items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-muted"
+													class="flex h-7 w-7 items-center justify-center text-muted-foreground hover:bg-muted"
 													onclick={() => updateCartQuantity(item.cartId, 1)}
 												>
 													<PlusIcon class="h-3 w-3" />
@@ -832,7 +832,7 @@
 
 	<!-- ═══ Sticky Bottom Cart Bar ═══ -->
 	{#if cart.length > 0 && !showCart && !modDrawerOpen}
-		<div class="fixed bottom-0 left-0 right-0 z-20 px-4 pb-4 pt-2">
+		<div class="fixed right-0 bottom-0 left-0 z-20 px-4 pt-2 pb-4">
 			<button
 				class="flex w-full items-center justify-between rounded-2xl bg-primary px-5 py-4 text-primary-foreground shadow-xl transition-all active:scale-[0.98]"
 				onclick={() => (showCart = true)}
@@ -841,7 +841,7 @@
 					<div class="relative">
 						<ShoppingCartIcon class="h-5 w-5" />
 						<span
-							class="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] font-bold text-primary"
+							class="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-card text-[10px] font-bold text-primary"
 						>
 							{cartItemCount}
 						</span>

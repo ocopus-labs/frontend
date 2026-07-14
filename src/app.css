@@ -32,6 +32,9 @@
 	--border: oklch(0.9219 0 0);
 	--input: oklch(0.9219 0 0);
 	--ring: oklch(0.6848 0.1832 41.8733);
+	/* Structure-aware skeleton (shimmer-from-structure). Block base + moving highlight. */
+	--shimmer-base: oklch(0.922 0 0);
+	--shimmer-highlight: oklch(0.975 0 0);
 	/* Brand-aligned categorical palette (chart-1 == --primary). Matched
 	   lightness/chroma so the hues read as one family, not a clash. */
 	--chart-1: oklch(0.6848 0.1832 41.8733);
@@ -96,6 +99,9 @@
 	--border: oklch(0.2972 0 0);
 	--input: oklch(0.2972 0 0);
 	--ring: oklch(0.6848 0.1832 41.8733);
+	/* Structure-aware skeleton (shimmer-from-structure). Block base + moving highlight. */
+	--shimmer-base: oklch(0.269 0 0);
+	--shimmer-highlight: oklch(0.34 0 0);
 	/* Brand-aligned categorical palette — lifted L/C to pop on dark surfaces. */
 	--chart-1: oklch(0.6848 0.1832 41.8733);
 	--chart-2: oklch(0.75 0.12 190);
