@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { Label } from '$lib/components/ui/label';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { IconCut } from '@tabler/icons-svelte';
@@ -69,15 +69,15 @@
 	<Dialog.Content class="max-w-lg">
 		<Dialog.Header>
 			<Dialog.Title class="flex items-center gap-2">
-				<IconCut class="h-5 w-5 text-orange-500" />
+				<IconCut class="h-5 w-5 text-primary" />
 				Split Order
 			</Dialog.Title>
 			<Dialog.Description>Select items to move to another table</Dialog.Description>
 		</Dialog.Header>
 
-		<div class="space-y-4 py-4">
-			<div class="space-y-2">
-				<Label>Select items to split</Label>
+		<Field.Group class="py-4">
+			<Field.Field>
+				<Field.Label>Select items to split</Field.Label>
 				<div class="max-h-40 space-y-1 overflow-y-auto rounded-lg border p-2">
 					{#each activeItems as item}
 						<button
@@ -91,22 +91,25 @@
 							<div class="flex-1">
 								<span class="text-sm">{item.quantity}x {item.name}</span>
 							</div>
-							<span class="text-muted-foreground text-sm">{formatCurrency(item.totalPrice)}</span>
+							<span class="text-sm text-muted-foreground">{formatCurrency(item.totalPrice)}</span>
 						</button>
 					{/each}
 				</div>
-				<p class="text-muted-foreground text-xs">{selectedItemIds.size} item(s) selected</p>
-			</div>
+				<Field.Description>{selectedItemIds.size} item(s) selected</Field.Description>
+			</Field.Field>
 
-			<div class="space-y-2">
-				<Label>Move to table</Label>
+			<Field.Field>
+				<Field.Label>Move to table</Field.Label>
 				{#if filteredTables.length === 0}
-					<p class="text-muted-foreground py-2 text-center text-sm">No available tables</p>
+					<p class="py-2 text-center text-sm text-muted-foreground">No available tables</p>
 				{:else}
 					<div class="grid max-h-32 grid-cols-4 gap-2 overflow-y-auto">
 						{#each filteredTables as table}
 							<button
-								class="rounded-lg border p-2 text-center text-sm transition-colors {selectedTableId === table.id ? 'border-primary bg-primary/10 ring-primary ring-2' : 'hover:bg-muted'}"
+								class="rounded-lg border p-2 text-center text-sm transition-colors {selectedTableId ===
+								table.id
+									? 'border-primary bg-primary/10 ring-2 ring-primary'
+									: 'hover:bg-muted'}"
 								onclick={() => (selectedTableId = table.id)}
 							>
 								{table.displayName}
@@ -114,8 +117,8 @@
 						{/each}
 					</div>
 				{/if}
-			</div>
-		</div>
+			</Field.Field>
+		</Field.Group>
 
 		<Dialog.Footer>
 			<Button variant="outline" onclick={onCancel} disabled={isProcessing}>Cancel</Button>

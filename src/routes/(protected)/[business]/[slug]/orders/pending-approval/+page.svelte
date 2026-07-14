@@ -5,7 +5,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import * as Dialog from '$lib/components/ui/dialog';
-	import PageHeader from '$lib/components/global/page-header.svelte';
+	import PageShell from '$lib/components/global/page-shell.svelte';
 	import { IconRefresh } from '@tabler/icons-svelte';
 	import { page } from '$app/stores';
 	import { invalidate } from '$app/navigation';
@@ -175,96 +175,91 @@
 	const pendingCount = $derived(orders.length);
 </script>
 
-<div class="flex flex-1 flex-col">
-	<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-		<!-- Header -->
-		<PageHeader
-			title="Pending Approval"
-			description="Online orders awaiting staff approval before entering the kitchen"
+<PageShell
+	title="Pending Approval"
+	description="Online orders awaiting staff approval before entering the kitchen"
+>
+	{#snippet actions()}
+		<div class="flex items-center gap-3">
+			{#if pendingCount > 0}
+				<Badge variant="destructive" class="tabular-nums">
+					{pendingCount}
+				</Badge>
+			{/if}
+			<Button variant="outline" size="sm" onclick={refreshOrders} disabled={isRefreshing}>
+				<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
+				{isRefreshing ? 'Refreshing…' : 'Refresh'}
+			</Button>
+		</div>
+	{/snippet}
+
+	<!-- Order list -->
+	{#if orders.length === 0}
+		<div
+			class="flex flex-col items-center justify-center gap-3 py-20 text-center text-muted-foreground"
 		>
-			{#snippet actions()}
-				<div class="flex items-center gap-3">
-					{#if pendingCount > 0}
-						<Badge variant="destructive" class="tabular-nums">
-							{pendingCount}
-						</Badge>
-					{/if}
-					<Button variant="outline" size="sm" onclick={refreshOrders} disabled={isRefreshing}>
-						<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
-						{isRefreshing ? 'Refreshing…' : 'Refresh'}
-					</Button>
-				</div>
-			{/snippet}
-		</PageHeader>
+			<span class="text-5xl" aria-hidden="true">🎉</span>
+			<p class="text-lg font-medium">No pending orders</p>
+			<p class="text-sm">New online orders will appear here automatically.</p>
+		</div>
+	{:else}
+		<div class="flex flex-col gap-3">
+			{#each orders as order (order.id)}
+				<div
+					class="flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-sm transition-opacity sm:flex-row sm:items-start sm:justify-between"
+				>
+					<!-- Left: order info -->
+					<div class="flex min-w-0 flex-col gap-1">
+						<div class="flex flex-wrap items-center gap-2">
+							<span class="font-mono text-sm font-semibold tracking-tight">
+								#{order.orderNumber}
+							</span>
+							<Badge variant="outline" class="text-xs">Online</Badge>
+							<span class="text-xs text-muted-foreground">{timeAgo(order.createdAt)}</span>
+						</div>
 
-		<!-- Order list -->
-		{#if orders.length === 0}
-			<div
-				class="flex flex-col items-center justify-center gap-3 py-20 text-center text-muted-foreground"
-			>
-				<span class="text-5xl" aria-hidden="true">🎉</span>
-				<p class="text-lg font-medium">No pending orders</p>
-				<p class="text-sm">New online orders will appear here automatically.</p>
-			</div>
-		{:else}
-			<div class="flex flex-col gap-3 px-4 md:px-6">
-				{#each orders as order (order.id)}
-					<div
-						class="flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-sm transition-opacity sm:flex-row sm:items-start sm:justify-between"
-					>
-						<!-- Left: order info -->
-						<div class="flex min-w-0 flex-col gap-1">
-							<div class="flex flex-wrap items-center gap-2">
-								<span class="font-mono text-sm font-semibold tracking-tight">
-									#{order.orderNumber}
+						<p class="truncate text-sm font-medium">
+							{order.customerInfo?.name || 'Guest'}
+							{#if order.customerInfo?.phone}
+								<span class="ml-1 font-normal text-muted-foreground">
+									{phoneLast4(order.customerInfo.phone)}
 								</span>
-								<Badge variant="outline" class="text-xs">Online</Badge>
-								<span class="text-xs text-muted-foreground">{timeAgo(order.createdAt)}</span>
-							</div>
+							{/if}
+						</p>
 
-							<p class="truncate text-sm font-medium">
-								{order.customerInfo?.name || 'Guest'}
-								{#if order.customerInfo?.phone}
-									<span class="ml-1 font-normal text-muted-foreground">
-										{phoneLast4(order.customerInfo.phone)}
-									</span>
-								{/if}
-							</p>
+						<p class="line-clamp-2 text-xs text-muted-foreground">
+							{itemsSummary(order.items)}
+						</p>
 
-							<p class="line-clamp-2 text-xs text-muted-foreground">
-								{itemsSummary(order.items)}
-							</p>
-
-							<p class="mt-1 text-sm font-semibold">
-								{formatCurrency(order.pricing.total)}
-							</p>
-						</div>
-
-						<!-- Right: actions -->
-						<div class="flex shrink-0 gap-2 sm:flex-col sm:items-end">
-							<Button
-								size="sm"
-								variant="default"
-								class="flex-1 sm:min-w-24 sm:flex-none"
-								onclick={() => handleApprove(order)}
-							>
-								Approve
-							</Button>
-							<Button
-								size="sm"
-								variant="outline"
-								class="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground sm:min-w-24 sm:flex-none"
-								onclick={() => openRejectDialog(order)}
-							>
-								Reject
-							</Button>
-						</div>
+						<p class="mt-1 text-sm font-semibold">
+							{formatCurrency(order.pricing.total)}
+						</p>
 					</div>
-				{/each}
-			</div>
-		{/if}
-	</div>
-</div>
+
+					<!-- Right: actions -->
+					<div class="flex shrink-0 gap-2 sm:flex-col sm:items-end">
+						<Button
+							size="sm"
+							variant="default"
+							class="flex-1 sm:min-w-24 sm:flex-none"
+							onclick={() => handleApprove(order)}
+						>
+							Approve
+						</Button>
+						<Button
+							size="sm"
+							variant="outline"
+							class="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground sm:min-w-24 sm:flex-none"
+							onclick={() => openRejectDialog(order)}
+						>
+							Reject
+						</Button>
+					</div>
+				</div>
+			{/each}
+		</div>
+	{/if}
+</PageShell>
 
 <!-- Reject reason dialog -->
 <Dialog.Root bind:open={rejectDialogOpen}>

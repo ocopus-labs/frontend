@@ -226,9 +226,18 @@
 
 <div class="flex flex-col gap-6 p-6">
 	<!-- Page Header -->
-	<PageHeader title="Customer Segments" description="Group customers by behavior and attributes for targeted campaigns">
+	<PageHeader
+		title="Customer Segments"
+		description="Group customers by behavior and attributes for targeted campaigns"
+	>
 		{#snippet actions()}
-			<Button size="sm" onclick={() => { resetForm(); showCreateDialog = true; }}>
+			<Button
+				size="sm"
+				onclick={() => {
+					resetForm();
+					showCreateDialog = true;
+				}}
+			>
 				<IconPlus class="mr-2 h-4 w-4" />
 				Create Segment
 			</Button>
@@ -246,7 +255,7 @@
 		<Card.Root>
 			<Card.Content class="p-4">
 				<p class="text-sm text-muted-foreground">Auto-Refresh</p>
-				<p class="text-2xl font-bold text-blue-600">
+				<p class="text-2xl font-bold text-chart-3">
 					{segments.filter((s) => s.autoRefresh).length}
 				</p>
 			</Card.Content>
@@ -254,7 +263,7 @@
 		<Card.Root>
 			<Card.Content class="p-4">
 				<p class="text-sm text-muted-foreground">Total Customers Segmented</p>
-				<p class="text-2xl font-bold text-emerald-600">
+				<p class="text-2xl font-bold text-chart-5">
 					{segments.reduce((sum, s) => sum + s.customerCount, 0)}
 				</p>
 			</Card.Content>
@@ -268,7 +277,10 @@
 			title="No segments yet"
 			description="Create your first customer segment to start targeting specific groups."
 			actionLabel="Create Segment"
-			onAction={() => { resetForm(); showCreateDialog = true; }}
+			onAction={() => {
+				resetForm();
+				showCreateDialog = true;
+			}}
 		/>
 	{:else}
 		<Card.Root>
@@ -303,7 +315,7 @@
 									{segment.autoRefresh ? 'On' : 'Off'}
 								</Badge>
 							</Table.Cell>
-							<Table.Cell class="hidden sm:table-cell text-muted-foreground">
+							<Table.Cell class="hidden text-muted-foreground sm:table-cell">
 								{formatDate(segment.createdAt)}
 							</Table.Cell>
 							<Table.Cell class="text-right">
@@ -353,7 +365,11 @@
 		<div class="grid gap-4 py-4">
 			<div class="grid gap-2">
 				<label for="seg-name" class="text-sm font-medium">Segment Name *</label>
-				<Input id="seg-name" bind:value={formName} placeholder="e.g., High Spenders, VIP Regulars" />
+				<Input
+					id="seg-name"
+					bind:value={formName}
+					placeholder="e.g., High Spenders, VIP Regulars"
+				/>
 			</div>
 
 			<!-- Rule Builder -->
@@ -420,7 +436,12 @@
 						{/if}
 
 						{#if ruleRows.length > 1}
-							<Button variant="ghost" size="icon" class="h-8 w-8 shrink-0" onclick={() => removeRuleRow(i)}>
+							<Button
+								variant="ghost"
+								size="icon"
+								class="h-8 w-8 shrink-0"
+								onclick={() => removeRuleRow(i)}
+							>
 								<IconTrash class="h-3.5 w-3.5" />
 							</Button>
 						{/if}

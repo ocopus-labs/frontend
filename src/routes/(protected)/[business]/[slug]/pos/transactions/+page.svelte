@@ -17,6 +17,7 @@
 		IconBuildingBank
 	} from '@tabler/icons-svelte';
 	import { EmptyState } from '$lib/components/data-display';
+	import PageShell from '$lib/components/global/page-shell.svelte';
 	import * as Select from '$lib/components/ui/select';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
@@ -203,229 +204,244 @@
 	}
 </script>
 
-<div class="flex flex-1 flex-col">
-	<div class="@container/main flex flex-1 flex-col gap-4">
-		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
-				<div>
-					<h1 class="text-2xl font-bold">Transactions</h1>
-					<p class="text-muted-foreground">View and manage all payment transactions</p>
+<PageShell title="Transactions" description="View and manage all payment transactions">
+	{#snippet actions()}
+		<Button variant="outline" onclick={refresh} disabled={isRefreshing}>
+			<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
+			Refresh
+		</Button>
+		<Button onclick={exportTransactions}>
+			<IconDownload class="mr-2 h-4 w-4" />
+			Export
+		</Button>
+	{/snippet}
+
+	<!-- Summary Cards -->
+	<div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
+		<Card.Root>
+			<Card.Header class="pb-2">
+				<Card.Title class="text-sm font-medium">Total Transactions</Card.Title>
+			</Card.Header>
+			<Card.Content>
+				<div class="text-2xl font-bold">{data.total}</div>
+			</Card.Content>
+		</Card.Root>
+		<Card.Root>
+			<Card.Header class="pb-2">
+				<Card.Title class="text-sm font-medium">Total Amount</Card.Title>
+			</Card.Header>
+			<Card.Content>
+				<div class="text-2xl font-bold">{formatCurrency(totalAmount)}</div>
+			</Card.Content>
+		</Card.Root>
+		<Card.Root>
+			<Card.Header class="pb-2">
+				<Card.Title class="text-sm font-medium">Average Transaction</Card.Title>
+			</Card.Header>
+			<Card.Content>
+				<div class="text-2xl font-bold">
+					{formatCurrency(filteredPayments.length > 0 ? totalAmount / filteredPayments.length : 0)}
 				</div>
-				<div class="flex gap-2">
-					<Button variant="outline" onclick={refresh} disabled={isRefreshing}>
-						<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
-						Refresh
-					</Button>
-					<Button onclick={exportTransactions}>
-						<IconDownload class="mr-2 h-4 w-4" />
-						Export
-					</Button>
-				</div>
-			</div>
+			</Card.Content>
+		</Card.Root>
+		{#if summary}
+			<Card.Root>
+				<Card.Header class="pb-2">
+					<Card.Title class="text-sm font-medium">Pending Amount</Card.Title>
+				</Card.Header>
+				<Card.Content>
+					<div class="text-2xl font-bold">{formatCurrency(summary.pendingAmount)}</div>
+				</Card.Content>
+			</Card.Root>
+		{/if}
+	</div>
 
-			<!-- Summary Cards -->
-			<div class="grid grid-cols-1 gap-4 px-6 sm:grid-cols-4">
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Total Transactions</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold">{data.total}</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Total Amount</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold">{formatCurrency(totalAmount)}</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Average Transaction</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold">
-							{formatCurrency(
-								filteredPayments.length > 0 ? totalAmount / filteredPayments.length : 0
-							)}
-						</div>
-					</Card.Content>
-				</Card.Root>
-				{#if summary}
-					<Card.Root>
-						<Card.Header class="pb-2">
-							<Card.Title class="text-sm font-medium">Pending Amount</Card.Title>
-						</Card.Header>
-						<Card.Content>
-							<div class="text-2xl font-bold">{formatCurrency(summary.pendingAmount)}</div>
-						</Card.Content>
-					</Card.Root>
-				{/if}
-			</div>
-
-			<!-- Filters and Search -->
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
-				<div class="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-					<div class="relative max-w-sm flex-1">
-						<IconSearch
-							class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-						/>
-						<Input placeholder="Search transactions..." bind:value={searchQuery} class="pl-9" />
-					</div>
-				</div>
-
-				<div class="flex gap-2">
-					<Select.Root type="single" value={data.statusFilter} onValueChange={(v) => applyStatusFilter(v)}>
-						<Select.Trigger class="w-[150px]">
-							{({ all: 'All Status', completed: 'Completed', pending: 'Pending', refunded: 'Refunded', failed: 'Failed' } as Record<string, string>)[data.statusFilter] || 'All Status'}
-						</Select.Trigger>
-						<Select.Content>
-							<Select.Item value="all">All Status</Select.Item>
-							<Select.Item value="completed">Completed</Select.Item>
-							<Select.Item value="pending">Pending</Select.Item>
-							<Select.Item value="refunded">Refunded</Select.Item>
-							<Select.Item value="failed">Failed</Select.Item>
-						</Select.Content>
-					</Select.Root>
-
-					<Select.Root type="single" value={data.methodFilter} onValueChange={(v) => applyMethodFilter(v)}>
-						<Select.Trigger class="w-[150px]">
-							{({ all: 'All Methods', card: 'Card', cash: 'Cash', upi: 'UPI', net_banking: 'Net Banking', wallet: 'Wallet', razorpay: 'Razorpay', stripe: 'Stripe' } as Record<string, string>)[data.methodFilter] || 'All Methods'}
-						</Select.Trigger>
-						<Select.Content>
-							<Select.Item value="all">All Methods</Select.Item>
-							<Select.Item value="card">Card</Select.Item>
-							<Select.Item value="cash">Cash</Select.Item>
-							<Select.Item value="upi">UPI</Select.Item>
-							<Select.Item value="net_banking">Net Banking</Select.Item>
-							<Select.Item value="wallet">Wallet</Select.Item>
-							<Select.Item value="razorpay">Razorpay</Select.Item>
-							<Select.Item value="stripe">Stripe</Select.Item>
-						</Select.Content>
-					</Select.Root>
-				</div>
-			</div>
-
-			<!-- Transactions Table -->
-			<div class="px-6">
-				<div class="overflow-x-auto rounded-md border">
-					<Table.Root>
-						<Table.Header>
-							<Table.Row>
-								<Table.Head>Payment ID</Table.Head>
-								<Table.Head class="hidden lg:table-cell">Order</Table.Head>
-								<Table.Head class="hidden sm:table-cell">Customer</Table.Head>
-								<Table.Head class="hidden lg:table-cell">Payment Method</Table.Head>
-								<Table.Head>Amount</Table.Head>
-								<Table.Head>Status</Table.Head>
-								<Table.Head class="hidden md:table-cell">Date & Time</Table.Head>
-								<Table.Head class="text-right">Action</Table.Head>
-							</Table.Row>
-						</Table.Header>
-						<Table.Body>
-							{#each filteredPayments as payment (payment.id)}
-								{@const dateTime = formatDateTime(payment.createdAt)}
-								{@const PaymentIcon = getPaymentIcon(payment.method)}
-								<Table.Row>
-									<Table.Cell class="font-mono text-sm font-medium"
-										>{payment.paymentNumber}</Table.Cell
-									>
-									<Table.Cell class="hidden font-mono text-sm text-muted-foreground lg:table-cell"
-										>{payment.orderNumber}</Table.Cell
-									>
-									<Table.Cell class="hidden sm:table-cell">{payment.customerInfo?.name || 'Guest'}</Table.Cell>
-									<Table.Cell class="hidden lg:table-cell">
-										<div class="flex items-center gap-2">
-											<PaymentIcon class="h-4 w-4" />
-											{getPaymentMethodLabel(payment.method)}
-										</div>
-									</Table.Cell>
-									<Table.Cell class="font-medium">{formatCurrency(payment.amount)}</Table.Cell>
-									<Table.Cell>
-										<Badge variant={getStatusBadge(payment.status).variant}>
-											{getStatusBadge(payment.status).text}
-										</Badge>
-									</Table.Cell>
-									<Table.Cell class="hidden md:table-cell">
-										<div class="text-sm">
-											<div>{dateTime.date}</div>
-											<div class="text-muted-foreground">{dateTime.time}</div>
-										</div>
-									</Table.Cell>
-									<Table.Cell class="text-right">
-										<Button
-											variant="ghost"
-											size="icon"
-											onclick={() => viewTransaction(payment)}
-											aria-label="View order"
-										>
-											<IconEye class="h-4 w-4" />
-										</Button>
-									</Table.Cell>
-								</Table.Row>
-							{/each}
-						</Table.Body>
-					</Table.Root>
-				</div>
-			</div>
-
-			{#if filteredPayments.length === 0}
-				<EmptyState
-					type="no-results"
-					title="No transactions found"
-					description="Transactions will appear here after payments are processed."
+	<!-- Filters and Search -->
+	<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+		<div class="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+			<div class="relative max-w-sm flex-1">
+				<IconSearch
+					class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
 				/>
-			{/if}
+				<Input placeholder="Search transactions..." bind:value={searchQuery} class="pl-9" />
+			</div>
+		</div>
 
-			<!-- Pagination -->
-			{#if data.totalPages > 1}
-				<div class="flex items-center justify-between px-6">
-					<p class="text-sm text-muted-foreground">
-						Showing <span class="font-medium">{(data.page - 1) * data.limit + 1}</span> to
-						<span class="font-medium">{Math.min(data.page * data.limit, data.total)}</span> of
-						<span class="font-medium">{data.total}</span> transactions
-					</p>
-					<div class="flex items-center gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={data.page <= 1}
-							onclick={() => goToPage(data.page - 1)}
-						>
-							<ChevronLeft class="h-4 w-4" />
-							Previous
-						</Button>
+		<div class="flex gap-2">
+			<Select.Root
+				type="single"
+				value={data.statusFilter}
+				onValueChange={(v) => applyStatusFilter(v)}
+			>
+				<Select.Trigger class="w-[150px]">
+					{(
+						{
+							all: 'All Status',
+							completed: 'Completed',
+							pending: 'Pending',
+							refunded: 'Refunded',
+							failed: 'Failed'
+						} as Record<string, string>
+					)[data.statusFilter] || 'All Status'}
+				</Select.Trigger>
+				<Select.Content>
+					<Select.Item value="all">All Status</Select.Item>
+					<Select.Item value="completed">Completed</Select.Item>
+					<Select.Item value="pending">Pending</Select.Item>
+					<Select.Item value="refunded">Refunded</Select.Item>
+					<Select.Item value="failed">Failed</Select.Item>
+				</Select.Content>
+			</Select.Root>
 
-						<div class="flex items-center gap-1">
-							{#each Array.from({ length: Math.min(5, data.totalPages) }, (_, i) => {
-								const start = Math.max(1, Math.min(data.page - 2, data.totalPages - 4));
-								return start + i;
-							}) as pageNum}
-								<Button
-									variant={pageNum === data.page ? 'default' : 'ghost'}
-									size="sm"
-									class="w-9"
-									onclick={() => goToPage(pageNum)}
-								>
-									{pageNum}
-								</Button>
-							{/each}
-						</div>
-
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={data.page >= data.totalPages}
-							onclick={() => goToPage(data.page + 1)}
-						>
-							Next
-							<ChevronRight class="h-4 w-4" />
-						</Button>
-					</div>
-				</div>
-			{/if}
+			<Select.Root
+				type="single"
+				value={data.methodFilter}
+				onValueChange={(v) => applyMethodFilter(v)}
+			>
+				<Select.Trigger class="w-[150px]">
+					{(
+						{
+							all: 'All Methods',
+							card: 'Card',
+							cash: 'Cash',
+							upi: 'UPI',
+							net_banking: 'Net Banking',
+							wallet: 'Wallet',
+							razorpay: 'Razorpay',
+							stripe: 'Stripe'
+						} as Record<string, string>
+					)[data.methodFilter] || 'All Methods'}
+				</Select.Trigger>
+				<Select.Content>
+					<Select.Item value="all">All Methods</Select.Item>
+					<Select.Item value="card">Card</Select.Item>
+					<Select.Item value="cash">Cash</Select.Item>
+					<Select.Item value="upi">UPI</Select.Item>
+					<Select.Item value="net_banking">Net Banking</Select.Item>
+					<Select.Item value="wallet">Wallet</Select.Item>
+					<Select.Item value="razorpay">Razorpay</Select.Item>
+					<Select.Item value="stripe">Stripe</Select.Item>
+				</Select.Content>
+			</Select.Root>
 		</div>
 	</div>
-</div>
+
+	<!-- Transactions Table -->
+	<div>
+		<div class="overflow-x-auto rounded-md border">
+			<Table.Root>
+				<Table.Header>
+					<Table.Row>
+						<Table.Head>Payment ID</Table.Head>
+						<Table.Head class="hidden lg:table-cell">Order</Table.Head>
+						<Table.Head class="hidden sm:table-cell">Customer</Table.Head>
+						<Table.Head class="hidden lg:table-cell">Payment Method</Table.Head>
+						<Table.Head>Amount</Table.Head>
+						<Table.Head>Status</Table.Head>
+						<Table.Head class="hidden md:table-cell">Date & Time</Table.Head>
+						<Table.Head class="text-right">Action</Table.Head>
+					</Table.Row>
+				</Table.Header>
+				<Table.Body>
+					{#each filteredPayments as payment (payment.id)}
+						{@const dateTime = formatDateTime(payment.createdAt)}
+						{@const PaymentIcon = getPaymentIcon(payment.method)}
+						<Table.Row>
+							<Table.Cell class="font-mono text-sm font-medium">{payment.paymentNumber}</Table.Cell>
+							<Table.Cell class="hidden font-mono text-sm text-muted-foreground lg:table-cell"
+								>{payment.orderNumber}</Table.Cell
+							>
+							<Table.Cell class="hidden sm:table-cell"
+								>{payment.customerInfo?.name || 'Guest'}</Table.Cell
+							>
+							<Table.Cell class="hidden lg:table-cell">
+								<div class="flex items-center gap-2">
+									<PaymentIcon class="h-4 w-4" />
+									{getPaymentMethodLabel(payment.method)}
+								</div>
+							</Table.Cell>
+							<Table.Cell class="font-medium">{formatCurrency(payment.amount)}</Table.Cell>
+							<Table.Cell>
+								<Badge variant={getStatusBadge(payment.status).variant}>
+									{getStatusBadge(payment.status).text}
+								</Badge>
+							</Table.Cell>
+							<Table.Cell class="hidden md:table-cell">
+								<div class="text-sm">
+									<div>{dateTime.date}</div>
+									<div class="text-muted-foreground">{dateTime.time}</div>
+								</div>
+							</Table.Cell>
+							<Table.Cell class="text-right">
+								<Button
+									variant="ghost"
+									size="icon"
+									onclick={() => viewTransaction(payment)}
+									aria-label="View order"
+								>
+									<IconEye class="h-4 w-4" />
+								</Button>
+							</Table.Cell>
+						</Table.Row>
+					{/each}
+				</Table.Body>
+			</Table.Root>
+		</div>
+	</div>
+
+	{#if filteredPayments.length === 0}
+		<EmptyState
+			type="no-results"
+			title="No transactions found"
+			description="Transactions will appear here after payments are processed."
+		/>
+	{/if}
+
+	<!-- Pagination -->
+	{#if data.totalPages > 1}
+		<div class="flex items-center justify-between">
+			<p class="text-sm text-muted-foreground">
+				Showing <span class="font-medium">{(data.page - 1) * data.limit + 1}</span> to
+				<span class="font-medium">{Math.min(data.page * data.limit, data.total)}</span> of
+				<span class="font-medium">{data.total}</span> transactions
+			</p>
+			<div class="flex items-center gap-2">
+				<Button
+					variant="outline"
+					size="sm"
+					disabled={data.page <= 1}
+					onclick={() => goToPage(data.page - 1)}
+				>
+					<ChevronLeft class="h-4 w-4" />
+					Previous
+				</Button>
+
+				<div class="flex items-center gap-1">
+					{#each Array.from({ length: Math.min(5, data.totalPages) }, (_, i) => {
+						const start = Math.max(1, Math.min(data.page - 2, data.totalPages - 4));
+						return start + i;
+					}) as pageNum}
+						<Button
+							variant={pageNum === data.page ? 'default' : 'ghost'}
+							size="sm"
+							class="w-9"
+							onclick={() => goToPage(pageNum)}
+						>
+							{pageNum}
+						</Button>
+					{/each}
+				</div>
+
+				<Button
+					variant="outline"
+					size="sm"
+					disabled={data.page >= data.totalPages}
+					onclick={() => goToPage(data.page + 1)}
+				>
+					Next
+					<ChevronRight class="h-4 w-4" />
+				</Button>
+			</div>
+		</div>
+	{/if}
+</PageShell>

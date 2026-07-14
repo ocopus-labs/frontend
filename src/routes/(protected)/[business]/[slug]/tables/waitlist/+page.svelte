@@ -19,6 +19,7 @@
 	} from '@tabler/icons-svelte';
 	import { toast } from 'svelte-sonner';
 	import { EmptyState, StatusPill } from '$lib/components/data-display';
+	import PageShell from '$lib/components/global/page-shell.svelte';
 	import {
 		addToWaitlist,
 		getActiveWaitlist,
@@ -114,7 +115,9 @@
 
 			const result = await addToWaitlist(data.businessId, payload);
 			queue = [...queue, result.entry];
-			toast.success(`${result.entry.customerName} added to waitlist (position #${result.entry.position})`);
+			toast.success(
+				`${result.entry.customerName} added to waitlist (position #${result.entry.position})`
+			);
 			showAddDialog = false;
 			resetForm();
 		} catch (error) {
@@ -195,7 +198,8 @@
 		(async () => {
 			try {
 				const { io } = await import('socket.io-client');
-				const backendUrl = env.PUBLIC_API_BASE?.replace(/\/api(\/v\d+)?$/, '') || 'http://localhost:3000';
+				const backendUrl =
+					env.PUBLIC_API_BASE?.replace(/\/api(\/v\d+)?$/, '') || 'http://localhost:3000';
 				const socket = io(`${backendUrl}/waitlist`, {
 					withCredentials: true,
 					autoConnect: true,
@@ -232,169 +236,171 @@
 	});
 </script>
 
-<div class="flex flex-1 flex-col">
-	<div class="@container/main flex flex-1 flex-col gap-4">
-		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<!-- Header -->
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
-				<div>
-					<h1 class="text-2xl font-bold">Waitlist</h1>
-					<p class="text-muted-foreground">Manage your walk-in queue</p>
-				</div>
-				<Button onclick={() => (showAddDialog = true)}>
-					<IconPlus class="mr-2 h-4 w-4" />
-					Add to Waitlist
-				</Button>
-			</div>
+<PageShell title="Waitlist" description="Manage your walk-in queue">
+	{#snippet actions()}
+		<Button onclick={() => (showAddDialog = true)}>
+			<IconPlus class="mr-2 h-4 w-4" />
+			Add to Waitlist
+		</Button>
+	{/snippet}
 
-			<!-- Stats -->
-			<div class="grid grid-cols-3 gap-4 px-6">
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Waiting</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold text-warning">{stats.waiting}</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Notified</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold text-info">{stats.notified}</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Est. Wait (Next)</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="text-2xl font-bold">
-							{#if estimatedWaitNext() !== null}
-								{estimatedWaitNext()}m
+	<!-- Stats -->
+	<div class="grid grid-cols-3 gap-4">
+		<Card.Root>
+			<Card.Header class="pb-2">
+				<Card.Title class="text-sm font-medium">Waiting</Card.Title>
+			</Card.Header>
+			<Card.Content>
+				<div class="text-2xl font-bold text-warning">{stats.waiting}</div>
+			</Card.Content>
+		</Card.Root>
+		<Card.Root>
+			<Card.Header class="pb-2">
+				<Card.Title class="text-sm font-medium">Notified</Card.Title>
+			</Card.Header>
+			<Card.Content>
+				<div class="text-info text-2xl font-bold">{stats.notified}</div>
+			</Card.Content>
+		</Card.Root>
+		<Card.Root>
+			<Card.Header class="pb-2">
+				<Card.Title class="text-sm font-medium">Est. Wait (Next)</Card.Title>
+			</Card.Header>
+			<Card.Content>
+				<div class="text-2xl font-bold">
+					{#if estimatedWaitNext() !== null}
+						{estimatedWaitNext()}m
+					{:else}
+						--
+					{/if}
+				</div>
+			</Card.Content>
+		</Card.Root>
+	</div>
+
+	<!-- Queue List -->
+	{#if queue.length > 0}
+		<div class="flex flex-col gap-3">
+			{#each queue as entry (entry.id)}
+				{@const pill = getStatusPill(entry.status)}
+				<Card.Root
+					class="transition-shadow hover:shadow-md {entry.position === 1
+						? 'border-primary/50 bg-primary/5'
+						: ''}"
+				>
+					<Card.Content class="flex items-center gap-4 p-4">
+						<!-- Position number -->
+						<div
+							class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-lg font-bold {entry.position ===
+							1
+								? 'bg-primary text-primary-foreground'
+								: ''}"
+						>
+							{entry.position}
+						</div>
+
+						<!-- Customer info -->
+						<div class="min-w-0 flex-1">
+							<div class="flex items-center gap-2">
+								<span class="truncate font-semibold">{entry.customerName}</span>
+								<StatusPill label={pill.label} status={pill.status} pulse={pill.pulse} size="sm" />
+							</div>
+							<div class="mt-1 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+								<span class="flex items-center gap-1">
+									<IconUsers class="h-3.5 w-3.5" />
+									{entry.partySize}
+								</span>
+								<span class="flex items-center gap-1">
+									<IconClock class="h-3.5 w-3.5" />
+									{getWaitTime(entry.joinedAt)}
+								</span>
+								{#if entry.customerPhone}
+									<span class="text-xs">{entry.customerPhone}</span>
+								{/if}
+								{#if entry.notes}
+									<span class="truncate text-xs italic">{entry.notes}</span>
+								{/if}
+							</div>
+						</div>
+
+						<!-- Actions -->
+						<div class="flex shrink-0 items-center gap-1">
+							{#if actionLoading === entry.id}
+								<IconLoader2 class="h-5 w-5 animate-spin text-muted-foreground" />
 							{:else}
-								--
+								{#if entry.status === 'waiting'}
+									<Button
+										variant="ghost"
+										size="icon"
+										class="text-info h-8 w-8"
+										onclick={() => handleNotify(entry)}
+										aria-label="Notify customer"
+										title="Notify"
+									>
+										<IconBell class="h-4 w-4" />
+									</Button>
+								{/if}
+								{#if entry.status === 'waiting' || entry.status === 'notified'}
+									<Button
+										variant="ghost"
+										size="icon"
+										class="h-8 w-8 text-success"
+										onclick={() => handleSeat(entry)}
+										aria-label="Seat customer"
+										title="Seat"
+									>
+										<IconCheck class="h-4 w-4" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="icon"
+										class="h-8 w-8 text-destructive"
+										onclick={() => handleCancel(entry)}
+										aria-label="Cancel entry"
+										title="Cancel"
+									>
+										<IconX class="h-4 w-4" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="icon"
+										class="h-8 w-8 text-muted-foreground"
+										onclick={() => handleNoShow(entry)}
+										aria-label="Mark no-show"
+										title="No Show"
+									>
+										<IconUserOff class="h-4 w-4" />
+									</Button>
+								{/if}
 							{/if}
 						</div>
 					</Card.Content>
 				</Card.Root>
-			</div>
-
-			<!-- Queue List -->
-			{#if queue.length > 0}
-				<div class="flex flex-col gap-3 px-6">
-					{#each queue as entry (entry.id)}
-						{@const pill = getStatusPill(entry.status)}
-						<Card.Root class="transition-shadow hover:shadow-md {entry.position === 1 ? 'border-primary/50 bg-primary/5' : ''}">
-							<Card.Content class="flex items-center gap-4 p-4">
-								<!-- Position number -->
-								<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-lg font-bold {entry.position === 1 ? 'bg-primary text-primary-foreground' : ''}">
-									{entry.position}
-								</div>
-
-								<!-- Customer info -->
-								<div class="min-w-0 flex-1">
-									<div class="flex items-center gap-2">
-										<span class="truncate font-semibold">{entry.customerName}</span>
-										<StatusPill label={pill.label} status={pill.status} pulse={pill.pulse} size="sm" />
-									</div>
-									<div class="mt-1 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-										<span class="flex items-center gap-1">
-											<IconUsers class="h-3.5 w-3.5" />
-											{entry.partySize}
-										</span>
-										<span class="flex items-center gap-1">
-											<IconClock class="h-3.5 w-3.5" />
-											{getWaitTime(entry.joinedAt)}
-										</span>
-										{#if entry.customerPhone}
-											<span class="text-xs">{entry.customerPhone}</span>
-										{/if}
-										{#if entry.notes}
-											<span class="truncate text-xs italic">{entry.notes}</span>
-										{/if}
-									</div>
-								</div>
-
-								<!-- Actions -->
-								<div class="flex shrink-0 items-center gap-1">
-									{#if actionLoading === entry.id}
-										<IconLoader2 class="h-5 w-5 animate-spin text-muted-foreground" />
-									{:else}
-										{#if entry.status === 'waiting'}
-											<Button
-												variant="ghost"
-												size="icon"
-												class="h-8 w-8 text-info"
-												onclick={() => handleNotify(entry)}
-												aria-label="Notify customer"
-												title="Notify"
-											>
-												<IconBell class="h-4 w-4" />
-											</Button>
-										{/if}
-										{#if entry.status === 'waiting' || entry.status === 'notified'}
-											<Button
-												variant="ghost"
-												size="icon"
-												class="h-8 w-8 text-success"
-												onclick={() => handleSeat(entry)}
-												aria-label="Seat customer"
-												title="Seat"
-											>
-												<IconCheck class="h-4 w-4" />
-											</Button>
-											<Button
-												variant="ghost"
-												size="icon"
-												class="h-8 w-8 text-destructive"
-												onclick={() => handleCancel(entry)}
-												aria-label="Cancel entry"
-												title="Cancel"
-											>
-												<IconX class="h-4 w-4" />
-											</Button>
-											<Button
-												variant="ghost"
-												size="icon"
-												class="h-8 w-8 text-muted-foreground"
-												onclick={() => handleNoShow(entry)}
-												aria-label="Mark no-show"
-												title="No Show"
-											>
-												<IconUserOff class="h-4 w-4" />
-											</Button>
-										{/if}
-									{/if}
-								</div>
-							</Card.Content>
-						</Card.Root>
-					{/each}
-				</div>
-			{:else}
-				<EmptyState
-					type="empty"
-					title="No one on the waitlist"
-					description="Add customers to the waitlist as they arrive."
-					actionLabel="Add to Waitlist"
-					onAction={() => (showAddDialog = true)}
-				/>
-			{/if}
-
-			<!-- Live indicator -->
-			{#if queue.length > 0}
-				<div class="flex items-center justify-center gap-1.5 pb-4">
-					<span class="relative flex h-2 w-2">
-						<span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
-						<span class="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
-					</span>
-					<p class="text-xs text-muted-foreground">Live updates</p>
-				</div>
-			{/if}
+			{/each}
 		</div>
-	</div>
-</div>
+	{:else}
+		<EmptyState
+			type="empty"
+			title="No one on the waitlist"
+			description="Add customers to the waitlist as they arrive."
+			actionLabel="Add to Waitlist"
+			onAction={() => (showAddDialog = true)}
+		/>
+	{/if}
+
+	<!-- Live indicator -->
+	{#if queue.length > 0}
+		<div class="flex items-center justify-center gap-1.5 pb-4">
+			<span class="relative flex h-2 w-2">
+				<span
+					class="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75"
+				></span>
+				<span class="relative inline-flex h-2 w-2 rounded-full bg-success"></span>
+			</span>
+			<p class="text-xs text-muted-foreground">Live updates</p>
+		</div>
+	{/if}
+</PageShell>
 
 <!-- Add to Waitlist Dialog -->
 <Dialog.Root bind:open={showAddDialog}>
@@ -420,11 +426,23 @@
 			</div>
 			<div class="grid gap-2">
 				<label for="wl-notes" class="text-sm font-medium">Notes</label>
-				<Textarea id="wl-notes" bind:value={newEntry.notes} placeholder="High chair needed, birthday, etc." rows={2} />
+				<Textarea
+					id="wl-notes"
+					bind:value={newEntry.notes}
+					placeholder="High chair needed, birthday, etc."
+					rows={2}
+				/>
 			</div>
 		</div>
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => { showAddDialog = false; resetForm(); }} disabled={isSubmitting}>Cancel</Button>
+			<Button
+				variant="outline"
+				onclick={() => {
+					showAddDialog = false;
+					resetForm();
+				}}
+				disabled={isSubmitting}>Cancel</Button
+			>
 			<Button onclick={handleAdd} disabled={isSubmitting}>
 				{#if isSubmitting}
 					<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />

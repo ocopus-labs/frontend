@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { Label } from '$lib/components/ui/label';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { IconTablePlus } from '@tabler/icons-svelte';
 
@@ -45,7 +45,7 @@
 	<Dialog.Content class="max-w-md">
 		<Dialog.Header>
 			<Dialog.Title class="flex items-center gap-2">
-				<IconTablePlus class="h-5 w-5 text-purple-500" />
+				<IconTablePlus class="h-5 w-5 text-primary" />
 				Merge Orders
 			</Dialog.Title>
 			<Dialog.Description>
@@ -53,34 +53,38 @@
 			</Dialog.Description>
 		</Dialog.Header>
 
-		<div class="py-4">
-			<Label class="mb-2 block">Select source order</Label>
+		<Field.Field class="py-4">
+			<Field.Label>Select source order</Field.Label>
 			{#if otherActiveOrders.length === 0}
-				<p class="text-muted-foreground py-4 text-center text-sm">
+				<p class="py-4 text-center text-sm text-muted-foreground">
 					No other active orders to merge
 				</p>
 			{:else}
 				<div class="max-h-60 space-y-2 overflow-y-auto">
 					{#each otherActiveOrders as order}
 						<button
-							class="w-full rounded-lg border p-3 text-left transition-colors {selectedOrderId === order.id ? 'border-primary bg-primary/10 ring-primary ring-2' : 'hover:bg-muted'}"
+							class="w-full rounded-lg border p-3 text-left transition-colors {selectedOrderId ===
+							order.id
+								? 'border-primary bg-primary/10 ring-2 ring-primary'
+								: 'hover:bg-muted'}"
 							onclick={() => (selectedOrderId = order.id)}
 						>
 							<div class="flex items-center justify-between">
 								<div>
 									<span class="text-sm font-semibold">#{order.orderNumber}</span>
 									{#if order.tableNumber}
-										<span class="text-muted-foreground ml-2 text-xs">Table {order.tableNumber}</span>
+										<span class="ml-2 text-xs text-muted-foreground">Table {order.tableNumber}</span
+										>
 									{/if}
 								</div>
 								<span class="text-sm font-medium">{formatCurrency(order.total)}</span>
 							</div>
-							<div class="text-muted-foreground mt-1 text-xs">{order.itemCount} item(s)</div>
+							<div class="mt-1 text-xs text-muted-foreground">{order.itemCount} item(s)</div>
 						</button>
 					{/each}
 				</div>
 			{/if}
-		</div>
+		</Field.Field>
 
 		<Dialog.Footer>
 			<Button variant="outline" onclick={onCancel} disabled={isProcessing}>Cancel</Button>

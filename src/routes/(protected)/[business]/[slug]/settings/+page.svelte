@@ -21,9 +21,10 @@
 	import { CURRENCY_CONFIG } from '$lib/utils/i18n';
 	import type { CurrencyCode } from '$lib/utils/i18n';
 	import * as Select from '$lib/components/ui/select';
-import { Checkbox } from '$lib/components/ui/checkbox';
+	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Switch } from '$lib/components/ui/switch';
 	import { browser } from '$app/environment';
+	import PageShell from '$lib/components/global/page-shell.svelte';
 
 	let { data } = $props();
 
@@ -205,7 +206,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 			});
 
 			await invalidate('app:settings');
-		await invalidate('app:business-data');
+			await invalidate('app:business-data');
 			toast.success('Settings saved successfully.');
 		} catch (err: unknown) {
 			console.error('Failed to save settings:', err);
@@ -221,320 +222,296 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 	}
 </script>
 
-<div class="flex flex-1 flex-col p-2 sm:p-6 md:p-4">
-	<div class="@container/main flex flex-1 flex-col gap-4">
-		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<div class="flex flex-col gap-2">
-				<h1 class="text-2xl font-bold">Settings</h1>
-				<p class="text-muted-foreground">Manage your business settings and preferences</p>
-			</div>
+<PageShell title="Settings" description="Manage your business settings and preferences">
+	<Tabs.Root value="restaurant" class="w-full">
+		<Tabs.List class="grid w-full grid-cols-5">
+			<Tabs.Trigger value="restaurant">
+				<IconBuilding class="mr-2 h-4 w-4" />
+				Business Info
+			</Tabs.Trigger>
+			<Tabs.Trigger value="owner">
+				<IconUser class="mr-2 h-4 w-4" />
+				Owner
+			</Tabs.Trigger>
+			<Tabs.Trigger value="business">
+				<IconSettings class="mr-2 h-4 w-4" />
+				Hours
+			</Tabs.Trigger>
+			<Tabs.Trigger value="payment">
+				<IconCreditCard class="mr-2 h-4 w-4" />
+				Payment
+			</Tabs.Trigger>
+			<Tabs.Trigger value="notifications">
+				<IconBell class="mr-2 h-4 w-4" />
+				Notifications
+			</Tabs.Trigger>
+		</Tabs.List>
 
-			<Tabs.Root value="restaurant" class="w-full">
-				<Tabs.List class="grid w-full grid-cols-5">
-					<Tabs.Trigger value="restaurant">
-						<IconBuilding class="mr-2 h-4 w-4" />
-						Business Info
-					</Tabs.Trigger>
-					<Tabs.Trigger value="owner">
-						<IconUser class="mr-2 h-4 w-4" />
-						Owner
-					</Tabs.Trigger>
-					<Tabs.Trigger value="business">
-						<IconSettings class="mr-2 h-4 w-4" />
-						Hours
-					</Tabs.Trigger>
-					<Tabs.Trigger value="payment">
-						<IconCreditCard class="mr-2 h-4 w-4" />
-						Payment
-					</Tabs.Trigger>
-					<Tabs.Trigger value="notifications">
-						<IconBell class="mr-2 h-4 w-4" />
-						Notifications
-					</Tabs.Trigger>
-				</Tabs.List>
-
-				<Tabs.Content value="restaurant" class="space-y-4">
-					<Card.Root>
-						<Card.Header>
-							<Card.Title>Business Information</Card.Title>
-							<Card.Description>Basic information about your business</Card.Description>
-						</Card.Header>
-						<Card.Content class="space-y-4">
-							<div class="grid grid-cols-2 gap-4">
-								<div class="space-y-2">
-									<label for="restaurant-name" class="text-sm font-medium">Business Name</label>
-									<Input id="restaurant-name" bind:value={restaurantName} />
-								</div>
-								<div class="space-y-2">
-									<label for="restaurant-phone" class="text-sm font-medium">Phone</label>
-									<Input id="restaurant-phone" bind:value={restaurantPhone} />
-								</div>
-							</div>
-							<div class="space-y-2">
-								<label for="restaurant-address" class="text-sm font-medium">Address</label>
-								<Input id="restaurant-address" bind:value={restaurantAddress} />
-							</div>
-							<div class="grid grid-cols-2 gap-4">
-								<div class="space-y-2">
-									<label for="restaurant-email" class="text-sm font-medium">Email</label>
-									<Input id="restaurant-email" type="email" bind:value={restaurantEmail} />
-								</div>
-								<div class="space-y-2">
-									<label for="tax-rate" class="text-sm font-medium">Tax Rate (%)</label>
-									<Input id="tax-rate" type="number" step="0.1" bind:value={taxRate} />
-								</div>
-							</div>
-							<div class="grid grid-cols-2 gap-4">
-								<div class="space-y-2">
-									<label for="timezone" class="text-sm font-medium">Timezone</label>
-									<Input id="timezone" bind:value={timezone} />
-								</div>
-							</div>
-						</Card.Content>
-					</Card.Root>
-				</Tabs.Content>
-
-				<Tabs.Content value="owner" class="space-y-4">
-					<Card.Root>
-						<Card.Header>
-							<Card.Title>Owner Information</Card.Title>
-							<Card.Description>Personal information for the business owner</Card.Description>
-						</Card.Header>
-						<Card.Content class="space-y-4">
-							<div class="grid grid-cols-2 gap-4">
-								<div class="space-y-2">
-									<label for="owner-name" class="text-sm font-medium">Full Name</label>
-									<Input id="owner-name" bind:value={ownerName} disabled />
-								</div>
-								<div class="space-y-2">
-									<label for="owner-phone" class="text-sm font-medium">Phone</label>
-									<Input id="owner-phone" bind:value={ownerPhone} />
-								</div>
-							</div>
-							<div class="space-y-2">
-								<label for="owner-email" class="text-sm font-medium">Email</label>
-								<Input id="owner-email" type="email" bind:value={ownerEmail} disabled />
-							</div>
-						</Card.Content>
-					</Card.Root>
-				</Tabs.Content>
-
-				<Tabs.Content value="business" class="space-y-4">
-					<Card.Root>
-						<Card.Header>
-							<Card.Title>Business Hours</Card.Title>
-							<Card.Description>Set your business's operating hours</Card.Description>
-						</Card.Header>
-						<Card.Content>
-							<div class="space-y-4">
-								{#each businessHours as hour, index (hour.day)}
-									<div class="flex items-center gap-4">
-										<div class="w-20 text-sm font-medium">{hour.day}</div>
-										<div class="flex items-center gap-2">
-											<input
-												type="checkbox"
-												id="closed-{index}"
-												bind:checked={hour.closed}
-												onchange={(e) =>
-													updateBusinessHour(
-														index,
-														'closed',
-														(e.target as HTMLInputElement).checked
-													)}
-											/>
-											<label for="closed-{index}" class="text-sm">Closed</label>
-										</div>
-										{#if !hour.closed}
-											<div class="flex items-center gap-2">
-												<Input
-													type="time"
-													value={hour.open}
-													onchange={(e) =>
-														updateBusinessHour(index, 'open', (e.target as HTMLInputElement).value)}
-													class="w-32"
-												/>
-												<span class="text-sm">to</span>
-												<Input
-													type="time"
-													value={hour.close}
-													onchange={(e) =>
-														updateBusinessHour(
-															index,
-															'close',
-															(e.target as HTMLInputElement).value
-														)}
-													class="w-32"
-												/>
-											</div>
-										{/if}
-									</div>
-								{/each}
-							</div>
-						</Card.Content>
-					</Card.Root>
-				</Tabs.Content>
-
-				<Tabs.Content value="payment" class="space-y-4">
-					<Card.Root>
-						<Card.Header>
-							<Card.Title>Payment Settings</Card.Title>
-							<Card.Description>Configure payment methods and currency</Card.Description>
-						</Card.Header>
-						<Card.Content class="space-y-4">
-							<div class="grid grid-cols-2 gap-4">
-								<div class="space-y-2">
-									<label for="currency" class="text-sm font-medium">Currency</label>
-									<Select.Root type="single" bind:value={currency}>
-										<Select.Trigger class="w-full">
-											{currency} ({CURRENCY_CONFIG[currency as CurrencyCode]?.symbol || ''}) - {CURRENCY_CONFIG[
-												currency as CurrencyCode
-											]?.name || ''}
-										</Select.Trigger>
-										<Select.Content>
-											{#each Object.values(CURRENCY_CONFIG) as curr (curr.code)}
-												<Select.Item value={curr.code}
-													>{curr.code} ({curr.symbol}) - {curr.name}</Select.Item
-												>
-											{/each}
-										</Select.Content>
-									</Select.Root>
-								</div>
-							</div>
-							<div class="space-y-4">
-								<h4 class="text-sm font-medium">Payment Methods</h4>
-								<div class="space-y-2">
-									<div class="flex items-center gap-2">
-										<Checkbox id="cash" bind:checked={paymentMethodCash} />
-										<label for="cash" class="text-sm">Cash</label>
-									</div>
-									<div class="flex items-center gap-2">
-										<Checkbox id="card" bind:checked={paymentMethodCard} />
-										<label for="card" class="text-sm">Credit/Debit Card</label>
-									</div>
-									<div class="flex items-center gap-2">
-										<Checkbox id="digital" bind:checked={paymentMethodDigital} />
-										<label for="digital" class="text-sm">Digital Wallets</label>
-									</div>
-								</div>
-							</div>
-						</Card.Content>
-					</Card.Root>
-				</Tabs.Content>
-
-				<Tabs.Content value="notifications" class="space-y-4">
-					<Card.Root>
-						<Card.Header>
-							<Card.Title>Notification Preferences</Card.Title>
-							<Card.Description>Choose how you want to receive notifications</Card.Description>
-						</Card.Header>
-						<Card.Content class="space-y-6">
-							<div class="flex items-center justify-between">
-								<div class="space-y-0.5">
-									<label for="email-notifications" class="text-sm font-medium"
-										>Email Notifications</label
-									>
-									<p class="text-muted-foreground text-xs">
-										Receive order updates and reports via email
-									</p>
-								</div>
-								<Switch
-									id="email-notifications"
-									bind:checked={emailNotifications}
-									onCheckedChange={(checked) => {
-										saveNotificationPreference('emailNotifications', checked);
-										toast.success(
-											checked ? 'Email notifications enabled.' : 'Email notifications disabled.'
-										);
-									}}
-								/>
-							</div>
-
-							<div class="flex items-center justify-between">
-								<div class="space-y-0.5">
-									<label for="sms-notifications" class="text-sm font-medium"
-										>SMS Notifications</label
-									>
-									<p class="text-muted-foreground text-xs">
-										Receive critical alerts via text message
-									</p>
-								</div>
-								<Switch
-									id="sms-notifications"
-									bind:checked={smsNotifications}
-									onCheckedChange={(checked) => {
-										saveNotificationPreference('smsNotifications', checked);
-										toast.success(
-											checked ? 'SMS notifications enabled.' : 'SMS notifications disabled.'
-										);
-									}}
-								/>
-							</div>
-
-							<div class="flex items-center justify-between">
-								<div class="space-y-0.5">
-									<label for="push-notifications" class="text-sm font-medium"
-										>Push Notifications</label
-									>
-									<p class="text-muted-foreground text-xs">
-										{#if pushPermissionStatus === 'unsupported'}
-											Push notifications are not supported in this browser
-										{:else if pushPermissionStatus === 'denied'}
-											Permission denied — enable in browser settings
-										{:else}
-											Get real-time alerts in your browser
-										{/if}
-									</p>
-								</div>
-								<Switch
-									id="push-notifications"
-									checked={pushNotifications}
-									disabled={pushPermissionStatus === 'unsupported' ||
-										pushPermissionStatus === 'denied'}
-									onCheckedChange={(checked) => togglePushNotifications(checked)}
-								/>
-							</div>
-						</Card.Content>
-					</Card.Root>
-				</Tabs.Content>
-			</Tabs.Root>
-
+		<Tabs.Content value="restaurant" class="space-y-4">
 			<Card.Root>
 				<Card.Header>
-					<Card.Title>Online Ordering</Card.Title>
-					<Card.Description>
-						Accept online orders from customers with a shareable link and QR code.
-					</Card.Description>
+					<Card.Title>Business Information</Card.Title>
+					<Card.Description>Basic information about your business</Card.Description>
 				</Card.Header>
-				<Card.Content>
-					<a
-						href="/{data.businessType}/{data.business.slug}/settings/online-ordering"
-						class="hover:bg-muted/50 group flex items-center justify-between rounded-lg border p-4 transition-colors"
-					>
-						<div class="flex items-start gap-3">
-							<div class="bg-primary/10 text-primary rounded-lg p-2">
-								<IconShoppingCart class="h-5 w-5" />
-							</div>
-							<div class="space-y-1">
-								<div class="text-sm font-medium">Configure Online Ordering</div>
-								<p class="text-muted-foreground text-xs">
-									Enable online orders, set order types, minimum amount, prep time, payment
-									methods, and get a shareable link + QR code.
-								</p>
-							</div>
+				<Card.Content class="space-y-4">
+					<div class="grid grid-cols-2 gap-4">
+						<div class="space-y-2">
+							<label for="restaurant-name" class="text-sm font-medium">Business Name</label>
+							<Input id="restaurant-name" bind:value={restaurantName} />
 						</div>
-						<IconChevronRight
-							class="text-muted-foreground group-hover:text-foreground h-5 w-5 transition-colors"
-						/>
-					</a>
+						<div class="space-y-2">
+							<label for="restaurant-phone" class="text-sm font-medium">Phone</label>
+							<Input id="restaurant-phone" bind:value={restaurantPhone} />
+						</div>
+					</div>
+					<div class="space-y-2">
+						<label for="restaurant-address" class="text-sm font-medium">Address</label>
+						<Input id="restaurant-address" bind:value={restaurantAddress} />
+					</div>
+					<div class="grid grid-cols-2 gap-4">
+						<div class="space-y-2">
+							<label for="restaurant-email" class="text-sm font-medium">Email</label>
+							<Input id="restaurant-email" type="email" bind:value={restaurantEmail} />
+						</div>
+						<div class="space-y-2">
+							<label for="tax-rate" class="text-sm font-medium">Tax Rate (%)</label>
+							<Input id="tax-rate" type="number" step="0.1" bind:value={taxRate} />
+						</div>
+					</div>
+					<div class="grid grid-cols-2 gap-4">
+						<div class="space-y-2">
+							<label for="timezone" class="text-sm font-medium">Timezone</label>
+							<Input id="timezone" bind:value={timezone} />
+						</div>
+					</div>
 				</Card.Content>
 			</Card.Root>
+		</Tabs.Content>
 
-			<div class="flex justify-end">
-				<Button onclick={saveSettings} disabled={saving}>
-					<IconDeviceFloppy class="mr-2 h-4 w-4" />
-					{saving ? 'Saving...' : 'Save Settings'}
-				</Button>
-			</div>
-		</div>
+		<Tabs.Content value="owner" class="space-y-4">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Owner Information</Card.Title>
+					<Card.Description>Personal information for the business owner</Card.Description>
+				</Card.Header>
+				<Card.Content class="space-y-4">
+					<div class="grid grid-cols-2 gap-4">
+						<div class="space-y-2">
+							<label for="owner-name" class="text-sm font-medium">Full Name</label>
+							<Input id="owner-name" bind:value={ownerName} disabled />
+						</div>
+						<div class="space-y-2">
+							<label for="owner-phone" class="text-sm font-medium">Phone</label>
+							<Input id="owner-phone" bind:value={ownerPhone} />
+						</div>
+					</div>
+					<div class="space-y-2">
+						<label for="owner-email" class="text-sm font-medium">Email</label>
+						<Input id="owner-email" type="email" bind:value={ownerEmail} disabled />
+					</div>
+				</Card.Content>
+			</Card.Root>
+		</Tabs.Content>
+
+		<Tabs.Content value="business" class="space-y-4">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Business Hours</Card.Title>
+					<Card.Description>Set your business's operating hours</Card.Description>
+				</Card.Header>
+				<Card.Content>
+					<div class="space-y-4">
+						{#each businessHours as hour, index (hour.day)}
+							<div class="flex items-center gap-4">
+								<div class="w-20 text-sm font-medium">{hour.day}</div>
+								<div class="flex items-center gap-2">
+									<input
+										type="checkbox"
+										id="closed-{index}"
+										bind:checked={hour.closed}
+										onchange={(e) =>
+											updateBusinessHour(index, 'closed', (e.target as HTMLInputElement).checked)}
+									/>
+									<label for="closed-{index}" class="text-sm">Closed</label>
+								</div>
+								{#if !hour.closed}
+									<div class="flex items-center gap-2">
+										<Input
+											type="time"
+											value={hour.open}
+											onchange={(e) =>
+												updateBusinessHour(index, 'open', (e.target as HTMLInputElement).value)}
+											class="w-32"
+										/>
+										<span class="text-sm">to</span>
+										<Input
+											type="time"
+											value={hour.close}
+											onchange={(e) =>
+												updateBusinessHour(index, 'close', (e.target as HTMLInputElement).value)}
+											class="w-32"
+										/>
+									</div>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				</Card.Content>
+			</Card.Root>
+		</Tabs.Content>
+
+		<Tabs.Content value="payment" class="space-y-4">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Payment Settings</Card.Title>
+					<Card.Description>Configure payment methods and currency</Card.Description>
+				</Card.Header>
+				<Card.Content class="space-y-4">
+					<div class="grid grid-cols-2 gap-4">
+						<div class="space-y-2">
+							<label for="currency" class="text-sm font-medium">Currency</label>
+							<Select.Root type="single" bind:value={currency}>
+								<Select.Trigger class="w-full">
+									{currency} ({CURRENCY_CONFIG[currency as CurrencyCode]?.symbol || ''}) - {CURRENCY_CONFIG[
+										currency as CurrencyCode
+									]?.name || ''}
+								</Select.Trigger>
+								<Select.Content>
+									{#each Object.values(CURRENCY_CONFIG) as curr (curr.code)}
+										<Select.Item value={curr.code}
+											>{curr.code} ({curr.symbol}) - {curr.name}</Select.Item
+										>
+									{/each}
+								</Select.Content>
+							</Select.Root>
+						</div>
+					</div>
+					<div class="space-y-4">
+						<h4 class="text-sm font-medium">Payment Methods</h4>
+						<div class="space-y-2">
+							<div class="flex items-center gap-2">
+								<Checkbox id="cash" bind:checked={paymentMethodCash} />
+								<label for="cash" class="text-sm">Cash</label>
+							</div>
+							<div class="flex items-center gap-2">
+								<Checkbox id="card" bind:checked={paymentMethodCard} />
+								<label for="card" class="text-sm">Credit/Debit Card</label>
+							</div>
+							<div class="flex items-center gap-2">
+								<Checkbox id="digital" bind:checked={paymentMethodDigital} />
+								<label for="digital" class="text-sm">Digital Wallets</label>
+							</div>
+						</div>
+					</div>
+				</Card.Content>
+			</Card.Root>
+		</Tabs.Content>
+
+		<Tabs.Content value="notifications" class="space-y-4">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Notification Preferences</Card.Title>
+					<Card.Description>Choose how you want to receive notifications</Card.Description>
+				</Card.Header>
+				<Card.Content class="space-y-6">
+					<div class="flex items-center justify-between">
+						<div class="space-y-0.5">
+							<label for="email-notifications" class="text-sm font-medium"
+								>Email Notifications</label
+							>
+							<p class="text-xs text-muted-foreground">
+								Receive order updates and reports via email
+							</p>
+						</div>
+						<Switch
+							id="email-notifications"
+							bind:checked={emailNotifications}
+							onCheckedChange={(checked) => {
+								saveNotificationPreference('emailNotifications', checked);
+								toast.success(
+									checked ? 'Email notifications enabled.' : 'Email notifications disabled.'
+								);
+							}}
+						/>
+					</div>
+
+					<div class="flex items-center justify-between">
+						<div class="space-y-0.5">
+							<label for="sms-notifications" class="text-sm font-medium">SMS Notifications</label>
+							<p class="text-xs text-muted-foreground">Receive critical alerts via text message</p>
+						</div>
+						<Switch
+							id="sms-notifications"
+							bind:checked={smsNotifications}
+							onCheckedChange={(checked) => {
+								saveNotificationPreference('smsNotifications', checked);
+								toast.success(
+									checked ? 'SMS notifications enabled.' : 'SMS notifications disabled.'
+								);
+							}}
+						/>
+					</div>
+
+					<div class="flex items-center justify-between">
+						<div class="space-y-0.5">
+							<label for="push-notifications" class="text-sm font-medium">Push Notifications</label>
+							<p class="text-xs text-muted-foreground">
+								{#if pushPermissionStatus === 'unsupported'}
+									Push notifications are not supported in this browser
+								{:else if pushPermissionStatus === 'denied'}
+									Permission denied — enable in browser settings
+								{:else}
+									Get real-time alerts in your browser
+								{/if}
+							</p>
+						</div>
+						<Switch
+							id="push-notifications"
+							checked={pushNotifications}
+							disabled={pushPermissionStatus === 'unsupported' || pushPermissionStatus === 'denied'}
+							onCheckedChange={(checked) => togglePushNotifications(checked)}
+						/>
+					</div>
+				</Card.Content>
+			</Card.Root>
+		</Tabs.Content>
+	</Tabs.Root>
+
+	<Card.Root>
+		<Card.Header>
+			<Card.Title>Online Ordering</Card.Title>
+			<Card.Description>
+				Accept online orders from customers with a shareable link and QR code.
+			</Card.Description>
+		</Card.Header>
+		<Card.Content>
+			<a
+				href="/{data.businessType}/{data.business.slug}/settings/online-ordering"
+				class="group flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
+			>
+				<div class="flex items-start gap-3">
+					<div class="rounded-lg bg-primary/10 p-2 text-primary">
+						<IconShoppingCart class="h-5 w-5" />
+					</div>
+					<div class="space-y-1">
+						<div class="text-sm font-medium">Configure Online Ordering</div>
+						<p class="text-xs text-muted-foreground">
+							Enable online orders, set order types, minimum amount, prep time, payment methods, and
+							get a shareable link + QR code.
+						</p>
+					</div>
+				</div>
+				<IconChevronRight
+					class="h-5 w-5 text-muted-foreground transition-colors group-hover:text-foreground"
+				/>
+			</a>
+		</Card.Content>
+	</Card.Root>
+
+	<div class="flex justify-end">
+		<Button onclick={saveSettings} disabled={saving}>
+			<IconDeviceFloppy class="mr-2 h-4 w-4" />
+			{saving ? 'Saving...' : 'Save Settings'}
+		</Button>
 	</div>
-</div>
+</PageShell>

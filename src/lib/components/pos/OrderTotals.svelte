@@ -44,10 +44,7 @@
 
 	<!-- Tax Toggle Row -->
 	<div class="flex items-center justify-between py-2">
-		<button
-			onclick={onToggleTaxes}
-			class="flex items-center gap-3 text-left"
-		>
+		<button onclick={onToggleTaxes} class="flex items-center gap-3 text-left">
 			<Switch checked={showTaxes} />
 			<span class="text-sm {showTaxes ? 'text-foreground' : 'text-muted-foreground'}">
 				Tax ({taxRate}%)
@@ -62,22 +59,21 @@
 
 	<!-- Discount Toggle Row -->
 	<div class="flex items-center justify-between py-2">
-		<button
-			onclick={onToggleDiscount}
-			class="flex items-center gap-3 text-left"
-		>
+		<button onclick={onToggleDiscount} class="flex items-center gap-3 text-left">
 			<Switch checked={showDiscount} />
 			<span class="text-sm {showDiscount ? 'text-foreground' : 'text-muted-foreground'}">
 				Discount
 				{#if showDiscount && discountValue > 0}
-					<span class="ml-1 text-xs text-emerald-600 dark:text-emerald-400">
-						({discountType === 'percentage' ? `${discountValue}%` : i18n.formatCurrency(discountValue)})
+					<span class="ml-1 text-xs text-success">
+						({discountType === 'percentage'
+							? `${discountValue}%`
+							: i18n.formatCurrency(discountValue)})
 					</span>
 				{/if}
 			</span>
 		</button>
 		{#if showDiscount && discount > 0}
-			<span class="text-sm font-medium text-emerald-600 dark:text-emerald-400">-{i18n.formatCurrency(discount)}</span>
+			<span class="text-sm font-medium text-success">-{i18n.formatCurrency(discount)}</span>
 		{:else}
 			<span class="text-sm text-muted-foreground">—</span>
 		{/if}

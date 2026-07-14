@@ -6,7 +6,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import { Textarea } from '$lib/components/ui/textarea/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
@@ -106,32 +106,50 @@
 				name: editName,
 				description: editDescription,
 				address: { street: editStreet, city: editCity, country: editCountry },
-				contact: { phone: editPhone, email: editEmail },
+				contact: { phone: editPhone, email: editEmail }
 			});
 			toast.success('Business updated');
 			editDialogOpen = false;
 			await invalidate('app:admin-businesses');
-		} catch (e: any) { toast.error(e?.message || 'Failed to update'); }
-		finally { isActioning = false; }
+		} catch (e: any) {
+			toast.error(e?.message || 'Failed to update');
+		} finally {
+			isActioning = false;
+		}
 	}
 
 	async function loadOrders(page = 1) {
 		try {
 			const res = await adminGetBusinessOrders(business.id, page, 20);
-			orders = res.data; ordersTotal = res.total; ordersPage = page; ordersLoaded = true;
-		} catch { toast.error('Failed to load orders'); }
+			orders = res.data;
+			ordersTotal = res.total;
+			ordersPage = page;
+			ordersLoaded = true;
+		} catch {
+			toast.error('Failed to load orders');
+		}
 	}
 	async function loadPayments(page = 1) {
 		try {
 			const res = await adminGetBusinessPayments(business.id, page, 20);
-			payments = res.data; paymentsTotal = res.total; paymentsPage = page; paymentsLoaded = true;
-		} catch { toast.error('Failed to load payments'); }
+			payments = res.data;
+			paymentsTotal = res.total;
+			paymentsPage = page;
+			paymentsLoaded = true;
+		} catch {
+			toast.error('Failed to load payments');
+		}
 	}
 	async function loadAudit(page = 1) {
 		try {
 			const res = await adminGetBusinessAuditLogs(business.id, page, 20);
-			auditLogs = res.data; auditTotal = res.total; auditPage = page; auditLoaded = true;
-		} catch { toast.error('Failed to load audit logs'); }
+			auditLogs = res.data;
+			auditTotal = res.total;
+			auditPage = page;
+			auditLoaded = true;
+		} catch {
+			toast.error('Failed to load audit logs');
+		}
 	}
 
 	async function confirmSuspend() {
@@ -140,8 +158,11 @@
 			await updateAdminBusinessStatus(business.id, 'suspended');
 			toast.success('Business suspended');
 			await invalidate('app:admin-businesses');
-		} catch { toast.error('Failed to suspend'); }
-		finally { isActioning = false; }
+		} catch {
+			toast.error('Failed to suspend');
+		} finally {
+			isActioning = false;
+		}
 	}
 	async function handleActivate() {
 		isActioning = true;
@@ -149,8 +170,11 @@
 			await updateAdminBusinessStatus(business.id, 'active');
 			toast.success('Business activated');
 			await invalidate('app:admin-businesses');
-		} catch { toast.error('Failed to activate'); }
-		finally { isActioning = false; }
+		} catch {
+			toast.error('Failed to activate');
+		} finally {
+			isActioning = false;
+		}
 	}
 	async function handleDelete() {
 		isActioning = true;
@@ -158,11 +182,17 @@
 			await adminDeleteBusiness(business.id);
 			toast.success('Business deleted');
 			goto('/admin/businesses');
-		} catch (e: any) { toast.error(e?.message || 'Failed to delete'); }
-		finally { isActioning = false; }
+		} catch (e: any) {
+			toast.error(e?.message || 'Failed to delete');
+		} finally {
+			isActioning = false;
+		}
 	}
 	async function handleTransfer() {
-		if (!newOwnerId.trim()) { toast.error('Enter a user ID or email'); return; }
+		if (!newOwnerId.trim()) {
+			toast.error('Enter a user ID or email');
+			return;
+		}
 		isActioning = true;
 		try {
 			await adminTransferOwnership(business.id, newOwnerId.trim());
@@ -170,15 +200,20 @@
 			newOwnerId = '';
 			transferDialogOpen = false;
 			await invalidate('app:admin-businesses');
-		} catch (err: any) { toast.error(err?.message || 'Failed to transfer'); }
-		finally { isActioning = false; }
+		} catch (err: any) {
+			toast.error(err?.message || 'Failed to transfer');
+		} finally {
+			isActioning = false;
+		}
 	}
 	async function handleImpersonateOwner() {
 		try {
 			await impersonateUser(business.owner?.id);
 			toast.success(`Now impersonating ${business.owner?.name || business.owner?.email}`);
 			goto(`/${business.type}/${business.slug}/dashboard`);
-		} catch { toast.error('Failed to impersonate'); }
+		} catch {
+			toast.error('Failed to impersonate');
+		}
 	}
 </script>
 
@@ -195,7 +230,9 @@
 			</Button>
 			<div>
 				<h1 class="text-3xl font-bold tracking-tight">{business.name}</h1>
-				<p class="text-muted-foreground">/{business.slug} &middot; <span class="capitalize">{business.type}</span></p>
+				<p class="text-muted-foreground">
+					/{business.slug} &middot; <span class="capitalize">{business.type}</span>
+				</p>
 			</div>
 		</div>
 		<div class="flex flex-wrap items-center gap-2">
@@ -213,11 +250,21 @@
 					<CheckCircle class="mr-2 h-4 w-4" />Activate
 				</Button>
 			{:else}
-				<Button variant="destructive" size="sm" onclick={() => (suspendDialogOpen = true)} disabled={isActioning}>
+				<Button
+					variant="destructive"
+					size="sm"
+					onclick={() => (suspendDialogOpen = true)}
+					disabled={isActioning}
+				>
 					<Ban class="mr-2 h-4 w-4" />Suspend
 				</Button>
 			{/if}
-			<Button variant="destructive" size="sm" onclick={() => (deleteDialogOpen = true)} disabled={isActioning}>
+			<Button
+				variant="destructive"
+				size="sm"
+				onclick={() => (deleteDialogOpen = true)}
+				disabled={isActioning}
+			>
 				<Trash2 class="mr-2 h-4 w-4" />Delete
 			</Button>
 		</div>
@@ -229,16 +276,22 @@
 		<Card.Root class="md:col-span-1">
 			<Card.Content class="pt-6">
 				<div class="flex flex-col items-center text-center">
-					<div class="flex h-20 w-20 items-center justify-center rounded-xl bg-muted mb-4">
+					<div class="mb-4 flex h-20 w-20 items-center justify-center rounded-xl bg-muted">
 						{#if business.logo}
-							<img src={business.logo} alt={business.name} class="h-20 w-20 rounded-xl object-cover" />
+							<img
+								src={business.logo}
+								alt={business.name}
+								class="h-20 w-20 rounded-xl object-cover"
+							/>
 						{:else}
 							<Building2 class="h-10 w-10 text-muted-foreground" />
 						{/if}
 					</div>
-					<div class="flex gap-2 mb-2">
+					<div class="mb-2 flex gap-2">
 						<Badge variant="outline" class="capitalize">{business.type}</Badge>
-						<Badge variant={getStatusBadgeVariant(business.status)} class="capitalize">{business.status}</Badge>
+						<Badge variant={getStatusBadgeVariant(business.status)} class="capitalize"
+							>{business.status}</Badge
+						>
 					</div>
 
 					<Separator class="my-4" />
@@ -247,7 +300,10 @@
 					<div class="w-full space-y-3 text-left text-sm">
 						<div class="flex items-center justify-between">
 							<span class="text-muted-foreground">Owner</span>
-							<a href="/admin/users/{business.owner?.id}" class="text-primary hover:underline flex items-center gap-1">
+							<a
+								href="/admin/users/{business.owner?.id}"
+								class="flex items-center gap-1 text-primary hover:underline"
+							>
 								{business.owner?.name || business.owner?.email}
 								<ExternalLink class="h-3 w-3" />
 							</a>
@@ -260,20 +316,23 @@
 						<!-- Contact Info -->
 						{#if contact.phone}
 							<div class="flex items-center justify-between">
-								<span class="text-muted-foreground"><Phone class="h-3 w-3 inline mr-1" />Phone</span>
+								<span class="text-muted-foreground"><Phone class="mr-1 inline h-3 w-3" />Phone</span
+								>
 								<span>{contact.phone}</span>
 							</div>
 						{/if}
 						{#if contact.email}
 							<div class="flex items-center justify-between">
-								<span class="text-muted-foreground"><Mail class="h-3 w-3 inline mr-1" />Email</span>
-								<span class="truncate max-w-[60%]">{contact.email}</span>
+								<span class="text-muted-foreground"><Mail class="mr-1 inline h-3 w-3" />Email</span>
+								<span class="max-w-[60%] truncate">{contact.email}</span>
 							</div>
 						{/if}
 						{#if address.street || address.city}
 							<div class="flex items-center justify-between">
-								<span class="text-muted-foreground"><MapPin class="h-3 w-3 inline mr-1" />Location</span>
-								<span class="text-right max-w-[60%]">
+								<span class="text-muted-foreground"
+									><MapPin class="mr-1 inline h-3 w-3" />Location</span
+								>
+								<span class="max-w-[60%] text-right">
 									{[address.street, address.city, address.country].filter(Boolean).join(', ')}
 								</span>
 							</div>
@@ -340,16 +399,20 @@
 				{#if business.subscriptions?.length > 0}
 					<Separator class="my-4" />
 					<div>
-						<p class="text-sm font-medium mb-2">Subscription</p>
+						<p class="mb-2 text-sm font-medium">Subscription</p>
 						{#each business.subscriptions as sub}
 							<div class="flex items-center justify-between rounded-lg border p-3">
 								<div>
-									<p class="text-sm font-medium">{sub.plan?.displayName || sub.plan?.name || 'Unknown'}</p>
+									<p class="text-sm font-medium">
+										{sub.plan?.displayName || sub.plan?.name || 'Unknown'}
+									</p>
 									<p class="text-xs text-muted-foreground">
 										{formatDate(sub.currentPeriodStart)} — {formatDate(sub.currentPeriodEnd)}
 									</p>
 								</div>
-								<Badge variant={getStatusBadgeVariant(sub.status)} class="capitalize">{sub.status}</Badge>
+								<Badge variant={getStatusBadgeVariant(sub.status)} class="capitalize"
+									>{sub.status}</Badge
+								>
 							</div>
 						{/each}
 					</div>
@@ -362,9 +425,24 @@
 	<Tabs.Root value="team">
 		<Tabs.List>
 			<Tabs.Trigger value="team">Team ({business.businessUsers?.length || 0})</Tabs.Trigger>
-			<Tabs.Trigger value="orders" onclick={() => { if (!ordersLoaded) loadOrders(); }}>Orders</Tabs.Trigger>
-			<Tabs.Trigger value="payments" onclick={() => { if (!paymentsLoaded) loadPayments(); }}>Payments</Tabs.Trigger>
-			<Tabs.Trigger value="audit" onclick={() => { if (!auditLoaded) loadAudit(); }}>Audit Log</Tabs.Trigger>
+			<Tabs.Trigger
+				value="orders"
+				onclick={() => {
+					if (!ordersLoaded) loadOrders();
+				}}>Orders</Tabs.Trigger
+			>
+			<Tabs.Trigger
+				value="payments"
+				onclick={() => {
+					if (!paymentsLoaded) loadPayments();
+				}}>Payments</Tabs.Trigger
+			>
+			<Tabs.Trigger
+				value="audit"
+				onclick={() => {
+					if (!auditLoaded) loadAudit();
+				}}>Audit Log</Tabs.Trigger
+			>
 		</Tabs.List>
 
 		<!-- Team -->
@@ -387,20 +465,34 @@
 								{#each business.businessUsers as bu}
 									<Table.Row>
 										<Table.Cell>
-											<a href="/admin/users/{bu.user?.id}" class="font-medium hover:underline">{bu.user?.name || 'Unnamed'}</a>
+											<a href="/admin/users/{bu.user?.id}" class="font-medium hover:underline"
+												>{bu.user?.name || 'Unnamed'}</a
+											>
 										</Table.Cell>
 										<Table.Cell class="text-sm text-muted-foreground">{bu.user?.email}</Table.Cell>
-										<Table.Cell><Badge variant="outline" class="capitalize">{bu.role?.replace(/_/g, ' ')}</Badge></Table.Cell>
-										<Table.Cell><Badge variant={getStatusBadgeVariant(bu.status || 'active')} class="capitalize">{bu.status || 'active'}</Badge></Table.Cell>
+										<Table.Cell
+											><Badge variant="outline" class="capitalize"
+												>{bu.role?.replace(/_/g, ' ')}</Badge
+											></Table.Cell
+										>
+										<Table.Cell
+											><Badge
+												variant={getStatusBadgeVariant(bu.status || 'active')}
+												class="capitalize">{bu.status || 'active'}</Badge
+											></Table.Cell
+										>
 										<Table.Cell>
-											<a href="/admin/users/{bu.user?.id}" class="text-xs text-primary hover:underline">View</a>
+											<a
+												href="/admin/users/{bu.user?.id}"
+												class="text-xs text-primary hover:underline">View</a
+											>
 										</Table.Cell>
 									</Table.Row>
 								{/each}
 							</Table.Body>
 						</Table.Root>
 					{:else}
-						<p class="text-sm text-muted-foreground text-center py-4">No team members</p>
+						<p class="py-4 text-center text-sm text-muted-foreground">No team members</p>
 					{/if}
 				</Card.Content>
 			</Card.Root>
@@ -413,16 +505,26 @@
 					<div class="flex items-center justify-between">
 						<Card.Title>Orders ({ordersTotal})</Card.Title>
 						<div class="flex gap-2">
-							<Button variant="outline" size="sm" disabled={ordersPage <= 1} onclick={() => loadOrders(ordersPage - 1)}>Prev</Button>
-							<Button variant="outline" size="sm" disabled={orders.length < 20} onclick={() => loadOrders(ordersPage + 1)}>Next</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={ordersPage <= 1}
+								onclick={() => loadOrders(ordersPage - 1)}>Prev</Button
+							>
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={orders.length < 20}
+								onclick={() => loadOrders(ordersPage + 1)}>Next</Button
+							>
 						</div>
 					</div>
 				</Card.Header>
 				<Card.Content>
 					{#if !ordersLoaded}
-						<p class="text-muted-foreground text-sm text-center py-4">Loading...</p>
+						<p class="py-4 text-center text-sm text-muted-foreground">Loading...</p>
 					{:else if orders.length === 0}
-						<p class="text-muted-foreground text-sm text-center py-4">No orders</p>
+						<p class="py-4 text-center text-sm text-muted-foreground">No orders</p>
 					{:else}
 						<Table.Root>
 							<Table.Header>
@@ -437,11 +539,26 @@
 							<Table.Body>
 								{#each orders as order}
 									<Table.Row>
-										<Table.Cell class="font-mono text-sm">{order.orderNumber || order.id?.slice(0, 8)}</Table.Cell>
-										<Table.Cell><Badge variant={getStatusBadgeVariant(order.status)} class="capitalize">{order.status}</Badge></Table.Cell>
-										<Table.Cell><Badge variant={getStatusBadgeVariant(order.paymentStatus)} class="capitalize">{order.paymentStatus}</Badge></Table.Cell>
-										<Table.Cell class="text-right font-medium">{fmt(Number(order.pricing?.total || 0))}</Table.Cell>
-										<Table.Cell class="text-sm text-muted-foreground">{formatDateTime(order.createdAt)}</Table.Cell>
+										<Table.Cell class="font-mono text-sm"
+											>{order.orderNumber || order.id?.slice(0, 8)}</Table.Cell
+										>
+										<Table.Cell
+											><Badge variant={getStatusBadgeVariant(order.status)} class="capitalize"
+												>{order.status}</Badge
+											></Table.Cell
+										>
+										<Table.Cell
+											><Badge
+												variant={getStatusBadgeVariant(order.paymentStatus)}
+												class="capitalize">{order.paymentStatus}</Badge
+											></Table.Cell
+										>
+										<Table.Cell class="text-right font-medium"
+											>{fmt(Number(order.pricing?.total || 0))}</Table.Cell
+										>
+										<Table.Cell class="text-sm text-muted-foreground"
+											>{formatDateTime(order.createdAt)}</Table.Cell
+										>
 									</Table.Row>
 								{/each}
 							</Table.Body>
@@ -458,16 +575,26 @@
 					<div class="flex items-center justify-between">
 						<Card.Title>Payments ({paymentsTotal})</Card.Title>
 						<div class="flex gap-2">
-							<Button variant="outline" size="sm" disabled={paymentsPage <= 1} onclick={() => loadPayments(paymentsPage - 1)}>Prev</Button>
-							<Button variant="outline" size="sm" disabled={payments.length < 20} onclick={() => loadPayments(paymentsPage + 1)}>Next</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={paymentsPage <= 1}
+								onclick={() => loadPayments(paymentsPage - 1)}>Prev</Button
+							>
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={payments.length < 20}
+								onclick={() => loadPayments(paymentsPage + 1)}>Next</Button
+							>
 						</div>
 					</div>
 				</Card.Header>
 				<Card.Content>
 					{#if !paymentsLoaded}
-						<p class="text-muted-foreground text-sm text-center py-4">Loading...</p>
+						<p class="py-4 text-center text-sm text-muted-foreground">Loading...</p>
 					{:else if payments.length === 0}
-						<p class="text-muted-foreground text-sm text-center py-4">No payments</p>
+						<p class="py-4 text-center text-sm text-muted-foreground">No payments</p>
 					{:else}
 						<Table.Root>
 							<Table.Header>
@@ -485,10 +612,21 @@
 									<Table.Row>
 										<Table.Cell class="font-mono text-sm">{payment.paymentNumber}</Table.Cell>
 										<Table.Cell class="text-sm">{payment.order?.orderNumber || '-'}</Table.Cell>
-										<Table.Cell><Badge variant="outline" class="capitalize">{payment.method}</Badge></Table.Cell>
-										<Table.Cell><Badge variant={getStatusBadgeVariant(payment.status)} class="capitalize">{payment.status}</Badge></Table.Cell>
-										<Table.Cell class="text-right font-medium">{fmt(Number(payment.amount))}</Table.Cell>
-										<Table.Cell class="text-sm text-muted-foreground">{formatDateTime(payment.createdAt)}</Table.Cell>
+										<Table.Cell
+											><Badge variant="outline" class="capitalize">{payment.method}</Badge
+											></Table.Cell
+										>
+										<Table.Cell
+											><Badge variant={getStatusBadgeVariant(payment.status)} class="capitalize"
+												>{payment.status}</Badge
+											></Table.Cell
+										>
+										<Table.Cell class="text-right font-medium"
+											>{fmt(Number(payment.amount))}</Table.Cell
+										>
+										<Table.Cell class="text-sm text-muted-foreground"
+											>{formatDateTime(payment.createdAt)}</Table.Cell
+										>
 									</Table.Row>
 								{/each}
 							</Table.Body>
@@ -505,29 +643,41 @@
 					<div class="flex items-center justify-between">
 						<Card.Title>Audit Log ({auditTotal})</Card.Title>
 						<div class="flex gap-2">
-							<Button variant="outline" size="sm" disabled={auditPage <= 1} onclick={() => loadAudit(auditPage - 1)}>Prev</Button>
-							<Button variant="outline" size="sm" disabled={auditLogs.length < 20} onclick={() => loadAudit(auditPage + 1)}>Next</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={auditPage <= 1}
+								onclick={() => loadAudit(auditPage - 1)}>Prev</Button
+							>
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={auditLogs.length < 20}
+								onclick={() => loadAudit(auditPage + 1)}>Next</Button
+							>
 						</div>
 					</div>
 				</Card.Header>
 				<Card.Content>
 					{#if !auditLoaded}
-						<p class="text-muted-foreground text-sm text-center py-4">Loading...</p>
+						<p class="py-4 text-center text-sm text-muted-foreground">Loading...</p>
 					{:else if auditLogs.length === 0}
-						<p class="text-muted-foreground text-sm text-center py-4">No audit logs</p>
+						<p class="py-4 text-center text-sm text-muted-foreground">No audit logs</p>
 					{:else}
 						<div class="space-y-2">
 							{#each auditLogs as log}
 								<div class="flex items-start gap-3 rounded-lg border p-3">
-									<Activity class="mt-0.5 h-4 w-4 text-muted-foreground shrink-0" />
-									<div class="flex-1 min-w-0">
+									<Activity class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+									<div class="min-w-0 flex-1">
 										<p class="text-sm font-medium">{log.action}</p>
 										<p class="text-xs text-muted-foreground">
 											{log.user?.name || log.user?.email || 'System'} &middot; {log.resource}
 											{#if log.ipAddress}&middot; {log.ipAddress}{/if}
 										</p>
 									</div>
-									<span class="text-xs text-muted-foreground shrink-0">{formatDateTime(log.createdAt)}</span>
+									<span class="shrink-0 text-xs text-muted-foreground"
+										>{formatDateTime(log.createdAt)}</span
+									>
 								</div>
 							{/each}
 						</div>
@@ -545,49 +695,50 @@
 			<Dialog.Title>Edit Business</Dialog.Title>
 			<Dialog.Description>Update business details.</Dialog.Description>
 		</Dialog.Header>
-		<div class="space-y-4 py-4">
-			<div class="space-y-2">
-				<Label for="edit-name">Business Name</Label>
+		<Field.Group class="py-4">
+			<Field.Field>
+				<Field.Label for="edit-name">Business Name</Field.Label>
 				<Input id="edit-name" bind:value={editName} />
-			</div>
-			<div class="space-y-2">
-				<Label for="edit-desc">Description</Label>
+			</Field.Field>
+			<Field.Field>
+				<Field.Label for="edit-desc">Description</Field.Label>
 				<Textarea id="edit-desc" bind:value={editDescription} rows={2} />
-			</div>
+			</Field.Field>
 			<Separator />
 			<p class="text-sm font-medium">Contact</p>
 			<div class="grid grid-cols-2 gap-3">
-				<div class="space-y-2">
-					<Label for="edit-phone">Phone</Label>
+				<Field.Field>
+					<Field.Label for="edit-phone">Phone</Field.Label>
 					<Input id="edit-phone" bind:value={editPhone} />
-				</div>
-				<div class="space-y-2">
-					<Label for="edit-email">Email</Label>
+				</Field.Field>
+				<Field.Field>
+					<Field.Label for="edit-email">Email</Field.Label>
 					<Input id="edit-email" bind:value={editEmail} />
-				</div>
+				</Field.Field>
 			</div>
 			<Separator />
 			<p class="text-sm font-medium">Address</p>
 			<div class="space-y-3">
-				<div class="space-y-2">
-					<Label for="edit-street">Street</Label>
+				<Field.Field>
+					<Field.Label for="edit-street">Street</Field.Label>
 					<Input id="edit-street" bind:value={editStreet} />
-				</div>
+				</Field.Field>
 				<div class="grid grid-cols-2 gap-3">
-					<div class="space-y-2">
-						<Label for="edit-city">City</Label>
+					<Field.Field>
+						<Field.Label for="edit-city">City</Field.Label>
 						<Input id="edit-city" bind:value={editCity} />
-					</div>
-					<div class="space-y-2">
-						<Label for="edit-country">Country</Label>
+					</Field.Field>
+					<Field.Field>
+						<Field.Label for="edit-country">Country</Field.Label>
 						<Input id="edit-country" bind:value={editCountry} />
-					</div>
+					</Field.Field>
 				</div>
 			</div>
-		</div>
+		</Field.Group>
 		<Dialog.Footer>
 			<Button variant="outline" onclick={() => (editDialogOpen = false)}>Cancel</Button>
-			<Button onclick={saveEdit} disabled={isActioning}>{isActioning ? 'Saving...' : 'Save'}</Button>
+			<Button onclick={saveEdit} disabled={isActioning}>{isActioning ? 'Saving...' : 'Save'}</Button
+			>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
@@ -597,15 +748,19 @@
 	<Dialog.Content class="sm:max-w-md">
 		<Dialog.Header>
 			<Dialog.Title>Transfer Ownership</Dialog.Title>
-			<Dialog.Description>Enter the user ID of the new owner. The current owner will be downgraded to manager.</Dialog.Description>
+			<Dialog.Description
+				>Enter the user ID of the new owner. The current owner will be downgraded to manager.</Dialog.Description
+			>
 		</Dialog.Header>
-		<div class="py-4 space-y-2">
-			<Label for="new-owner">New Owner User ID</Label>
+		<Field.Field class="py-4">
+			<Field.Label for="new-owner">New Owner User ID</Field.Label>
 			<Input id="new-owner" bind:value={newOwnerId} placeholder="User ID" />
-		</div>
+		</Field.Field>
 		<Dialog.Footer>
 			<Button variant="outline" onclick={() => (transferDialogOpen = false)}>Cancel</Button>
-			<Button onclick={handleTransfer} disabled={isActioning}>{isActioning ? 'Transferring...' : 'Transfer'}</Button>
+			<Button onclick={handleTransfer} disabled={isActioning}
+				>{isActioning ? 'Transferring...' : 'Transfer'}</Button
+			>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>

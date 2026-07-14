@@ -10,7 +10,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Textarea } from '$lib/components/ui/textarea';
-	import PageHeader from '$lib/components/global/page-header.svelte';
+	import PageShell from '$lib/components/global/page-shell.svelte';
 	import { EmptyState } from '$lib/components/data-display';
 	import {
 		IconPlus,
@@ -123,9 +123,7 @@
 		return map;
 	});
 
-	const pendingLeaveRequests = $derived(
-		leaveRequests.filter((lr) => lr.status === 'pending')
-	);
+	const pendingLeaveRequests = $derived(leaveRequests.filter((lr) => lr.status === 'pending'));
 
 	const templateColorMap: Record<string, string> = {
 		blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
@@ -159,7 +157,10 @@
 		other: 'Other'
 	};
 
-	const leaveStatusConfig: Record<LeaveStatus, { variant: 'default' | 'secondary' | 'destructive'; text: string }> = {
+	const leaveStatusConfig: Record<
+		LeaveStatus,
+		{ variant: 'default' | 'secondary' | 'destructive'; text: string }
+	> = {
 		pending: { variant: 'secondary', text: 'Pending' },
 		approved: { variant: 'default', text: 'Approved' },
 		rejected: { variant: 'destructive', text: 'Rejected' }
@@ -167,7 +168,9 @@
 
 	// ==================== HELPERS ====================
 
-	function getWeekDays(start: string): { date: string; dayName: string; dayNum: number; isToday: boolean }[] {
+	function getWeekDays(
+		start: string
+	): { date: string; dayName: string; dayNum: number; isToday: boolean }[] {
 		if (!start) return [];
 		const days: { date: string; dayName: string; dayNum: number; isToday: boolean }[] = [];
 		const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -375,9 +378,7 @@
 	async function handleApproveLeave(id: string) {
 		try {
 			const result = await approveLeaveRequest(data.businessId, id);
-			leaveRequests = leaveRequests.map((lr) =>
-				lr.id === id ? result.leaveRequest : lr
-			);
+			leaveRequests = leaveRequests.map((lr) => (lr.id === id ? result.leaveRequest : lr));
 			toast.success('Leave request approved');
 			invalidate('app:schedule');
 		} catch (err) {
@@ -388,9 +389,7 @@
 	async function handleRejectLeave(id: string) {
 		try {
 			const result = await rejectLeaveRequest(data.businessId, id);
-			leaveRequests = leaveRequests.map((lr) =>
-				lr.id === id ? result.leaveRequest : lr
-			);
+			leaveRequests = leaveRequests.map((lr) => (lr.id === id ? result.leaveRequest : lr));
 			toast.success('Leave request rejected');
 		} catch (err) {
 			toast.error(userFriendlyError(err, 'Failed to reject leave request'));
@@ -398,324 +397,364 @@
 	}
 </script>
 
-<div class="flex flex-1 flex-col">
-	<div class="@container/main flex flex-1 flex-col gap-4">
-		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<PageHeader title="Staff Schedule" description="Manage weekly roster and leave requests">
-				{#snippet actions()}
-					{#if canModify(data.userRole)}
-						<Button variant="outline" onclick={openAddTemplateDialog}>
-							<IconClock class="mr-2 h-4 w-4" />
-							New Template
-						</Button>
-						<Button onclick={openAddShiftDialog}>
-							<IconPlus class="mr-2 h-4 w-4" />
-							Add Shift
-						</Button>
+<PageShell title="Staff Schedule" description="Manage weekly roster and leave requests">
+	{#snippet actions()}
+		{#if canModify(data.userRole)}
+			<Button variant="outline" onclick={openAddTemplateDialog}>
+				<IconClock class="mr-2 h-4 w-4" />
+				New Template
+			</Button>
+			<Button onclick={openAddShiftDialog}>
+				<IconPlus class="mr-2 h-4 w-4" />
+				Add Shift
+			</Button>
+		{/if}
+	{/snippet}
+
+	<div>
+		<Tabs.Root bind:value={activeTab} class="w-full">
+			<Tabs.List class="grid w-full grid-cols-2">
+				<Tabs.Trigger value="roster">
+					<IconCalendar class="mr-2 h-4 w-4" />
+					Roster
+				</Tabs.Trigger>
+				<Tabs.Trigger value="leave">
+					<IconCalendarOff class="mr-2 h-4 w-4" />
+					Leave Requests
+					{#if pendingLeaveRequests.length > 0}
+						<Badge variant="destructive" class="ml-2 h-5 min-w-5 px-1 text-xs">
+							{pendingLeaveRequests.length}
+						</Badge>
 					{/if}
-				{/snippet}
-			</PageHeader>
+				</Tabs.Trigger>
+			</Tabs.List>
 
-			<div class="px-6">
-				<Tabs.Root bind:value={activeTab} class="w-full">
-					<Tabs.List class="grid w-full grid-cols-2">
-						<Tabs.Trigger value="roster">
-							<IconCalendar class="mr-2 h-4 w-4" />
-							Roster
-						</Tabs.Trigger>
-						<Tabs.Trigger value="leave">
-							<IconCalendarOff class="mr-2 h-4 w-4" />
-							Leave Requests
-							{#if pendingLeaveRequests.length > 0}
-								<Badge variant="destructive" class="ml-2 h-5 min-w-5 px-1 text-xs">
-									{pendingLeaveRequests.length}
-								</Badge>
-							{/if}
-						</Tabs.Trigger>
-					</Tabs.List>
+			<!-- ==================== ROSTER TAB ==================== -->
+			<Tabs.Content value="roster" class="mt-4 space-y-4">
+				<!-- Week Navigation -->
+				<div class="flex items-center justify-between">
+					<div class="flex items-center gap-2">
+						<Button
+							variant="outline"
+							size="icon"
+							onclick={() => navigateWeek(-1)}
+							aria-label="Previous week"
+						>
+							<IconChevronLeft class="h-4 w-4" />
+						</Button>
+						<Button variant="outline" size="sm" onclick={goToCurrentWeek}>Today</Button>
+						<Button
+							variant="outline"
+							size="icon"
+							onclick={() => navigateWeek(1)}
+							aria-label="Next week"
+						>
+							<IconChevronRight class="h-4 w-4" />
+						</Button>
+					</div>
+					<h3 class="text-sm font-medium text-muted-foreground">
+						{currentWeekLabel()}
+					</h3>
+				</div>
 
-					<!-- ==================== ROSTER TAB ==================== -->
-					<Tabs.Content value="roster" class="mt-4 space-y-4">
-						<!-- Week Navigation -->
-						<div class="flex items-center justify-between">
-							<div class="flex items-center gap-2">
-								<Button variant="outline" size="icon" onclick={() => navigateWeek(-1)} aria-label="Previous week">
-									<IconChevronLeft class="h-4 w-4" />
-								</Button>
-								<Button variant="outline" size="sm" onclick={goToCurrentWeek}>
-									Today
-								</Button>
-								<Button variant="outline" size="icon" onclick={() => navigateWeek(1)} aria-label="Next week">
-									<IconChevronRight class="h-4 w-4" />
-								</Button>
+				<!-- Shift Templates Legend -->
+				{#if templates.length > 0}
+					<div class="flex flex-wrap gap-2">
+						{#each templates.filter((t) => t.isActive) as tpl (tpl.id)}
+							<div class="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs">
+								<span
+									class="h-2.5 w-2.5 rounded-full {templateColorDots[tpl.color] || 'bg-gray-500'}"
+								></span>
+								<span class="font-medium">{tpl.name}</span>
+								<span class="text-muted-foreground">{tpl.startTime}-{tpl.endTime}</span>
 							</div>
-							<h3 class="text-sm font-medium text-muted-foreground">
-								{currentWeekLabel()}
-							</h3>
-						</div>
+						{/each}
+					</div>
+				{/if}
 
-						<!-- Shift Templates Legend -->
-						{#if templates.length > 0}
-							<div class="flex flex-wrap gap-2">
-								{#each templates.filter((t) => t.isActive) as tpl (tpl.id)}
-									<div class="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs">
-										<span class="h-2.5 w-2.5 rounded-full {templateColorDots[tpl.color] || 'bg-gray-500'}"></span>
-										<span class="font-medium">{tpl.name}</span>
-										<span class="text-muted-foreground">{tpl.startTime}-{tpl.endTime}</span>
-									</div>
-								{/each}
-							</div>
-						{/if}
-
-						<!-- Roster Grid -->
-						{#if roster.length > 0}
-							<Card.Root>
-								<div class="overflow-x-auto">
-									<table class="w-full min-w-[700px] border-collapse">
-										<thead>
-											<tr class="border-b">
-												<th class="sticky left-0 z-10 bg-card px-4 py-3 text-left text-sm font-medium text-muted-foreground" style="min-width: 160px;">
-													Staff
-												</th>
-												{#each weekDays as day (day.date)}
-													<th class="px-2 py-3 text-center text-sm font-medium {day.isToday ? 'bg-primary/5' : ''}">
-														<div class="text-muted-foreground">{day.dayName}</div>
-														<div class="mt-0.5 {day.isToday ? 'text-primary font-bold' : ''}">
-															{day.dayNum}
-														</div>
-													</th>
-												{/each}
-											</tr>
-										</thead>
-										<tbody>
-											{#each roster as entry (entry.userId)}
-												<tr class="border-b last:border-b-0">
-													<td class="sticky left-0 z-10 bg-card px-4 py-3">
-														<div class="flex items-center gap-2.5">
-															<div class="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-medium">
-																{#if entry.user.image}
-																	<img
-																		src={entry.user.image}
-																		alt={entry.user.name ?? ''}
-																		class="h-8 w-8 rounded-full object-cover"
-																		loading="lazy"
-																	/>
-																{:else}
-																	{getUserInitials(entry.user.name)}
-																{/if}
-															</div>
-															<div class="min-w-0">
-																<p class="truncate text-sm font-medium">
-																	{entry.user.name || entry.user.email}
-																</p>
-															</div>
-														</div>
-													</td>
-													{#each weekDays as day (day.date)}
-														{@const shifts = getShiftsForCell(entry, day.date)}
-														{@const onLeave = isOnLeave(entry.userId, day.date)}
-														<td
-															class="relative px-1 py-1.5 text-center align-top {day.isToday ? 'bg-primary/5' : ''} {onLeave ? 'bg-muted/50' : ''}"
-															style="min-width: 90px;"
-														>
-															<!-- svelte-ignore a11y_click_events_have_key_events -->
-															<!-- svelte-ignore a11y_no_static_element_interactions -->
-															<div
-																class="min-h-[48px] cursor-pointer rounded-md border border-transparent p-0.5 transition-colors hover:border-primary/30 hover:bg-primary/5"
-																onclick={() => handleCellClick(entry.userId, day.date)}
-															>
-																{#if onLeave}
-																	<div class="flex h-full items-center justify-center">
-																		<span class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-																			On Leave
-																		</span>
-																	</div>
-																{/if}
-																{#each shifts as shift (shift.id)}
-																	{@const color = shift.template?.color || 'gray'}
-																	<div class="mb-0.5 rounded px-1 py-0.5 text-[10px] leading-tight {templateColorMap[color] || templateColorMap.gray}">
-																		<div class="font-medium">
-																			{formatShiftTime(shift.startTime)}-{formatShiftTime(shift.endTime)}
-																		</div>
-																		{#if shift.template}
-																			<div class="truncate opacity-80">{shift.template.name}</div>
-																		{/if}
-																	</div>
-																{/each}
-																{#if shifts.length === 0 && !onLeave}
-																	<div class="flex h-full min-h-[40px] items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
-																		<IconPlus class="h-3.5 w-3.5 text-muted-foreground/50" />
-																	</div>
-																{/if}
-															</div>
-														</td>
-													{/each}
-												</tr>
-											{/each}
-										</tbody>
-									</table>
-								</div>
-							</Card.Root>
-						{:else}
-							<EmptyState
-								type="empty"
-								title="No schedule data"
-								description="No staff members have been assigned shifts for this week. Add shifts to get started."
-								actionLabel={canModify(data.userRole) ? 'Add Shift' : undefined}
-								onAction={canModify(data.userRole) ? openAddShiftDialog : undefined}
-							/>
-						{/if}
-					</Tabs.Content>
-
-					<!-- ==================== LEAVE REQUESTS TAB ==================== -->
-					<Tabs.Content value="leave" class="mt-4 space-y-4">
-						<div class="flex items-center justify-end">
-							<Button onclick={openLeaveDialog}>
-								<IconCalendarEvent class="mr-2 h-4 w-4" />
-								Request Leave
-							</Button>
-						</div>
-
-						{#if leaveRequests.length > 0}
-							<!-- Mobile: Card list -->
-							<div class="flex flex-col gap-2 md:hidden">
-								{#each leaveRequests as lr (lr.id)}
-									<Card.Root>
-										<Card.Content class="p-4">
-											<div class="flex items-start justify-between">
-												<div>
-													<p class="text-sm font-medium">{lr.user?.name || 'Unknown'}</p>
-													<p class="text-xs text-muted-foreground">{leaveTypeLabels[lr.type]}</p>
+				<!-- Roster Grid -->
+				{#if roster.length > 0}
+					<Card.Root>
+						<div class="overflow-x-auto">
+							<table class="w-full min-w-[700px] border-collapse">
+								<thead>
+									<tr class="border-b">
+										<th
+											class="sticky left-0 z-10 bg-card px-4 py-3 text-left text-sm font-medium text-muted-foreground"
+											style="min-width: 160px;"
+										>
+											Staff
+										</th>
+										{#each weekDays as day (day.date)}
+											<th
+												class="px-2 py-3 text-center text-sm font-medium {day.isToday
+													? 'bg-primary/5'
+													: ''}"
+											>
+												<div class="text-muted-foreground">{day.dayName}</div>
+												<div class="mt-0.5 {day.isToday ? 'font-bold text-primary' : ''}">
+													{day.dayNum}
 												</div>
+											</th>
+										{/each}
+									</tr>
+								</thead>
+								<tbody>
+									{#each roster as entry (entry.userId)}
+										<tr class="border-b last:border-b-0">
+											<td class="sticky left-0 z-10 bg-card px-4 py-3">
+												<div class="flex items-center gap-2.5">
+													<div
+														class="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-medium"
+													>
+														{#if entry.user.image}
+															<img
+																src={entry.user.image}
+																alt={entry.user.name ?? ''}
+																class="h-8 w-8 rounded-full object-cover"
+																loading="lazy"
+															/>
+														{:else}
+															{getUserInitials(entry.user.name)}
+														{/if}
+													</div>
+													<div class="min-w-0">
+														<p class="truncate text-sm font-medium">
+															{entry.user.name || entry.user.email}
+														</p>
+													</div>
+												</div>
+											</td>
+											{#each weekDays as day (day.date)}
+												{@const shifts = getShiftsForCell(entry, day.date)}
+												{@const onLeave = isOnLeave(entry.userId, day.date)}
+												<td
+													class="relative px-1 py-1.5 text-center align-top {day.isToday
+														? 'bg-primary/5'
+														: ''} {onLeave ? 'bg-muted/50' : ''}"
+													style="min-width: 90px;"
+												>
+													<!-- svelte-ignore a11y_click_events_have_key_events -->
+													<!-- svelte-ignore a11y_no_static_element_interactions -->
+													<div
+														class="min-h-[48px] cursor-pointer rounded-md border border-transparent p-0.5 transition-colors hover:border-primary/30 hover:bg-primary/5"
+														onclick={() => handleCellClick(entry.userId, day.date)}
+													>
+														{#if onLeave}
+															<div class="flex h-full items-center justify-center">
+																<span
+																	class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+																>
+																	On Leave
+																</span>
+															</div>
+														{/if}
+														{#each shifts as shift (shift.id)}
+															{@const color = shift.template?.color || 'gray'}
+															<div
+																class="mb-0.5 rounded px-1 py-0.5 text-[10px] leading-tight {templateColorMap[
+																	color
+																] || templateColorMap.gray}"
+															>
+																<div class="font-medium">
+																	{formatShiftTime(shift.startTime)}-{formatShiftTime(
+																		shift.endTime
+																	)}
+																</div>
+																{#if shift.template}
+																	<div class="truncate opacity-80">{shift.template.name}</div>
+																{/if}
+															</div>
+														{/each}
+														{#if shifts.length === 0 && !onLeave}
+															<div
+																class="flex h-full min-h-[40px] items-center justify-center opacity-0 transition-opacity group-hover:opacity-100"
+															>
+																<IconPlus class="h-3.5 w-3.5 text-muted-foreground/50" />
+															</div>
+														{/if}
+													</div>
+												</td>
+											{/each}
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+						</div>
+					</Card.Root>
+				{:else}
+					<EmptyState
+						type="empty"
+						title="No schedule data"
+						description="No staff members have been assigned shifts for this week. Add shifts to get started."
+						actionLabel={canModify(data.userRole) ? 'Add Shift' : undefined}
+						onAction={canModify(data.userRole) ? openAddShiftDialog : undefined}
+					/>
+				{/if}
+			</Tabs.Content>
+
+			<!-- ==================== LEAVE REQUESTS TAB ==================== -->
+			<Tabs.Content value="leave" class="mt-4 space-y-4">
+				<div class="flex items-center justify-end">
+					<Button onclick={openLeaveDialog}>
+						<IconCalendarEvent class="mr-2 h-4 w-4" />
+						Request Leave
+					</Button>
+				</div>
+
+				{#if leaveRequests.length > 0}
+					<!-- Mobile: Card list -->
+					<div class="flex flex-col gap-2 md:hidden">
+						{#each leaveRequests as lr (lr.id)}
+							<Card.Root>
+								<Card.Content class="p-4">
+									<div class="flex items-start justify-between">
+										<div>
+											<p class="text-sm font-medium">{lr.user?.name || 'Unknown'}</p>
+											<p class="text-xs text-muted-foreground">{leaveTypeLabels[lr.type]}</p>
+										</div>
+										<Badge variant={leaveStatusConfig[lr.status].variant}>
+											{leaveStatusConfig[lr.status].text}
+										</Badge>
+									</div>
+									<div class="mt-2 text-xs text-muted-foreground">
+										{formatDate(lr.startDate)} - {formatDate(lr.endDate)}
+									</div>
+									{#if lr.reason}
+										<p class="mt-1 text-xs text-muted-foreground">{lr.reason}</p>
+									{/if}
+									{#if lr.status === 'pending' && canModify(data.userRole)}
+										<div class="mt-3 flex gap-2">
+											<Button
+												size="sm"
+												variant="outline"
+												class="h-7 text-xs"
+												onclick={() => handleApproveLeave(lr.id)}
+											>
+												<IconCheck class="mr-1 h-3.5 w-3.5" />
+												Approve
+											</Button>
+											<Button
+												size="sm"
+												variant="outline"
+												class="h-7 text-xs text-destructive"
+												onclick={() => handleRejectLeave(lr.id)}
+											>
+												<IconX class="mr-1 h-3.5 w-3.5" />
+												Reject
+											</Button>
+										</div>
+									{/if}
+								</Card.Content>
+							</Card.Root>
+						{/each}
+					</div>
+
+					<!-- Desktop: Table -->
+					<div class="hidden md:block">
+						<div class="overflow-x-auto rounded-md border">
+							<Table.Root>
+								<Table.Header>
+									<Table.Row>
+										<Table.Head>Staff</Table.Head>
+										<Table.Head>Type</Table.Head>
+										<Table.Head>From</Table.Head>
+										<Table.Head>To</Table.Head>
+										<Table.Head>Reason</Table.Head>
+										<Table.Head>Status</Table.Head>
+										<Table.Head class="text-right">Actions</Table.Head>
+									</Table.Row>
+								</Table.Header>
+								<Table.Body>
+									{#each leaveRequests as lr (lr.id)}
+										<Table.Row>
+											<Table.Cell>
+												<div class="flex items-center gap-2.5">
+													<div
+														class="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-medium"
+													>
+														{#if lr.user?.image}
+															<img
+																src={lr.user.image}
+																alt={lr.user.name ?? ''}
+																class="h-8 w-8 rounded-full object-cover"
+																loading="lazy"
+															/>
+														{:else}
+															{getUserInitials(lr.user?.name ?? null)}
+														{/if}
+													</div>
+													<div>
+														<p class="text-sm font-medium">{lr.user?.name || 'Unknown'}</p>
+														<p class="text-xs text-muted-foreground">{lr.user?.email}</p>
+													</div>
+												</div>
+											</Table.Cell>
+											<Table.Cell>
+												<Badge variant="outline">{leaveTypeLabels[lr.type]}</Badge>
+											</Table.Cell>
+											<Table.Cell class="text-muted-foreground"
+												>{formatDate(lr.startDate)}</Table.Cell
+											>
+											<Table.Cell class="text-muted-foreground">{formatDate(lr.endDate)}</Table.Cell
+											>
+											<Table.Cell>
+												<span class="max-w-[200px] truncate text-sm text-muted-foreground">
+													{lr.reason || '-'}
+												</span>
+											</Table.Cell>
+											<Table.Cell>
 												<Badge variant={leaveStatusConfig[lr.status].variant}>
 													{leaveStatusConfig[lr.status].text}
 												</Badge>
-											</div>
-											<div class="mt-2 text-xs text-muted-foreground">
-												{formatDate(lr.startDate)} - {formatDate(lr.endDate)}
-											</div>
-											{#if lr.reason}
-												<p class="mt-1 text-xs text-muted-foreground">{lr.reason}</p>
-											{/if}
-											{#if lr.status === 'pending' && canModify(data.userRole)}
-												<div class="mt-3 flex gap-2">
-													<Button size="sm" variant="outline" class="h-7 text-xs" onclick={() => handleApproveLeave(lr.id)}>
-														<IconCheck class="mr-1 h-3.5 w-3.5" />
-														Approve
-													</Button>
-													<Button size="sm" variant="outline" class="h-7 text-xs text-destructive" onclick={() => handleRejectLeave(lr.id)}>
-														<IconX class="mr-1 h-3.5 w-3.5" />
-														Reject
-													</Button>
-												</div>
-											{/if}
-										</Card.Content>
-									</Card.Root>
-								{/each}
-							</div>
-
-							<!-- Desktop: Table -->
-							<div class="hidden md:block">
-								<div class="overflow-x-auto rounded-md border">
-									<Table.Root>
-										<Table.Header>
-											<Table.Row>
-												<Table.Head>Staff</Table.Head>
-												<Table.Head>Type</Table.Head>
-												<Table.Head>From</Table.Head>
-												<Table.Head>To</Table.Head>
-												<Table.Head>Reason</Table.Head>
-												<Table.Head>Status</Table.Head>
-												<Table.Head class="text-right">Actions</Table.Head>
-											</Table.Row>
-										</Table.Header>
-										<Table.Body>
-											{#each leaveRequests as lr (lr.id)}
-												<Table.Row>
-													<Table.Cell>
-														<div class="flex items-center gap-2.5">
-															<div class="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-medium">
-																{#if lr.user?.image}
-																	<img
-																		src={lr.user.image}
-																		alt={lr.user.name ?? ''}
-																		class="h-8 w-8 rounded-full object-cover"
-																		loading="lazy"
-																	/>
-																{:else}
-																	{getUserInitials(lr.user?.name ?? null)}
-																{/if}
-															</div>
-															<div>
-																<p class="text-sm font-medium">{lr.user?.name || 'Unknown'}</p>
-																<p class="text-xs text-muted-foreground">{lr.user?.email}</p>
-															</div>
-														</div>
-													</Table.Cell>
-													<Table.Cell>
-														<Badge variant="outline">{leaveTypeLabels[lr.type]}</Badge>
-													</Table.Cell>
-													<Table.Cell class="text-muted-foreground">{formatDate(lr.startDate)}</Table.Cell>
-													<Table.Cell class="text-muted-foreground">{formatDate(lr.endDate)}</Table.Cell>
-													<Table.Cell>
-														<span class="max-w-[200px] truncate text-sm text-muted-foreground">
-															{lr.reason || '-'}
-														</span>
-													</Table.Cell>
-													<Table.Cell>
-														<Badge variant={leaveStatusConfig[lr.status].variant}>
-															{leaveStatusConfig[lr.status].text}
-														</Badge>
-													</Table.Cell>
-													<Table.Cell class="text-right">
-														{#if lr.status === 'pending' && canModify(data.userRole)}
-															<div class="flex justify-end gap-1">
-																<Button
-																	variant="ghost"
-																	size="icon"
-																	class="h-8 w-8 text-green-600 hover:text-green-700"
-																	onclick={() => handleApproveLeave(lr.id)}
-																	aria-label="Approve"
-																>
-																	<IconCheck class="h-4 w-4" />
-																</Button>
-																<Button
-																	variant="ghost"
-																	size="icon"
-																	class="h-8 w-8 text-destructive"
-																	onclick={() => handleRejectLeave(lr.id)}
-																	aria-label="Reject"
-																>
-																	<IconX class="h-4 w-4" />
-																</Button>
-															</div>
-														{:else if lr.status !== 'pending'}
-															<span class="text-xs text-muted-foreground">
-																{lr.reviewer?.name ? `by ${lr.reviewer.name}` : ''}
-															</span>
-														{/if}
-													</Table.Cell>
-												</Table.Row>
-											{/each}
-										</Table.Body>
-									</Table.Root>
-								</div>
-							</div>
-						{:else}
-							<EmptyState
-								type="empty"
-								title="No leave requests"
-								description="There are no leave requests to display."
-								actionLabel="Request Leave"
-								onAction={openLeaveDialog}
-							/>
-						{/if}
-					</Tabs.Content>
-				</Tabs.Root>
-			</div>
-		</div>
+											</Table.Cell>
+											<Table.Cell class="text-right">
+												{#if lr.status === 'pending' && canModify(data.userRole)}
+													<div class="flex justify-end gap-1">
+														<Button
+															variant="ghost"
+															size="icon"
+															class="h-8 w-8 text-success hover:text-success/90"
+															onclick={() => handleApproveLeave(lr.id)}
+															aria-label="Approve"
+														>
+															<IconCheck class="h-4 w-4" />
+														</Button>
+														<Button
+															variant="ghost"
+															size="icon"
+															class="h-8 w-8 text-destructive"
+															onclick={() => handleRejectLeave(lr.id)}
+															aria-label="Reject"
+														>
+															<IconX class="h-4 w-4" />
+														</Button>
+													</div>
+												{:else if lr.status !== 'pending'}
+													<span class="text-xs text-muted-foreground">
+														{lr.reviewer?.name ? `by ${lr.reviewer.name}` : ''}
+													</span>
+												{/if}
+											</Table.Cell>
+										</Table.Row>
+									{/each}
+								</Table.Body>
+							</Table.Root>
+						</div>
+					</div>
+				{:else}
+					<EmptyState
+						type="empty"
+						title="No leave requests"
+						description="There are no leave requests to display."
+						actionLabel="Request Leave"
+						onAction={openLeaveDialog}
+					/>
+				{/if}
+			</Tabs.Content>
+		</Tabs.Root>
 	</div>
-</div>
+</PageShell>
 
 <!-- ==================== ADD SHIFT DIALOG ==================== -->
 <Dialog.Root bind:open={showAddShiftDialog}>
@@ -790,7 +829,11 @@
 			</div>
 		</div>
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (showAddShiftDialog = false)} disabled={isSubmitting}>
+			<Button
+				variant="outline"
+				onclick={() => (showAddShiftDialog = false)}
+				disabled={isSubmitting}
+			>
 				Cancel
 			</Button>
 			<Button onclick={handleCreateShift} disabled={isSubmitting}>
@@ -835,7 +878,10 @@
 					{#each Object.entries(templateColorDots) as [color, dotClass] (color)}
 						<button
 							type="button"
-							class="flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors {templateColor === color ? 'border-primary' : 'border-transparent'}"
+							class="flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors {templateColor ===
+							color
+								? 'border-primary'
+								: 'border-transparent'}"
 							onclick={() => (templateColor = color)}
 							aria-label="Select {color}"
 						>
@@ -846,7 +892,11 @@
 			</div>
 		</div>
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (showAddTemplateDialog = false)} disabled={isSubmitting}>
+			<Button
+				variant="outline"
+				onclick={() => (showAddTemplateDialog = false)}
+				disabled={isSubmitting}
+			>
 				Cancel
 			</Button>
 			<Button onclick={handleCreateTemplate} disabled={isSubmitting}>
@@ -894,7 +944,12 @@
 			</div>
 			<div class="grid gap-2">
 				<label for="leave-reason" class="text-sm font-medium">Reason</label>
-				<Textarea id="leave-reason" bind:value={leaveReason} placeholder="Optional reason for leave" rows={3} />
+				<Textarea
+					id="leave-reason"
+					bind:value={leaveReason}
+					placeholder="Optional reason for leave"
+					rows={3}
+				/>
 			</div>
 		</div>
 		<Dialog.Footer>

@@ -6,7 +6,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import type { PageData } from './$types';
@@ -112,10 +112,13 @@
 		{ value: 'subscription.extend_trial', label: 'Subscription Extend Trial' }
 	];
 
-	function getActionBadgeVariant(action: string): 'default' | 'destructive' | 'secondary' | 'outline' {
+	function getActionBadgeVariant(
+		action: string
+	): 'default' | 'destructive' | 'secondary' | 'outline' {
 		if (action.endsWith('.create')) return 'default';
 		if (action.endsWith('.delete') || action.endsWith('.cancel')) return 'destructive';
-		if (action.includes('.update') || action.includes('.split') || action.includes('.extend')) return 'secondary';
+		if (action.includes('.update') || action.includes('.split') || action.includes('.extend'))
+			return 'secondary';
 		if (action.includes('.refund')) return 'destructive';
 		return 'outline';
 	}
@@ -154,7 +157,7 @@
 			</Button>
 			<div class="flex items-center gap-2">
 				<ScrollText class="h-5 w-5 text-muted-foreground" />
-				<Badge variant="secondary" class="text-lg px-4 py-2">
+				<Badge variant="secondary" class="px-4 py-2 text-lg">
 					{data.total} entries
 				</Badge>
 			</div>
@@ -164,10 +167,14 @@
 	<!-- Filters -->
 	<Card.Root>
 		<Card.Content class="pt-6">
-			<div class="flex flex-wrap gap-4 items-end">
-				<Select.Root type="single" value={resourceFilter} onValueChange={(v) => handleResourceChange(v)}>
+			<div class="flex flex-wrap items-end gap-4">
+				<Select.Root
+					type="single"
+					value={resourceFilter}
+					onValueChange={(v) => handleResourceChange(v)}
+				>
 					<Select.Trigger class="w-[180px]">
-						{resourceOptions.find(o => o.value === resourceFilter)?.label || 'All Resources'}
+						{resourceOptions.find((o) => o.value === resourceFilter)?.label || 'All Resources'}
 					</Select.Trigger>
 					<Select.Content>
 						{#each resourceOptions as option}
@@ -176,9 +183,13 @@
 					</Select.Content>
 				</Select.Root>
 
-				<Select.Root type="single" value={actionFilter} onValueChange={(v) => handleActionChange(v)}>
+				<Select.Root
+					type="single"
+					value={actionFilter}
+					onValueChange={(v) => handleActionChange(v)}
+				>
 					<Select.Trigger class="w-[220px]">
-						{actionOptions.find(o => o.value === actionFilter)?.label || 'All Actions'}
+						{actionOptions.find((o) => o.value === actionFilter)?.label || 'All Actions'}
 					</Select.Trigger>
 					<Select.Content>
 						{#each actionOptions as option}
@@ -187,34 +198,40 @@
 					</Select.Content>
 				</Select.Root>
 
-				<div class="space-y-1">
-					<Label for="startDate" class="text-xs">Start Date</Label>
-					<Input type="date" id="startDate" bind:value={startDate} class="w-[150px] h-10" />
-				</div>
-				<div class="space-y-1">
-					<Label for="endDate" class="text-xs">End Date</Label>
-					<Input type="date" id="endDate" bind:value={endDate} class="w-[150px] h-10" />
-				</div>
+				<Field.Field>
+					<Field.Label for="startDate" class="text-xs">Start Date</Field.Label>
+					<Input type="date" id="startDate" bind:value={startDate} class="h-10 w-[150px]" />
+				</Field.Field>
+				<Field.Field>
+					<Field.Label for="endDate" class="text-xs">End Date</Field.Label>
+					<Input type="date" id="endDate" bind:value={endDate} class="h-10 w-[150px]" />
+				</Field.Field>
 				<Button variant="outline" size="sm" onclick={applyDateFilter} class="h-10">
 					Apply Dates
 				</Button>
 
-				<div class="space-y-1">
-					<Label for="userSearch" class="text-xs">User ID</Label>
+				<Field.Field>
+					<Field.Label for="userSearch" class="text-xs">User ID</Field.Label>
 					<div class="flex gap-1">
 						<Input
 							type="text"
 							id="userSearch"
 							bind:value={userSearch}
 							placeholder="Filter by user ID..."
-							class="w-[200px] h-10"
+							class="h-10 w-[200px]"
 							onkeydown={handleUserSearchKeydown}
 						/>
-						<Button variant="outline" size="icon" class="h-10 w-10" onclick={applyUserSearch} aria-label="Search user">
+						<Button
+							variant="outline"
+							size="icon"
+							class="h-10 w-10"
+							onclick={applyUserSearch}
+							aria-label="Search user"
+						>
 							<Search class="h-4 w-4" />
 						</Button>
 					</div>
-				</div>
+				</Field.Field>
 			</div>
 		</Card.Content>
 	</Card.Root>
@@ -235,7 +252,7 @@
 			<Table.Body>
 				{#each data.data as log}
 					<Table.Row>
-						<Table.Cell class="text-muted-foreground text-sm whitespace-nowrap">
+						<Table.Cell class="text-sm whitespace-nowrap text-muted-foreground">
 							{formatDateTime(log.createdAt)}
 						</Table.Cell>
 						<Table.Cell>
@@ -245,7 +262,7 @@
 									<p class="text-xs text-muted-foreground">{log.user.email}</p>
 								</div>
 							{:else}
-								<span class="text-muted-foreground text-sm">System</span>
+								<span class="text-sm text-muted-foreground">System</span>
 							{/if}
 						</Table.Cell>
 						<Table.Cell>
@@ -256,28 +273,28 @@
 						<Table.Cell class="capitalize">{log.resource}</Table.Cell>
 						<Table.Cell>
 							{#if log.restaurant}
-								<a
-									href="/admin/businesses/{log.restaurant.id}"
-									class="text-sm hover:underline"
-								>
+								<a href="/admin/businesses/{log.restaurant.id}" class="text-sm hover:underline">
 									{log.restaurant.name}
 								</a>
 							{:else}
-								<span class="text-muted-foreground text-sm">-</span>
+								<span class="text-sm text-muted-foreground">-</span>
 							{/if}
 						</Table.Cell>
 						<Table.Cell>
 							{#if log.details}
 								<button
 									onclick={() => showDetails(log)}
-									class="text-left cursor-pointer hover:bg-muted rounded px-1 py-0.5 transition-colors"
+									class="cursor-pointer rounded px-1 py-0.5 text-left transition-colors hover:bg-muted"
 								>
-									<code class="text-xs bg-muted px-1 py-0.5 rounded">
-										{JSON.stringify(log.details).slice(0, 50)}{JSON.stringify(log.details).length > 50 ? '...' : ''}
+									<code class="rounded bg-muted px-1 py-0.5 text-xs">
+										{JSON.stringify(log.details).slice(0, 50)}{JSON.stringify(log.details).length >
+										50
+											? '...'
+											: ''}
 									</code>
 								</button>
 							{:else}
-								<span class="text-muted-foreground text-sm">-</span>
+								<span class="text-sm text-muted-foreground">-</span>
 							{/if}
 						</Table.Cell>
 					</Table.Row>
@@ -296,10 +313,8 @@
 	{#if data.totalPages > 1}
 		<div class="flex items-center justify-between">
 			<p class="text-sm text-muted-foreground">
-				Showing {(data.page - 1) * data.limit + 1} to {Math.min(
-					data.page * data.limit,
-					data.total
-				)} of {data.total} logs
+				Showing {(data.page - 1) * data.limit + 1} to {Math.min(data.page * data.limit, data.total)} of
+				{data.total} logs
 			</p>
 			<div class="flex items-center gap-2">
 				<Button
@@ -338,7 +353,12 @@
 			</Dialog.Description>
 		</Dialog.Header>
 		<div class="max-h-[400px] overflow-auto">
-			<pre class="text-xs bg-muted p-4 rounded-lg overflow-x-auto whitespace-pre-wrap">{JSON.stringify(selectedLogDetails, null, 2)}</pre>
+			<pre
+				class="overflow-x-auto rounded-lg bg-muted p-4 text-xs whitespace-pre-wrap">{JSON.stringify(
+					selectedLogDetails,
+					null,
+					2
+				)}</pre>
 		</div>
 	</Dialog.Content>
 </Dialog.Root>

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { Label } from '$lib/components/ui/label';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { IconArrowsExchange } from '@tabler/icons-svelte';
 
@@ -47,7 +47,7 @@
 	<Dialog.Content class="max-w-md">
 		<Dialog.Header>
 			<Dialog.Title class="flex items-center gap-2">
-				<IconArrowsExchange class="h-5 w-5 text-blue-500" />
+				<IconArrowsExchange class="h-5 w-5 text-primary" />
 				Transfer Order
 			</Dialog.Title>
 			<Dialog.Description>
@@ -55,24 +55,27 @@
 			</Dialog.Description>
 		</Dialog.Header>
 
-		<div class="py-4">
-			<Label class="mb-2 block">Select target table</Label>
+		<Field.Field class="py-4">
+			<Field.Label>Select target table</Field.Label>
 			{#if filteredTables.length === 0}
-				<p class="text-muted-foreground py-4 text-center text-sm">No available tables</p>
+				<p class="py-4 text-center text-sm text-muted-foreground">No available tables</p>
 			{:else}
 				<div class="grid max-h-60 grid-cols-3 gap-2 overflow-y-auto">
 					{#each filteredTables as table}
 						<button
-							class="rounded-lg border p-3 text-center transition-colors {selectedTableId === table.id ? 'border-primary bg-primary/10 ring-primary ring-2' : 'hover:bg-muted'}"
+							class="rounded-lg border p-3 text-center transition-colors {selectedTableId ===
+							table.id
+								? 'border-primary bg-primary/10 ring-2 ring-primary'
+								: 'hover:bg-muted'}"
 							onclick={() => (selectedTableId = table.id)}
 						>
 							<div class="text-sm font-semibold">{table.displayName}</div>
-							<div class="text-muted-foreground text-xs">Cap: {table.capacity}</div>
+							<div class="text-xs text-muted-foreground">Cap: {table.capacity}</div>
 						</button>
 					{/each}
 				</div>
 			{/if}
-		</div>
+		</Field.Field>
 
 		<Dialog.Footer>
 			<Button variant="outline" onclick={onCancel} disabled={isProcessing}>Cancel</Button>

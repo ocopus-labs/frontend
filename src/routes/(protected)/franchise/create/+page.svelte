@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import * as Card from '$lib/components/ui/card';
 	import { createFranchise } from '$lib/api/franchise';
@@ -22,7 +22,7 @@
 		try {
 			const { franchise } = await createFranchise({
 				name: name.trim(),
-				description: description.trim() || undefined,
+				description: description.trim() || undefined
 			});
 			goto(`/franchise/${franchise.slug}`);
 		} catch (err: any) {
@@ -59,25 +59,20 @@
 				}}
 				class="space-y-4"
 			>
-				<div class="space-y-2">
-					<Label for="name">Franchise Name</Label>
-					<Input
-						id="name"
-						placeholder="e.g. Spice Chain"
-						bind:value={name}
-						required
-					/>
-				</div>
+				<Field.Field>
+					<Field.Label for="name">Franchise Name</Field.Label>
+					<Input id="name" placeholder="e.g. Spice Chain" bind:value={name} required />
+				</Field.Field>
 
-				<div class="space-y-2">
-					<Label for="description">Description (optional)</Label>
+				<Field.Field>
+					<Field.Label for="description">Description (optional)</Field.Label>
 					<Textarea
 						id="description"
 						placeholder="Brief description of your franchise"
 						bind:value={description}
 						rows={3}
 					/>
-				</div>
+				</Field.Field>
 
 				{#if error}
 					<p class="text-sm text-destructive">{error}</p>

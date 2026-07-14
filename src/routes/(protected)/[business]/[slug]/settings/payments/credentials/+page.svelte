@@ -26,6 +26,7 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
@@ -73,8 +74,7 @@
 			tagline: 'International Card Payments',
 			description:
 				'Best for businesses accepting international cards, Apple Pay, and Google Pay. Supports 135+ currencies.',
-			useCase:
-				'Recommended if you serve international customers or accept non-Indian cards.',
+			useCase: 'Recommended if you serve international customers or accept non-Indian cards.',
 			publicKeyLabel: 'Publishable Key',
 			publicKeyPlaceholder: 'pk_test_... or pk_live_...',
 			secretKeyPlaceholder: 'sk_test_... or sk_live_...',
@@ -231,23 +231,21 @@
 			return {
 				label: 'Using Platform Defaults',
 				variant: 'secondary' as const,
-				className: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+				className: 'bg-primary/10 text-primary'
 			};
 		}
 		if (cred.enabled) {
 			return {
 				label: 'Active',
 				variant: 'default' as const,
-				className: 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300'
+				className: 'bg-success/15 text-success'
 			};
 		}
 		return { label: 'Inactive', variant: 'secondary' as const, className: '' };
 	}
 
 	function modeBadgeClass(mode: PaymentMode) {
-		return mode === 'live'
-			? 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300'
-			: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300';
+		return mode === 'live' ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning';
 	}
 
 	// ==================== Actions ====================
@@ -387,12 +385,10 @@
 		</Card.Root>
 	{/if}
 
-	<div
-		class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm dark:border-amber-900/50 dark:bg-amber-950/30"
-	>
+	<div class="rounded-lg border border-warning/30 bg-warning/10 p-4 text-sm">
 		<div class="flex items-start gap-3">
-			<IconBulb class="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
-			<div class="space-y-2 text-amber-900 dark:text-amber-100">
+			<IconBulb class="mt-0.5 size-5 shrink-0 text-warning" />
+			<div class="space-y-2 text-warning">
 				<p class="font-semibold">Recommended Setup</p>
 				<ul class="space-y-1 text-xs leading-relaxed">
 					<li>
@@ -455,17 +451,14 @@
 									</Badge>
 								{/if}
 								{#if !meta.customerFacing}
-									<Badge
-										variant="secondary"
-										class="bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200"
-									>
+									<Badge variant="secondary" class="bg-warning/15 text-warning">
 										Platform Managed
 									</Badge>
 								{/if}
 							</div>
 							<p class="mt-1 text-xs text-muted-foreground">{meta.tagline}</p>
 							{#if cred?.lastVerifiedAt}
-								<p class="mt-1 flex items-center gap-1 text-xs text-green-700 dark:text-green-400">
+								<p class="mt-1 flex items-center gap-1 text-xs text-success">
 									<IconCheck class="size-3.5" />
 									Verified {formatDate(cred.lastVerifiedAt)}
 								</p>
@@ -503,15 +496,13 @@
 						</div>
 						{#if !meta.customerFacing}
 							<div
-								class="flex items-start gap-2 rounded-md border border-amber-300/60 bg-amber-50 p-3 dark:border-amber-900/50 dark:bg-amber-950/30"
+								class="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 p-3"
 							>
-								<IconAlertCircle
-									class="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400"
-								/>
-								<p class="text-xs leading-relaxed text-amber-900 dark:text-amber-200">
+								<IconAlertCircle class="mt-0.5 size-4 shrink-0 text-warning" />
+								<p class="text-xs leading-relaxed text-warning">
 									<span class="font-medium">Not for customer payments. </span>
-									{meta.name} will not appear in your POS or online checkout. It is used only for
-									platform subscription billing.
+									{meta.name} will not appear in your POS or online checkout. It is used only for platform
+									subscription billing.
 								</p>
 							</div>
 						{/if}
@@ -519,7 +510,7 @@
 
 					{#if usingPlatform}
 						<div
-							class="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200"
+							class="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-foreground"
 						>
 							<p class="font-medium">Using platform-managed credentials</p>
 							<p class="mt-1 text-xs">
@@ -541,8 +532,8 @@
 					</div>
 
 					<!-- Mode selector -->
-					<div class="grid gap-2">
-						<Label class="text-sm font-medium">Mode</Label>
+					<Field.Field>
+						<Field.Label class="text-sm font-medium">Mode</Field.Label>
 						<RadioGroup.Root bind:value={forms[provider].mode} class="flex gap-6">
 							<div class="flex items-center gap-2">
 								<RadioGroup.Item value="test" id="{provider}-mode-test" />
@@ -557,14 +548,14 @@
 								</Label>
 							</div>
 						</RadioGroup.Root>
-					</div>
+					</Field.Field>
 
 					<!-- Public key (Stripe: publishableKey, Razorpay: keyId) -->
 					{#if meta.publicKeyLabel}
-						<div class="grid gap-2">
-							<Label for="{provider}-public-key" class="text-sm font-medium">
+						<Field.Field>
+							<Field.Label for="{provider}-public-key" class="text-sm font-medium">
 								{meta.publicKeyLabel}
-							</Label>
+							</Field.Label>
 							{#if provider === 'stripe'}
 								<Input
 									id="{provider}-public-key"
@@ -582,15 +573,16 @@
 									autocomplete="off"
 								/>
 							{/if}
-							<p class="text-xs text-muted-foreground">
+							<Field.Description>
 								This value is safe to expose to clients (not sensitive).
-							</p>
-						</div>
+							</Field.Description>
+						</Field.Field>
 					{/if}
 
 					<!-- Secret key -->
-					<div class="grid gap-2">
-						<Label for="{provider}-secret" class="text-sm font-medium">Secret Key</Label>
+					<Field.Field>
+						<Field.Label for="{provider}-secret" class="text-sm font-medium">Secret Key</Field.Label
+						>
 						<Input
 							id="{provider}-secret"
 							type="password"
@@ -600,17 +592,17 @@
 								: meta.secretKeyPlaceholder}
 							autocomplete="off"
 						/>
-						<p class="text-xs text-muted-foreground">
+						<Field.Description>
 							Only enter the secret key when creating or changing it. Leave blank to keep the
 							existing key.
-						</p>
-					</div>
+						</Field.Description>
+					</Field.Field>
 
 					<!-- Webhook secret -->
-					<div class="grid gap-2">
-						<Label for="{provider}-webhook-secret" class="text-sm font-medium">
+					<Field.Field>
+						<Field.Label for="{provider}-webhook-secret" class="text-sm font-medium">
 							Webhook Signing Secret
-						</Label>
+						</Field.Label>
 						<Input
 							id="{provider}-webhook-secret"
 							type="password"
@@ -618,14 +610,14 @@
 							placeholder={webhookSecretPlaceholder(provider, cred)}
 							autocomplete="off"
 						/>
-						<p class="text-xs text-muted-foreground">
+						<Field.Description>
 							Used to verify webhook payload signatures. Leave blank to keep the existing secret.
-						</p>
-					</div>
+						</Field.Description>
+					</Field.Field>
 
 					<!-- Webhook URL (read-only) -->
-					<div class="grid gap-2">
-						<Label class="text-sm font-medium">Webhook URL</Label>
+					<Field.Field>
+						<Field.Label class="text-sm font-medium">Webhook URL</Field.Label>
 						<div class="flex items-center gap-2">
 							<Input
 								type="text"
@@ -647,12 +639,12 @@
 								<IconCopy class="size-4" />
 							</Button>
 						</div>
-						<p class="text-xs text-muted-foreground">
+						<Field.Description>
 							Add this URL to your {meta.name} dashboard's webhook settings.
 							{#if meta.webhookNote}
-								<span class="block mt-1 italic">{meta.webhookNote}</span>
+								<span class="mt-1 block italic">{meta.webhookNote}</span>
 							{/if}
-						</p>
+						</Field.Description>
 						<a
 							href={meta.docsUrl}
 							target="_blank"
@@ -662,7 +654,7 @@
 							Open {meta.name} dashboard
 							<IconExternalLink class="size-3" />
 						</a>
-					</div>
+					</Field.Field>
 				</Card.Content>
 
 				<Card.Footer class="flex flex-wrap items-center justify-between gap-3 border-t pt-4">

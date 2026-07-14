@@ -5,7 +5,8 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
-import { Checkbox } from '$lib/components/ui/checkbox';
+	import { Checkbox } from '$lib/components/ui/checkbox';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import * as InputGroup from '$lib/components/ui/input-group/index.js';
 	import Eye from '@lucide/svelte/icons/eye';
 	import EyeOff from '@lucide/svelte/icons/eye-off';
@@ -256,9 +257,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 <div class="max-w-2xl space-y-8">
 	<div>
 		<h1 class="text-3xl font-bold tracking-tight">Security</h1>
-		<p class="mt-2 text-muted-foreground">
-			Manage your account security and active sessions.
-		</p>
+		<p class="mt-2 text-muted-foreground">Manage your account security and active sessions.</p>
 	</div>
 
 	<!-- Password Change -->
@@ -273,9 +272,15 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 			</div>
 		</Card.Header>
 		<Card.Content>
-			<form class="space-y-4" onsubmit={(e) => { e.preventDefault(); handleChangePassword(); }}>
+			<form
+				class="space-y-4"
+				onsubmit={(e) => {
+					e.preventDefault();
+					handleChangePassword();
+				}}
+			>
 				<div class="space-y-2">
-					<Label for="current-password">Current Password</Label>
+					<Field.Label for="current-password">Current Password</Field.Label>
 					<InputGroup.Root>
 						<InputGroup.Input
 							id="current-password"
@@ -299,7 +304,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 					</InputGroup.Root>
 				</div>
 				<div class="space-y-2">
-					<Label for="new-password">New Password</Label>
+					<Field.Label for="new-password">New Password</Field.Label>
 					<InputGroup.Root>
 						<InputGroup.Input
 							id="new-password"
@@ -324,7 +329,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 					</InputGroup.Root>
 				</div>
 				<div class="space-y-2">
-					<Label for="confirm-password">Confirm New Password</Label>
+					<Field.Label for="confirm-password">Confirm New Password</Field.Label>
 					<InputGroup.Root>
 						<InputGroup.Input
 							id="confirm-password"
@@ -351,7 +356,10 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 					<Checkbox id="revoke-others" bind:checked={revokeOtherOnChange} />
 					<Label for="revoke-others" class="text-sm font-normal">Sign out all other devices</Label>
 				</div>
-				<Button type="submit" disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}>
+				<Button
+					type="submit"
+					disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+				>
 					{#if isChangingPassword}
 						<Loader2 class="mr-2 h-4 w-4 animate-spin" />
 						Changing...
@@ -393,10 +401,11 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 					{:else if totpUri}
 						<div class="space-y-4">
 							<p class="text-sm text-muted-foreground">
-								Open your authenticator app (Google Authenticator, Authy, etc.) and enter this secret key:
+								Open your authenticator app (Google Authenticator, Authy, etc.) and enter this
+								secret key:
 							</p>
 							<div class="flex items-center gap-2 rounded-lg bg-muted p-3">
-								<code class="flex-1 break-all font-mono text-sm font-medium">
+								<code class="flex-1 font-mono text-sm font-medium break-all">
 									{totpUri.match(/secret=([^&]+)/)?.[1] || totpUri}
 								</code>
 								<Button
@@ -414,11 +423,13 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 							<p class="text-xs text-muted-foreground">
 								Or use this full TOTP URI if your app supports it:
 							</p>
-							<div class="break-all rounded-lg bg-muted p-2 font-mono text-xs text-muted-foreground">
+							<div
+								class="rounded-lg bg-muted p-2 font-mono text-xs break-all text-muted-foreground"
+							>
 								{totpUri}
 							</div>
 							<div class="space-y-2">
-								<Label for="verify-code">Verification Code</Label>
+								<Field.Label for="verify-code">Verification Code</Field.Label>
 								<Input
 									id="verify-code"
 									type="text"
@@ -429,13 +440,23 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 								/>
 							</div>
 							<div class="flex gap-2">
-								<Button onclick={handleVerify2FA} disabled={isSettingUp2FA || verifyCode.length !== 6}>
+								<Button
+									onclick={handleVerify2FA}
+									disabled={isSettingUp2FA || verifyCode.length !== 6}
+								>
 									{#if isSettingUp2FA}
 										<Loader2 class="mr-2 h-4 w-4 animate-spin" />
 									{/if}
 									Verify & Enable
 								</Button>
-								<Button variant="outline" onclick={() => { show2FASetup = false; totpUri = ''; verifyCode = ''; }}>
+								<Button
+									variant="outline"
+									onclick={() => {
+										show2FASetup = false;
+										totpUri = '';
+										verifyCode = '';
+									}}
+								>
 									Cancel
 								</Button>
 							</div>
@@ -459,7 +480,12 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 							<Copy class="mr-2 h-4 w-4" />
 							Copy Codes
 						</Button>
-						<Button onclick={() => { showBackupCodes = false; backupCodes = []; }}>
+						<Button
+							onclick={() => {
+								showBackupCodes = false;
+								backupCodes = [];
+							}}
+						>
 							I've Saved My Codes
 						</Button>
 					</div>
@@ -470,7 +496,7 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 						Enter your password to disable two-factor authentication.
 					</p>
 					<div class="space-y-2">
-						<Label for="disable-password">Password</Label>
+						<Field.Label for="disable-password">Password</Field.Label>
 						<InputGroup.Root>
 							<InputGroup.Input
 								id="disable-password"
@@ -493,13 +519,23 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 						</InputGroup.Root>
 					</div>
 					<div class="flex gap-2">
-						<Button variant="destructive" onclick={handleDisable2FA} disabled={isDisabling2FA || !disablePassword}>
+						<Button
+							variant="destructive"
+							onclick={handleDisable2FA}
+							disabled={isDisabling2FA || !disablePassword}
+						>
 							{#if isDisabling2FA}
 								<Loader2 class="mr-2 h-4 w-4 animate-spin" />
 							{/if}
 							Disable 2FA
 						</Button>
-						<Button variant="outline" onclick={() => { showDisable2FA = false; disablePassword = ''; }}>
+						<Button
+							variant="outline"
+							onclick={() => {
+								showDisable2FA = false;
+								disablePassword = '';
+							}}
+						>
 							Cancel
 						</Button>
 					</div>
@@ -509,13 +545,12 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 					{#if twoFactorEnabled}
 						Your account is protected with two-factor authentication.
 					{:else}
-						Protect your account by requiring a verification code from your phone in addition to your password.
+						Protect your account by requiring a verification code from your phone in addition to
+						your password.
 					{/if}
 				</p>
 				{#if twoFactorEnabled}
-					<Button variant="destructive" onclick={() => showDisable2FA = true}>
-						Disable 2FA
-					</Button>
+					<Button variant="destructive" onclick={() => (showDisable2FA = true)}>Disable 2FA</Button>
 				{:else}
 					<Button onclick={handleEnable2FA}>
 						<ShieldCheck class="mr-2 h-4 w-4" />
@@ -568,7 +603,11 @@ import { Checkbox } from '$lib/components/ui/checkbox';
 					{#each sessions as session (session.token)}
 						{@const ua = parseUserAgent(session.userAgent)}
 						{@const isCurrent = session.token === sessions[0]?.token}
-						<div class="flex items-center justify-between rounded-lg border p-4 {isCurrent ? 'border-primary/50 bg-primary/5' : ''}">
+						<div
+							class="flex items-center justify-between rounded-lg border p-4 {isCurrent
+								? 'border-primary/50 bg-primary/5'
+								: ''}"
+						>
 							<div class="flex items-center gap-3">
 								{#if ua.device === 'Mobile'}
 									<Smartphone class="h-5 w-5 text-muted-foreground" />

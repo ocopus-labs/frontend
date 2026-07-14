@@ -20,13 +20,23 @@
 		seedDefaultCategories,
 		bulkUpdatePrices
 	} from '$lib/api';
-	import { IconSearch, IconPlus, IconEdit, IconTrash, IconEye, IconEyeOff, IconCopy, IconX } from '@tabler/icons-svelte';
+	import {
+		IconSearch,
+		IconPlus,
+		IconEdit,
+		IconTrash,
+		IconEye,
+		IconEyeOff,
+		IconCopy,
+		IconX
+	} from '@tabler/icons-svelte';
 	import * as Select from '$lib/components/ui/select';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Switch } from '$lib/components/ui/switch';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
+	import PageShell from '$lib/components/global/page-shell.svelte';
 	import { EmptyState, StatusPill } from '$lib/components/data-display';
 	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
 	import type { CurrencyCode } from '$lib/utils/i18n';
@@ -35,7 +45,7 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const userRole = $derived((data as any).userRole as string ?? '');
+	const userRole = $derived(((data as any).userRole as string) ?? '');
 
 	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
 
@@ -58,8 +68,12 @@
 	let menuItems = $state<MenuItem[]>(data.items || []);
 	const inventoryItems = (data as any).inventoryItems || [];
 
-	$effect(() => { categories = data.categories || []; });
-	$effect(() => { menuItems = data.items || []; });
+	$effect(() => {
+		categories = data.categories || [];
+	});
+	$effect(() => {
+		menuItems = data.items || [];
+	});
 
 	let searchQuery = $state('');
 	let categoryFilter = $state('all');
@@ -86,14 +100,24 @@
 	let useImageUrl = $state(false); // Toggle between upload and URL input
 
 	// Ingredient state
-	let formIngredients = $state<{ inventoryItemId: string; inventoryItemName: string; quantityUsed: number; unit: string; costPerUnit: number }[]>([]);
+	let formIngredients = $state<
+		{
+			inventoryItemId: string;
+			inventoryItemName: string;
+			quantityUsed: number;
+			unit: string;
+			costPerUnit: number;
+		}[]
+	>([]);
 	let ingredientSearch = $state('');
 
 	const filteredInventory = $derived(
-		inventoryItems.filter((inv: any) => {
-			if (!ingredientSearch) return true;
-			return inv.name.toLowerCase().includes(ingredientSearch.toLowerCase());
-		}).filter((inv: any) => !formIngredients.some((fi) => fi.inventoryItemId === inv.id))
+		inventoryItems
+			.filter((inv: any) => {
+				if (!ingredientSearch) return true;
+				return inv.name.toLowerCase().includes(ingredientSearch.toLowerCase());
+			})
+			.filter((inv: any) => !formIngredients.some((fi) => fi.inventoryItemId === inv.id))
 	);
 
 	const computedFoodCost = $derived(
@@ -125,7 +149,7 @@
 	const categoryFilterLabel = $derived(
 		categoryFilter === 'all'
 			? 'All Categories'
-			: (categories.find((c) => c.id === categoryFilter)?.name || 'All Categories')
+			: categories.find((c) => c.id === categoryFilter)?.name || 'All Categories'
 	);
 
 	// Display label for form category select
@@ -210,10 +234,16 @@
 				isVegetarian: formIsVegetarian,
 				requiresKitchen: formRequiresKitchen,
 				isCombo: formIsCombo || undefined,
-				comboComponents: formIsCombo && formComboComponents.length > 0 ? formComboComponents : undefined,
-				ingredients: formIngredients.length > 0
-					? formIngredients.map((i) => ({ inventoryItemId: i.inventoryItemId, quantityUsed: i.quantityUsed, unit: i.unit }))
-					: undefined
+				comboComponents:
+					formIsCombo && formComboComponents.length > 0 ? formComboComponents : undefined,
+				ingredients:
+					formIngredients.length > 0
+						? formIngredients.map((i) => ({
+								inventoryItemId: i.inventoryItemId,
+								quantityUsed: i.quantityUsed,
+								unit: i.unit
+							}))
+						: undefined
 			});
 
 			menuItems = [...menuItems, result.item];
@@ -242,8 +272,13 @@
 				isVegetarian: formIsVegetarian,
 				requiresKitchen: formRequiresKitchen,
 				isCombo: formIsCombo || undefined,
-				comboComponents: formIsCombo && formComboComponents.length > 0 ? formComboComponents : undefined,
-				ingredients: formIngredients.map((i) => ({ inventoryItemId: i.inventoryItemId, quantityUsed: i.quantityUsed, unit: i.unit }))
+				comboComponents:
+					formIsCombo && formComboComponents.length > 0 ? formComboComponents : undefined,
+				ingredients: formIngredients.map((i) => ({
+					inventoryItemId: i.inventoryItemId,
+					quantityUsed: i.quantityUsed,
+					unit: i.unit
+				}))
 			});
 
 			const index = menuItems.findIndex((item) => item.id === editingItem?.id);
@@ -315,7 +350,9 @@
 
 	// Bulk price update state
 	let showBulkPriceDialog = $state(false);
-	let bulkPriceUpdates = $state<{ itemId: string; name: string; currentPrice: number; newPrice: number }[]>([]);
+	let bulkPriceUpdates = $state<
+		{ itemId: string; name: string; currentPrice: number; newPrice: number }[]
+	>([]);
 	let bulkPricePercent = $state('');
 	let isBulkSubmitting = $state(false);
 
@@ -446,9 +483,18 @@
 						min="1"
 						class="h-7 w-16 text-center text-sm"
 						value={comp.quantity}
-						oninput={(e) => { formComboComponents[i].quantity = parseInt((e.target as HTMLInputElement).value) || 1; }}
+						oninput={(e) => {
+							formComboComponents[i].quantity = parseInt((e.target as HTMLInputElement).value) || 1;
+						}}
 					/>
-					<Button variant="ghost" size="icon" class="h-6 w-6 shrink-0" onclick={() => { formComboComponents = formComboComponents.filter((_, idx) => idx !== i); }}>
+					<Button
+						variant="ghost"
+						size="icon"
+						class="h-6 w-6 shrink-0"
+						onclick={() => {
+							formComboComponents = formComboComponents.filter((_, idx) => idx !== i);
+						}}
+					>
 						<span class="text-xs">x</span>
 					</Button>
 				</div>
@@ -456,11 +502,19 @@
 			<Input placeholder="Search items to add..." bind:value={comboSearch} class="text-sm" />
 			{#if comboSearch}
 				<div class="max-h-32 overflow-y-auto rounded border p-1">
-					{#each menuItems.filter((it) => it.name.toLowerCase().includes(comboSearch.toLowerCase()) && !formComboComponents.some(c => c.menuItemId === it.id)) as it}
+					{#each menuItems.filter((it) => it.name
+								.toLowerCase()
+								.includes(comboSearch.toLowerCase()) && !formComboComponents.some((c) => c.menuItemId === it.id)) as it}
 						<button
 							type="button"
-							class="flex w-full items-center gap-2 rounded px-2 py-1 text-sm hover:bg-accent text-left"
-							onclick={() => { formComboComponents = [...formComboComponents, { menuItemId: it.id, name: it.name, quantity: 1 }]; comboSearch = ''; }}
+							class="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-sm hover:bg-accent"
+							onclick={() => {
+								formComboComponents = [
+									...formComboComponents,
+									{ menuItemId: it.id, name: it.name, quantity: 1 }
+								];
+								comboSearch = '';
+							}}
 						>
 							{it.name}
 						</button>
@@ -480,12 +534,10 @@
 		<div class="col-span-3 space-y-3">
 			<!-- Search inventory items -->
 			<div class="relative">
-				<IconSearch class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-				<Input
-					placeholder="Search inventory items..."
-					bind:value={ingredientSearch}
-					class="pl-9"
+				<IconSearch
+					class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
 				/>
+				<Input placeholder="Search inventory items..." bind:value={ingredientSearch} class="pl-9" />
 			</div>
 
 			<!-- Dropdown results -->
@@ -499,7 +551,8 @@
 						>
 							<span class="font-medium">{invItem.name}</span>
 							<span class="text-xs text-muted-foreground">
-								{Number(invItem.currentStock)} {invItem.unit} in stock
+								{Number(invItem.currentStock)}
+								{invItem.unit} in stock
 							</span>
 						</button>
 					{/each}
@@ -558,197 +611,226 @@
 	</div>
 {/snippet}
 
-<div class="flex flex-1 flex-col sm:p-6">
-	<div class="@container/main flex flex-1 flex-col gap-4">
-		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<div class="flex flex-col gap-2">
-				<h1 class="text-2xl font-bold">{getPageTitle()}</h1>
-				<p class="text-muted-foreground">{getPageDescription()}</p>
+<PageShell title={getPageTitle()} description={getPageDescription()}>
+	<!-- Filters and Actions -->
+	<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+		<div class="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+			<div class="relative max-w-sm flex-1">
+				<IconSearch
+					class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+				/>
+				<Input
+					placeholder={businessType === 'retail' ? 'Search products...' : 'Search menu items...'}
+					bind:value={searchQuery}
+					class="pl-9"
+				/>
 			</div>
 
-			<!-- Filters and Actions -->
-			<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-				<div class="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-					<div class="relative max-w-sm flex-1">
-						<IconSearch
-							class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-						/>
-						<Input
-							placeholder={businessType === 'retail'
-								? 'Search products...'
-								: 'Search menu items...'}
-							bind:value={searchQuery}
-							class="pl-9"
-						/>
-					</div>
+			<Select.Root type="single" bind:value={categoryFilter}>
+				<Select.Trigger class="w-[180px]">
+					{categoryFilterLabel}
+				</Select.Trigger>
+				<Select.Content>
+					<Select.Item value="all">All Categories</Select.Item>
+					{#each categories as category}
+						<Select.Item value={category.id}>{category.name}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
+		</div>
 
-					<Select.Root type="single" bind:value={categoryFilter}>
-						<Select.Trigger class="w-[180px]">
-							{categoryFilterLabel}
-						</Select.Trigger>
-						<Select.Content>
-							<Select.Item value="all">All Categories</Select.Item>
-							{#each categories as category}
-								<Select.Item value={category.id}>{category.name}</Select.Item>
-							{/each}
-						</Select.Content>
-					</Select.Root>
-				</div>
+		{#if canModify(userRole)}
+			<div class="flex gap-2">
+				<Button variant="outline" onclick={() => (showAddCategoryDialog = true)}>
+					<IconPlus class="mr-2 h-4 w-4" />
+					Add Category
+				</Button>
+				<Button
+					variant="outline"
+					onclick={openBulkPriceDialog}
+					disabled={filteredItems.length === 0}
+				>
+					Bulk Price Update
+				</Button>
+				<Button onclick={openAddDialog}>
+					<IconPlus class="mr-2 h-4 w-4" />
+					Add {businessType === 'retail' ? 'Product' : 'Item'}
+				</Button>
+			</div>
+		{/if}
+	</div>
 
-				{#if canModify(userRole)}
+	<!-- Items Table -->
+	<div class="overflow-x-auto rounded-md border">
+		<Table.Root>
+			<Table.Header>
+				<Table.Row>
+					<Table.Head class="hidden lg:table-cell">Image</Table.Head>
+					<Table.Head>{businessType === 'retail' ? 'Product' : 'Item'} Name</Table.Head>
+					<Table.Head class="hidden lg:table-cell">Category</Table.Head>
+					<Table.Head>Price</Table.Head>
+					<Table.Head class="hidden md:table-cell">Food Cost</Table.Head>
+					<Table.Head>Status</Table.Head>
+					<Table.Head class="text-right">Actions</Table.Head>
+				</Table.Row>
+			</Table.Header>
+			<Table.Body>
+				{#each filteredItems as item (item.id)}
+					<Table.Row>
+						<Table.Cell class="hidden lg:table-cell">
+							{#if item.image}
+								<img
+									src={item.image}
+									alt={item.name}
+									loading="lazy"
+									class="h-10 w-10 rounded object-cover"
+								/>
+							{:else}
+								<div class="flex h-10 w-10 items-center justify-center rounded bg-muted text-xs">
+									No img
+								</div>
+							{/if}
+						</Table.Cell>
+						<Table.Cell class="font-medium">
+							<div class="flex flex-col">
+								<span>{item.name}</span>
+								{#if item.isVegetarian}
+									<Badge variant="outline" class="mt-1 w-fit text-xs">Veg</Badge>
+								{/if}
+							</div>
+						</Table.Cell>
+						<Table.Cell class="hidden lg:table-cell">{getCategoryName(item.categoryId)}</Table.Cell>
+						<Table.Cell>{formatCurrency(item.price)}</Table.Cell>
+						<Table.Cell class="hidden md:table-cell">
+							{#if item.foodCost != null && item.foodCost > 0}
+								<div class="flex flex-col">
+									<span>{formatCurrency(item.foodCost)}</span>
+									{#if item.price > 0}
+										<span class="text-xs text-muted-foreground">
+											{Math.round((item.foodCost / item.price) * 100)}%
+										</span>
+									{/if}
+								</div>
+							{:else}
+								<span class="text-xs text-muted-foreground">-</span>
+							{/if}
+						</Table.Cell>
+						<Table.Cell>
+							<StatusPill
+								label={item.isAvailable ? 'Available' : 'Unavailable'}
+								status={item.isAvailable ? 'success' : 'error'}
+							/>
+						</Table.Cell>
+						<Table.Cell class="text-right">
+							<div class="flex justify-end gap-2">
+								{#if canModify(userRole)}
+									<Button
+										variant="ghost"
+										size="icon"
+										onclick={() => toggleAvailability(item.id)}
+										title={item.isAvailable ? 'Hide item' : 'Show item'}
+									>
+										{#if item.isAvailable}
+											<IconEyeOff class="h-4 w-4" />
+										{:else}
+											<IconEye class="h-4 w-4" />
+										{/if}
+									</Button>
+									<Button
+										variant="ghost"
+										size="icon"
+										onclick={() => duplicateItem(item)}
+										title="Duplicate item"
+									>
+										<IconCopy class="h-4 w-4" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="icon"
+										onclick={() => openEditDialog(item)}
+										title="Edit item"
+									>
+										<IconEdit class="h-4 w-4" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="icon"
+										onclick={() => deleteItem(item.id)}
+										title="Delete item"
+									>
+										<IconTrash class="h-4 w-4" />
+									</Button>
+								{/if}
+							</div>
+						</Table.Cell>
+					</Table.Row>
+				{/each}
+			</Table.Body>
+		</Table.Root>
+	</div>
+
+	{#if filteredItems.length === 0}
+		{#if categories.length === 0}
+			<EmptyState
+				type="empty"
+				title="No categories yet"
+				description="Create categories first before adding items."
+			>
+				{#snippet children()}
 					<div class="flex gap-2">
 						<Button variant="outline" onclick={() => (showAddCategoryDialog = true)}>
-							<IconPlus class="mr-2 h-4 w-4" />
-							Add Category
+							Add Category Manually
 						</Button>
-						<Button variant="outline" onclick={openBulkPriceDialog} disabled={filteredItems.length === 0}>
-							Bulk Price Update
-						</Button>
-						<Button onclick={openAddDialog}>
-							<IconPlus class="mr-2 h-4 w-4" />
-							Add {businessType === 'retail' ? 'Product' : 'Item'}
+						<Button onclick={seedCategories} disabled={isSubmitting}>
+							{#if isSubmitting}
+								<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+							{/if}
+							Use Default Categories
 						</Button>
 					</div>
-				{/if}
-			</div>
-
-			<!-- Items Table -->
-			<div class="overflow-x-auto rounded-md border">
-				<Table.Root>
-					<Table.Header>
-						<Table.Row>
-							<Table.Head class="hidden lg:table-cell">Image</Table.Head>
-							<Table.Head>{businessType === 'retail' ? 'Product' : 'Item'} Name</Table.Head>
-							<Table.Head class="hidden lg:table-cell">Category</Table.Head>
-							<Table.Head>Price</Table.Head>
-							<Table.Head class="hidden md:table-cell">Food Cost</Table.Head>
-							<Table.Head>Status</Table.Head>
-							<Table.Head class="text-right">Actions</Table.Head>
-						</Table.Row>
-					</Table.Header>
-					<Table.Body>
-						{#each filteredItems as item (item.id)}
-							<Table.Row>
-								<Table.Cell class="hidden lg:table-cell">
-									{#if item.image}
-										<img src={item.image} alt={item.name} loading="lazy" class="h-10 w-10 rounded object-cover" />
-									{:else}
-										<div
-											class="flex h-10 w-10 items-center justify-center rounded bg-muted text-xs"
-										>
-											No img
-										</div>
-									{/if}
-								</Table.Cell>
-								<Table.Cell class="font-medium">
-									<div class="flex flex-col">
-										<span>{item.name}</span>
-										{#if item.isVegetarian}
-											<Badge variant="outline" class="mt-1 w-fit text-xs">Veg</Badge>
-										{/if}
-									</div>
-								</Table.Cell>
-								<Table.Cell class="hidden lg:table-cell">{getCategoryName(item.categoryId)}</Table.Cell>
-								<Table.Cell>{formatCurrency(item.price)}</Table.Cell>
-								<Table.Cell class="hidden md:table-cell">
-									{#if item.foodCost != null && item.foodCost > 0}
-										<div class="flex flex-col">
-											<span>{formatCurrency(item.foodCost)}</span>
-											{#if item.price > 0}
-												<span class="text-xs text-muted-foreground">
-													{Math.round((item.foodCost / item.price) * 100)}%
-												</span>
-											{/if}
-										</div>
-									{:else}
-										<span class="text-xs text-muted-foreground">-</span>
-									{/if}
-								</Table.Cell>
-								<Table.Cell>
-									<StatusPill
-										label={item.isAvailable ? 'Available' : 'Unavailable'}
-										status={item.isAvailable ? 'success' : 'error'}
-									/>
-								</Table.Cell>
-								<Table.Cell class="text-right">
-									<div class="flex justify-end gap-2">
-										{#if canModify(userRole)}
-											<Button variant="ghost" size="icon" onclick={() => toggleAvailability(item.id)} title={item.isAvailable ? 'Hide item' : 'Show item'}>
-												{#if item.isAvailable}
-													<IconEyeOff class="h-4 w-4" />
-												{:else}
-													<IconEye class="h-4 w-4" />
-												{/if}
-											</Button>
-											<Button variant="ghost" size="icon" onclick={() => duplicateItem(item)} title="Duplicate item">
-												<IconCopy class="h-4 w-4" />
-											</Button>
-											<Button variant="ghost" size="icon" onclick={() => openEditDialog(item)} title="Edit item">
-												<IconEdit class="h-4 w-4" />
-											</Button>
-											<Button variant="ghost" size="icon" onclick={() => deleteItem(item.id)} title="Delete item">
-												<IconTrash class="h-4 w-4" />
-											</Button>
-										{/if}
-									</div>
-								</Table.Cell>
-							</Table.Row>
-						{/each}
-					</Table.Body>
-				</Table.Root>
-			</div>
-
-			{#if filteredItems.length === 0}
-				{#if categories.length === 0}
-					<EmptyState
-						type="empty"
-						title="No categories yet"
-						description="Create categories first before adding items."
-					>
-						{#snippet children()}
-							<div class="flex gap-2">
-								<Button variant="outline" onclick={() => (showAddCategoryDialog = true)}>
-									Add Category Manually
-								</Button>
-								<Button onclick={seedCategories} disabled={isSubmitting}>
-									{#if isSubmitting}
-										<Loader2 class="mr-2 h-4 w-4 animate-spin" />
-									{/if}
-									Use Default Categories
-								</Button>
-							</div>
-						{/snippet}
-					</EmptyState>
-				{:else if menuItems.length === 0}
-					<EmptyState
-						type="empty"
-						title="No {businessType === 'retail' ? 'products' : 'menu items'} yet"
-						description="Get started by adding your first {businessType === 'retail' ? 'product' : 'menu item'}."
-						actionLabel="Add {businessType === 'retail' ? 'Product' : 'Item'}"
-						onAction={openAddDialog}
-					/>
-				{:else}
-					<EmptyState
-						type="no-results"
-						title="No items found"
-						description="Try adjusting your search or filter."
-					/>
-				{/if}
-			{/if}
-						<div class="flex items-center justify-between border-t pt-4">
-				<p class="text-sm text-muted-foreground">
-					Showing {Math.min((data.page - 1) * data.limit + 1, data.total)} to {Math.min(data.page * data.limit, data.total)} of {data.total} results
-				</p>
-				<div class="flex gap-1">
-					<Button size="sm" variant="outline" disabled={data.page <= 1}
-						onclick={() => goto(`?page=${data.page - 1}&limit=${data.limit}`)}>Previous</Button>
-					<Button size="sm" variant="outline" disabled={data.page >= data.totalPages}
-						onclick={() => goto(`?page=${data.page + 1}&limit=${data.limit}`)}>Next</Button>
-				</div>
-			</div>
+				{/snippet}
+			</EmptyState>
+		{:else if menuItems.length === 0}
+			<EmptyState
+				type="empty"
+				title="No {businessType === 'retail' ? 'products' : 'menu items'} yet"
+				description="Get started by adding your first {businessType === 'retail'
+					? 'product'
+					: 'menu item'}."
+				actionLabel="Add {businessType === 'retail' ? 'Product' : 'Item'}"
+				onAction={openAddDialog}
+			/>
+		{:else}
+			<EmptyState
+				type="no-results"
+				title="No items found"
+				description="Try adjusting your search or filter."
+			/>
+		{/if}
+	{/if}
+	<div class="flex items-center justify-between border-t pt-4">
+		<p class="text-sm text-muted-foreground">
+			Showing {Math.min((data.page - 1) * data.limit + 1, data.total)} to {Math.min(
+				data.page * data.limit,
+				data.total
+			)} of {data.total} results
+		</p>
+		<div class="flex gap-1">
+			<Button
+				size="sm"
+				variant="outline"
+				disabled={data.page <= 1}
+				onclick={() => goto(`?page=${data.page - 1}&limit=${data.limit}`)}>Previous</Button
+			>
+			<Button
+				size="sm"
+				variant="outline"
+				disabled={data.page >= data.totalPages}
+				onclick={() => goto(`?page=${data.page + 1}&limit=${data.limit}`)}>Next</Button
+			>
 		</div>
 	</div>
-</div>
+</PageShell>
 
 <!-- Add Item Dialog -->
 <Dialog.Root bind:open={showAddDialog}>
@@ -817,12 +899,23 @@
 					{#if useImageUrl}
 						<Input placeholder="https://example.com/image.jpg" bind:value={formImage} />
 						{#if formImage && !formImage.startsWith('data:')}
-							<img src={formImage} alt="Preview" class="h-24 w-24 rounded-md object-cover" onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} onload={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'block'; }} />
+							<img
+								src={formImage}
+								alt="Preview"
+								class="h-24 w-24 rounded-md object-cover"
+								onerror={(e) => {
+									(e.currentTarget as HTMLImageElement).style.display = 'none';
+								}}
+								onload={(e) => {
+									(e.currentTarget as HTMLImageElement).style.display = 'block';
+								}}
+							/>
 						{/if}
 					{:else}
 						<ImageCropper.Root
 							bind:src={formImage}
-							onUnsupportedFile={() => toast.error('Unsupported file type. Please upload an image.')}
+							onUnsupportedFile={() =>
+								toast.error('Unsupported file type. Please upload an image.')}
 						>
 							<ImageCropper.UploadTrigger>
 								<ImageCropper.Preview class="h-24 w-24 rounded-md" />
@@ -849,9 +942,19 @@
 				<!-- svelte-ignore a11y_label_has_associated_control -->
 				<label class="text-right">Kitchen prep</label>
 				<div class="col-span-3">
-					<Select.Root type="single" value={formRequiresKitchen === null ? 'inherit' : formRequiresKitchen ? 'yes' : 'no'} onValueChange={(v) => { formRequiresKitchen = v === 'inherit' ? null : v === 'yes'; }}>
+					<Select.Root
+						type="single"
+						value={formRequiresKitchen === null ? 'inherit' : formRequiresKitchen ? 'yes' : 'no'}
+						onValueChange={(v) => {
+							formRequiresKitchen = v === 'inherit' ? null : v === 'yes';
+						}}
+					>
 						<Select.Trigger class="w-full">
-							{formRequiresKitchen === null ? 'Use category default' : formRequiresKitchen ? 'Yes' : 'No (instant)'}
+							{formRequiresKitchen === null
+								? 'Use category default'
+								: formRequiresKitchen
+									? 'Yes'
+									: 'No (instant)'}
 						</Select.Trigger>
 						<Select.Content>
 							<Select.Item value="inherit">Use category default</Select.Item>
@@ -866,8 +969,14 @@
 			<div class="grid grid-cols-4 items-center gap-4">
 				<label for="combo-create" class="text-right">Combo</label>
 				<div class="col-span-3 flex items-center gap-2">
-					<Switch id="combo-create" checked={formIsCombo} onCheckedChange={(v) => formIsCombo = v} />
-					<span class="text-sm text-muted-foreground">{formIsCombo ? 'This is a combo item' : 'Regular item'}</span>
+					<Switch
+						id="combo-create"
+						checked={formIsCombo}
+						onCheckedChange={(v) => (formIsCombo = v)}
+					/>
+					<span class="text-sm text-muted-foreground"
+						>{formIsCombo ? 'This is a combo item' : 'Regular item'}</span
+					>
 				</div>
 			</div>
 			{#if formIsCombo}
@@ -962,12 +1071,23 @@
 					{#if useImageUrl}
 						<Input placeholder="https://example.com/image.jpg" bind:value={formImage} />
 						{#if formImage && !formImage.startsWith('data:')}
-							<img src={formImage} alt="Preview" class="h-24 w-24 rounded-md object-cover" onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} onload={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'block'; }} />
+							<img
+								src={formImage}
+								alt="Preview"
+								class="h-24 w-24 rounded-md object-cover"
+								onerror={(e) => {
+									(e.currentTarget as HTMLImageElement).style.display = 'none';
+								}}
+								onload={(e) => {
+									(e.currentTarget as HTMLImageElement).style.display = 'block';
+								}}
+							/>
 						{/if}
 					{:else}
 						<ImageCropper.Root
 							bind:src={formImage}
-							onUnsupportedFile={() => toast.error('Unsupported file type. Please upload an image.')}
+							onUnsupportedFile={() =>
+								toast.error('Unsupported file type. Please upload an image.')}
 						>
 							<ImageCropper.UploadTrigger>
 								<ImageCropper.Preview class="h-24 w-24 rounded-md" />
@@ -994,9 +1114,19 @@
 				<!-- svelte-ignore a11y_label_has_associated_control -->
 				<label class="text-right">Kitchen prep</label>
 				<div class="col-span-3">
-					<Select.Root type="single" value={formRequiresKitchen === null ? 'inherit' : formRequiresKitchen ? 'yes' : 'no'} onValueChange={(v) => { formRequiresKitchen = v === 'inherit' ? null : v === 'yes'; }}>
+					<Select.Root
+						type="single"
+						value={formRequiresKitchen === null ? 'inherit' : formRequiresKitchen ? 'yes' : 'no'}
+						onValueChange={(v) => {
+							formRequiresKitchen = v === 'inherit' ? null : v === 'yes';
+						}}
+					>
 						<Select.Trigger class="w-full">
-							{formRequiresKitchen === null ? 'Use category default' : formRequiresKitchen ? 'Yes' : 'No (instant)'}
+							{formRequiresKitchen === null
+								? 'Use category default'
+								: formRequiresKitchen
+									? 'Yes'
+									: 'No (instant)'}
 						</Select.Trigger>
 						<Select.Content>
 							<Select.Item value="inherit">Use category default</Select.Item>
@@ -1011,8 +1141,14 @@
 			<div class="grid grid-cols-4 items-center gap-4">
 				<label for="combo-edit" class="text-right">Combo</label>
 				<div class="col-span-3 flex items-center gap-2">
-					<Switch id="combo-edit" checked={formIsCombo} onCheckedChange={(v) => formIsCombo = v} />
-					<span class="text-sm text-muted-foreground">{formIsCombo ? 'This is a combo item' : 'Regular item'}</span>
+					<Switch
+						id="combo-edit"
+						checked={formIsCombo}
+						onCheckedChange={(v) => (formIsCombo = v)}
+					/>
+					<span class="text-sm text-muted-foreground"
+						>{formIsCombo ? 'This is a combo item' : 'Regular item'}</span
+					>
 				</div>
 			</div>
 			{#if formIsCombo}
@@ -1067,7 +1203,8 @@
 		<Dialog.Header>
 			<Dialog.Title>Bulk Price Update</Dialog.Title>
 			<Dialog.Description>
-				Update prices for multiple items at once. You can apply a percentage change to all items or edit individual prices.
+				Update prices for multiple items at once. You can apply a percentage change to all items or
+				edit individual prices.
 			</Dialog.Description>
 		</Dialog.Header>
 
@@ -1100,7 +1237,9 @@
 						{#each bulkPriceUpdates as row, idx (row.itemId)}
 							<Table.Row class={row.newPrice !== row.currentPrice ? 'bg-muted/40' : ''}>
 								<Table.Cell class="font-medium">{row.name}</Table.Cell>
-								<Table.Cell class="text-muted-foreground">{formatCurrency(row.currentPrice)}</Table.Cell>
+								<Table.Cell class="text-muted-foreground"
+									>{formatCurrency(row.currentPrice)}</Table.Cell
+								>
 								<Table.Cell>
 									<Input
 										type="number"

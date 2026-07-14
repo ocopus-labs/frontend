@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import MobilePageHeader from '$lib/components/global/mobile-page-header.svelte';
+	import PageShell from '$lib/components/global/page-shell.svelte';
+	import QrBadge from '$lib/components/global/qr-badge.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Card from '$lib/components/ui/card';
@@ -418,379 +420,371 @@
 	}
 </script>
 
-<MobilePageHeader title="Order Details" backHref={`/${$page.params.business}/${$page.params.slug}/orders/pending`} />
-<div class="flex flex-1 flex-col p-4 pt-0! md:p-6 lg:p-8">
-	<div class="@container/main flex flex-1 flex-col gap-4">
-		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<!-- Header -->
-			<div class="flex items-center justify-between">
-				<div class="flex items-center gap-4">
-					<Button variant="ghost" size="icon" onclick={goBack} aria-label="Go back">
-						<IconArrowLeft class="h-5 w-5" />
-					</Button>
-					<div>
-						<h1 class="text-2xl font-bold flex items-center gap-2">
-							Order #{order?.orderNumber || 'Unknown'}
-							{#if order?.orderSource === 'customer_qr'}
-								<span class="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700 dark:bg-violet-900 dark:text-violet-200">QR Order</span>
-							{/if}
-						</h1>
-						<p class="text-muted-foreground">
-							{order ? new Date(order.createdAt).toLocaleString() : ''}
-						</p>
-					</div>
-				</div>
-				<div class="flex gap-2">
-					<Button variant="outline" size="sm" onclick={printOrder}>
-						<IconPrinter class="mr-2 h-4 w-4" />
-						Print
-					</Button>
-					{#if order?.status && !['cancelled', 'refunded'].includes(order.status)}
-						<Button variant="outline" size="sm" onclick={handleReprintKot} disabled={reprintLoading}>
-							<IconPrinter class="mr-2 h-4 w-4" />
-							{reprintLoading ? 'Reprinting...' : 'Reprint KOT'}
-						</Button>
+<MobilePageHeader
+	title="Order Details"
+	backHref={`/${$page.params.business}/${$page.params.slug}/orders/pending`}
+/>
+<PageShell width="content">
+	<!-- Header -->
+	<div class="flex items-center justify-between">
+		<div class="flex items-center gap-4">
+			<Button variant="ghost" size="icon" onclick={goBack} aria-label="Go back">
+				<IconArrowLeft class="h-5 w-5" />
+			</Button>
+			<div>
+				<h1 class="flex items-center gap-2 text-2xl font-bold">
+					Order #{order?.orderNumber || 'Unknown'}
+					{#if order?.orderSource === 'customer_qr'}
+						<QrBadge label="QR Order" />
 					{/if}
-					{#if order?.status && !['completed', 'cancelled', 'refunded'].includes(order.status)}
-						<Button variant="outline" onclick={triggerCompleteOrder}>
-							<IconCheck class="mr-2 h-4 w-4" />
-							Mark Complete
-						</Button>
-					{/if}
-					{#if balanceDue > 0 && order?.status !== 'cancelled'}
-						<Button onclick={openPaymentDialog}>
-							<IconCash class="mr-2 h-4 w-4" />
-							Add Payment
-						</Button>
-					{/if}
-				</div>
+				</h1>
+				<p class="text-muted-foreground">
+					{order ? new Date(order.createdAt).toLocaleString() : ''}
+				</p>
 			</div>
-
-			{#if data.error}
-				<div class="rounded-lg border border-destructive bg-destructive/10 p-4">
-					<p class="text-destructive">{data.error}</p>
-					<Button variant="outline" class="mt-2" onclick={goBack}>Go Back</Button>
-				</div>
-			{:else if order}
-				<div class="grid gap-4 md:grid-cols-3">
-					<!-- Order Info Card -->
-					<Card.Root>
-						<Card.Header>
-							<Card.Title class="text-lg">Order Details</Card.Title>
-						</Card.Header>
-						<Card.Content class="space-y-3">
-							<div class="flex justify-between">
-								<span class="text-muted-foreground">Type</span>
-								<span class="font-medium">{formatOrderType(order.orderType)}</span>
-							</div>
-							{#if order.tableNumber}
-								<div class="flex justify-between">
-									<span class="text-muted-foreground">Table</span>
-									<span class="font-medium">{order.tableNumber}</span>
-								</div>
-							{/if}
-							<div class="flex justify-between">
-								<span class="text-muted-foreground">Status</span>
-								<Badge variant={getStatusBadge(order.status).variant}>
-									{getStatusBadge(order.status).text}
-								</Badge>
-							</div>
-							<div class="flex justify-between">
-								<span class="text-muted-foreground">Staff</span>
-								<span class="font-medium">{order.staffName}</span>
-							</div>
-							{#if order.customerInfo?.name}
-								<div class="flex justify-between">
-									<span class="text-muted-foreground">Customer</span>
-									<span class="font-medium">{order.customerInfo.name}</span>
-								</div>
-							{/if}
-						</Card.Content>
-					</Card.Root>
-
-					<!-- Payment Info Card -->
-					<Card.Root>
-						<Card.Header>
-							<Card.Title class="text-lg">Payment Status</Card.Title>
-						</Card.Header>
-						<Card.Content class="space-y-3">
-							<div class="flex justify-between">
-								<span class="text-muted-foreground">Status</span>
-								<Badge variant={getPaymentStatusBadge(order.paymentStatus).variant}>
-									{getPaymentStatusBadge(order.paymentStatus).text}
-								</Badge>
-							</div>
-							<div class="flex justify-between">
-								<span class="text-muted-foreground">Total</span>
-								<span class="font-medium">{i18n.formatCurrency(order.pricing.total)}</span>
-							</div>
-							<div class="flex justify-between">
-								<span class="text-muted-foreground">Paid</span>
-								<span class="font-medium text-success"
-									>{i18n.formatCurrency(data.totalPaid || 0)}</span
-								>
-							</div>
-							{#if balanceDue > 0}
-								<div class="flex justify-between border-t pt-2">
-									<span class="font-medium">Balance Due</span>
-									<span class="font-bold text-orange-600">{i18n.formatCurrency(balanceDue)}</span>
-								</div>
-							{/if}
-						</Card.Content>
-					</Card.Root>
-
-					<!-- Pricing Card -->
-					<Card.Root>
-						<Card.Header>
-							<Card.Title class="text-lg">Pricing Summary</Card.Title>
-						</Card.Header>
-						<Card.Content class="space-y-3">
-							<div class="flex justify-between">
-								<span class="text-muted-foreground">Subtotal</span>
-								<span>{i18n.formatCurrency(order.pricing.subtotal)}</span>
-							</div>
-							{#if order.pricing.taxAmount > 0}
-								<div class="flex justify-between">
-									<span class="text-muted-foreground">Tax ({order.pricing.taxRate}%)</span>
-									<span>{i18n.formatCurrency(order.pricing.taxAmount)}</span>
-								</div>
-							{/if}
-							{#if order.pricing.discountAmount > 0}
-								<div class="flex justify-between text-success">
-									<span>Discount</span>
-									<span>-{i18n.formatCurrency(order.pricing.discountAmount)}</span>
-								</div>
-							{/if}
-							<div class="flex justify-between border-t pt-2">
-								<span class="font-medium">Total</span>
-								<span class="font-bold">{i18n.formatCurrency(order.pricing.total)}</span>
-							</div>
-						</Card.Content>
-					</Card.Root>
-				</div>
-
-				<!-- E-Invoice Status -->
-				{#if einvoice?.einvoiceStatus || order.invoiceNumber}
-					<Card.Root>
-						<Card.Header>
-							<Card.Title class="flex items-center gap-2 text-lg">
-								<IconFileInvoice class="h-5 w-5" />
-								E-Invoice
-							</Card.Title>
-						</Card.Header>
-						<Card.Content class="space-y-3">
-							<div class="flex justify-between">
-								<span class="text-muted-foreground">Status</span>
-								<Badge variant={getEinvoiceStatusBadge(einvoice?.einvoiceStatus ?? null).variant}>
-									{getEinvoiceStatusBadge(einvoice?.einvoiceStatus ?? null).text}
-								</Badge>
-							</div>
-							{#if einvoice?.irn}
-								<div class="flex justify-between">
-									<span class="text-muted-foreground">IRN</span>
-									<span class="max-w-[300px] truncate font-mono text-xs" title={einvoice.irn}>
-										{einvoice.irn}
-									</span>
-								</div>
-							{/if}
-							{#if einvoice?.irnGeneratedAt}
-								<div class="flex justify-between">
-									<span class="text-muted-foreground">Generated At</span>
-									<span class="text-sm">
-										{new Date(einvoice.irnGeneratedAt).toLocaleString()}
-									</span>
-								</div>
-							{/if}
-							{#if einvoice?.ewayBillNumber}
-								<div class="flex justify-between">
-									<span class="text-muted-foreground">E-Way Bill</span>
-									<span class="font-mono text-sm">{einvoice.ewayBillNumber}</span>
-								</div>
-							{/if}
-							<div class="flex gap-2 pt-2">
-								{#if !einvoice?.irn && order.invoiceNumber}
-									<Button
-										variant="outline"
-										size="sm"
-										onclick={handleGenerateEinvoice}
-										disabled={isGeneratingEinvoice}
-									>
-										<IconFileInvoice class="mr-2 h-4 w-4" />
-										{isGeneratingEinvoice ? 'Generating...' : 'Generate E-Invoice'}
-									</Button>
-								{/if}
-								{#if !einvoice?.ewayBillNumber && order.orderType === 'delivery'}
-									<Button
-										variant="outline"
-										size="sm"
-										onclick={handleGenerateEwayBill}
-										disabled={isGeneratingEwayBill}
-									>
-										<IconTruck class="mr-2 h-4 w-4" />
-										{isGeneratingEwayBill ? 'Generating...' : 'Generate E-Way Bill'}
-									</Button>
-								{/if}
-							</div>
-						</Card.Content>
-					</Card.Root>
-				{/if}
-
-				<!-- Order Items -->
-				<Card.Root>
-					<Card.Header>
-						<Card.Title class="text-lg">Order Items</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<Table.Root>
-							<Table.Header>
-								<Table.Row>
-									<Table.Head>Item</Table.Head>
-									<Table.Head>Modifiers</Table.Head>
-									<Table.Head class="text-center">Qty</Table.Head>
-									<Table.Head class="text-right">Price</Table.Head>
-									<Table.Head class="text-right">Total</Table.Head>
-								</Table.Row>
-							</Table.Header>
-							<Table.Body>
-								{#each order.items as item}
-									<Table.Row>
-										<Table.Cell class="font-medium">{item.name}</Table.Cell>
-										<Table.Cell>
-											{#if item.modifiers}
-												<div class="text-sm text-muted-foreground">
-													{#if item.modifiers.size}
-														<span class="mr-2">{item.modifiers.size.name}</span>
-													{/if}
-													{#if item.modifiers.spiceLevel}
-														<span class="mr-2">{item.modifiers.spiceLevel.name}</span>
-													{/if}
-													{#if item.modifiers.addOns?.length}
-														<span>+{item.modifiers.addOns.map((a) => a.name).join(', ')}</span>
-													{/if}
-												</div>
-											{/if}
-										</Table.Cell>
-										<Table.Cell class="text-center">{item.quantity}</Table.Cell>
-										<Table.Cell class="text-right">{i18n.formatCurrency(item.basePrice)}</Table.Cell
-										>
-										<Table.Cell class="text-right"
-											>{i18n.formatCurrency(item.totalPrice)}</Table.Cell
-										>
-									</Table.Row>
-								{/each}
-							</Table.Body>
-						</Table.Root>
-					</Card.Content>
-				</Card.Root>
-
-				<!-- Payment History -->
-				{#if payments.length > 0}
-					<Card.Root>
-						<Card.Header>
-							<Card.Title class="text-lg">Payment History</Card.Title>
-						</Card.Header>
-						<Card.Content>
-							<Table.Root>
-								<Table.Header>
-									<Table.Row>
-										<Table.Head>Payment #</Table.Head>
-										<Table.Head>Method</Table.Head>
-										<Table.Head>Date</Table.Head>
-										<Table.Head>Status</Table.Head>
-										<Table.Head class="text-right">Amount</Table.Head>
-										<Table.Head class="text-center">Actions</Table.Head>
-									</Table.Row>
-								</Table.Header>
-								<Table.Body>
-									{#each payments as payment}
-										<Table.Row>
-											<Table.Cell class="font-medium">{payment.paymentNumber}</Table.Cell>
-											<Table.Cell class="capitalize">{payment.method.replace('_', ' ')}</Table.Cell>
-											<Table.Cell>{new Date(payment.createdAt).toLocaleString()}</Table.Cell>
-											<Table.Cell>
-												<Badge variant={payment.status === 'completed' ? 'default' : 'secondary'}>
-													{payment.status}
-												</Badge>
-											</Table.Cell>
-											<Table.Cell class="text-right"
-												>{i18n.formatCurrency(payment.amount)}</Table.Cell
-											>
-											<Table.Cell class="text-center">
-												<div class="flex items-center justify-center gap-1">
-													<Button
-														variant="ghost"
-														size="icon"
-														onclick={() => printPaymentReceipt(payment.id)}
-														title="Print receipt"
-														aria-label="Print receipt"
-													>
-														<IconPrinter class="h-4 w-4" />
-													</Button>
-													{#if payment.status === 'completed'}
-														<Button
-															variant="ghost"
-															size="icon"
-															onclick={() => openRefundDialog(payment)}
-															title="Process refund"
-															aria-label="Process refund"
-														>
-															<IconReceiptRefund class="h-4 w-4 text-orange-500" />
-														</Button>
-													{/if}
-												</div>
-											</Table.Cell>
-										</Table.Row>
-									{/each}
-								</Table.Body>
-							</Table.Root>
-						</Card.Content>
-					</Card.Root>
-				{/if}
-
-				<!-- Audit Trail (3.5) -->
-				{#if order.auditTrail && order.auditTrail.length > 0}
-					<Card.Root>
-						<Card.Header>
-							<Card.Title class="flex items-center gap-2 text-lg">
-								<IconHistory class="h-5 w-5" />
-								Activity Log
-							</Card.Title>
-						</Card.Header>
-						<Card.Content>
-							<div class="space-y-0">
-								{#each order.auditTrail as entry, idx}
-									<div class="flex gap-3">
-										<div class="flex flex-col items-center">
-											<div class="mt-1.5 h-2.5 w-2.5 rounded-full bg-primary"></div>
-											{#if idx < order.auditTrail.length - 1}
-												<div class="w-0.5 flex-1 bg-border"></div>
-											{/if}
-										</div>
-										<div class="pb-4">
-											<p class="text-sm font-medium capitalize">
-												{entry.action.replace(/[._]/g, ' ')}
-											</p>
-											<p class="text-xs text-muted-foreground">
-												{entry.performedBy} &middot; {formatRelativeTime(entry.performedAt)}
-											</p>
-											{#if entry.details && Object.keys(entry.details).length > 0}
-												<p class="mt-1 text-xs text-muted-foreground">
-													{Object.entries(entry.details)
-														.map(([k, v]) => `${k}: ${v}`)
-														.join(', ')}
-												</p>
-											{/if}
-										</div>
-									</div>
-								{/each}
-							</div>
-						</Card.Content>
-					</Card.Root>
-				{/if}
+		</div>
+		<div class="flex gap-2">
+			<Button variant="outline" size="sm" onclick={printOrder}>
+				<IconPrinter class="mr-2 h-4 w-4" />
+				Print
+			</Button>
+			{#if order?.status && !['cancelled', 'refunded'].includes(order.status)}
+				<Button variant="outline" size="sm" onclick={handleReprintKot} disabled={reprintLoading}>
+					<IconPrinter class="mr-2 h-4 w-4" />
+					{reprintLoading ? 'Reprinting...' : 'Reprint KOT'}
+				</Button>
+			{/if}
+			{#if order?.status && !['completed', 'cancelled', 'refunded'].includes(order.status)}
+				<Button variant="outline" onclick={triggerCompleteOrder}>
+					<IconCheck class="mr-2 h-4 w-4" />
+					Mark Complete
+				</Button>
+			{/if}
+			{#if balanceDue > 0 && order?.status !== 'cancelled'}
+				<Button onclick={openPaymentDialog}>
+					<IconCash class="mr-2 h-4 w-4" />
+					Add Payment
+				</Button>
 			{/if}
 		</div>
 	</div>
-</div>
+
+	{#if data.error}
+		<div class="rounded-lg border border-destructive bg-destructive/10 p-4">
+			<p class="text-destructive">{data.error}</p>
+			<Button variant="outline" class="mt-2" onclick={goBack}>Go Back</Button>
+		</div>
+	{:else if order}
+		<div class="grid gap-4 md:grid-cols-3">
+			<!-- Order Info Card -->
+			<Card.Root>
+				<Card.Header>
+					<Card.Title class="text-lg">Order Details</Card.Title>
+				</Card.Header>
+				<Card.Content class="space-y-3">
+					<div class="flex justify-between">
+						<span class="text-muted-foreground">Type</span>
+						<span class="font-medium">{formatOrderType(order.orderType)}</span>
+					</div>
+					{#if order.tableNumber}
+						<div class="flex justify-between">
+							<span class="text-muted-foreground">Table</span>
+							<span class="font-medium">{order.tableNumber}</span>
+						</div>
+					{/if}
+					<div class="flex justify-between">
+						<span class="text-muted-foreground">Status</span>
+						<Badge variant={getStatusBadge(order.status).variant}>
+							{getStatusBadge(order.status).text}
+						</Badge>
+					</div>
+					<div class="flex justify-between">
+						<span class="text-muted-foreground">Staff</span>
+						<span class="font-medium">{order.staffName}</span>
+					</div>
+					{#if order.customerInfo?.name}
+						<div class="flex justify-between">
+							<span class="text-muted-foreground">Customer</span>
+							<span class="font-medium">{order.customerInfo.name}</span>
+						</div>
+					{/if}
+				</Card.Content>
+			</Card.Root>
+
+			<!-- Payment Info Card -->
+			<Card.Root>
+				<Card.Header>
+					<Card.Title class="text-lg">Payment Status</Card.Title>
+				</Card.Header>
+				<Card.Content class="space-y-3">
+					<div class="flex justify-between">
+						<span class="text-muted-foreground">Status</span>
+						<Badge variant={getPaymentStatusBadge(order.paymentStatus).variant}>
+							{getPaymentStatusBadge(order.paymentStatus).text}
+						</Badge>
+					</div>
+					<div class="flex justify-between">
+						<span class="text-muted-foreground">Total</span>
+						<span class="font-medium">{i18n.formatCurrency(order.pricing.total)}</span>
+					</div>
+					<div class="flex justify-between">
+						<span class="text-muted-foreground">Paid</span>
+						<span class="font-medium text-success">{i18n.formatCurrency(data.totalPaid || 0)}</span>
+					</div>
+					{#if balanceDue > 0}
+						<div class="flex justify-between border-t pt-2">
+							<span class="font-medium">Balance Due</span>
+							<span class="font-bold text-warning">{i18n.formatCurrency(balanceDue)}</span>
+						</div>
+					{/if}
+				</Card.Content>
+			</Card.Root>
+
+			<!-- Pricing Card -->
+			<Card.Root>
+				<Card.Header>
+					<Card.Title class="text-lg">Pricing Summary</Card.Title>
+				</Card.Header>
+				<Card.Content class="space-y-3">
+					<div class="flex justify-between">
+						<span class="text-muted-foreground">Subtotal</span>
+						<span>{i18n.formatCurrency(order.pricing.subtotal)}</span>
+					</div>
+					{#if order.pricing.taxAmount > 0}
+						<div class="flex justify-between">
+							<span class="text-muted-foreground">Tax ({order.pricing.taxRate}%)</span>
+							<span>{i18n.formatCurrency(order.pricing.taxAmount)}</span>
+						</div>
+					{/if}
+					{#if order.pricing.discountAmount > 0}
+						<div class="flex justify-between text-success">
+							<span>Discount</span>
+							<span>-{i18n.formatCurrency(order.pricing.discountAmount)}</span>
+						</div>
+					{/if}
+					<div class="flex justify-between border-t pt-2">
+						<span class="font-medium">Total</span>
+						<span class="font-bold">{i18n.formatCurrency(order.pricing.total)}</span>
+					</div>
+				</Card.Content>
+			</Card.Root>
+		</div>
+
+		<!-- E-Invoice Status -->
+		{#if einvoice?.einvoiceStatus || order.invoiceNumber}
+			<Card.Root>
+				<Card.Header>
+					<Card.Title class="flex items-center gap-2 text-lg">
+						<IconFileInvoice class="h-5 w-5" />
+						E-Invoice
+					</Card.Title>
+				</Card.Header>
+				<Card.Content class="space-y-3">
+					<div class="flex justify-between">
+						<span class="text-muted-foreground">Status</span>
+						<Badge variant={getEinvoiceStatusBadge(einvoice?.einvoiceStatus ?? null).variant}>
+							{getEinvoiceStatusBadge(einvoice?.einvoiceStatus ?? null).text}
+						</Badge>
+					</div>
+					{#if einvoice?.irn}
+						<div class="flex justify-between">
+							<span class="text-muted-foreground">IRN</span>
+							<span class="max-w-[300px] truncate font-mono text-xs" title={einvoice.irn}>
+								{einvoice.irn}
+							</span>
+						</div>
+					{/if}
+					{#if einvoice?.irnGeneratedAt}
+						<div class="flex justify-between">
+							<span class="text-muted-foreground">Generated At</span>
+							<span class="text-sm">
+								{new Date(einvoice.irnGeneratedAt).toLocaleString()}
+							</span>
+						</div>
+					{/if}
+					{#if einvoice?.ewayBillNumber}
+						<div class="flex justify-between">
+							<span class="text-muted-foreground">E-Way Bill</span>
+							<span class="font-mono text-sm">{einvoice.ewayBillNumber}</span>
+						</div>
+					{/if}
+					<div class="flex gap-2 pt-2">
+						{#if !einvoice?.irn && order.invoiceNumber}
+							<Button
+								variant="outline"
+								size="sm"
+								onclick={handleGenerateEinvoice}
+								disabled={isGeneratingEinvoice}
+							>
+								<IconFileInvoice class="mr-2 h-4 w-4" />
+								{isGeneratingEinvoice ? 'Generating...' : 'Generate E-Invoice'}
+							</Button>
+						{/if}
+						{#if !einvoice?.ewayBillNumber && order.orderType === 'delivery'}
+							<Button
+								variant="outline"
+								size="sm"
+								onclick={handleGenerateEwayBill}
+								disabled={isGeneratingEwayBill}
+							>
+								<IconTruck class="mr-2 h-4 w-4" />
+								{isGeneratingEwayBill ? 'Generating...' : 'Generate E-Way Bill'}
+							</Button>
+						{/if}
+					</div>
+				</Card.Content>
+			</Card.Root>
+		{/if}
+
+		<!-- Order Items -->
+		<Card.Root>
+			<Card.Header>
+				<Card.Title class="text-lg">Order Items</Card.Title>
+			</Card.Header>
+			<Card.Content>
+				<Table.Root>
+					<Table.Header>
+						<Table.Row>
+							<Table.Head>Item</Table.Head>
+							<Table.Head>Modifiers</Table.Head>
+							<Table.Head class="text-center">Qty</Table.Head>
+							<Table.Head class="text-right">Price</Table.Head>
+							<Table.Head class="text-right">Total</Table.Head>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						{#each order.items as item}
+							<Table.Row>
+								<Table.Cell class="font-medium">{item.name}</Table.Cell>
+								<Table.Cell>
+									{#if item.modifiers}
+										<div class="text-sm text-muted-foreground">
+											{#if item.modifiers.size}
+												<span class="mr-2">{item.modifiers.size.name}</span>
+											{/if}
+											{#if item.modifiers.spiceLevel}
+												<span class="mr-2">{item.modifiers.spiceLevel.name}</span>
+											{/if}
+											{#if item.modifiers.addOns?.length}
+												<span>+{item.modifiers.addOns.map((a) => a.name).join(', ')}</span>
+											{/if}
+										</div>
+									{/if}
+								</Table.Cell>
+								<Table.Cell class="text-center">{item.quantity}</Table.Cell>
+								<Table.Cell class="text-right">{i18n.formatCurrency(item.basePrice)}</Table.Cell>
+								<Table.Cell class="text-right">{i18n.formatCurrency(item.totalPrice)}</Table.Cell>
+							</Table.Row>
+						{/each}
+					</Table.Body>
+				</Table.Root>
+			</Card.Content>
+		</Card.Root>
+
+		<!-- Payment History -->
+		{#if payments.length > 0}
+			<Card.Root>
+				<Card.Header>
+					<Card.Title class="text-lg">Payment History</Card.Title>
+				</Card.Header>
+				<Card.Content>
+					<Table.Root>
+						<Table.Header>
+							<Table.Row>
+								<Table.Head>Payment #</Table.Head>
+								<Table.Head>Method</Table.Head>
+								<Table.Head>Date</Table.Head>
+								<Table.Head>Status</Table.Head>
+								<Table.Head class="text-right">Amount</Table.Head>
+								<Table.Head class="text-center">Actions</Table.Head>
+							</Table.Row>
+						</Table.Header>
+						<Table.Body>
+							{#each payments as payment}
+								<Table.Row>
+									<Table.Cell class="font-medium">{payment.paymentNumber}</Table.Cell>
+									<Table.Cell class="capitalize">{payment.method.replace('_', ' ')}</Table.Cell>
+									<Table.Cell>{new Date(payment.createdAt).toLocaleString()}</Table.Cell>
+									<Table.Cell>
+										<Badge variant={payment.status === 'completed' ? 'default' : 'secondary'}>
+											{payment.status}
+										</Badge>
+									</Table.Cell>
+									<Table.Cell class="text-right">{i18n.formatCurrency(payment.amount)}</Table.Cell>
+									<Table.Cell class="text-center">
+										<div class="flex items-center justify-center gap-1">
+											<Button
+												variant="ghost"
+												size="icon"
+												onclick={() => printPaymentReceipt(payment.id)}
+												title="Print receipt"
+												aria-label="Print receipt"
+											>
+												<IconPrinter class="h-4 w-4" />
+											</Button>
+											{#if payment.status === 'completed'}
+												<Button
+													variant="ghost"
+													size="icon"
+													onclick={() => openRefundDialog(payment)}
+													title="Process refund"
+													aria-label="Process refund"
+												>
+													<IconReceiptRefund class="h-4 w-4 text-warning" />
+												</Button>
+											{/if}
+										</div>
+									</Table.Cell>
+								</Table.Row>
+							{/each}
+						</Table.Body>
+					</Table.Root>
+				</Card.Content>
+			</Card.Root>
+		{/if}
+
+		<!-- Audit Trail (3.5) -->
+		{#if order.auditTrail && order.auditTrail.length > 0}
+			<Card.Root>
+				<Card.Header>
+					<Card.Title class="flex items-center gap-2 text-lg">
+						<IconHistory class="h-5 w-5" />
+						Activity Log
+					</Card.Title>
+				</Card.Header>
+				<Card.Content>
+					<div class="space-y-0">
+						{#each order.auditTrail as entry, idx}
+							<div class="flex gap-3">
+								<div class="flex flex-col items-center">
+									<div class="mt-1.5 h-2.5 w-2.5 rounded-full bg-primary"></div>
+									{#if idx < order.auditTrail.length - 1}
+										<div class="w-0.5 flex-1 bg-border"></div>
+									{/if}
+								</div>
+								<div class="pb-4">
+									<p class="text-sm font-medium capitalize">
+										{entry.action.replace(/[._]/g, ' ')}
+									</p>
+									<p class="text-xs text-muted-foreground">
+										{entry.performedBy} &middot; {formatRelativeTime(entry.performedAt)}
+									</p>
+									{#if entry.details && Object.keys(entry.details).length > 0}
+										<p class="mt-1 text-xs text-muted-foreground">
+											{Object.entries(entry.details)
+												.map(([k, v]) => `${k}: ${v}`)
+												.join(', ')}
+										</p>
+									{/if}
+								</div>
+							</div>
+						{/each}
+					</div>
+				</Card.Content>
+			</Card.Root>
+		{/if}
+	{/if}
+</PageShell>
 
 <!-- Payment Dialog -->
 {#if order}
@@ -845,7 +839,11 @@
 
 <!-- Hidden KOT print container — rendered off-screen, cloned into print window -->
 {#if order}
-	<div bind:this={kotPrintContainer} style="position: absolute; left: -9999px; top: -9999px; visibility: hidden;" aria-hidden="true">
+	<div
+		bind:this={kotPrintContainer}
+		style="position: absolute; left: -9999px; top: -9999px; visibility: hidden;"
+		aria-hidden="true"
+	>
 		<KotPrintView
 			orderNumber={order.orderNumber}
 			tableNumber={order.tableNumber}

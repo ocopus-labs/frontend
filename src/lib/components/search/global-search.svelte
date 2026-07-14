@@ -11,9 +11,20 @@
 	import WalletIcon from '@lucide/svelte/icons/wallet';
 	import PackageIcon from '@lucide/svelte/icons/package';
 
-	let { businessId, basePath }: { businessId: string; basePath: string } = $props();
+	let {
+		businessId,
+		basePath,
+		iconOnly = false,
+		hideTrigger = false,
+		open = $bindable(false)
+	}: {
+		businessId: string;
+		basePath: string;
+		iconOnly?: boolean;
+		hideTrigger?: boolean;
+		open?: boolean;
+	} = $props();
 
-	let open = $state(false);
 	let loading = $state(false);
 	let groups = $state<SearchGroup[]>([]);
 	let recentSearches = $state<string[]>(loadRecentSearches());
@@ -104,21 +115,28 @@
 	}
 </script>
 
-<Button
-	variant="outline"
-	class="relative w-full justify-start text-sm text-muted-foreground sm:w-64"
-	onclick={() => (open = true)}
-	aria-label="Open search"
->
-	<SearchIcon class="mr-2 h-4 w-4" />
-	<span class="hidden sm:inline">Search...</span>
-	<span class="sm:hidden">Search</span>
-	<kbd
-		class="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 select-none rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium sm:inline-block"
+{#if hideTrigger}
+	<!-- Trigger rendered by the parent (e.g. bottom nav); dialog controlled via bind:open -->
+{:else if iconOnly}
+	<Button variant="ghost" size="icon" onclick={() => (open = true)} aria-label="Open search">
+		<SearchIcon class="h-5 w-5" />
+	</Button>
+{:else}
+	<Button
+		variant="outline"
+		class="relative w-full justify-start text-sm text-muted-foreground"
+		onclick={() => (open = true)}
+		aria-label="Open search"
 	>
-		<span class="text-xs">&#8984;</span>K
-	</kbd>
-</Button>
+		<SearchIcon class="mr-2 h-4 w-4" />
+		<span>Search...</span>
+		<kbd
+			class="pointer-events-none absolute top-1/2 right-2 hidden -translate-y-1/2 rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium select-none sm:inline-block"
+		>
+			<span class="text-xs">&#8984;</span>K
+		</kbd>
+	</Button>
+{/if}
 
 <CommandSearch
 	bind:open

@@ -2,7 +2,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import { Switch } from '$lib/components/ui/switch';
-	import { Label } from '$lib/components/ui/label';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import { Separator } from '$lib/components/ui/separator';
 	import { toast } from 'svelte-sonner';
 	import { onMount } from 'svelte';
@@ -68,9 +68,7 @@
 <div class="max-w-2xl space-y-8">
 	<div>
 		<h1 class="text-3xl font-bold tracking-tight">Notifications</h1>
-		<p class="mt-2 text-muted-foreground">
-			Manage how you receive notifications and updates.
-		</p>
+		<p class="mt-2 text-muted-foreground">Manage how you receive notifications and updates.</p>
 	</div>
 
 	{#if isLoading}
@@ -92,7 +90,9 @@
 			<Card.Content class="space-y-6">
 				<div class="flex items-center justify-between">
 					<div>
-						<Label for="email-notifications" class="font-medium">Email Notifications</Label>
+						<Field.Label for="email-notifications" class="font-medium"
+							>Email Notifications</Field.Label
+						>
 						<p class="text-sm text-muted-foreground">Receive notifications via email</p>
 					</div>
 					<Switch id="email-notifications" bind:checked={emailNotifications} />
@@ -100,7 +100,7 @@
 				<Separator />
 				<div class="flex items-center justify-between">
 					<div>
-						<Label for="order-alerts" class="font-medium">Order Alerts</Label>
+						<Field.Label for="order-alerts" class="font-medium">Order Alerts</Field.Label>
 						<p class="text-sm text-muted-foreground">Get notified about new orders</p>
 					</div>
 					<Switch id="order-alerts" bind:checked={orderAlerts} disabled={!emailNotifications} />
@@ -108,15 +108,19 @@
 				<Separator />
 				<div class="flex items-center justify-between">
 					<div>
-						<Label for="security-alerts" class="font-medium">Security Alerts</Label>
+						<Field.Label for="security-alerts" class="font-medium">Security Alerts</Field.Label>
 						<p class="text-sm text-muted-foreground">Important security notifications</p>
 					</div>
-					<Switch id="security-alerts" bind:checked={securityAlerts} disabled={!emailNotifications} />
+					<Switch
+						id="security-alerts"
+						bind:checked={securityAlerts}
+						disabled={!emailNotifications}
+					/>
 				</div>
 				<Separator />
 				<div class="flex items-center justify-between">
 					<div>
-						<Label for="weekly-digest" class="font-medium">Weekly Digest</Label>
+						<Field.Label for="weekly-digest" class="font-medium">Weekly Digest</Field.Label>
 						<p class="text-sm text-muted-foreground">Weekly summary of your business activity</p>
 					</div>
 					<Switch id="weekly-digest" bind:checked={weeklyDigest} disabled={!emailNotifications} />
@@ -124,7 +128,7 @@
 				<Separator />
 				<div class="flex items-center justify-between">
 					<div>
-						<Label for="marketing" class="font-medium">Marketing Emails</Label>
+						<Field.Label for="marketing" class="font-medium">Marketing Emails</Field.Label>
 						<p class="text-sm text-muted-foreground">Tips, offers, and product updates</p>
 					</div>
 					<Switch id="marketing" bind:checked={marketingEmails} disabled={!emailNotifications} />
@@ -146,7 +150,7 @@
 			<Card.Content>
 				<div class="flex items-center justify-between">
 					<div>
-						<Label for="push" class="font-medium">Enable Push Notifications</Label>
+						<Field.Label for="push" class="font-medium">Enable Push Notifications</Field.Label>
 						<p class="text-sm text-muted-foreground">Get real-time alerts in your browser</p>
 					</div>
 					<Switch id="push" bind:checked={pushNotifications} />

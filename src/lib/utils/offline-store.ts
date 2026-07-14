@@ -22,20 +22,27 @@ export interface OfflineOrder {
 
 function openDB(): Promise<IDBDatabase> {
 	return new Promise((resolve, reject) => {
-		const request = browser ? indexedDB.open(DB_NAME, DB_VERSION) : null;
+		// IndexedDB only exists in the browser. Guard against SSR / non-browser
+		// contexts so we reject cleanly instead of dereferencing a null request.
+		if (!browser || typeof indexedDB === 'undefined') {
+			reject(new Error('IndexedDB is not available outside the browser'));
+			return;
+		}
+
+		const request = indexedDB.open(DB_NAME, DB_VERSION);
 
 		request.onupgradeneeded = () => {
-			const db = request?.result;
-			if (!db?.objectStoreNames.contains('offline-orders')) {
-				db?.createObjectStore('offline-orders', { keyPath: 'id' });
+			const db = request.result;
+			if (!db.objectStoreNames.contains('offline-orders')) {
+				db.createObjectStore('offline-orders', { keyPath: 'id' });
 			}
-			if (!db?.objectStoreNames.contains('menu-cache')) {
-				db?.createObjectStore('menu-cache', { keyPath: 'businessId' });
+			if (!db.objectStoreNames.contains('menu-cache')) {
+				db.createObjectStore('menu-cache', { keyPath: 'businessId' });
 			}
 		};
 
-		request.onsuccess = () => resolve(request?.result);
-		request.onerror = () => reject(request?.error);
+		request.onsuccess = () => resolve(request.result);
+		request.onerror = () => reject(request.error);
 	});
 }
 

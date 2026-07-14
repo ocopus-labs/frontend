@@ -6,7 +6,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -155,7 +155,7 @@
 		</div>
 		<div class="flex items-center gap-2">
 			<Webhook class="h-5 w-5 text-muted-foreground" />
-			<Badge variant="secondary" class="text-lg px-4 py-2">
+			<Badge variant="secondary" class="px-4 py-2 text-lg">
 				{data.total} events
 			</Badge>
 		</div>
@@ -164,12 +164,16 @@
 	<!-- Filters -->
 	<Card.Root>
 		<Card.Content class="pt-6">
-			<div class="flex flex-wrap gap-4 items-end">
-				<div class="space-y-1">
-					<Label class="text-xs">Provider</Label>
-					<Select.Root type="single" value={providerFilter} onValueChange={(v) => handleProviderChange(v)}>
+			<div class="flex flex-wrap items-end gap-4">
+				<Field.Field>
+					<Field.Label class="text-xs">Provider</Field.Label>
+					<Select.Root
+						type="single"
+						value={providerFilter}
+						onValueChange={(v) => handleProviderChange(v)}
+					>
 						<Select.Trigger class="w-[180px]">
-							{providerOptions.find(o => o.value === providerFilter)?.label || 'All Providers'}
+							{providerOptions.find((o) => o.value === providerFilter)?.label || 'All Providers'}
 						</Select.Trigger>
 						<Select.Content>
 							{#each providerOptions as option}
@@ -177,13 +181,17 @@
 							{/each}
 						</Select.Content>
 					</Select.Root>
-				</div>
+				</Field.Field>
 
-				<div class="space-y-1">
-					<Label class="text-xs">Status</Label>
-					<Select.Root type="single" value={statusFilter} onValueChange={(v) => handleStatusChange(v)}>
+				<Field.Field>
+					<Field.Label class="text-xs">Status</Field.Label>
+					<Select.Root
+						type="single"
+						value={statusFilter}
+						onValueChange={(v) => handleStatusChange(v)}
+					>
 						<Select.Trigger class="w-[180px]">
-							{statusOptions.find(o => o.value === statusFilter)?.label || 'All Statuses'}
+							{statusOptions.find((o) => o.value === statusFilter)?.label || 'All Statuses'}
 						</Select.Trigger>
 						<Select.Content>
 							{#each statusOptions as option}
@@ -191,38 +199,28 @@
 							{/each}
 						</Select.Content>
 					</Select.Root>
-				</div>
+				</Field.Field>
 
-				<div class="space-y-1">
-					<Label for="eventTypeFilter" class="text-xs">Event Type</Label>
+				<Field.Field>
+					<Field.Label for="eventTypeFilter" class="text-xs">Event Type</Field.Label>
 					<Input
 						type="text"
 						id="eventTypeFilter"
 						bind:value={eventTypeFilter}
 						placeholder="e.g. payment.completed"
-						class="w-[200px] h-10"
+						class="h-10 w-[200px]"
 						onkeydown={handleEventTypeKeydown}
 					/>
-				</div>
+				</Field.Field>
 
-				<div class="space-y-1">
-					<Label for="webhookStartDate" class="text-xs">Start Date</Label>
-					<Input
-						type="date"
-						id="webhookStartDate"
-						bind:value={startDate}
-						class="w-[150px] h-10"
-					/>
-				</div>
-				<div class="space-y-1">
-					<Label for="webhookEndDate" class="text-xs">End Date</Label>
-					<Input
-						type="date"
-						id="webhookEndDate"
-						bind:value={endDate}
-						class="w-[150px] h-10"
-					/>
-				</div>
+				<Field.Field>
+					<Field.Label for="webhookStartDate" class="text-xs">Start Date</Field.Label>
+					<Input type="date" id="webhookStartDate" bind:value={startDate} class="h-10 w-[150px]" />
+				</Field.Field>
+				<Field.Field>
+					<Field.Label for="webhookEndDate" class="text-xs">End Date</Field.Label>
+					<Input type="date" id="webhookEndDate" bind:value={endDate} class="h-10 w-[150px]" />
+				</Field.Field>
 				<Button variant="outline" size="sm" onclick={applyDateFilter} class="h-10">
 					Apply Dates
 				</Button>
@@ -253,7 +251,7 @@
 							onclick={() => openDetail(webhook.id)}
 						>
 							<Table.Cell>
-								<code class="text-xs bg-muted px-1.5 py-0.5 rounded">
+								<code class="rounded bg-muted px-1.5 py-0.5 text-xs">
 									{webhook.eventId.length > 20
 										? webhook.eventId.slice(0, 20) + '...'
 										: webhook.eventId}
@@ -272,13 +270,13 @@
 								{#if webhook.retryCount > 0}
 									<Badge variant="outline">{webhook.retryCount}</Badge>
 								{:else}
-									<span class="text-muted-foreground text-sm">0</span>
+									<span class="text-sm text-muted-foreground">0</span>
 								{/if}
 							</Table.Cell>
-							<Table.Cell class="text-muted-foreground text-sm whitespace-nowrap">
+							<Table.Cell class="text-sm whitespace-nowrap text-muted-foreground">
 								{formatDateTime(webhook.createdAt)}
 							</Table.Cell>
-							<Table.Cell class="text-muted-foreground text-sm whitespace-nowrap">
+							<Table.Cell class="text-sm whitespace-nowrap text-muted-foreground">
 								{#if webhook.processedAt}
 									{formatDateTime(webhook.processedAt)}
 								{:else}
@@ -331,10 +329,8 @@
 	{#if data.totalPages > 1}
 		<div class="flex items-center justify-between">
 			<p class="text-sm text-muted-foreground">
-				Showing {(data.page - 1) * data.limit + 1} to {Math.min(
-					data.page * data.limit,
-					data.total
-				)} of {data.total} events
+				Showing {(data.page - 1) * data.limit + 1} to {Math.min(data.page * data.limit, data.total)} of
+				{data.total} events
 			</p>
 			<div class="flex items-center gap-2">
 				<Button
@@ -365,12 +361,12 @@
 
 <!-- Detail Sheet -->
 <Sheet.Root bind:open={detailSheetOpen}>
-	<Sheet.Content class="sm:max-w-xl overflow-y-auto">
+	<Sheet.Content class="overflow-y-auto sm:max-w-xl">
 		<Sheet.Header>
 			<Sheet.Title>Webhook Event Details</Sheet.Title>
 			<Sheet.Description>
 				{#if selectedEvent}
-					Full details for event <code class="text-xs bg-muted px-1 py-0.5 rounded"
+					Full details for event <code class="rounded bg-muted px-1 py-0.5 text-xs"
 						>{selectedEvent.eventId}</code
 					>
 				{:else}
@@ -388,29 +384,29 @@
 				<!-- Summary Fields -->
 				<div class="grid grid-cols-2 gap-4">
 					<div class="space-y-1">
-						<p class="text-xs text-muted-foreground font-medium">Provider</p>
+						<p class="text-xs font-medium text-muted-foreground">Provider</p>
 						<p class="text-sm capitalize">{selectedEvent.provider}</p>
 					</div>
 					<div class="space-y-1">
-						<p class="text-xs text-muted-foreground font-medium">Status</p>
+						<p class="text-xs font-medium text-muted-foreground">Status</p>
 						<Badge variant={getStatusBadgeVariant(selectedEvent.status)}>
 							{selectedEvent.status}
 						</Badge>
 					</div>
 					<div class="space-y-1">
-						<p class="text-xs text-muted-foreground font-medium">Event Type</p>
+						<p class="text-xs font-medium text-muted-foreground">Event Type</p>
 						<code class="text-sm">{selectedEvent.eventType}</code>
 					</div>
 					<div class="space-y-1">
-						<p class="text-xs text-muted-foreground font-medium">Retry Count</p>
+						<p class="text-xs font-medium text-muted-foreground">Retry Count</p>
 						<p class="text-sm">{selectedEvent.retryCount}</p>
 					</div>
 					<div class="space-y-1">
-						<p class="text-xs text-muted-foreground font-medium">Created</p>
+						<p class="text-xs font-medium text-muted-foreground">Created</p>
 						<p class="text-sm">{formatDateTime(selectedEvent.createdAt)}</p>
 					</div>
 					<div class="space-y-1">
-						<p class="text-xs text-muted-foreground font-medium">Processed</p>
+						<p class="text-xs font-medium text-muted-foreground">Processed</p>
 						<p class="text-sm">
 							{selectedEvent.processedAt ? formatDateTime(selectedEvent.processedAt) : 'Not yet'}
 						</p>
@@ -419,8 +415,8 @@
 
 				<!-- Event ID -->
 				<div class="space-y-1">
-					<p class="text-xs text-muted-foreground font-medium">Event ID</p>
-					<code class="text-xs bg-muted px-2 py-1 rounded block break-all">
+					<p class="text-xs font-medium text-muted-foreground">Event ID</p>
+					<code class="block rounded bg-muted px-2 py-1 text-xs break-all">
 						{selectedEvent.eventId}
 					</code>
 				</div>
@@ -428,8 +424,8 @@
 				<!-- Error Message -->
 				{#if selectedEvent.errorMessage}
 					<div class="space-y-1">
-						<p class="text-xs text-muted-foreground font-medium">Error Message</p>
-						<div class="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+						<p class="text-xs font-medium text-muted-foreground">Error Message</p>
+						<div class="rounded-lg border border-destructive/20 bg-destructive/10 p-3">
 							<p class="text-sm text-destructive">{selectedEvent.errorMessage}</p>
 						</div>
 					</div>
@@ -437,11 +433,14 @@
 
 				<!-- Payload -->
 				<div class="space-y-1">
-					<p class="text-xs text-muted-foreground font-medium">Payload</p>
+					<p class="text-xs font-medium text-muted-foreground">Payload</p>
 					<div class="max-h-[400px] overflow-auto">
 						<pre
-							class="text-xs bg-muted p-4 rounded-lg overflow-x-auto whitespace-pre-wrap break-all"
-						>{JSON.stringify(selectedEvent.payload, null, 2)}</pre>
+							class="overflow-x-auto rounded-lg bg-muted p-4 text-xs break-all whitespace-pre-wrap">{JSON.stringify(
+								selectedEvent.payload,
+								null,
+								2
+							)}</pre>
 					</div>
 				</div>
 
@@ -458,7 +457,7 @@
 							disabled={isRetrying}
 							class="w-full"
 						>
-							<RefreshCw class="h-4 w-4 mr-2" />
+							<RefreshCw class="mr-2 h-4 w-4" />
 							Retry This Event
 						</Button>
 					</div>

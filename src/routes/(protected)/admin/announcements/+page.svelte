@@ -6,7 +6,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import { Textarea } from '$lib/components/ui/textarea/index.js';
 	import { Switch } from '$lib/components/ui/switch';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
@@ -162,18 +162,14 @@
 	async function handleTogglePublish(announcement: AdminAnnouncement) {
 		try {
 			await toggleAdminAnnouncementPublish(announcement.id);
-			toast.success(
-				announcement.isActive ? 'Announcement unpublished' : 'Announcement published'
-			);
+			toast.success(announcement.isActive ? 'Announcement unpublished' : 'Announcement published');
 			await invalidate('app:announcements');
 		} catch (err) {
 			toast.error(userFriendlyError(err));
 		}
 	}
 
-	function getTypeBadgeVariant(
-		type: string
-	): 'default' | 'destructive' | 'secondary' | 'outline' {
+	function getTypeBadgeVariant(type: string): 'default' | 'destructive' | 'secondary' | 'outline' {
 		if (type === 'critical') return 'destructive';
 		if (type === 'warning') return 'secondary';
 		if (type === 'maintenance') return 'outline';
@@ -207,9 +203,7 @@
 	<div class="flex items-center justify-between">
 		<div>
 			<h1 class="text-3xl font-bold tracking-tight">Announcements</h1>
-			<p class="text-muted-foreground">
-				Create and manage platform-wide announcements for users
-			</p>
+			<p class="text-muted-foreground">Create and manage platform-wide announcements for users</p>
 		</div>
 		<Button onclick={openCreateDialog}>
 			<Plus class="mr-2 h-4 w-4" />
@@ -345,7 +339,7 @@
 			class="space-y-4"
 		>
 			<div class="space-y-2">
-				<Label for="ann-title">Title</Label>
+				<Field.Label for="ann-title">Title</Field.Label>
 				<Input
 					id="ann-title"
 					bind:value={formTitle}
@@ -356,7 +350,7 @@
 			</div>
 
 			<div class="space-y-2">
-				<Label for="ann-content">Content</Label>
+				<Field.Label for="ann-content">Content</Field.Label>
 				<Textarea
 					id="ann-content"
 					bind:value={formContent}
@@ -367,7 +361,7 @@
 
 			<div class="grid grid-cols-2 gap-4">
 				<div class="space-y-2">
-					<Label for="ann-type">Type</Label>
+					<Field.Label for="ann-type">Type</Field.Label>
 					<Select.Root
 						type="single"
 						value={formType}
@@ -387,7 +381,7 @@
 				</div>
 
 				<div class="space-y-2">
-					<Label for="ann-target">Target Audience</Label>
+					<Field.Label for="ann-target">Target Audience</Field.Label>
 					<Select.Root
 						type="single"
 						value={formTarget}
@@ -409,27 +403,19 @@
 
 			<div class="grid grid-cols-2 gap-4">
 				<div class="space-y-2">
-					<Label for="ann-publish-at">Publish Date (optional)</Label>
-					<Input
-						id="ann-publish-at"
-						type="datetime-local"
-						bind:value={formPublishAt}
-					/>
+					<Field.Label for="ann-publish-at">Publish Date (optional)</Field.Label>
+					<Input id="ann-publish-at" type="datetime-local" bind:value={formPublishAt} />
 				</div>
 
 				<div class="space-y-2">
-					<Label for="ann-expires-at">Expiry Date (optional)</Label>
-					<Input
-						id="ann-expires-at"
-						type="datetime-local"
-						bind:value={formExpiresAt}
-					/>
+					<Field.Label for="ann-expires-at">Expiry Date (optional)</Field.Label>
+					<Input id="ann-expires-at" type="datetime-local" bind:value={formExpiresAt} />
 				</div>
 			</div>
 
 			<div class="flex items-center justify-between rounded-lg border p-3">
 				<div>
-					<Label for="ann-pinned" class="cursor-pointer">Pinned</Label>
+					<Field.Label for="ann-pinned" class="cursor-pointer">Pinned</Field.Label>
 					<p class="text-xs text-muted-foreground">
 						Pinned announcements cannot be dismissed by users
 					</p>

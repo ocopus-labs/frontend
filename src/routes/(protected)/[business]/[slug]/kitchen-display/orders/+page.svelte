@@ -3,6 +3,8 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
+	import QrBadge from '$lib/components/global/qr-badge.svelte';
+	import PageShell from '$lib/components/global/page-shell.svelte';
 	import {
 		IconClock,
 		IconCheck,
@@ -19,7 +21,13 @@
 		IconFilter
 	} from '@tabler/icons-svelte';
 	import { invalidate, goto } from '$app/navigation';
-	import { updateItemStatus, bulkUpdateItemStatuses, updateOrderStatus, type Order, type OrderItem } from '$lib/api';
+	import {
+		updateItemStatus,
+		bulkUpdateItemStatuses,
+		updateOrderStatus,
+		type Order,
+		type OrderItem
+	} from '$lib/api';
 	import { toast } from 'svelte-sonner';
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
@@ -152,7 +160,9 @@
 					const isPriority = order.priority === 'urgent' || order.priority === 'high';
 					playSound(isPriority ? playPriorityOrderSound : playNewOrderSound);
 					const source = order.orderSource === 'customer_qr' ? 'QR Order' : 'New order';
-					toast.info(`${source}: ${order.orderNumber}${order.tableNumber ? ` (Table ${order.tableNumber})` : ''}`);
+					toast.info(
+						`${source}: ${order.orderNumber}${order.tableNumber ? ` (Table ${order.tableNumber})` : ''}`
+					);
 				});
 				cleanupFns.push(unsubOrderCreated);
 
@@ -199,68 +209,78 @@
 	}
 
 	let allOrders = $derived<KitchenOrder[]>(
-		(data.orders || []).map((order: Order) => {
-			const createdAt = new Date(order.createdAt);
-			const elapsed = Math.floor((now - createdAt.getTime()) / 60000);
-			const items = order.items.map((item: OrderItem) => {
-				const key = `${order.id}-${item.id}`;
-				const optimisticStatus = optimisticStatuses.get(key);
-				return {
-					id: item.id,
-					name: item.name,
-					quantity: item.quantity,
-					notes: item.modifiers?.specialInstructions || null,
-					status: optimisticStatus || item.status,
-					cancellationReason: item.cancellationReason
-				};
-			});
+		(data.orders || [])
+			.map((order: Order) => {
+				const createdAt = new Date(order.createdAt);
+				const elapsed = Math.floor((now - createdAt.getTime()) / 60000);
+				const items = order.items.map((item: OrderItem) => {
+					const key = `${order.id}-${item.id}`;
+					const optimisticStatus = optimisticStatuses.get(key);
+					return {
+						id: item.id,
+						name: item.name,
+						quantity: item.quantity,
+						notes: item.modifiers?.specialInstructions || null,
+						status: optimisticStatus || item.status,
+						cancellationReason: item.cancellationReason
+					};
+				});
 
-			return {
-				id: order.orderNumber,
-				orderId: order.id,
-				table: order.tableNumber || formatOrderType(order.orderType),
-				type: formatOrderType(order.orderType),
-				createdAt: createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-				rawCreatedAt: createdAt.getTime(),
-				elapsed,
-				priority: order.priority,
-				priorityWeight: getPriorityWeight(order.priority),
-				readyCount: items.filter((i) => i.status === 'ready' || i.status === 'served').length,
-				totalCount: items.length,
-				items,
-				orderSource: order.orderSource
-			};
-		}).sort((a, b) => {
-			// Sort: urgent first, then by elapsed time (oldest first)
-			if (b.priorityWeight !== a.priorityWeight) return b.priorityWeight - a.priorityWeight;
-			return a.rawCreatedAt - b.rawCreatedAt;
-		})
+				return {
+					id: order.orderNumber,
+					orderId: order.id,
+					table: order.tableNumber || formatOrderType(order.orderType),
+					type: formatOrderType(order.orderType),
+					createdAt: createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+					rawCreatedAt: createdAt.getTime(),
+					elapsed,
+					priority: order.priority,
+					priorityWeight: getPriorityWeight(order.priority),
+					readyCount: items.filter((i) => i.status === 'ready' || i.status === 'served').length,
+					totalCount: items.length,
+					items,
+					orderSource: order.orderSource
+				};
+			})
+			.sort((a, b) => {
+				// Sort: urgent first, then by elapsed time (oldest first)
+				if (b.priorityWeight !== a.priorityWeight) return b.priorityWeight - a.priorityWeight;
+				return a.rawCreatedAt - b.rawCreatedAt;
+			})
 	);
 
 	let orders = $derived(
 		filter === 'all'
 			? allOrders
 			: allOrders.filter((order) => {
-					if (filter === 'ready') return order.items.every((i) => i.status === 'ready' || i.status === 'served');
+					if (filter === 'ready')
+						return order.items.every((i) => i.status === 'ready' || i.status === 'served');
 					if (filter === 'preparing') return order.items.some((i) => i.status === 'preparing');
 					if (filter === 'pending') return order.items.some((i) => i.status === 'pending');
 					return true;
 				})
 	);
 
-	let pendingCount = $derived(allOrders.filter((o) => o.items.some((i) => i.status === 'pending')).length);
-	let preparingCount = $derived(allOrders.filter((o) => o.items.some((i) => i.status === 'preparing')).length);
-	let readyCount = $derived(allOrders.filter((o) => o.items.every((i) => i.status === 'ready' || i.status === 'served')).length);
+	let pendingCount = $derived(
+		allOrders.filter((o) => o.items.some((i) => i.status === 'pending')).length
+	);
+	let preparingCount = $derived(
+		allOrders.filter((o) => o.items.some((i) => i.status === 'preparing')).length
+	);
+	let readyCount = $derived(
+		allOrders.filter((o) => o.items.every((i) => i.status === 'ready' || i.status === 'served'))
+			.length
+	);
 
 	function getElapsedColor(elapsed: number) {
-		if (elapsed >= 15) return 'text-red-500';
-		if (elapsed >= 10) return 'text-yellow-500';
-		return 'text-green-500';
+		if (elapsed >= 15) return 'text-destructive';
+		if (elapsed >= 10) return 'text-warning';
+		return 'text-success';
 	}
 
 	function getElapsedBg(elapsed: number) {
-		if (elapsed >= 15) return 'bg-red-500/10';
-		if (elapsed >= 10) return 'bg-yellow-500/10';
+		if (elapsed >= 15) return 'bg-destructive/10';
+		if (elapsed >= 10) return 'bg-warning/10';
 		return '';
 	}
 
@@ -279,15 +299,19 @@
 		switch (status) {
 			case 'ready':
 			case 'served':
-				return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+				return 'bg-success/10 text-foreground';
 			case 'preparing':
-				return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+				return 'bg-warning/10 text-foreground';
 			default:
-				return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+				return 'bg-muted text-muted-foreground';
 		}
 	}
 
-	async function updateItem(orderId: string, itemId: string, status: 'pending' | 'preparing' | 'ready') {
+	async function updateItem(
+		orderId: string,
+		itemId: string,
+		status: 'pending' | 'preparing' | 'ready'
+	) {
 		const key = `${orderId}-${itemId}`;
 		if (processingItems.has(key)) return;
 
@@ -343,7 +367,9 @@
 			optimisticStatuses = new Map(optimisticStatuses);
 			toast.error(`Failed to start ${failed} item${failed === 1 ? '' : 's'}`);
 		} else {
-			toast.success(`Started all ${pendingItems.length} item${pendingItems.length === 1 ? '' : 's'}`);
+			toast.success(
+				`Started all ${pendingItems.length} item${pendingItems.length === 1 ? '' : 's'}`
+			);
 		}
 
 		debouncedInvalidate();
@@ -400,312 +426,320 @@
 	}
 </script>
 
-<div class="flex flex-1 flex-col bg-muted/30">
-	<div class="@container/main flex flex-1 flex-col gap-4">
-		<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-			<!-- Header -->
-			<div class="flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
-				<div>
-					<h1 class="text-2xl font-bold">Kitchen Display</h1>
-					<div class="flex items-center gap-2">
-						<p class="text-muted-foreground">
-							{orders.length} {orders.length === 1 ? 'order' : 'orders'}
-							{#if filter !== 'all'} ({filter}){/if}
-						</p>
-						{#if isConnected}
-							<Badge variant="outline" class="border-green-500 text-green-600">
-								<IconWifi class="mr-1 h-3 w-3" />
-								Live
-							</Badge>
-						{:else}
-							<Badge variant="outline" class="border-yellow-500 text-yellow-600">
-								<IconWifiOff class="mr-1 h-3 w-3" />
-								Offline
-							</Badge>
-						{/if}
-					</div>
-				</div>
-				<div class="flex items-center gap-2" aria-live="polite">
-					{#if data.stations && data.stations.length > 0}
-						<select
-							class="rounded-md border bg-background px-3 py-1.5 text-sm"
-							value={currentStationId || ''}
-							onchange={(e) => handleStationChange(e.currentTarget.value)}
-						>
-							<option value="">All Stations</option>
-							{#each data.stations as station}
-								<option value={station.id}>{station.name}</option>
-							{/each}
-						</select>
-					{/if}
-					<Button
-						variant="ghost"
-						size="icon"
-						class="h-8 w-8"
-						onclick={toggleSound}
-						aria-label={soundEnabled ? 'Mute notifications' : 'Enable notifications'}
-					>
-						{#if soundEnabled}
-							<IconVolume class="h-4 w-4" />
-						{:else}
-							<IconVolumeOff class="h-4 w-4" />
-						{/if}
-					</Button>
-					<Button
-						variant="ghost"
-						size="icon"
-						class="h-8 w-8"
-						onclick={toggleFullscreen}
-						aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-					>
-						{#if isFullscreen}
-							<IconMinimize class="h-4 w-4" />
-						{:else}
-							<IconMaximize class="h-4 w-4" />
-						{/if}
-					</Button>
-					<Button onclick={refreshOrders} variant="outline" disabled={isRefreshing}>
-						<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
-						{isRefreshing ? 'Refreshing...' : 'Refresh'}
-					</Button>
-				</div>
-			</div>
-
-			<!-- Station color indicator -->
-			{#if currentStationId}
-				{@const station = data.stations?.find((s) => s.id === currentStationId)}
-				{#if station}
-					<div class="flex items-center gap-2 px-6 py-1 text-sm" style="background-color: {station.displayColor}20">
-						<div class="h-3 w-3 rounded-full" style="background-color: {station.displayColor}"></div>
-						<span class="font-medium">{station.name}</span>
-					</div>
-				{/if}
-			{/if}
-
-			<!-- Filter tabs -->
-			<div class="flex gap-2 px-6 overflow-x-auto">
-				<Button
-					variant={filter === 'all' ? 'default' : 'outline'}
-					size="sm"
-					onclick={() => (filter = 'all')}
-				>
-					All ({allOrders.length})
-				</Button>
-				<Button
-					variant={filter === 'pending' ? 'default' : 'outline'}
-					size="sm"
-					onclick={() => (filter = 'pending')}
-					class={pendingCount > 0 ? 'border-gray-400' : ''}
-				>
-					Pending ({pendingCount})
-				</Button>
-				<Button
-					variant={filter === 'preparing' ? 'default' : 'outline'}
-					size="sm"
-					onclick={() => (filter = 'preparing')}
-					class={preparingCount > 0 ? 'border-yellow-400' : ''}
-				>
-					Preparing ({preparingCount})
-				</Button>
-				<Button
-					variant={filter === 'ready' ? 'default' : 'outline'}
-					size="sm"
-					onclick={() => (filter = 'ready')}
-					class={readyCount > 0 ? 'border-green-400' : ''}
-				>
-					Ready ({readyCount})
-				</Button>
-			</div>
-
-			<!-- Orders Grid -->
-			<div class="grid grid-cols-1 gap-4 px-6 md:grid-cols-2 xl:grid-cols-3">
-				{#each orders as order (order.id)}
-					{@const allReady = order.items.every((i) => i.status === 'ready' || i.status === 'served')}
-					{@const hasPending = order.items.some((i) => i.status === 'pending')}
-					{@const priorityBadge = getPriorityBadge(order.priority)}
-					{@const progressPct = order.totalCount > 0 ? Math.round((order.readyCount / order.totalCount) * 100) : 0}
-					<Card.Root
-						class="relative overflow-hidden transition-all duration-300 {order.priority === 'urgent'
-							? 'ring-2 ring-red-500'
-							: order.priority === 'high'
-								? 'ring-1 ring-yellow-400'
-								: ''} {getElapsedBg(order.elapsed)}"
-					>
-						<!-- Priority accent bar -->
-						{#if order.priority === 'urgent'}
-							<div class="absolute top-0 left-0 right-0 h-1 bg-red-500"></div>
-						{:else if order.priority === 'high'}
-							<div class="absolute top-0 left-0 right-0 h-1 bg-yellow-500"></div>
-						{:else if allReady}
-							<div class="absolute top-0 left-0 right-0 h-1 bg-green-500"></div>
-						{/if}
-
-						<Card.Header class="pb-2">
-							<div class="flex items-start justify-between">
-								<div>
-									<Card.Title class="flex items-center gap-2 text-lg">
-										<span class="font-mono font-bold">{order.id}</span>
-										{#if order.orderSource === 'customer_qr'}
-											<span class="inline-flex items-center rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-900 dark:text-violet-200">QR</span>
-										{/if}
-										{#if priorityBadge}
-											<Badge variant={priorityBadge.variant}>
-												{#if priorityBadge.text === 'URGENT'}
-													<IconFlame class="mr-1 h-3 w-3" />
-												{:else}
-													<IconAlertTriangle class="mr-1 h-3 w-3" />
-												{/if}
-												{priorityBadge.text}
-											</Badge>
-										{/if}
-									</Card.Title>
-									<Card.Description class="flex items-center gap-2">
-										<Badge variant="outline">{order.table}</Badge>
-										<span class="text-xs">{order.type}</span>
-									</Card.Description>
-								</div>
-								<div class="text-right">
-									<div class="flex items-center gap-1 {getElapsedColor(order.elapsed)}">
-										<IconClock class="h-4 w-4" />
-										<span class="font-mono text-lg font-bold">{order.elapsed}m</span>
-									</div>
-									<p class="text-xs text-muted-foreground">since {order.createdAt}</p>
-								</div>
-							</div>
-							<!-- Progress bar -->
-							<div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-								<div
-									class="h-full rounded-full transition-all duration-500 {allReady
-										? 'bg-green-500'
-										: progressPct > 0
-											? 'bg-yellow-500'
-											: 'bg-gray-400'}"
-									style="width: {progressPct}%"
-								></div>
-							</div>
-						</Card.Header>
-
-						<Card.Content class="space-y-2">
-							{#each order.items as item}
-								{@const isProcessing = processingItems.has(`${order.orderId}-${item.id}`)}
-								{#if item.status === 'cancelled'}
-									<div class="flex items-center rounded-md p-2 bg-gray-100 dark:bg-gray-800/50">
-										<div class="flex-1 line-through text-muted-foreground">
-											<span class="font-medium">
-												{item.quantity}x {item.name}
-											</span>
-											{#if item.cancellationReason}
-												<span class="text-xs text-red-500 ml-1 no-underline">({item.cancellationReason.replace(/_/g, ' ')})</span>
-											{/if}
-										</div>
-									</div>
-								{:else}
-									<div
-										class="flex items-center justify-between rounded-md p-2 transition-colors {getItemStatusColor(
-											item.status
-										)}"
-									>
-										<div class="flex-1">
-											<div class="flex items-center gap-2">
-												<span class="font-medium">
-													{item.quantity}x {item.name}
-												</span>
-												{#if item.status === 'preparing'}
-													<span class="inline-block h-2 w-2 animate-pulse rounded-full bg-yellow-500"></span>
-												{/if}
-											</div>
-											{#if item.notes}
-												<p class="mt-1 text-xs font-medium opacity-75">
-													<IconAlertTriangle class="mr-1 inline h-3 w-3" />
-													{item.notes}
-												</p>
-											{/if}
-										</div>
-										<div class="ml-2">
-											{#if item.status === 'pending'}
-												<Button
-													size="sm"
-													variant="outline"
-													disabled={isProcessing}
-													onclick={() => updateItem(order.orderId, item.id, 'preparing')}
-												>
-													{isProcessing ? 'Starting...' : 'Start'}
-												</Button>
-											{:else if item.status === 'preparing'}
-												<Button
-													size="sm"
-													disabled={isProcessing}
-													onclick={() => updateItem(order.orderId, item.id, 'ready')}
-												>
-													<IconCheck class="mr-1 h-3 w-3" />
-													{isProcessing ? 'Saving...' : 'Done'}
-												</Button>
-											{:else}
-												<IconCheck class="h-5 w-5 text-green-600" />
-											{/if}
-										</div>
-									</div>
-								{/if}
-							{/each}
-						</Card.Content>
-
-						<Card.Footer class="flex-col gap-2">
-							{#if allReady}
-								{#if currentStationId}
-									<!-- Station mode: mark this station's items ready without completing the whole order -->
-									<Button class="w-full bg-green-600 hover:bg-green-700" onclick={() => markStationReady(order)}>
-										<IconCheck class="mr-2 h-4 w-4" />
-										Station Ready
-									</Button>
-									{#if (order._stationMeta?.otherPendingItems ?? 0) > 0}
-										<p class="text-xs text-muted-foreground text-center mt-1">
-											Waiting on other stations ({order._stationMeta?.otherPendingItems} items)
-										</p>
-									{/if}
-								{:else}
-									<Button class="w-full bg-green-600 hover:bg-green-700" onclick={() => completeOrder(order.orderId)}>
-										<IconCheck class="mr-2 h-4 w-4" />
-										Complete Order
-									</Button>
-								{/if}
-							{:else}
-								<div class="flex w-full items-center justify-between">
-									<span class="text-sm text-muted-foreground">
-										{order.readyCount} / {order.totalCount} {order.totalCount === 1 ? 'item' : 'items'} ready
-									</span>
-									{#if hasPending}
-										<Button
-											size="sm"
-											variant="secondary"
-											onclick={() => startAllItems(order)}
-										>
-											<IconPlayerPlay class="mr-1 h-3 w-3" />
-											Start All
-										</Button>
-									{/if}
-								</div>
-							{/if}
-						</Card.Footer>
-					</Card.Root>
-				{/each}
-			</div>
-
-			{#if orders.length === 0}
-				<div class="flex flex-col items-center justify-center py-12 text-center">
+<PageShell class="bg-muted/30">
+	<!-- Header -->
+	<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+		<div>
+			<h1 class="text-2xl font-bold">Kitchen Display</h1>
+			<div class="flex items-center gap-2">
+				<p class="text-muted-foreground">
+					{orders.length}
+					{orders.length === 1 ? 'order' : 'orders'}
 					{#if filter !== 'all'}
-						<IconFilter class="h-12 w-12 text-muted-foreground" />
-						<h3 class="mt-4 text-lg font-semibold">No {filter} orders</h3>
-						<p class="text-muted-foreground">Try a different filter or wait for new orders.</p>
-						<Button variant="outline" class="mt-4" onclick={() => (filter = 'all')}>
-							Show all orders
-						</Button>
-					{:else}
-						<IconCheck class="h-12 w-12 text-green-500" />
-						<h3 class="mt-4 text-lg font-semibold">All caught up!</h3>
-						<p class="text-muted-foreground">No pending orders in the queue.</p>
-					{/if}
-				</div>
+						({filter}){/if}
+				</p>
+				{#if isConnected}
+					<Badge variant="outline" class="border-success text-success">
+						<IconWifi class="mr-1 h-3 w-3" />
+						Live
+					</Badge>
+				{:else}
+					<Badge variant="outline" class="border-warning text-warning">
+						<IconWifiOff class="mr-1 h-3 w-3" />
+						Offline
+					</Badge>
+				{/if}
+			</div>
+		</div>
+		<div class="flex items-center gap-2" aria-live="polite">
+			{#if data.stations && data.stations.length > 0}
+				<select
+					class="rounded-md border bg-background px-3 py-1.5 text-sm"
+					value={currentStationId || ''}
+					onchange={(e) => handleStationChange(e.currentTarget.value)}
+				>
+					<option value="">All Stations</option>
+					{#each data.stations as station}
+						<option value={station.id}>{station.name}</option>
+					{/each}
+				</select>
 			{/if}
+			<Button
+				variant="ghost"
+				size="icon"
+				class="h-8 w-8"
+				onclick={toggleSound}
+				aria-label={soundEnabled ? 'Mute notifications' : 'Enable notifications'}
+			>
+				{#if soundEnabled}
+					<IconVolume class="h-4 w-4" />
+				{:else}
+					<IconVolumeOff class="h-4 w-4" />
+				{/if}
+			</Button>
+			<Button
+				variant="ghost"
+				size="icon"
+				class="h-8 w-8"
+				onclick={toggleFullscreen}
+				aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+			>
+				{#if isFullscreen}
+					<IconMinimize class="h-4 w-4" />
+				{:else}
+					<IconMaximize class="h-4 w-4" />
+				{/if}
+			</Button>
+			<Button onclick={refreshOrders} variant="outline" disabled={isRefreshing}>
+				<IconRefresh class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
+				{isRefreshing ? 'Refreshing...' : 'Refresh'}
+			</Button>
 		</div>
 	</div>
-</div>
+
+	<!-- Station color indicator -->
+	{#if currentStationId}
+		{@const station = data.stations?.find((s) => s.id === currentStationId)}
+		{#if station}
+			<div
+				class="flex items-center gap-2 py-1 text-sm"
+				style="background-color: {station.displayColor}20"
+			>
+				<div class="h-3 w-3 rounded-full" style="background-color: {station.displayColor}"></div>
+				<span class="font-medium">{station.name}</span>
+			</div>
+		{/if}
+	{/if}
+
+	<!-- Filter tabs -->
+	<div class="flex gap-2 overflow-x-auto">
+		<Button
+			variant={filter === 'all' ? 'default' : 'outline'}
+			size="sm"
+			onclick={() => (filter = 'all')}
+		>
+			All ({allOrders.length})
+		</Button>
+		<Button
+			variant={filter === 'pending' ? 'default' : 'outline'}
+			size="sm"
+			onclick={() => (filter = 'pending')}
+			class={pendingCount > 0 ? 'border-muted-foreground/50' : ''}
+		>
+			Pending ({pendingCount})
+		</Button>
+		<Button
+			variant={filter === 'preparing' ? 'default' : 'outline'}
+			size="sm"
+			onclick={() => (filter = 'preparing')}
+			class={preparingCount > 0 ? 'border-warning' : ''}
+		>
+			Preparing ({preparingCount})
+		</Button>
+		<Button
+			variant={filter === 'ready' ? 'default' : 'outline'}
+			size="sm"
+			onclick={() => (filter = 'ready')}
+			class={readyCount > 0 ? 'border-success' : ''}
+		>
+			Ready ({readyCount})
+		</Button>
+	</div>
+
+	<!-- Orders Grid -->
+	<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+		{#each orders as order (order.id)}
+			{@const allReady = order.items.every((i) => i.status === 'ready' || i.status === 'served')}
+			{@const hasPending = order.items.some((i) => i.status === 'pending')}
+			{@const priorityBadge = getPriorityBadge(order.priority)}
+			{@const progressPct =
+				order.totalCount > 0 ? Math.round((order.readyCount / order.totalCount) * 100) : 0}
+			<Card.Root
+				class="relative overflow-hidden transition-all duration-300 {order.priority === 'urgent'
+					? 'ring-2 ring-destructive'
+					: order.priority === 'high'
+						? 'ring-1 ring-warning'
+						: ''} {getElapsedBg(order.elapsed)}"
+			>
+				<!-- Priority accent bar -->
+				{#if order.priority === 'urgent'}
+					<div class="absolute top-0 right-0 left-0 h-1 bg-destructive"></div>
+				{:else if order.priority === 'high'}
+					<div class="absolute top-0 right-0 left-0 h-1 bg-warning"></div>
+				{:else if allReady}
+					<div class="absolute top-0 right-0 left-0 h-1 bg-success"></div>
+				{/if}
+
+				<Card.Header class="pb-2">
+					<div class="flex items-start justify-between">
+						<div>
+							<Card.Title class="flex items-center gap-2 text-lg">
+								<span class="font-mono font-bold">{order.id}</span>
+								{#if order.orderSource === 'customer_qr'}
+									<QrBadge />
+								{/if}
+								{#if priorityBadge}
+									<Badge variant={priorityBadge.variant}>
+										{#if priorityBadge.text === 'URGENT'}
+											<IconFlame class="mr-1 h-3 w-3" />
+										{:else}
+											<IconAlertTriangle class="mr-1 h-3 w-3" />
+										{/if}
+										{priorityBadge.text}
+									</Badge>
+								{/if}
+							</Card.Title>
+							<Card.Description class="flex items-center gap-2">
+								<Badge variant="outline">{order.table}</Badge>
+								<span class="text-xs">{order.type}</span>
+							</Card.Description>
+						</div>
+						<div class="text-right">
+							<div class="flex items-center gap-1 {getElapsedColor(order.elapsed)}">
+								<IconClock class="h-4 w-4" />
+								<span class="font-mono text-lg font-bold">{order.elapsed}m</span>
+							</div>
+							<p class="text-xs text-muted-foreground">since {order.createdAt}</p>
+						</div>
+					</div>
+					<!-- Progress bar -->
+					<div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+						<div
+							class="h-full rounded-full transition-all duration-500 {allReady
+								? 'bg-success'
+								: progressPct > 0
+									? 'bg-warning'
+									: 'bg-muted-foreground/40'}"
+							style="width: {progressPct}%"
+						></div>
+					</div>
+				</Card.Header>
+
+				<Card.Content class="space-y-2">
+					{#each order.items as item}
+						{@const isProcessing = processingItems.has(`${order.orderId}-${item.id}`)}
+						{#if item.status === 'cancelled'}
+							<div class="flex items-center rounded-md bg-muted p-2">
+								<div class="flex-1 text-muted-foreground line-through">
+									<span class="font-medium">
+										{item.quantity}x {item.name}
+									</span>
+									{#if item.cancellationReason}
+										<span class="ml-1 text-xs text-destructive no-underline"
+											>({item.cancellationReason.replace(/_/g, ' ')})</span
+										>
+									{/if}
+								</div>
+							</div>
+						{:else}
+							<div
+								class="flex items-center justify-between rounded-md p-2 transition-colors {getItemStatusColor(
+									item.status
+								)}"
+							>
+								<div class="flex-1">
+									<div class="flex items-center gap-2">
+										<span class="font-medium">
+											{item.quantity}x {item.name}
+										</span>
+										{#if item.status === 'preparing'}
+											<span class="inline-block h-2 w-2 animate-pulse rounded-full bg-warning"
+											></span>
+										{/if}
+									</div>
+									{#if item.notes}
+										<p class="mt-1 text-xs font-medium opacity-75">
+											<IconAlertTriangle class="mr-1 inline h-3 w-3" />
+											{item.notes}
+										</p>
+									{/if}
+								</div>
+								<div class="ml-2">
+									{#if item.status === 'pending'}
+										<Button
+											size="sm"
+											variant="outline"
+											disabled={isProcessing}
+											onclick={() => updateItem(order.orderId, item.id, 'preparing')}
+										>
+											{isProcessing ? 'Starting...' : 'Start'}
+										</Button>
+									{:else if item.status === 'preparing'}
+										<Button
+											size="sm"
+											disabled={isProcessing}
+											onclick={() => updateItem(order.orderId, item.id, 'ready')}
+										>
+											<IconCheck class="mr-1 h-3 w-3" />
+											{isProcessing ? 'Saving...' : 'Done'}
+										</Button>
+									{:else}
+										<IconCheck class="h-5 w-5 text-success" />
+									{/if}
+								</div>
+							</div>
+						{/if}
+					{/each}
+				</Card.Content>
+
+				<Card.Footer class="flex-col gap-2">
+					{#if allReady}
+						{#if currentStationId}
+							<!-- Station mode: mark this station's items ready without completing the whole order -->
+							<Button
+								class="w-full bg-success text-success-foreground hover:bg-success/90"
+								onclick={() => markStationReady(order)}
+							>
+								<IconCheck class="mr-2 h-4 w-4" />
+								Station Ready
+							</Button>
+							{#if (order._stationMeta?.otherPendingItems ?? 0) > 0}
+								<p class="mt-1 text-center text-xs text-muted-foreground">
+									Waiting on other stations ({order._stationMeta?.otherPendingItems} items)
+								</p>
+							{/if}
+						{:else}
+							<Button
+								class="w-full bg-success text-success-foreground hover:bg-success/90"
+								onclick={() => completeOrder(order.orderId)}
+							>
+								<IconCheck class="mr-2 h-4 w-4" />
+								Complete Order
+							</Button>
+						{/if}
+					{:else}
+						<div class="flex w-full items-center justify-between">
+							<span class="text-sm text-muted-foreground">
+								{order.readyCount} / {order.totalCount}
+								{order.totalCount === 1 ? 'item' : 'items'} ready
+							</span>
+							{#if hasPending}
+								<Button size="sm" variant="secondary" onclick={() => startAllItems(order)}>
+									<IconPlayerPlay class="mr-1 h-3 w-3" />
+									Start All
+								</Button>
+							{/if}
+						</div>
+					{/if}
+				</Card.Footer>
+			</Card.Root>
+		{/each}
+	</div>
+
+	{#if orders.length === 0}
+		<div class="flex flex-col items-center justify-center py-12 text-center">
+			{#if filter !== 'all'}
+				<IconFilter class="h-12 w-12 text-muted-foreground" />
+				<h3 class="mt-4 text-lg font-semibold">No {filter} orders</h3>
+				<p class="text-muted-foreground">Try a different filter or wait for new orders.</p>
+				<Button variant="outline" class="mt-4" onclick={() => (filter = 'all')}>
+					Show all orders
+				</Button>
+			{:else}
+				<IconCheck class="h-12 w-12 text-success" />
+				<h3 class="mt-4 text-lg font-semibold">All caught up!</h3>
+				<p class="text-muted-foreground">No pending orders in the queue.</p>
+			{/if}
+		</div>
+	{/if}
+</PageShell>

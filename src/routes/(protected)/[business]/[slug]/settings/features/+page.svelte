@@ -30,9 +30,7 @@
 	let isSwapping = $state(false);
 
 	const enabledExtras = $derived(
-		features?.availableFeatures?.filter(
-			(f: FeatureInfo) => f.isEnabled && !f.isCore
-		) ?? []
+		features?.availableFeatures?.filter((f: FeatureInfo) => f.isEnabled && !f.isCore) ?? []
 	);
 
 	const tierOrder: Record<string, number> = { FREE: 0, PRO: 1, ENTERPRISE: 2 };
@@ -110,7 +108,10 @@
 	}
 </script>
 
-<MobilePageHeader title="Features" backHref={`/${$page.params.business}/${$page.params.slug}/settings`} />
+<MobilePageHeader
+	title="Features"
+	backHref={`/${$page.params.business}/${$page.params.slug}/settings`}
+/>
 <div class="flex flex-col gap-6 p-6">
 	{#if !features}
 		<PageHeader back title="Features" description="Manage optional features for your business" />
@@ -142,22 +143,27 @@
 
 		<!-- Grace period banner -->
 		{#if features.graceActive}
-			<div class="flex items-start gap-3 rounded-lg border border-orange-200 bg-orange-50 p-4 dark:border-orange-900/40 dark:bg-orange-900/20">
-				<AlertCircleIcon class="mt-0.5 size-4 shrink-0 text-orange-600 dark:text-orange-400" />
-				<div class="text-sm text-orange-700 dark:text-orange-300">
+			<div class="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/10 p-4">
+				<AlertCircleIcon class="mt-0.5 size-4 shrink-0 text-warning" />
+				<div class="text-sm text-warning">
 					<p class="font-medium">Grace period active</p>
-					<p>Your plan was downgraded. Extra features are read-only until {new Date(features.graceExpiresAt!).toLocaleDateString()}. Upgrade to restore full access or they will be disabled automatically.</p>
+					<p>
+						Your plan was downgraded. Extra features are read-only until {new Date(
+							features.graceExpiresAt!
+						).toLocaleDateString()}. Upgrade to restore full access or they will be disabled
+						automatically.
+					</p>
 				</div>
 			</div>
 		{/if}
 
 		<!-- Warning: no extra slots remaining -->
 		{#if slotsFullAndFree}
-			<div class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-900/20">
-				<AlertCircleIcon class="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-				<p class="text-sm text-amber-700 dark:text-amber-300">
-					All feature slots used. Click enable on a feature to swap it with an existing one,
-					or upgrade your plan for more slots.
+			<div class="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/10 p-4">
+				<AlertCircleIcon class="mt-0.5 size-4 shrink-0 text-warning" />
+				<p class="text-sm text-warning">
+					All feature slots used. Click enable on a feature to swap it with an existing one, or
+					upgrade your plan for more slots.
 				</p>
 			</div>
 		{/if}
@@ -175,7 +181,7 @@
 							<div class="flex flex-wrap items-center gap-1.5">
 								<Card.Title class="text-sm font-semibold">{feature.label}</Card.Title>
 								{#if feature.isCore}
-									<Badge variant="secondary" class="text-[10px] px-1.5 py-0">Core</Badge>
+									<Badge variant="secondary" class="px-1.5 py-0 text-[10px]">Core</Badge>
 								{/if}
 							</div>
 							<div class="shrink-0">
@@ -203,7 +209,10 @@
 						{/if}
 
 						<div class="mt-3 flex flex-wrap items-center gap-2">
-							<Badge variant={getTierBadgeVariant(feature.minimumTier)} class="text-[10px] px-1.5 py-0">
+							<Badge
+								variant={getTierBadgeVariant(feature.minimumTier)}
+								class="px-1.5 py-0 text-[10px]"
+							>
 								{feature.minimumTier}
 							</Badge>
 
@@ -236,7 +245,9 @@
 <Dialog.Root bind:open={swapDialogOpen}>
 	<Dialog.Content class="max-w-sm">
 		<Dialog.Header>
-			<Dialog.Title>All feature slots used ({features?.extraSlotsUsed}/{features?.extraSlots})</Dialog.Title>
+			<Dialog.Title
+				>All feature slots used ({features?.extraSlotsUsed}/{features?.extraSlots})</Dialog.Title
+			>
 			<Dialog.Description>
 				Disable one to make room for <strong>{swapTarget?.label}</strong>:
 			</Dialog.Description>
@@ -247,11 +258,16 @@
 				{@const extraKey = extra.slug || extra.key}
 				<button
 					type="button"
-					class="flex items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm hover:bg-accent transition-colors
+					class="flex items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent
 						{swapSelection === extraKey ? 'bg-accent ring-1 ring-primary' : ''}"
-					onclick={() => swapSelection = extraKey}
+					onclick={() => (swapSelection = extraKey)}
 				>
-					<span class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 {swapSelection === extraKey ? 'border-primary' : 'border-muted-foreground'}">
+					<span
+						class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 {swapSelection ===
+						extraKey
+							? 'border-primary'
+							: 'border-muted-foreground'}"
+					>
 						{#if swapSelection === extraKey}
 							<span class="h-2 w-2 rounded-full bg-primary"></span>
 						{/if}
@@ -262,19 +278,13 @@
 		</div>
 
 		<Dialog.Footer class="flex-col gap-2 sm:flex-row">
-			<Button
-				onclick={handleSwap}
-				disabled={!swapSelection || isSwapping}
-				class="flex-1"
-			>
+			<Button onclick={handleSwap} disabled={!swapSelection || isSwapping} class="flex-1">
 				{#if isSwapping}
 					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
 				{/if}
 				Swap
 			</Button>
-			<Button variant="outline" class="flex-1" href="/billing">
-				Upgrade to Pro
-			</Button>
+			<Button variant="outline" class="flex-1" href="/billing">Upgrade to Pro</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
