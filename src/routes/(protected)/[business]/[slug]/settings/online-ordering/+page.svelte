@@ -6,12 +6,9 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { Separator } from '$lib/components/ui/separator';
+	import { Label } from '$lib/components/ui/label';
 	import * as Card from '$lib/components/ui/card';
 	import {
-		IconShoppingCart,
-		IconTruck,
-		IconPackage,
 		IconCopy,
 		IconQrcode,
 		IconDownload,
@@ -19,13 +16,13 @@
 		IconDeviceFloppy,
 		IconAlertTriangle,
 		IconClock,
-		IconCash,
-		IconUserCheck
+		IconCash
 	} from '@tabler/icons-svelte';
 	import { toast } from 'svelte-sonner';
 	import { invalidate } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import PageShell from '$lib/components/global/page-shell.svelte';
+	import SettingsSection from '$lib/components/global/settings-section.svelte';
 	import { updateOnlineOrderingSettings, type OnlineOrderingConfig } from '$lib/api';
 
 	let { data }: { data: PageData } = $props();
@@ -203,106 +200,98 @@
 	{/if}
 
 	<div class="space-y-6 pb-24">
-		<!-- Section 1: Enable Online Ordering -->
-		<Card.Root>
-			<Card.Header>
-				<div class="flex items-start gap-3">
-					<div class="rounded-lg bg-primary/10 p-2 text-primary">
-						<IconShoppingCart class="size-5" />
-					</div>
-					<div class="flex-1">
-						<Card.Title>Enable Online Ordering</Card.Title>
-						<Card.Description>
-							When enabled, customers can order from your store at a public link. Orders come
-							straight to your POS.
-						</Card.Description>
-					</div>
-				</div>
-			</Card.Header>
-			<Card.Content>
-				<div class="flex items-center justify-between rounded-lg border p-4">
-					<div class="space-y-1 pr-4">
-						<div class="text-sm font-medium">Online Store</div>
+		<div>
+			<SettingsSection
+				title="Online store"
+				description="When enabled, customers can order from your store at a public link. Orders come straight to your POS."
+			>
+				<div class="flex items-start justify-between gap-4">
+					<div class="space-y-0.5">
+						<Label for="online-store-enabled" class="text-sm font-medium">Online store</Label>
 						<p class="text-xs text-muted-foreground">
 							{settings.enabled
 								? 'Your store is live and accepting orders.'
 								: 'Customers cannot currently place online orders.'}
 						</p>
 					</div>
-					<Switch bind:checked={settings.enabled} aria-label="Enable online ordering" />
+					<Switch
+						id="online-store-enabled"
+						bind:checked={settings.enabled}
+						aria-label="Enable online ordering"
+					/>
 				</div>
-			</Card.Content>
-		</Card.Root>
+			</SettingsSection>
+		</div>
 
 		{#if settings.enabled}
-			<!-- Section 2: Order Types -->
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Order Types</Card.Title>
-					<Card.Description>Choose which order types your business supports.</Card.Description>
-				</Card.Header>
-				<Card.Content class="space-y-3">
-					<div class="flex items-center justify-between rounded-lg border p-4">
-						<div class="flex items-start gap-3 pr-4">
-							<IconPackage class="mt-0.5 size-5 text-muted-foreground" />
-							<div class="space-y-1">
-								<div class="text-sm font-medium">Accept Takeaway</div>
+			<div>
+				<SettingsSection
+					title="Order types"
+					description="Choose which order types your business supports."
+				>
+					<div class="space-y-6">
+						<div class="flex items-start justify-between gap-4">
+							<div class="space-y-0.5">
+								<Label for="accepts-takeaway" class="text-sm font-medium">Accept takeaway</Label>
 								<p class="text-xs text-muted-foreground">
 									Customers order online and pick up at your location.
 								</p>
 							</div>
+							<Switch
+								id="accepts-takeaway"
+								bind:checked={settings.acceptsTakeaway}
+								aria-label="Accept takeaway orders"
+							/>
 						</div>
-						<Switch bind:checked={settings.acceptsTakeaway} aria-label="Accept takeaway orders" />
-					</div>
 
-					<div class="flex items-center justify-between rounded-lg border p-4">
-						<div class="flex items-start gap-3 pr-4">
-							<IconTruck class="mt-0.5 size-5 text-muted-foreground" />
-							<div class="space-y-1">
-								<div class="text-sm font-medium">Accept Delivery</div>
+						<div class="flex items-start justify-between gap-4">
+							<div class="space-y-0.5">
+								<Label for="accepts-delivery" class="text-sm font-medium">Accept delivery</Label>
 								<p class="text-xs text-muted-foreground">
 									Customers order online and you deliver to their address. Configure zones and
 									drivers in the Delivery module.
 								</p>
 							</div>
+							<Switch
+								id="accepts-delivery"
+								bind:checked={settings.acceptsDelivery}
+								aria-label="Accept delivery orders"
+							/>
 						</div>
-						<Switch bind:checked={settings.acceptsDelivery} aria-label="Accept delivery orders" />
 					</div>
+				</SettingsSection>
 
-					<Separator />
-
-					<div class="flex items-center justify-between rounded-lg border p-4">
-						<div class="flex items-start gap-3 pr-4">
-							<IconUserCheck class="mt-0.5 size-5 text-muted-foreground" />
-							<div class="space-y-1">
-								<div class="text-sm font-medium">Require Customer Sign-In</div>
-								<p class="text-xs text-muted-foreground">
-									Customers must sign in with Google or phone before placing an order. Enables
-									loyalty tracking and order history. When off, guest checkout stays available.
-								</p>
-							</div>
+				<SettingsSection
+					title="Customer sign-in"
+					description="Whether customers need an account before they can order."
+				>
+					<div class="flex items-start justify-between gap-4">
+						<div class="space-y-0.5">
+							<Label for="auth-enabled" class="text-sm font-medium">Require customer sign-in</Label>
+							<p class="text-xs text-muted-foreground">
+								Customers must sign in with Google or phone before placing an order. Enables loyalty
+								tracking and order history. When off, guest checkout stays available.
+							</p>
 						</div>
-						<Switch bind:checked={settings.authEnabled} aria-label="Require customer sign-in" />
+						<Switch
+							id="auth-enabled"
+							bind:checked={settings.authEnabled}
+							aria-label="Require customer sign-in"
+						/>
 					</div>
-				</Card.Content>
-			</Card.Root>
+				</SettingsSection>
 
-			<!-- Section 3: Order Configuration -->
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Order Configuration</Card.Title>
-					<Card.Description>
-						Set limits, timing, and which payment methods you accept.
-					</Card.Description>
-				</Card.Header>
-				<Card.Content class="space-y-6">
+				<SettingsSection
+					title="Order limits"
+					description="Thresholds and timing shown to customers at checkout."
+				>
 					<div class="grid gap-4 sm:grid-cols-2">
 						<Field.Field>
 							<Field.Label for="min-order-amount" class="flex items-center gap-1.5">
 								<IconCash class="size-4 text-muted-foreground" />
-								Minimum Order Amount
+								Minimum order amount
 							</Field.Label>
-							<div class="relative">
+							<div class="relative max-w-[8rem]">
 								<span
 									class="absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground"
 								>
@@ -325,67 +314,48 @@
 						<Field.Field>
 							<Field.Label for="prep-time" class="flex items-center gap-1.5">
 								<IconClock class="size-4 text-muted-foreground" />
-								Estimated Prep Time (minutes)
+								Estimated prep time (minutes)
 							</Field.Label>
 							<Input
 								id="prep-time"
 								type="number"
 								min="0"
 								step="1"
+								class="max-w-[8rem]"
 								bind:value={settings.estimatedPrepTime}
 							/>
 							<Field.Description>Shown to customers as an expected wait time.</Field.Description>
 						</Field.Field>
 					</div>
+				</SettingsSection>
 
-					<Separator />
+				<SettingsSection
+					title="Payment methods"
+					description="Pick at least one option customers can use to pay for online orders."
+				>
+					{#each PAYMENT_METHODS as method (method.value)}
+						<Field.Label for="payment-{method.value}" class="cursor-pointer">
+							<Field.Field orientation="horizontal">
+								<Checkbox
+									id="payment-{method.value}"
+									checked={isPaymentMethodChecked(method.value)}
+									onCheckedChange={(checked) => togglePaymentMethod(method.value, !!checked)}
+								/>
+								<Field.Content>
+									<Field.Title>{method.label}</Field.Title>
+									<Field.Description>{method.description}</Field.Description>
+								</Field.Content>
+							</Field.Field>
+						</Field.Label>
+					{/each}
+				</SettingsSection>
 
-					<div class="space-y-3">
-						<div>
-							<div class="text-sm font-medium">Accepted Payment Methods</div>
-							<p class="text-xs text-muted-foreground">
-								Pick at least one option customers can use to pay for online orders.
-							</p>
-						</div>
-						<div class="space-y-3">
-							{#each PAYMENT_METHODS as method (method.value)}
-								<label
-									class="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
-								>
-									<Checkbox
-										checked={isPaymentMethodChecked(method.value)}
-										onCheckedChange={(checked) => togglePaymentMethod(method.value, !!checked)}
-									/>
-									<div class="space-y-0.5">
-										<div class="text-sm font-medium">{method.label}</div>
-										<p class="text-xs text-muted-foreground">{method.description}</p>
-									</div>
-								</label>
-							{/each}
-						</div>
-					</div>
-				</Card.Content>
-			</Card.Root>
-
-			<!-- Section 4: Shareable Link + QR Code -->
-			<Card.Root>
-				<Card.Header>
-					<div class="flex items-start gap-3">
-						<div class="rounded-lg bg-primary/10 p-2 text-primary">
-							<IconQrcode class="size-5" />
-						</div>
-						<div>
-							<Card.Title>Shareable Link & QR Code</Card.Title>
-							<Card.Description>
-								Share this link with customers, or print the QR code for tables, takeaway counters,
-								flyers and more.
-							</Card.Description>
-						</div>
-					</div>
-				</Card.Header>
-				<Card.Content class="space-y-5">
+				<SettingsSection
+					title="Shareable link"
+					description="Send this link to customers, or point your social profiles at it."
+				>
 					<Field.Field>
-						<Field.Label for="ordering-url">Public Store URL</Field.Label>
+						<Field.Label for="ordering-url">Public store URL</Field.Label>
 						<div class="flex flex-col gap-2 sm:flex-row">
 							<Input id="ordering-url" readonly value={orderingUrl} class="font-mono text-xs" />
 							<div class="flex gap-2">
@@ -410,9 +380,18 @@
 							</div>
 						</div>
 					</Field.Field>
+				</SettingsSection>
+			</div>
 
-					<Separator />
-
+			<!-- Genuine artifact: a print-ready QR preview panel, not a settings section. -->
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>QR code</Card.Title>
+					<Card.Description>
+						Print the QR code for tables, takeaway counters, flyers and more.
+					</Card.Description>
+				</Card.Header>
+				<Card.Content>
 					<div class="grid gap-6 sm:grid-cols-[auto_1fr] sm:items-center">
 						<div class="flex justify-center sm:justify-start">
 							{#if browser}
@@ -451,7 +430,7 @@
 			</Card.Root>
 		{/if}
 
-		<!-- Section 5: Save button -->
+		<!-- Sticky save bar -->
 		<div
 			class="sticky bottom-0 -mx-4 flex items-center justify-between gap-3 border-t bg-background/95 px-4 py-4 backdrop-blur sm:rounded-b-none md:-mx-6 md:px-6"
 		>

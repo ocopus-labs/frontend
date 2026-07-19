@@ -241,10 +241,15 @@
 		<!-- Mobile: Card list -->
 		<div class="flex flex-col gap-2 md:hidden">
 			{#each filteredOrders as order (order.id)}
-				<button
-					type="button"
-					class="block w-full rounded-lg border bg-card p-3 text-left transition-transform active:scale-[0.99]"
-					onclick={() => viewOrder(order.orderId)}
+				<!--
+					An <a>, not a <button>: this only navigates, so a link gives
+					middle-click / open-in-new-tab for free. It also removes the
+					invalid-HTML risk from the Accept/Reject buttons below, which
+					cannot be nested inside a <button>.
+				-->
+				<a
+					href="/{$page.params.business}/{$page.params.slug}/orders/{order.orderId}"
+					class="block w-full rounded-lg border bg-card p-3 text-left no-underline transition-transform active:scale-[0.99]"
 				>
 					<div class="flex items-center justify-between">
 						<span class="font-medium">
@@ -263,6 +268,13 @@
 						<span class="font-medium text-foreground">{formatCurrency(order.total)}</span>
 					</div>
 					<div class="mt-1 text-xs text-muted-foreground">{order.time}</div>
+					<!--
+						Currently unreachable: `orders` filters out pending_approval above,
+						so this branch never renders. Kept (rather than deleted) in case
+						that filter is ever relaxed — but note `preventDefault` is now
+						required alongside `stopPropagation`, because these sit inside a
+						link and stopping propagation alone would not stop navigation.
+					-->
 					{#if order.status === 'pending_approval' && order.orderSource === 'customer_qr'}
 						<div class="mt-2 flex gap-2">
 							<Button
@@ -270,6 +282,7 @@
 								variant="default"
 								class="flex-1"
 								onclick={(e: MouseEvent) => {
+									e.preventDefault();
 									e.stopPropagation();
 									handleAccept(order.orderId);
 								}}>Accept</Button
@@ -279,13 +292,14 @@
 								variant="destructive"
 								class="flex-1"
 								onclick={(e: MouseEvent) => {
+									e.preventDefault();
 									e.stopPropagation();
 									handleReject(order.orderId);
 								}}>Reject</Button
 							>
 						</div>
 					{/if}
-				</button>
+				</a>
 			{/each}
 		</div>
 

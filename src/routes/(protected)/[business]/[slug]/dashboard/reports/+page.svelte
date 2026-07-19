@@ -37,6 +37,9 @@
 	import type { CurrencyCode } from '$lib/utils/i18n';
 	import { downloadBlob, downloadCsv, downloadPdf } from '$lib/utils/export';
 	import PageShell from '$lib/components/global/page-shell.svelte';
+	import KpiCard from '$lib/components/global/kpi-card.svelte';
+	import KpiGrid from '$lib/components/global/kpi-grid.svelte';
+	import FilterSelect from '$lib/components/global/filter-select.svelte';
 
 	let { data } = $props();
 
@@ -364,28 +367,21 @@
 
 <PageShell title="Reports" description="Generate and download business reports">
 	{#snippet actions()}
-		<Select.Root
-			type="single"
+		<FilterSelect
 			value={period}
 			onValueChange={(v) => {
 				period = v;
 				handlePeriodChange(v);
 			}}
-		>
-			<Select.Trigger
-				class="w-[160px] rounded-md border border-input bg-background px-3 py-2 text-sm"
-			>
-				{getPeriodLabel(period)}
-			</Select.Trigger>
-			<Select.Content>
-				<Select.Item value="today">Today</Select.Item>
-				<Select.Item value="yesterday">Yesterday</Select.Item>
-				<Select.Item value="week">This Week</Select.Item>
-				<Select.Item value="month">This Month</Select.Item>
-				<Select.Item value="quarter">This Quarter</Select.Item>
-				<Select.Item value="year">This Year</Select.Item>
-			</Select.Content>
-		</Select.Root>
+			options={[
+				{ value: 'today', label: 'Today' },
+				{ value: 'yesterday', label: 'Yesterday' },
+				{ value: 'week', label: 'This Week' },
+				{ value: 'month', label: 'This Month' },
+				{ value: 'quarter', label: 'This Quarter' },
+				{ value: 'year', label: 'This Year' }
+			]}
+		/>
 		<Button variant="outline" onclick={exportPdf} disabled={isExporting}>
 			<IconFileTypePdf class="mr-1.5 h-4 w-4" />
 			{isExporting ? 'Exporting...' : 'PDF'}
@@ -465,86 +461,52 @@
 
 	<div bind:this={reportContentEl} class="report-content flex flex-col gap-4">
 		<!-- Sales Summary Cards -->
-		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-			<Card.Root>
-				<Card.Header class="pb-2">
-					<Card.Title class="text-sm font-medium text-muted-foreground">Total Revenue</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					<div class="text-2xl font-bold text-success">
-						{formatCurrency(salesSummary.totalRevenue)}
-					</div>
-					<p class="text-xs text-muted-foreground">{getPeriodLabel(period)}</p>
-				</Card.Content>
-			</Card.Root>
-
-			<Card.Root>
-				<Card.Header class="pb-2">
-					<Card.Title class="text-sm font-medium text-muted-foreground">Total Orders</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					<div class="text-2xl font-bold">
-						{formatNumber(salesSummary.totalOrders)}
-					</div>
-					<p class="text-xs text-muted-foreground">{getPeriodLabel(period)}</p>
-				</Card.Content>
-			</Card.Root>
-
-			<Card.Root>
-				<Card.Header class="pb-2">
-					<Card.Title class="text-sm font-medium text-muted-foreground">
-						Average Order Value
-					</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					<div class="text-2xl font-bold">
-						{formatCurrency(salesSummary.averageOrderValue)}
-					</div>
-					<p class="text-xs text-muted-foreground">per order</p>
-				</Card.Content>
-			</Card.Root>
-
-			<Card.Root>
-				<Card.Header class="pb-2">
-					<Card.Title class="text-sm font-medium text-muted-foreground">Net Revenue</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					<div class="text-2xl font-bold">
-						{formatCurrency(salesSummary.netRevenue)}
-					</div>
-					<p class="text-xs text-muted-foreground">after tax &amp; discounts</p>
-				</Card.Content>
-			</Card.Root>
-		</div>
+		<KpiGrid>
+			<KpiCard
+				label="Total Revenue"
+				value={formatCurrency(salesSummary.totalRevenue)}
+				icon={IconReportMoney}
+				accent="success"
+				description={getPeriodLabel(period)}
+			/>
+			<KpiCard
+				label="Total Orders"
+				value={formatNumber(salesSummary.totalOrders)}
+				icon={IconReceipt2}
+				accent="chart-3"
+				description={getPeriodLabel(period)}
+			/>
+			<KpiCard
+				label="Average Order Value"
+				value={formatCurrency(salesSummary.averageOrderValue)}
+				icon={IconCash}
+				accent="chart-4"
+				description="per order"
+			/>
+			<KpiCard
+				label="Net Revenue"
+				value={formatCurrency(salesSummary.netRevenue)}
+				icon={IconReportMoney}
+				accent="chart-1"
+				description="after tax & discounts"
+			/>
+		</KpiGrid>
 
 		<!-- Tax and Discount Summary -->
-		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-			<Card.Root>
-				<Card.Header class="pb-2">
-					<Card.Title class="text-sm font-medium text-muted-foreground">
-						Total Tax Collected
-					</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					<div class="text-2xl font-bold">
-						{formatCurrency(salesSummary.totalTax)}
-					</div>
-				</Card.Content>
-			</Card.Root>
-
-			<Card.Root>
-				<Card.Header class="pb-2">
-					<Card.Title class="text-sm font-medium text-muted-foreground">
-						Total Discounts Given
-					</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					<div class="text-2xl font-bold text-destructive">
-						{formatCurrency(salesSummary.totalDiscount)}
-					</div>
-				</Card.Content>
-			</Card.Root>
-		</div>
+		<KpiGrid columns={2}>
+			<KpiCard
+				label="Total Tax Collected"
+				value={formatCurrency(salesSummary.totalTax)}
+				icon={IconReceipt2}
+				accent="chart-6"
+			/>
+			<KpiCard
+				label="Total Discounts Given"
+				value={formatCurrency(salesSummary.totalDiscount)}
+				icon={IconCash}
+				accent="destructive"
+			/>
+		</KpiGrid>
 
 		<!-- Daily Sales Ledger (replaces revenue trend chart) -->
 		{#if report?.dailyTrend && report.dailyTrend.length > 0}

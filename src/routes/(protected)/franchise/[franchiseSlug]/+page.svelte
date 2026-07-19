@@ -1,243 +1,320 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
-	import { LiveCounter, StatusPill } from '$lib/components/data-display';
-	import { getFranchiseAnalytics } from '$lib/api/franchise';
-	import type { FranchiseAnalytics } from '$lib/api/types';
+	import { Skeleton } from '$lib/components/ui/skeleton';
+	import * as Alert from '$lib/components/ui/alert';
+	import SectionHeader from '$lib/components/global/section-header.svelte';
+	import KpiCard from '$lib/components/global/kpi-card.svelte';
+	import KpiGrid from '$lib/components/global/kpi-grid.svelte';
+	import LocationMap, { type MapLocation } from '$lib/components/global/location-map.svelte';
+	import { EmptyState } from '$lib/components/data-display';
+	import { getFranchiseAnalytics, getFranchiseBusinesses } from '$lib/api/franchise';
+	import { formatCurrency, type CurrencyCode } from '$lib/utils/i18n';
+	import { formatMoney } from '$lib/utils/money';
+	import type { FranchiseAnalytics, Business } from '$lib/api/types';
 
-	import Building2 from '@lucide/svelte/icons/building-2';
 	import MapPin from '@lucide/svelte/icons/map-pin';
 	import Users from '@lucide/svelte/icons/users';
-	import BarChart3 from '@lucide/svelte/icons/bar-chart-3';
-	import Settings from '@lucide/svelte/icons/settings';
-	import DollarSign from '@lucide/svelte/icons/dollar-sign';
+	import IndianRupee from '@lucide/svelte/icons/indian-rupee';
 	import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
+	import Store from '@lucide/svelte/icons/store';
+	import AlertTriangle from '@lucide/svelte/icons/triangle-alert';
 
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
 	const franchise = $derived(data.franchise);
-	const userRole = $derived(data.userRole);
 
 	let analytics = $state<FranchiseAnalytics | null>(null);
-	let loadingAnalytics = $state(true);
+	let businesses = $state<Business[]>([]);
+	let loading = $state(true);
+	let loadError = $state(false);
 
 	$effect(() => {
-		if (franchise?.id) {
-			getFranchiseAnalytics(franchise.id)
-				.then((res) => {
-					analytics = res.analytics;
-				})
-				.catch(() => {
-					analytics = null;
-				})
-				.finally(() => {
-					loadingAnalytics = false;
-				});
-		}
+		const id = franchise?.id;
+		if (!id) return;
+
+		loading = true;
+		loadError = false;
+
+		Promise.all([
+			getFranchiseAnalytics(id),
+			// Needed for coordinates — the analytics payload carries no address.
+			getFranchiseBusinesses(id).catch(() => ({ businesses: [] as Business[] }))
+		])
+			.then(([analyticsRes, businessRes]) => {
+				analytics = analyticsRes.analytics;
+				businesses = businessRes.businesses;
+			})
+			.catch(() => {
+				analytics = null;
+				loadError = true;
+			})
+			.finally(() => {
+				loading = false;
+			});
 	});
+
+	// Each location carries its own currency, so a location's figure formats in
+	// that location's currency and the network total renders as per-currency
+	// buckets. Formatting everything with location #1's currency mislabelled
+	// every other location's money.
+	function money(amount: number, currency: string) {
+		return formatCurrency(amount, currency as CurrencyCode);
+	}
+
+	const CHART_ACCENTS = [
+		'chart-1',
+		'chart-2',
+		'chart-3',
+		'chart-4',
+		'chart-5',
+		'chart-6',
+		'chart-7',
+		'chart-8'
+	];
+
+	const businessById = $derived(new Map(businesses.map((b) => [b.id, b])));
+
+	/** Ranked by revenue, with each location's share of the franchise total. */
+	const rankedLocations = $derived.by(() => {
+		const rows = [...(analytics?.locationBreakdown ?? [])].sort((a, b) => b.revenue - a.revenue);
+		const total = rows.reduce((sum, r) => sum + r.revenue, 0);
+		return rows.map((row, i) => ({
+			...row,
+			share: total > 0 ? row.revenue / total : 0,
+			accent: CHART_ACCENTS[i % CHART_ACCENTS.length],
+			business: businessById.get(row.businessId)
+		}));
+	});
+
+	const mapLocations = $derived<MapLocation[]>(
+		rankedLocations
+			.filter((row) => row.business?.address?.lat != null && row.business?.address?.lng != null)
+			.map((row) => ({
+				id: row.businessId,
+				name: row.businessName,
+				lat: row.business!.address!.lat as number,
+				lng: row.business!.address!.lng as number,
+				subtitle: `${money(row.revenue, row.currency)} · ${row.orders} orders`,
+				accent: row.accent,
+				href: row.business ? `/${row.business.type}/${row.business.slug}/dashboard` : undefined
+			}))
+	);
 </script>
 
 <svelte:head>
 	<title>{franchise?.name ?? 'Franchise'} | POS</title>
 </svelte:head>
 
-<div class="space-y-6">
-	<!-- Header -->
-	<div class="flex items-start justify-between">
-		<div class="flex items-center gap-4">
-			{#if franchise?.logo}
-				<img
-					src={franchise.logo}
-					alt={franchise.name}
-					class="size-16 rounded-xl object-cover ring-2 ring-background shadow-sm"
+{#if loadError}
+	<Alert.Root variant="destructive">
+		<AlertTriangle class="size-4" />
+		<Alert.Title>Couldn't load franchise data</Alert.Title>
+		<Alert.Description>
+			Analytics for this franchise are unavailable right now. Try refreshing the page.
+		</Alert.Description>
+	</Alert.Root>
+{/if}
+
+<!-- Headline KPIs -->
+{#if loading}
+	<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+		{#each [1, 2, 3, 4] as i (i)}
+			<Card.Root class="p-4">
+				<div class="flex items-start justify-between">
+					<Skeleton class="h-3 w-20" />
+					<Skeleton class="size-8 rounded-lg" />
+				</div>
+				<Skeleton class="mt-3 h-7 w-24" />
+				<Skeleton class="mt-3 h-3 w-28" />
+			</Card.Root>
+		{/each}
+	</div>
+{:else}
+	<KpiGrid columns={4}>
+		<KpiCard
+			label="Network revenue"
+			value={formatMoney(analytics?.totalRevenue)}
+			description="Across all locations"
+			icon={IndianRupee}
+			accent="chart-1"
+			emphasize
+		/>
+		<KpiCard
+			label="Total orders"
+			value={(analytics?.totalOrders ?? 0).toLocaleString('en-IN')}
+			description="Across all locations"
+			icon={ShoppingCart}
+			accent="chart-3"
+		/>
+		<KpiCard
+			label="Locations"
+			value={analytics?.totalLocations ?? 0}
+			description="Active in this franchise"
+			icon={MapPin}
+			accent="chart-4"
+			href="/franchise/{franchise?.slug}/locations"
+		/>
+		<KpiCard
+			label="Team members"
+			value={analytics?.totalStaff ?? 0}
+			description="Franchise-level staff"
+			icon={Users}
+			accent="chart-5"
+			href="/franchise/{franchise?.slug}/team"
+		/>
+	</KpiGrid>
+{/if}
+
+<!-- Map + ranked locations -->
+<div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+	<Card.Root class="lg:col-span-2">
+		<Card.Header class="flex flex-row items-center justify-between gap-2 space-y-0">
+			<div>
+				<Card.Title class="text-section-title">Location map</Card.Title>
+				<Card.Description>
+					{mapLocations.length} of {rankedLocations.length} locations mapped
+				</Card.Description>
+			</div>
+			<Button variant="outline" size="sm" href="/franchise/{franchise?.slug}/locations">
+				Manage
+			</Button>
+		</Card.Header>
+		<Card.Content>
+			{#if loading}
+				<Skeleton class="h-[360px] w-full rounded-lg" />
+			{:else}
+				<LocationMap
+					locations={mapLocations}
+					height="360px"
+					emptyTitle="No locations mapped yet"
+					emptyDescription="Locations appear here once their address has coordinates."
+				/>
+			{/if}
+		</Card.Content>
+	</Card.Root>
+
+	<Card.Root class="flex max-h-[520px] flex-col">
+		<Card.Header class="space-y-0">
+			<Card.Title class="text-section-title">Top locations</Card.Title>
+			<Card.Description>Ranked by revenue</Card.Description>
+		</Card.Header>
+		<Card.Content class="flex-1 space-y-3 overflow-y-auto">
+			{#if loading}
+				{#each [1, 2, 3, 4] as i (i)}
+					<div class="flex items-center gap-3">
+						<Skeleton class="size-8 rounded-md" />
+						<div class="flex-1 space-y-1.5">
+							<Skeleton class="h-3.5 w-28" />
+							<Skeleton class="h-2.5 w-20" />
+						</div>
+					</div>
+				{/each}
+			{:else if rankedLocations.length === 0}
+				<EmptyState
+					type="no-data"
+					icon={Store}
+					title="No location data"
+					description="Revenue appears here once locations start taking orders."
+					size="sm"
 				/>
 			{:else}
-				<div
-					class="flex size-16 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 shadow-sm"
-				>
-					<Building2 class="size-8 text-primary" />
-				</div>
-			{/if}
-			<div>
-				<h1 class="text-3xl font-bold tracking-tight">{franchise?.name}</h1>
-				<div class="mt-1 flex items-center gap-2">
-					<StatusPill
-						label={franchise?.status ?? 'active'}
-						status={franchise?.status === 'active' ? 'success' : 'warning'}
-						size="sm"
-					/>
-					{#if userRole}
-						<span class="text-sm text-muted-foreground capitalize">
-							{userRole.replace('_', ' ')}
-						</span>
-					{/if}
-				</div>
-			</div>
-		</div>
-		{#if userRole === 'franchise_owner'}
-			<Button
-				variant="outline"
-				onclick={() => goto(`/franchise/${franchise?.slug}/settings`)}
-			>
-				<Settings class="mr-2 h-4 w-4" />
-				Settings
-			</Button>
-		{/if}
-	</div>
-
-	<!-- KPI Cards -->
-	<div class="grid gap-4 md:grid-cols-4">
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Locations</Card.Title>
-				<MapPin class="h-4 w-4 text-muted-foreground" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold">
-					{#if loadingAnalytics}
-						<div class="h-8 w-12 animate-pulse rounded bg-muted"></div>
-					{:else}
-						<LiveCounter value={analytics?.totalLocations ?? 0} />
-					{/if}
-				</div>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Total Orders</Card.Title>
-				<ShoppingCart class="h-4 w-4 text-muted-foreground" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold">
-					{#if loadingAnalytics}
-						<div class="h-8 w-12 animate-pulse rounded bg-muted"></div>
-					{:else}
-						<LiveCounter value={analytics?.totalOrders ?? 0} />
-					{/if}
-				</div>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Revenue</Card.Title>
-				<DollarSign class="h-4 w-4 text-muted-foreground" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold">
-					{#if loadingAnalytics}
-						<div class="h-8 w-12 animate-pulse rounded bg-muted"></div>
-					{:else}
-						<LiveCounter value={analytics?.totalRevenue ?? 0} prefix="$" />
-					{/if}
-				</div>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Team Members</Card.Title>
-				<Users class="h-4 w-4 text-muted-foreground" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold">
-					{#if loadingAnalytics}
-						<div class="h-8 w-12 animate-pulse rounded bg-muted"></div>
-					{:else}
-						<LiveCounter value={analytics?.totalStaff ?? 0} />
-					{/if}
-				</div>
-			</Card.Content>
-		</Card.Root>
-	</div>
-
-	<!-- Quick Navigation -->
-	<div class="grid gap-4 md:grid-cols-4">
-		<Card.Root
-			class="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
-			onclick={() => goto(`/franchise/${franchise?.slug}/locations`)}
-		>
-			<Card.Content class="flex items-center gap-3 p-4">
-				<MapPin class="size-5 text-primary" />
-				<div>
-					<p class="font-medium">Locations</p>
-					<p class="text-xs text-muted-foreground">Manage locations</p>
-				</div>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root
-			class="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
-			onclick={() => goto(`/franchise/${franchise?.slug}/analytics`)}
-		>
-			<Card.Content class="flex items-center gap-3 p-4">
-				<BarChart3 class="size-5 text-primary" />
-				<div>
-					<p class="font-medium">Analytics</p>
-					<p class="text-xs text-muted-foreground">View reports</p>
-				</div>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root
-			class="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
-			onclick={() => goto(`/franchise/${franchise?.slug}/team`)}
-		>
-			<Card.Content class="flex items-center gap-3 p-4">
-				<Users class="size-5 text-primary" />
-				<div>
-					<p class="font-medium">Team</p>
-					<p class="text-xs text-muted-foreground">Manage staff</p>
-				</div>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root
-			class="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
-			onclick={() => goto(`/franchise/${franchise?.slug}/settings`)}
-		>
-			<Card.Content class="flex items-center gap-3 p-4">
-				<Settings class="size-5 text-primary" />
-				<div>
-					<p class="font-medium">Settings</p>
-					<p class="text-xs text-muted-foreground">Franchise config</p>
-				</div>
-			</Card.Content>
-		</Card.Root>
-	</div>
-
-	<!-- Location Breakdown -->
-	{#if analytics?.locationBreakdown && analytics.locationBreakdown.length > 0}
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Location Performance</Card.Title>
-			</Card.Header>
-			<Card.Content>
-				<div class="space-y-3">
-					{#each analytics.locationBreakdown as location (location.businessId)}
-						<div class="flex items-center justify-between rounded-lg border p-3">
-							<div class="flex items-center gap-3">
-								<div
-									class="flex size-8 items-center justify-center rounded-md bg-muted"
-								>
-									<MapPin class="size-4 text-muted-foreground" />
-								</div>
-								<span class="font-medium">{location.businessName}</span>
+				{#each rankedLocations as location, i (location.businessId)}
+					<div class="space-y-1.5">
+						<div class="flex items-center gap-3">
+							<span
+								class="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-semibold text-muted-foreground tabular-nums"
+							>
+								{i + 1}
+							</span>
+							<div class="min-w-0 flex-1">
+								{#if location.business}
+									<a
+										href="/{location.business.type}/{location.business.slug}/dashboard"
+										class="truncate text-sm font-medium no-underline hover:underline"
+									>
+										{location.businessName}
+									</a>
+								{:else}
+									<p class="truncate text-sm font-medium">{location.businessName}</p>
+								{/if}
+								<p class="text-xs text-muted-foreground tabular-nums">
+									{location.orders} orders · {Math.round(location.share * 100)}%
+								</p>
 							</div>
-							<div class="flex items-center gap-6 text-sm text-muted-foreground">
-								<span>{location.orders} orders</span>
-								<span class="font-medium text-foreground">
-									${location.revenue.toFixed(2)}
-								</span>
+							<span class="shrink-0 text-sm font-semibold tabular-nums">
+								{money(location.revenue, location.currency)}
+							</span>
+						</div>
+						<div class="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+							<div
+								class="h-full rounded-full"
+								style="width: {Math.max(
+									location.share * 100,
+									2
+								)}%; background-color: var(--{location.accent})"
+							></div>
+						</div>
+					</div>
+				{/each}
+			{/if}
+		</Card.Content>
+	</Card.Root>
+</div>
+
+<!-- Full breakdown -->
+{#if !loading && rankedLocations.length > 0}
+	<div class="space-y-3">
+		<SectionHeader
+			title="Location performance"
+			description="Every location in this franchise, ranked by revenue"
+		/>
+		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+			{#each rankedLocations as location (location.businessId)}
+				<Card.Root class="transition-all hover:border-primary/40 hover:shadow-md">
+					<Card.Content class="space-y-3 p-4">
+						<div class="flex items-start gap-3">
+							<span
+								class="flex size-9 shrink-0 items-center justify-center rounded-lg"
+								style="background-color: color-mix(in oklch, var(--{location.accent}) 12%, transparent); color: var(--{location.accent})"
+							>
+								<Store class="size-4" />
+							</span>
+							<div class="min-w-0 flex-1">
+								<p class="truncate text-sm font-medium">{location.businessName}</p>
+								{#if location.business?.address}
+									<p class="truncate text-xs text-muted-foreground">
+										{[location.business.address.city, location.business.address.country]
+											.filter(Boolean)
+											.join(', ') || 'No address'}
+									</p>
+								{/if}
 							</div>
 						</div>
-					{/each}
-				</div>
-			</Card.Content>
-		</Card.Root>
-	{/if}
-</div>
+						<div class="flex items-end justify-between gap-3">
+							<div>
+								<p class="text-lg font-semibold tabular-nums">
+									{money(location.revenue, location.currency)}
+								</p>
+								<p class="text-xs text-muted-foreground tabular-nums">
+									{location.orders} orders
+								</p>
+							</div>
+							{#if location.business}
+								<Button
+									variant="outline"
+									size="sm"
+									href="/{location.business.type}/{location.business.slug}/dashboard"
+								>
+									Open
+								</Button>
+							{/if}
+						</div>
+					</Card.Content>
+				</Card.Root>
+			{/each}
+		</div>
+	</div>
+{/if}

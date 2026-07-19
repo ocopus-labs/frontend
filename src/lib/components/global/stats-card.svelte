@@ -39,7 +39,7 @@
 </script>
 
 <div
-	class="grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4"
+	class="grid grid-cols-1 gap-4 *:data-[slot=card]:shadow-xs @xl/page:grid-cols-2 @5xl/page:grid-cols-4"
 >
 	{#each stats as stat (stat.title)}
 		{@const href = stat.href && basePath ? `${basePath}/${stat.href}` : stat.href}
@@ -72,7 +72,7 @@
 							stroke-width="2.5"
 							stroke-linecap="round"
 							stroke-linejoin="round"
-							class={stat.change >= 0 ? 'text-green-500' : 'text-red-500'}
+							class={stat.change >= 0 ? 'text-success' : 'text-destructive'}
 						/>
 					</svg>
 				{/if}

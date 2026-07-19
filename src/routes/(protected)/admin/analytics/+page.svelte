@@ -8,7 +8,8 @@
 	import { page } from '$app/stores';
 	import type { PageData } from './$types';
 
-	import { formatCurrency } from '$lib/utils/i18n';
+	import { formatCurrency, type CurrencyCode } from '$lib/utils/i18n';
+	import { formatMoney } from '$lib/utils/money';
 	import { formatDateShort } from '$lib/utils/formatting';
 
 	import BarChart from '$lib/components/chart/lazy-bar-chart.svelte';
@@ -25,8 +26,13 @@
 	let startDate = $state(data.filters.startDate || '');
 	let endDate = $state(data.filters.endDate || '');
 
-	function formatCurrencyValue(value: number): string {
-		return formatCurrency(value, 'USD');
+	/**
+	 * A single business bills in one currency, so its own figure is scalar --
+	 * but it must be formatted in *its* currency. This previously hardcoded USD
+	 * for every business on the platform.
+	 */
+	function formatCurrencyValue(value: number, currency: string): string {
+		return formatCurrency(value, currency as CurrencyCode);
 	}
 
 	function applyDateFilter() {
@@ -42,8 +48,14 @@
 	const totalOrders = $derived(
 		data.analytics.dailyStats.reduce((sum: number, d: any) => sum + Number(d.orders_count), 0)
 	);
+	// `dailyStats` now has one row per (day, currency), so revenue folds into
+	// per-currency buckets rather than a single sum across every tenant.
 	const totalRevenue = $derived(
-		data.analytics.dailyStats.reduce((sum: number, d: any) => sum + Number(d.revenue), 0)
+		data.analytics.dailyStats.reduce((totals: Record<string, number>, d: any) => {
+			const currency = String(d.currency);
+			totals[currency] = (totals[currency] ?? 0) + Number(d.revenue);
+			return totals;
+		}, {})
 	);
 	const totalNewUsers = $derived(
 		data.analytics.userGrowth.reduce((sum: number, d: any) => sum + Number(d.new_users), 0)
@@ -53,13 +65,16 @@
 	);
 
 	// Chart data transformations
-	const dailyChartData = $derived(
-		data.analytics.dailyStats.map((d: any) => ({
-			date: formatDateShort(d.date),
-			orders: Number(d.orders_count),
-			revenue: Number(d.revenue)
-		}))
-	);
+	// One row per (day, currency) means a day can appear several times; order
+	// counts fold across currencies, so the chart plots one bar per day.
+	const dailyChartData = $derived.by(() => {
+		const byDate = new Map<string, number>();
+		for (const d of data.analytics.dailyStats as any[]) {
+			const date = formatDateShort(d.date);
+			byDate.set(date, (byDate.get(date) ?? 0) + Number(d.orders_count));
+		}
+		return [...byDate].map(([date, orders]) => ({ date, orders }));
+	});
 
 	const userGrowthChartData = $derived(
 		data.analytics.userGrowth.map((d: any) => ({
@@ -127,7 +142,7 @@
 				<DollarSign class="h-4 w-4 text-muted-foreground" />
 			</Card.Header>
 			<Card.Content>
-				<div class="text-2xl font-bold">{formatCurrencyValue(totalRevenue)}</div>
+				<div class="text-2xl font-bold">{formatMoney(totalRevenue)}</div>
 				<p class="text-xs text-muted-foreground">In selected period</p>
 			</Card.Content>
 		</Card.Root>
@@ -207,7 +222,7 @@
 								</div>
 							</div>
 							<Badge variant="secondary" class="font-mono">
-								{formatCurrencyValue(Number(business.total_revenue))}
+								{formatCurrencyValue(Number(business.total_revenue), business.currency)}
 							</Badge>
 						</div>
 					{:else}

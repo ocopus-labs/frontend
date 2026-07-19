@@ -7,7 +7,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Table from '$lib/components/ui/table';
-	import { Badge } from '$lib/components/ui/badge';
+	import * as Field from '$lib/components/ui/field';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as ImageCropper from '$lib/components/ui/image-cropper';
 	import { toast } from 'svelte-sonner';
@@ -20,16 +20,7 @@
 		seedDefaultCategories,
 		bulkUpdatePrices
 	} from '$lib/api';
-	import {
-		IconSearch,
-		IconPlus,
-		IconEdit,
-		IconTrash,
-		IconEye,
-		IconEyeOff,
-		IconCopy,
-		IconX
-	} from '@tabler/icons-svelte';
+	import { IconSearch, IconPlus, IconX } from '@tabler/icons-svelte';
 	import * as Select from '$lib/components/ui/select';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Checkbox } from '$lib/components/ui/checkbox';
@@ -37,7 +28,8 @@
 	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import PageShell from '$lib/components/global/page-shell.svelte';
-	import { EmptyState, StatusPill } from '$lib/components/data-display';
+	import MenuItemCard from '$lib/components/menu/menu-item-card.svelte';
+	import { EmptyState } from '$lib/components/data-display';
 	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
 	import type { CurrencyCode } from '$lib/utils/i18n';
 	import { userFriendlyError } from '$lib/utils/error';
@@ -472,8 +464,9 @@
 
 {#snippet comboPicker()}
 	<div class="grid grid-cols-4 items-start gap-4">
-		<!-- svelte-ignore a11y_label_has_associated_control -->
-		<label class="pt-2 text-right text-sm font-medium">Components</label>
+		<Field.Label class="w-full justify-end pt-2 text-right text-sm font-medium">
+			Components
+		</Field.Label>
 		<div class="col-span-3 space-y-2">
 			{#each formComboComponents as comp, i}
 				<div class="flex items-center gap-2 rounded border p-2 text-sm">
@@ -491,11 +484,12 @@
 						variant="ghost"
 						size="icon"
 						class="h-6 w-6 shrink-0"
+						aria-label="Remove {comp.name} from combo"
 						onclick={() => {
 							formComboComponents = formComboComponents.filter((_, idx) => idx !== i);
 						}}
 					>
-						<span class="text-xs">x</span>
+						<IconX class="h-3 w-3" />
 					</Button>
 				</div>
 			{/each}
@@ -505,9 +499,10 @@
 					{#each menuItems.filter((it) => it.name
 								.toLowerCase()
 								.includes(comboSearch.toLowerCase()) && !formComboComponents.some((c) => c.menuItemId === it.id)) as it}
-						<button
-							type="button"
-							class="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-sm hover:bg-accent"
+						<Button
+							variant="ghost"
+							size="sm"
+							class="h-auto w-full justify-start gap-2 px-2 py-1 text-left text-sm font-normal"
 							onclick={() => {
 								formComboComponents = [
 									...formComboComponents,
@@ -517,7 +512,7 @@
 							}}
 						>
 							{it.name}
-						</button>
+						</Button>
 					{/each}
 				</div>
 			{/if}
@@ -530,7 +525,9 @@
 
 {#snippet ingredientPicker()}
 	<div class="grid grid-cols-4 items-start gap-4">
-		<label class="pt-2 text-right text-sm font-medium">Ingredients</label>
+		<Field.Label class="w-full justify-end pt-2 text-right text-sm font-medium">
+			Ingredients
+		</Field.Label>
 		<div class="col-span-3 space-y-3">
 			<!-- Search inventory items -->
 			<div class="relative">
@@ -544,9 +541,10 @@
 			{#if ingredientSearch && filteredInventory.length > 0}
 				<div class="max-h-40 overflow-y-auto rounded-md border bg-popover">
 					{#each filteredInventory.slice(0, 8) as invItem (invItem.id)}
-						<button
-							type="button"
-							class="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-accent"
+						<Button
+							variant="ghost"
+							size="sm"
+							class="h-auto w-full justify-between rounded-none px-3 py-2 text-left text-sm font-normal"
 							onclick={() => addIngredient(invItem)}
 						>
 							<span class="font-medium">{invItem.name}</span>
@@ -554,7 +552,7 @@
 								{Number(invItem.currentStock)}
 								{invItem.unit} in stock
 							</span>
-						</button>
+						</Button>
 					{/each}
 				</div>
 			{:else if ingredientSearch && filteredInventory.length === 0}
@@ -586,6 +584,7 @@
 								variant="ghost"
 								size="icon"
 								class="h-7 w-7"
+								aria-label="Remove {ingredient.inventoryItemName}"
 								onclick={() => removeIngredient(ingredient.inventoryItemId)}
 							>
 								<IconX class="h-3 w-3" />
@@ -660,114 +659,23 @@
 		{/if}
 	</div>
 
-	<!-- Items Table -->
-	<div class="overflow-x-auto rounded-md border">
-		<Table.Root>
-			<Table.Header>
-				<Table.Row>
-					<Table.Head class="hidden lg:table-cell">Image</Table.Head>
-					<Table.Head>{businessType === 'retail' ? 'Product' : 'Item'} Name</Table.Head>
-					<Table.Head class="hidden lg:table-cell">Category</Table.Head>
-					<Table.Head>Price</Table.Head>
-					<Table.Head class="hidden md:table-cell">Food Cost</Table.Head>
-					<Table.Head>Status</Table.Head>
-					<Table.Head class="text-right">Actions</Table.Head>
-				</Table.Row>
-			</Table.Header>
-			<Table.Body>
-				{#each filteredItems as item (item.id)}
-					<Table.Row>
-						<Table.Cell class="hidden lg:table-cell">
-							{#if item.image}
-								<img
-									src={item.image}
-									alt={item.name}
-									loading="lazy"
-									class="h-10 w-10 rounded object-cover"
-								/>
-							{:else}
-								<div class="flex h-10 w-10 items-center justify-center rounded bg-muted text-xs">
-									No img
-								</div>
-							{/if}
-						</Table.Cell>
-						<Table.Cell class="font-medium">
-							<div class="flex flex-col">
-								<span>{item.name}</span>
-								{#if item.isVegetarian}
-									<Badge variant="outline" class="mt-1 w-fit text-xs">Veg</Badge>
-								{/if}
-							</div>
-						</Table.Cell>
-						<Table.Cell class="hidden lg:table-cell">{getCategoryName(item.categoryId)}</Table.Cell>
-						<Table.Cell>{formatCurrency(item.price)}</Table.Cell>
-						<Table.Cell class="hidden md:table-cell">
-							{#if item.foodCost != null && item.foodCost > 0}
-								<div class="flex flex-col">
-									<span>{formatCurrency(item.foodCost)}</span>
-									{#if item.price > 0}
-										<span class="text-xs text-muted-foreground">
-											{Math.round((item.foodCost / item.price) * 100)}%
-										</span>
-									{/if}
-								</div>
-							{:else}
-								<span class="text-xs text-muted-foreground">-</span>
-							{/if}
-						</Table.Cell>
-						<Table.Cell>
-							<StatusPill
-								label={item.isAvailable ? 'Available' : 'Unavailable'}
-								status={item.isAvailable ? 'success' : 'error'}
-							/>
-						</Table.Cell>
-						<Table.Cell class="text-right">
-							<div class="flex justify-end gap-2">
-								{#if canModify(userRole)}
-									<Button
-										variant="ghost"
-										size="icon"
-										onclick={() => toggleAvailability(item.id)}
-										title={item.isAvailable ? 'Hide item' : 'Show item'}
-									>
-										{#if item.isAvailable}
-											<IconEyeOff class="h-4 w-4" />
-										{:else}
-											<IconEye class="h-4 w-4" />
-										{/if}
-									</Button>
-									<Button
-										variant="ghost"
-										size="icon"
-										onclick={() => duplicateItem(item)}
-										title="Duplicate item"
-									>
-										<IconCopy class="h-4 w-4" />
-									</Button>
-									<Button
-										variant="ghost"
-										size="icon"
-										onclick={() => openEditDialog(item)}
-										title="Edit item"
-									>
-										<IconEdit class="h-4 w-4" />
-									</Button>
-									<Button
-										variant="ghost"
-										size="icon"
-										onclick={() => deleteItem(item.id)}
-										title="Delete item"
-									>
-										<IconTrash class="h-4 w-4" />
-									</Button>
-								{/if}
-							</div>
-						</Table.Cell>
-					</Table.Row>
-				{/each}
-			</Table.Body>
-		</Table.Root>
-	</div>
+	<!-- Items grid -->
+	{#if filteredItems.length > 0}
+		<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+			{#each filteredItems as item (item.id)}
+				<MenuItemCard
+					{item}
+					categoryName={getCategoryName(item.categoryId)}
+					formatPrice={formatCurrency}
+					readonly={!canModify(userRole)}
+					onToggleAvailability={() => toggleAvailability(item.id)}
+					onEdit={() => openEditDialog(item)}
+					onDuplicate={() => duplicateItem(item)}
+					onDelete={() => deleteItem(item.id)}
+				/>
+			{/each}
+		</div>
+	{/if}
 
 	{#if filteredItems.length === 0}
 		{#if categories.length === 0}
@@ -844,20 +752,21 @@
 
 		<div class="grid gap-4 py-4">
 			<div class="grid grid-cols-4 items-center gap-4">
-				<label for="add-name" class="text-right">Name *</label>
+				<Field.Label for="add-name" class="w-full justify-end text-right">Name *</Field.Label>
 				<Input id="add-name" autofocus bind:value={formName} class="col-span-3" />
 			</div>
 			<div class="grid grid-cols-4 items-start gap-4">
-				<label for="add-description" class="pt-2 text-right">Description</label>
+				<Field.Label for="add-description" class="w-full justify-end pt-2 text-right">
+					Description
+				</Field.Label>
 				<Textarea id="add-description" bind:value={formDescription} rows={3} class="col-span-3" />
 			</div>
 			<div class="grid grid-cols-4 items-center gap-4">
-				<label for="add-price" class="text-right">Price *</label>
+				<Field.Label for="add-price" class="w-full justify-end text-right">Price *</Field.Label>
 				<Input id="add-price" type="number" step="0.01" bind:value={formPrice} class="col-span-3" />
 			</div>
 			<div class="grid grid-cols-4 items-center gap-4">
-				<!-- svelte-ignore a11y_label_has_associated_control -->
-				<label class="text-right">Category *</label>
+				<Field.Label class="w-full justify-end text-right">Category *</Field.Label>
 				<div class="col-span-3">
 					<Select.Root type="single" bind:value={formCategory}>
 						<Select.Trigger class="w-full">
@@ -872,7 +781,7 @@
 				</div>
 			</div>
 			<div class="grid grid-cols-4 items-start gap-4">
-				<label class="pt-2 text-right">Image</label>
+				<Field.Label class="w-full justify-end pt-2 text-right">Image</Field.Label>
 				<div class="col-span-3 space-y-2">
 					<div class="flex gap-2">
 						<Button
@@ -932,15 +841,18 @@
 				</div>
 			</div>
 			<div class="grid grid-cols-4 items-center gap-4">
-				<label class="text-right">Vegetarian</label>
-				<div class="col-span-3">
-					<Checkbox bind:checked={formIsVegetarian} class="mr-2" />
-					<span class="text-sm text-muted-foreground">Mark as vegetarian</span>
+				<Field.Label for="add-vegetarian" class="w-full justify-end text-right">
+					Vegetarian
+				</Field.Label>
+				<div class="col-span-3 flex items-center gap-2">
+					<Checkbox id="add-vegetarian" bind:checked={formIsVegetarian} />
+					<Field.Label for="add-vegetarian" class="text-sm font-normal text-muted-foreground">
+						Mark as vegetarian
+					</Field.Label>
 				</div>
 			</div>
 			<div class="grid grid-cols-4 items-center gap-4">
-				<!-- svelte-ignore a11y_label_has_associated_control -->
-				<label class="text-right">Kitchen prep</label>
+				<Field.Label class="w-full justify-end text-right">Kitchen prep</Field.Label>
 				<div class="col-span-3">
 					<Select.Root
 						type="single"
@@ -967,16 +879,16 @@
 
 			<!-- Combo toggle -->
 			<div class="grid grid-cols-4 items-center gap-4">
-				<label for="combo-create" class="text-right">Combo</label>
+				<Field.Label for="combo-create" class="w-full justify-end text-right">Combo</Field.Label>
 				<div class="col-span-3 flex items-center gap-2">
 					<Switch
 						id="combo-create"
 						checked={formIsCombo}
 						onCheckedChange={(v) => (formIsCombo = v)}
 					/>
-					<span class="text-sm text-muted-foreground"
-						>{formIsCombo ? 'This is a combo item' : 'Regular item'}</span
-					>
+					<Field.Label for="combo-create" class="text-sm font-normal text-muted-foreground">
+						{formIsCombo ? 'This is a combo item' : 'Regular item'}
+					</Field.Label>
 				</div>
 			</div>
 			{#if formIsCombo}
@@ -1010,15 +922,17 @@
 
 		<div class="grid gap-4 py-4">
 			<div class="grid grid-cols-4 items-center gap-4">
-				<label for="edit-name" class="text-right">Name *</label>
+				<Field.Label for="edit-name" class="w-full justify-end text-right">Name *</Field.Label>
 				<Input id="edit-name" autofocus bind:value={formName} class="col-span-3" />
 			</div>
 			<div class="grid grid-cols-4 items-start gap-4">
-				<label for="edit-description" class="pt-2 text-right">Description</label>
+				<Field.Label for="edit-description" class="w-full justify-end pt-2 text-right">
+					Description
+				</Field.Label>
 				<Textarea id="edit-description" bind:value={formDescription} rows={3} class="col-span-3" />
 			</div>
 			<div class="grid grid-cols-4 items-center gap-4">
-				<label for="edit-price" class="text-right">Price *</label>
+				<Field.Label for="edit-price" class="w-full justify-end text-right">Price *</Field.Label>
 				<Input
 					id="edit-price"
 					type="number"
@@ -1028,8 +942,7 @@
 				/>
 			</div>
 			<div class="grid grid-cols-4 items-center gap-4">
-				<!-- svelte-ignore a11y_label_has_associated_control -->
-				<label class="text-right">Category *</label>
+				<Field.Label class="w-full justify-end text-right">Category *</Field.Label>
 				<div class="col-span-3">
 					<Select.Root type="single" bind:value={formCategory}>
 						<Select.Trigger class="w-full">
@@ -1044,7 +957,7 @@
 				</div>
 			</div>
 			<div class="grid grid-cols-4 items-start gap-4">
-				<label class="pt-2 text-right">Image</label>
+				<Field.Label class="w-full justify-end pt-2 text-right">Image</Field.Label>
 				<div class="col-span-3 space-y-2">
 					<div class="flex gap-2">
 						<Button
@@ -1104,15 +1017,18 @@
 				</div>
 			</div>
 			<div class="grid grid-cols-4 items-center gap-4">
-				<label class="text-right">Vegetarian</label>
-				<div class="col-span-3">
-					<Checkbox bind:checked={formIsVegetarian} class="mr-2" />
-					<span class="text-sm text-muted-foreground">Mark as vegetarian</span>
+				<Field.Label for="edit-vegetarian" class="w-full justify-end text-right">
+					Vegetarian
+				</Field.Label>
+				<div class="col-span-3 flex items-center gap-2">
+					<Checkbox id="edit-vegetarian" bind:checked={formIsVegetarian} />
+					<Field.Label for="edit-vegetarian" class="text-sm font-normal text-muted-foreground">
+						Mark as vegetarian
+					</Field.Label>
 				</div>
 			</div>
 			<div class="grid grid-cols-4 items-center gap-4">
-				<!-- svelte-ignore a11y_label_has_associated_control -->
-				<label class="text-right">Kitchen prep</label>
+				<Field.Label class="w-full justify-end text-right">Kitchen prep</Field.Label>
 				<div class="col-span-3">
 					<Select.Root
 						type="single"
@@ -1139,16 +1055,16 @@
 
 			<!-- Combo toggle -->
 			<div class="grid grid-cols-4 items-center gap-4">
-				<label for="combo-edit" class="text-right">Combo</label>
+				<Field.Label for="combo-edit" class="w-full justify-end text-right">Combo</Field.Label>
 				<div class="col-span-3 flex items-center gap-2">
 					<Switch
 						id="combo-edit"
 						checked={formIsCombo}
 						onCheckedChange={(v) => (formIsCombo = v)}
 					/>
-					<span class="text-sm text-muted-foreground"
-						>{formIsCombo ? 'This is a combo item' : 'Regular item'}</span
-					>
+					<Field.Label for="combo-edit" class="text-sm font-normal text-muted-foreground">
+						{formIsCombo ? 'This is a combo item' : 'Regular item'}
+					</Field.Label>
 				</div>
 			</div>
 			{#if formIsCombo}
@@ -1180,7 +1096,9 @@
 
 		<div class="grid gap-4 py-4">
 			<div class="grid grid-cols-4 items-center gap-4">
-				<label for="category-name" class="text-right">Name *</label>
+				<Field.Label for="category-name" class="w-full justify-end text-right">
+					Name *
+				</Field.Label>
 				<Input id="category-name" autofocus bind:value={newCategoryName} class="col-span-3" />
 			</div>
 		</div>
@@ -1211,15 +1129,16 @@
 		<div class="space-y-4 py-4">
 			<!-- Percentage adjustment row -->
 			<div class="flex items-end gap-2">
-				<div class="flex-1">
-					<label class="mb-1 block text-sm font-medium">Apply % change to all items</label>
+				<Field.Field class="flex-1">
+					<Field.Label for="bulk-price-percent">Apply % change to all items</Field.Label>
 					<Input
+						id="bulk-price-percent"
 						type="number"
 						step="0.1"
 						placeholder="e.g. 10 for +10%, -5 for -5%"
 						bind:value={bulkPricePercent}
 					/>
-				</div>
+				</Field.Field>
 				<Button variant="outline" onclick={applyPercentageChange}>Apply</Button>
 			</div>
 

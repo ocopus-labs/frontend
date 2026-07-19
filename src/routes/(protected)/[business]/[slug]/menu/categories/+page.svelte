@@ -4,7 +4,8 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Switch } from '$lib/components/ui/switch';
-	import * as Card from '$lib/components/ui/card';
+	import { Textarea } from '$lib/components/ui/textarea';
+	import * as Field from '$lib/components/ui/field';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
 	import {
@@ -20,11 +21,11 @@
 	import { toast } from 'svelte-sonner';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import PageShell from '$lib/components/global/page-shell.svelte';
+	import SettingsSection from '$lib/components/global/settings-section.svelte';
 	import {
 		createCategory,
 		updateCategory,
 		deleteCategory as deleteCategoryApi,
-		reorderCategories,
 		seedDefaultCategories
 	} from '$lib/api';
 	import { userFriendlyError } from '$lib/utils/error';
@@ -163,7 +164,7 @@
 	}
 </script>
 
-<PageShell title="Categories" description="Organize your menu items into categories">
+<PageShell back title="Categories" description="Organize your menu items into categories">
 	{#snippet actions()}
 		{#if categories.length === 0}
 			<Button variant="outline" onclick={seedCategories} disabled={isSubmitting}>
@@ -181,73 +182,91 @@
 		</Button>
 	{/snippet}
 
-	<!-- Search -->
-	{#if categories.length > 0}
-		<div>
-			<div class="relative max-w-sm">
-				<IconSearch
-					class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-				/>
-				<Input placeholder="Search categories..." bind:value={searchQuery} class="pl-9" />
-			</div>
-		</div>
-	{/if}
+	<div>
+		<SettingsSection
+			title="Categories"
+			description="Every menu item belongs to a category. Disable one to hide its items without deleting them."
+		>
+			<!-- Search -->
+			{#if categories.length > 0}
+				<div class="relative max-w-sm">
+					<IconSearch
+						class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+					/>
+					<Input placeholder="Search categories..." bind:value={searchQuery} class="pl-9" />
+				</div>
+			{/if}
 
-	<!-- Categories Grid -->
-	{#if filteredCategories.length > 0}
-		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-			{#each filteredCategories as category (category.id)}
-				<Card.Root class="relative overflow-hidden {!category.isActive ? 'opacity-60' : ''}">
-					<Card.Header class="pb-2">
-						<div class="flex items-start justify-between">
-							<div class="flex items-center gap-2">
-								<IconGripVertical class="h-4 w-4 cursor-grab text-muted-foreground" />
-								<Card.Title class="text-lg">{category.name}</Card.Title>
+			<!-- Categories list -->
+			{#if filteredCategories.length > 0}
+				<div class="divide-y rounded-lg border">
+					{#each filteredCategories as category (category.id)}
+						<div
+							class="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted/40 {!category.isActive
+								? 'opacity-60'
+								: ''}"
+						>
+							<div class="flex min-w-0 items-center gap-3">
+								<IconGripVertical class="h-4 w-4 shrink-0 cursor-grab text-muted-foreground" />
+								<div class="min-w-0">
+									<div class="flex items-center gap-2">
+										<span class="truncate text-sm font-medium text-foreground">
+											{category.name}
+										</span>
+										<Badge variant={category.isActive ? 'default' : 'secondary'}>
+											{category.isActive ? 'Active' : 'Inactive'}
+										</Badge>
+									</div>
+									<p class="truncate text-sm text-muted-foreground">
+										{category.description || 'No description'}
+									</p>
+								</div>
 							</div>
-							<Badge variant={category.isActive ? 'default' : 'secondary'}>
-								{category.isActive ? 'Active' : 'Inactive'}
-							</Badge>
+
+							<div class="flex shrink-0 items-center gap-1">
+								<Button variant="ghost" size="sm" onclick={() => toggleCategory(category)}>
+									{category.isActive ? 'Disable' : 'Enable'}
+								</Button>
+								<Button
+									variant="ghost"
+									size="icon"
+									aria-label="Edit {category.name}"
+									onclick={() => openEditDialog(category)}
+								>
+									<IconPencil class="h-4 w-4" />
+								</Button>
+								<Button
+									variant="ghost"
+									size="icon"
+									aria-label="Delete {category.name}"
+									onclick={() => triggerDeleteCategory(category)}
+									class="text-destructive hover:text-destructive"
+								>
+									<IconTrash class="h-4 w-4" />
+								</Button>
+							</div>
 						</div>
-					</Card.Header>
-					<Card.Content>
-						<p class="text-sm text-muted-foreground">
-							{category.description || 'No description'}
-						</p>
-					</Card.Content>
-					<Card.Footer class="flex justify-between gap-2">
-						<Button variant="ghost" size="sm" onclick={() => toggleCategory(category)}>
-							{category.isActive ? 'Disable' : 'Enable'}
-						</Button>
-						<div class="flex gap-1">
-							<Button variant="ghost" size="icon" onclick={() => openEditDialog(category)}>
-								<IconPencil class="h-4 w-4" />
-							</Button>
-							<Button
-								variant="ghost"
-								size="icon"
-								onclick={() => triggerDeleteCategory(category)}
-								class="text-destructive hover:text-destructive"
-							>
-								<IconTrash class="h-4 w-4" />
-							</Button>
-						</div>
-					</Card.Footer>
-				</Card.Root>
-			{/each}
-		</div>
-	{:else if categories.length === 0}
-		<EmptyState
-			type="empty"
-			title="No categories yet"
-			description="Create your first category to organize menu items, or use default categories to get started."
-		/>
-	{:else}
-		<EmptyState
-			type="no-results"
-			title="No categories found"
-			description="Try adjusting your search."
-		/>
-	{/if}
+					{/each}
+				</div>
+			{:else if categories.length === 0}
+				<EmptyState
+					type="empty"
+					title="No categories yet"
+					description="Create your first category to organize menu items, or use default categories to get started."
+				/>
+			{:else}
+				<EmptyState
+					type="no-results"
+					title="No categories found"
+					description="Try adjusting your search."
+				/>
+			{/if}
+
+			{#snippet footer()}
+				Categories appear in menu and POS order, following their sort order.
+			{/snippet}
+		</SettingsSection>
+	</div>
 </PageShell>
 
 <!-- Add Category Dialog -->
@@ -258,29 +277,30 @@
 			<Dialog.Description>Create a new menu category</Dialog.Description>
 		</Dialog.Header>
 		<div class="grid gap-4 py-4">
-			<div class="grid gap-2">
-				<label for="name" class="text-sm font-medium">Name</label>
+			<Field.Field>
+				<Field.Label for="name">Name</Field.Label>
 				<Input id="name" autofocus bind:value={newCategory.name} placeholder="Category name" />
-			</div>
-			<div class="grid gap-2">
-				<label for="description" class="text-sm font-medium">Description</label>
-				<Input
+			</Field.Field>
+			<Field.Field>
+				<Field.Label for="description">Description</Field.Label>
+				<Textarea
 					id="description"
+					rows={2}
 					bind:value={newCategory.description}
 					placeholder="Category description"
 				/>
-			</div>
-			<div class="grid gap-2">
-				<label class="text-sm font-medium">Kitchen preparation</label>
+			</Field.Field>
+			<Field.Field>
+				<Field.Label for="requires-kitchen">Kitchen preparation</Field.Label>
 				<div class="flex items-center gap-2">
-					<Switch bind:checked={newCategory.requiresKitchen} />
-					<span class="text-sm text-muted-foreground">
+					<Switch id="requires-kitchen" bind:checked={newCategory.requiresKitchen} />
+					<Field.Description>
 						{newCategory.requiresKitchen
 							? 'Items require kitchen preparation'
 							: 'Items served instantly (skip kitchen)'}
-					</span>
+					</Field.Description>
 				</div>
-			</div>
+			</Field.Field>
 		</div>
 		<Dialog.Footer>
 			<Button variant="outline" onclick={() => (showAddDialog = false)}>Cancel</Button>
@@ -303,34 +323,35 @@
 		</Dialog.Header>
 		{#if editingCategory}
 			<div class="grid gap-4 py-4">
-				<div class="grid gap-2">
-					<label for="edit-name" class="text-sm font-medium">Name</label>
+				<Field.Field>
+					<Field.Label for="edit-name">Name</Field.Label>
 					<Input
 						id="edit-name"
 						autofocus
 						bind:value={editingCategory.name}
 						placeholder="Category name"
 					/>
-				</div>
-				<div class="grid gap-2">
-					<label for="edit-description" class="text-sm font-medium">Description</label>
-					<Input
+				</Field.Field>
+				<Field.Field>
+					<Field.Label for="edit-description">Description</Field.Label>
+					<Textarea
 						id="edit-description"
+						rows={2}
 						bind:value={editingCategory.description}
 						placeholder="Category description"
 					/>
-				</div>
-				<div class="grid gap-2">
-					<label class="text-sm font-medium">Kitchen preparation</label>
+				</Field.Field>
+				<Field.Field>
+					<Field.Label for="edit-requires-kitchen">Kitchen preparation</Field.Label>
 					<div class="flex items-center gap-2">
-						<Switch bind:checked={editingCategory.requiresKitchen} />
-						<span class="text-sm text-muted-foreground">
+						<Switch id="edit-requires-kitchen" bind:checked={editingCategory.requiresKitchen} />
+						<Field.Description>
 							{editingCategory.requiresKitchen
 								? 'Items require kitchen preparation'
 								: 'Items served instantly (skip kitchen)'}
-						</span>
+						</Field.Description>
 					</div>
-				</div>
+				</Field.Field>
 			</div>
 			<Dialog.Footer>
 				<Button variant="outline" onclick={() => (editingCategory = null)}>Cancel</Button>

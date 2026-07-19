@@ -5,7 +5,7 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { getMySubscription, formatLimit, formatPrice, getPlanFeaturesList } from '$lib/api/subscription';
+	import { getMySubscription, formatPrice, getPlanFeaturesList } from '$lib/api/subscription';
 
 	import Check from '@lucide/svelte/icons/check';
 	import CheckCircle from '@lucide/svelte/icons/check-circle';

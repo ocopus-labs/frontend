@@ -3,6 +3,7 @@
 	import * as Field from '$lib/components/ui/field/index.js';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { Label } from '$lib/components/ui/label';
 	import { IconCut } from '@tabler/icons-svelte';
 
 	interface SplitItem {
@@ -80,19 +81,31 @@
 				<Field.Label>Select items to split</Field.Label>
 				<div class="max-h-40 space-y-1 overflow-y-auto rounded-lg border p-2">
 					{#each activeItems as item}
-						<button
-							class="flex w-full items-center gap-3 rounded p-2 text-left hover:bg-muted"
-							onclick={() => toggleItem(item.id)}
-						>
+						<!--
+							Not a <button> wrapper. Checkbox renders its own <button>, so the
+							old markup nested one button inside another — invalid HTML that the
+							parser splits apart during hydration. It also bound BOTH the
+							wrapper's onclick and the Checkbox's onchange to toggleItem, so a
+							click on the checkbox fired the toggle twice and cancelled itself
+							out, silently refusing to select the item.
+							Now there is exactly one handler, on the Checkbox.
+						-->
+						<div class="flex w-full items-center gap-3 rounded p-2 hover:bg-muted">
 							<Checkbox
+								id="split-item-{item.id}"
 								checked={selectedItemIds.has(item.id)}
-								onchange={() => toggleItem(item.id)}
+								onCheckedChange={() => toggleItem(item.id)}
 							/>
-							<div class="flex-1">
-								<span class="text-sm">{item.quantity}x {item.name}</span>
-							</div>
-							<span class="text-sm text-muted-foreground">{formatCurrency(item.totalPrice)}</span>
-						</button>
+							<Label
+								for="split-item-{item.id}"
+								class="flex flex-1 cursor-pointer items-center gap-3 text-left font-normal"
+							>
+								<span class="flex-1 text-sm">{item.quantity}x {item.name}</span>
+								<span class="text-sm text-muted-foreground">
+									{formatCurrency(item.totalPrice)}
+								</span>
+							</Label>
+						</div>
 					{/each}
 				</div>
 				<Field.Description>{selectedItemIds.size} item(s) selected</Field.Description>

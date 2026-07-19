@@ -17,7 +17,7 @@
 	Skip to main content
 </a>
 <Sidebar.Provider>
-	<UserDashboardSidebar businesses={[]} />
+	<UserDashboardSidebar businesses={data.businesses} subscription={data.subscription} />
 	<Sidebar.Inset id="main-content">
 		<AnnouncementBanner />
 		<MobileTopBar />

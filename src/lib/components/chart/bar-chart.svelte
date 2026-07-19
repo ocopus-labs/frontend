@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { scaleBand } from 'd3-scale';
-	import { BarChart, type ChartContextValue } from 'layerchart';
+	import { BarChart } from 'layerchart';
 	import TrendingUpIcon from '@lucide/svelte/icons/trending-up';
 	import * as Chart from '$lib/components/ui/chart/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
@@ -33,8 +33,6 @@
 		}
 		return config as Chart.ChartConfig;
 	});
-
-	let context = $state<ChartContextValue>();
 </script>
 
 {#if data.length > 0 && series.length > 0}
@@ -49,7 +47,6 @@
 			<Card.Content>
 				<Chart.Container class="max-h-96 w-full" config={resolvedConfig}>
 					<BarChart
-						bind:context
 						{data}
 						xScale={scaleBand().padding(0.25)}
 						x={xKey}
@@ -63,7 +60,7 @@
 								stroke: 'none',
 								strokeWidth: 0,
 								rounded: 'all',
-								initialY: context?.height,
+								initialY: 1000,
 								initialHeight: 0,
 								motion: {
 									y: { type: 'tween', duration: 500, easing: cubicInOut },
@@ -97,7 +94,6 @@
 	{:else}
 		<Chart.Container config={resolvedConfig}>
 			<BarChart
-				bind:context
 				{data}
 				xScale={scaleBand().padding(0.25)}
 				x={xKey}
@@ -111,7 +107,7 @@
 						stroke: 'none',
 						strokeWidth: 0,
 						rounded: 'all',
-						initialY: context?.height,
+						initialY: 1000,
 						initialHeight: 0,
 						motion: {
 							y: { type: 'tween', duration: 500, easing: cubicInOut },

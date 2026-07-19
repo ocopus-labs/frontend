@@ -1,9 +1,8 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import MobilePageHeader from '$lib/components/global/mobile-page-header.svelte';
-	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
 	import * as Field from '$lib/components/ui/field/index.js';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import * as Card from '$lib/components/ui/card';
@@ -16,7 +15,8 @@
 		IconLoader2,
 		IconAlertTriangle
 	} from '@tabler/icons-svelte';
-	import PageHeader from '$lib/components/global/page-header.svelte';
+	import PageShell from '$lib/components/global/page-shell.svelte';
+	import SettingsSection from '$lib/components/global/settings-section.svelte';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import { toast } from 'svelte-sonner';
 	import { userFriendlyError } from '$lib/utils/error';
@@ -179,37 +179,40 @@
 	}
 </script>
 
-<MobilePageHeader
+<PageShell
+	back
 	title="Kitchen Stations"
-	backHref={`/${$page.params.business}/${$page.params.slug}/settings`}
-/>
-<div class="flex flex-col gap-6 p-6">
-	<PageHeader
-		back
-		title="Kitchen Stations"
-		description="Assign menu categories to kitchen stations for targeted order routing"
-	>
-		{#snippet actions()}
-			<Button onclick={openAdd}>
-				<IconPlus class="mr-2 h-4 w-4" />
-				Add Station
-			</Button>
-		{/snippet}
-	</PageHeader>
-
-	<!-- Unassigned categories warning -->
-	{#if unassignedCategories.length > 0}
-		<div
-			class="flex items-center gap-3 rounded-md border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning"
+	description="Assign menu categories to kitchen stations for targeted order routing"
+>
+	<div>
+		<SettingsSection
+			title="Routing coverage"
+			description="Every menu category should belong to a station so its items only show on that station's KDS screen."
 		>
-			<IconAlertTriangle class="h-4 w-4 shrink-0" />
-			<span>
-				{unassignedCategories.length}
-				{unassignedCategories.length === 1 ? 'category is' : 'categories are'} not assigned to any station
-				— items in these categories will appear on all KDS screens.
-			</span>
-		</div>
-	{/if}
+			{#snippet action()}
+				<Button onclick={openAdd}>
+					<IconPlus class="mr-2 h-4 w-4" />
+					Add Station
+				</Button>
+			{/snippet}
+
+			<!-- Unassigned categories warning -->
+			{#if unassignedCategories.length > 0}
+				<div
+					class="flex items-center gap-3 rounded-md border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning"
+				>
+					<IconAlertTriangle class="h-4 w-4 shrink-0" />
+					<span>
+						{unassignedCategories.length}
+						{unassignedCategories.length === 1 ? 'category is' : 'categories are'} not assigned to any
+						station — items in these categories will appear on all KDS screens.
+					</span>
+				</div>
+			{:else}
+				<p class="text-sm text-muted-foreground">All menu categories are assigned to a station.</p>
+			{/if}
+		</SettingsSection>
+	</div>
 
 	<!-- Station cards -->
 	{#if stations.length === 0}
@@ -278,7 +281,7 @@
 			{/each}
 		</div>
 	{/if}
-</div>
+</PageShell>
 
 <!-- Add / Edit Station Dialog -->
 <Dialog.Root bind:open={showDialog}>
@@ -309,20 +312,22 @@
 				<Field.Label>Display Color</Field.Label>
 				<div class="flex flex-wrap items-center gap-2">
 					{#each PRESET_COLORS as color}
-						<button
-							type="button"
-							class="h-7 w-7 rounded-full ring-offset-2 transition-all {formColor === color
+						<Button
+							variant="ghost"
+							size="icon"
+							class="size-7 rounded-full ring-offset-2 transition-all hover:bg-transparent {formColor ===
+							color
 								? 'ring-2 ring-primary'
 								: 'hover:ring-2 hover:ring-muted-foreground'}"
 							style="background-color: {color};"
 							onclick={() => (formColor = color)}
 							aria-label="Select color {color}"
-						></button>
+						/>
 					{/each}
-					<input
+					<Input
 						type="color"
 						bind:value={formColor}
-						class="h-7 w-7 cursor-pointer rounded border border-input bg-transparent p-0.5"
+						class="size-7 cursor-pointer rounded border-input bg-transparent p-0.5"
 						aria-label="Custom color picker"
 					/>
 					<span class="ml-1 text-xs text-muted-foreground">{formColor}</span>
@@ -344,18 +349,27 @@
 				{:else}
 					<div class="max-h-52 overflow-y-auto rounded-md border p-1">
 						{#each dialogCategories() as cat (cat.id)}
-							<button
-								type="button"
-								class="flex w-full items-center gap-3 rounded-sm px-2 py-1.5 text-sm transition-colors hover:bg-accent {formCategoryIds.includes(
-									cat.id
-								)
+							{@const checked = formCategoryIds.includes(cat.id)}
+							<!--
+								Not a <button> wrapper: Checkbox renders its own <button>, and
+								nesting one inside another is invalid HTML that the parser
+								splits apart during hydration. The Label carries the click
+								target instead.
+							-->
+							<div
+								class="flex w-full items-center gap-3 rounded-sm px-2 py-1.5 text-sm transition-colors hover:bg-accent {checked
 									? 'bg-accent'
 									: ''}"
-								onclick={() => toggleCategory(cat.id)}
 							>
-								<Checkbox checked={formCategoryIds.includes(cat.id)} />
-								<span>{cat.name}</span>
-							</button>
+								<Checkbox
+									id="cat-{cat.id}"
+									{checked}
+									onCheckedChange={() => toggleCategory(cat.id)}
+								/>
+								<Label for="cat-{cat.id}" class="flex-1 cursor-pointer font-normal">
+									{cat.name}
+								</Label>
+							</div>
 						{/each}
 					</div>
 				{/if}

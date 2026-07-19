@@ -71,7 +71,7 @@
 			<Button variant="outline" onclick={() => (open = false)} class="w-full sm:w-auto">
 				Maybe Later
 			</Button>
-			<Button href="/dashboard/subscriptions" class="w-full sm:w-auto">
+			<Button href="/dashboard/billing" class="w-full sm:w-auto">
 				View Plans
 			</Button>
 		</Dialog.Footer>

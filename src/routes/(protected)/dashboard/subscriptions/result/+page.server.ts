@@ -1,19 +1,16 @@
 import type { PageServerLoad } from './$types';
-import { getSubscriptionUsage } from '$lib/api/subscription';
 
-export const load: PageServerLoad = async ({ fetch, parent }) => {
-	const parentData = await parent();
-	try {
-		const usageResult = await getSubscriptionUsage({ fetch }).catch(() => null);
-		return {
-			subscription: parentData.subscription,
-			usage: usageResult?.usage ?? null
-		};
-	} catch (error) {
-		console.error('Failed to load subscription:', error);
-		return {
-			subscription: parentData.subscription,
-			usage: null
-		};
-	}
+/**
+ * Dodo checkout return URL — the backend hardcodes this path
+ * (`subscription.service.ts:143`), which is why it survives the
+ * subscriptions → billing merge. Don't move it without a coordinated
+ * backend change; deploying the frontend first would break in-flight checkouts.
+ *
+ * The page polls `getMySubscription()` client-side for the webhook to land, so
+ * all it needs from the server is the current subscription. It previously also
+ * fetched usage stats that were never rendered.
+ */
+export const load: PageServerLoad = async ({ parent }) => {
+	const { subscription } = await parent();
+	return { subscription };
 };

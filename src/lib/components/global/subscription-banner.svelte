@@ -48,7 +48,7 @@
 					level: 'critical',
 					message: 'Payment failed. Update your payment method to avoid service interruption.',
 					cta: 'Update Payment',
-					href: '/dashboard/subscriptions',
+					href: '/dashboard/billing',
 				});
 			}
 
@@ -59,7 +59,7 @@
 					level: 'warning',
 					message: `Your plan is set to cancel at the end of the billing period.`,
 					cta: 'Reactivate',
-					href: '/dashboard/subscriptions',
+					href: '/dashboard/billing',
 				});
 			}
 
@@ -72,7 +72,7 @@
 						level: 'critical',
 						message: `You've used ${usage.ordersThisMonth} of ${usage.orderLimit} orders this month. Upgrade to avoid hitting the limit.`,
 						cta: 'Upgrade',
-						href: '/dashboard/subscriptions',
+						href: '/dashboard/billing',
 					});
 				} else if (pct >= 80) {
 					result.push({
@@ -80,7 +80,7 @@
 						level: 'warning',
 						message: `You've used ${usage.ordersThisMonth} of ${usage.orderLimit} orders this month.`,
 						cta: 'Upgrade',
-						href: '/dashboard/subscriptions',
+						href: '/dashboard/billing',
 					});
 				}
 			}
@@ -93,7 +93,7 @@
 						level: 'critical',
 						message: `You've used ${usage.teamMembersCount} of ${usage.teamMemberLimit} team member slots.`,
 						cta: 'Upgrade',
-						href: '/dashboard/subscriptions',
+						href: '/dashboard/billing',
 					});
 				} else if (pct >= 80) {
 					result.push({
@@ -101,7 +101,7 @@
 						level: 'warning',
 						message: `You've used ${usage.teamMembersCount} of ${usage.teamMemberLimit} team member slots.`,
 						cta: 'Upgrade',
-						href: '/dashboard/subscriptions',
+						href: '/dashboard/billing',
 					});
 				}
 			}

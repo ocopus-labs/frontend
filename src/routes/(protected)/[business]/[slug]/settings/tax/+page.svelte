@@ -1,15 +1,17 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import MobilePageHeader from '$lib/components/global/mobile-page-header.svelte';
 	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
 	import { Switch } from '$lib/components/ui/switch';
-	import * as Card from '$lib/components/ui/card';
-	import * as Select from '$lib/components/ui/select';
+	import * as Alert from '$lib/components/ui/alert';
+	import * as Field from '$lib/components/ui/field';
+	import { NativeSelect, NativeSelectOption } from '$lib/components/ui/native-select';
+	import PageShell from '$lib/components/global/page-shell.svelte';
+	import SettingsSection from '$lib/components/global/settings-section.svelte';
 	import { IconLoader2 } from '@tabler/icons-svelte';
 	import { toast } from 'svelte-sonner';
-	import PageHeader from '$lib/components/global/page-header.svelte';
 	import {
 		updateTaxSettings,
 		validateTaxNumber,
@@ -176,93 +178,73 @@
 	];
 </script>
 
-<MobilePageHeader
+<PageShell
+	back
 	title="Tax & Invoicing"
-	backHref={`/${$page.params.business}/${$page.params.slug}/settings`}
-/>
-<div class="flex flex-col gap-6 p-6">
-	<PageHeader
-		back
-		title="Tax & Invoicing"
-		description="Configure tax regime, registration details, and invoice numbering"
-	>
-		{#snippet actions()}
-			{#if enabled}
-				<Button
-					variant="outline"
-					size="sm"
-					onclick={() => {
-						const business = $page.params.business;
-						const slug = $page.params.slug;
-						goto(`/${business}/${slug}/settings/tax/export`);
-					}}
-				>
-					<IconFileSpreadsheet class="mr-2 h-4 w-4" />
-					Export Report
-				</Button>
-			{/if}
-		{/snippet}
-	</PageHeader>
+	description="Configure tax regime, registration details, and invoice numbering"
+>
+	{#snippet actions()}
+		{#if enabled}
+			<Button
+				variant="outline"
+				size="sm"
+				onclick={() => {
+					const business = $page.params.business;
+					const slug = $page.params.slug;
+					goto(`/${business}/${slug}/settings/tax/export`);
+				}}
+			>
+				<IconFileSpreadsheet class="mr-2 h-4 w-4" />
+				Export Report
+			</Button>
+		{/if}
+	{/snippet}
 
 	{#if !settings}
-		<Card.Root>
-			<Card.Content class="p-8 text-center">
-				<p class="text-muted-foreground">Failed to load tax settings.</p>
-			</Card.Content>
-		</Card.Root>
+		<Alert.Root variant="destructive">
+			<Alert.Title>Couldn't load tax settings</Alert.Title>
+			<Alert.Description>Reload the page to try again.</Alert.Description>
+		</Alert.Root>
 	{:else}
-		<!-- Enable/Disable -->
-		<Card.Root>
-			<Card.Header>
-				<Card.Title class="text-base">Tax Compliance</Card.Title>
-				<Card.Description
-					>Enable tax compliance features including component breakdowns and sequential invoicing</Card.Description
-				>
-			</Card.Header>
-			<Card.Content>
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-sm font-medium">Tax Compliance Module</p>
-						<p class="text-sm text-muted-foreground">
+		<div>
+			<SettingsSection
+				title="Tax compliance"
+				description="Component breakdowns on bills and sequential, gap-free invoice numbering."
+			>
+				<div class="flex items-start justify-between gap-4">
+					<div class="space-y-0.5">
+						<Label for="tax-enabled" class="text-sm font-medium">Tax compliance module</Label>
+						<p class="text-xs text-muted-foreground">
 							{enabled
 								? 'Tax calculations, invoicing, and compliance features are active'
 								: 'Tax compliance features are disabled'}
 						</p>
 					</div>
-					<Switch bind:checked={enabled} />
+					<Switch id="tax-enabled" bind:checked={enabled} />
 				</div>
-			</Card.Content>
-		</Card.Root>
+			</SettingsSection>
 
-		{#if enabled}
-			<!-- Tax Regime -->
-			<Card.Root>
-				<Card.Header>
-					<Card.Title class="text-base">Tax Regime</Card.Title>
-					<Card.Description>Select the tax system applicable to your business</Card.Description>
-				</Card.Header>
-				<Card.Content class="grid gap-4">
-					<div class="grid gap-2">
-						<label for="regime" class="text-sm font-medium">Tax Regime</label>
-						<select
-							id="regime"
-							class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
-							bind:value={regime}
-						>
+			{#if enabled}
+				<SettingsSection
+					title="Tax regime"
+					description="The tax system your business is registered under. This drives which fields and rates apply."
+				>
+					<Field.Field>
+						<Field.Label for="regime">Tax regime</Field.Label>
+						<NativeSelect id="regime" class="w-full max-w-sm" bind:value={regime}>
 							{#each regimes as r}
-								<option value={r.id}>{r.name}</option>
+								<NativeSelectOption value={r.id}>{r.name}</NativeSelectOption>
 							{/each}
-						</select>
-					</div>
+						</NativeSelect>
+					</Field.Field>
 
 					{#if selectedRegime}
-						<div class="grid gap-2">
-							<label for="reg-number" class="text-sm font-medium"
-								>{selectedRegime.registrationLabel}</label
-							>
+						<Field.Field>
+							<Field.Label for="reg-number">{selectedRegime.registrationLabel}</Field.Label>
 							<div class="flex gap-2">
 								<Input
 									id="reg-number"
+									class="max-w-[14rem]"
 									bind:value={registrationNumber}
 									placeholder={regime === 'gst_india'
 										? '22AAAAA0000A1Z5'
@@ -284,168 +266,163 @@
 									<p class="text-sm text-destructive">{validationResult.error}</p>
 								{/if}
 							{/if}
-						</div>
+						</Field.Field>
 
-						<div class="grid gap-2">
-							<label for="legal-name" class="text-sm font-medium">Legal Name</label>
-							<Input id="legal-name" bind:value={legalName} placeholder="Business legal name" />
-						</div>
+						<Field.Field>
+							<Field.Label for="legal-name">Legal name</Field.Label>
+							<Input
+								id="legal-name"
+								class="max-w-sm"
+								bind:value={legalName}
+								placeholder="Business legal name"
+							/>
+						</Field.Field>
 
 						{#if regionEntries.length > 0}
-							<div class="grid gap-2">
-								<label for="region" class="text-sm font-medium"
-									>{regime === 'gst_india'
-										? 'State'
-										: regime === 'vat_eu'
-											? 'Country'
-											: 'State'}</label
-								>
-								<select
+							<Field.Field>
+								<Field.Label for="region">
+									{regime === 'gst_india' ? 'State' : regime === 'vat_eu' ? 'Country' : 'State'}
+								</Field.Label>
+								<NativeSelect
 									id="region"
-									class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+									class="w-full max-w-sm"
 									value={regionCode}
 									onchange={(e) => handleRegionSelect((e.target as HTMLSelectElement).value)}
 								>
-									<option value="">Select...</option>
+									<NativeSelectOption value="">Select...</NativeSelectOption>
 									{#each regionEntries as [code, name]}
-										<option value={code}>{name}</option>
+										<NativeSelectOption value={code}>{name}</NativeSelectOption>
 									{/each}
-								</select>
-							</div>
+								</NativeSelect>
+							</Field.Field>
 						{/if}
 
-						<div class="grid gap-2">
-							<label for="default-rate" class="text-sm font-medium">Default Tax Rate (%)</label>
-							<select
-								id="default-rate"
-								class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
-								bind:value={defaultTaxRate}
-							>
+						<Field.Field>
+							<Field.Label for="default-rate">Default tax rate (%)</Field.Label>
+							<NativeSelect id="default-rate" class="w-full max-w-[8rem]" bind:value={defaultTaxRate}>
 								{#each selectedRegime.standardRates as rate}
-									<option value={rate}>{rate}%</option>
+									<NativeSelectOption value={rate}>{rate}%</NativeSelectOption>
 								{/each}
-							</select>
-						</div>
+							</NativeSelect>
+						</Field.Field>
 					{/if}
-				</Card.Content>
-			</Card.Root>
+				</SettingsSection>
 
-			<!-- Invoice Settings -->
-			<Card.Root>
-				<Card.Header>
-					<Card.Title class="text-base">Invoice Settings</Card.Title>
-					<Card.Description>Configure invoice numbering and financial year</Card.Description>
-				</Card.Header>
-				<Card.Content class="grid gap-4 sm:grid-cols-2">
-					<div class="grid gap-2">
-						<label for="invoice-prefix" class="text-sm font-medium">Invoice Prefix</label>
-						<Input id="invoice-prefix" bind:value={invoicePrefix} placeholder="INV" />
-						<p class="text-xs text-muted-foreground">
-							e.g., {invoicePrefix || 'INV'}/{financialYearStart === 4 ? '2025-26' : '2026'}/0001
-						</p>
+				<SettingsSection
+					title="Invoice numbering"
+					description="How invoice numbers are formed, and when the sequence resets."
+				>
+					<div class="grid gap-4 sm:grid-cols-2">
+						<Field.Field>
+							<Field.Label for="invoice-prefix">Invoice prefix</Field.Label>
+							<Input
+								id="invoice-prefix"
+								class="max-w-[10rem]"
+								bind:value={invoicePrefix}
+								placeholder="INV"
+							/>
+						</Field.Field>
+						<Field.Field>
+							<Field.Label for="fy-start">Financial year starts</Field.Label>
+							<NativeSelect id="fy-start" class="w-full max-w-sm" bind:value={financialYearStart}>
+								{#each MONTHS as m}
+									<NativeSelectOption value={m.value}>{m.label}</NativeSelectOption>
+								{/each}
+							</NativeSelect>
+						</Field.Field>
 					</div>
-					<div class="grid gap-2">
-						<label for="fy-start" class="text-sm font-medium">Financial Year Starts</label>
-						<select
-							id="fy-start"
-							class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
-							bind:value={financialYearStart}
-						>
-							{#each MONTHS as m}
-								<option value={m.value}>{m.label}</option>
-							{/each}
-						</select>
-					</div>
-				</Card.Content>
-			</Card.Root>
 
-			<!-- Regime-Specific Settings -->
-			{#if regime === 'gst_india'}
-				<Card.Root>
-					<Card.Header>
-						<Card.Title class="text-base">GST Configuration</Card.Title>
-						<Card.Description>India GST-specific settings</Card.Description>
-					</Card.Header>
-					<Card.Content class="grid gap-4">
-						<div class="flex items-center justify-between">
-							<div>
-								<p class="text-sm font-medium">Composition Scheme</p>
-								<p class="text-sm text-muted-foreground">Registered under GST Composition Scheme</p>
-							</div>
-							<Switch bind:checked={gstCompositionScheme} />
-						</div>
-						<div class="flex items-center justify-between">
-							<div>
-								<p class="text-sm font-medium">e-Invoice</p>
-								<p class="text-sm text-muted-foreground">
-									Enable e-Invoice generation (mandatory for turnover > 5 Cr)
-								</p>
-							</div>
-							<Switch bind:checked={gstEInvoiceEnabled} />
-						</div>
-						{#if gstEInvoiceEnabled}
-							<div class="flex items-center justify-between">
-								<div>
-									<p class="text-sm font-medium">Auto-Generate e-Invoice</p>
-									<p class="text-sm text-muted-foreground">
-										Automatically generate IRN when an invoice is created for paid orders
+					{#snippet footer()}
+						Invoices will be numbered
+						<span class="font-medium text-foreground">
+							{invoicePrefix || 'INV'}/{financialYearStart === 4 ? '2025-26' : '2026'}/0001
+						</span>
+						onwards.
+					{/snippet}
+				</SettingsSection>
+
+				{#if regime === 'gst_india'}
+					<SettingsSection title="GST configuration" description="India GST-specific settings.">
+						<div class="space-y-6">
+							<div class="flex items-start justify-between gap-4">
+								<div class="space-y-0.5">
+									<Label for="gst-composition" class="text-sm font-medium">Composition scheme</Label>
+									<p class="text-xs text-muted-foreground">
+										Registered under GST Composition Scheme
 									</p>
 								</div>
-								<Switch bind:checked={gstAutoGenerateEinvoice} />
+								<Switch id="gst-composition" bind:checked={gstCompositionScheme} />
 							</div>
-						{/if}
-					</Card.Content>
-				</Card.Root>
-			{:else if regime === 'vat_eu' || regime === 'vat_uk'}
-				<Card.Root>
-					<Card.Header>
-						<Card.Title class="text-base">VAT Configuration</Card.Title>
-						<Card.Description>VAT-specific settings</Card.Description>
-					</Card.Header>
-					<Card.Content class="grid gap-4">
-						<div class="flex items-center justify-between">
-							<div>
-								<p class="text-sm font-medium">Reverse Charge</p>
-								<p class="text-sm text-muted-foreground">Reverse charge mechanism applicable</p>
-							</div>
-							<Switch bind:checked={vatReverseCharge} />
-						</div>
-						{#if regime === 'vat_eu'}
-							<div class="flex items-center justify-between">
-								<div>
-									<p class="text-sm font-medium">OSS Registered</p>
-									<p class="text-sm text-muted-foreground">
-										One Stop Shop registration for EU cross-border sales
+
+							<div class="flex items-start justify-between gap-4">
+								<div class="space-y-0.5">
+									<Label for="gst-einvoice" class="text-sm font-medium">e-Invoice</Label>
+									<p class="text-xs text-muted-foreground">
+										Enable e-Invoice generation (mandatory for turnover &gt; 5 Cr)
 									</p>
 								</div>
-								<Switch bind:checked={vatOssRegistered} />
+								<Switch id="gst-einvoice" bind:checked={gstEInvoiceEnabled} />
 							</div>
-						{/if}
-					</Card.Content>
-				</Card.Root>
-			{:else if regime === 'sales_tax_us'}
-				<Card.Root>
-					<Card.Header>
-						<Card.Title class="text-base">Sales Tax Configuration</Card.Title>
-						<Card.Description>US Sales Tax-specific settings</Card.Description>
-					</Card.Header>
-					<Card.Content class="grid gap-4">
-						<div class="grid gap-2">
-							<label for="exemption-id" class="text-sm font-medium"
-								>Tax Exemption ID (optional)</label
-							>
+
+							{#if gstEInvoiceEnabled}
+								<div class="flex items-start justify-between gap-4">
+									<div class="space-y-0.5">
+										<Label for="gst-auto-einvoice" class="text-sm font-medium">
+											Auto-generate e-Invoice
+										</Label>
+										<p class="text-xs text-muted-foreground">
+											Automatically generate IRN when an invoice is created for paid orders
+										</p>
+									</div>
+									<Switch id="gst-auto-einvoice" bind:checked={gstAutoGenerateEinvoice} />
+								</div>
+							{/if}
+						</div>
+					</SettingsSection>
+				{:else if regime === 'vat_eu' || regime === 'vat_uk'}
+					<SettingsSection title="VAT configuration" description="VAT-specific settings.">
+						<div class="space-y-6">
+							<div class="flex items-start justify-between gap-4">
+								<div class="space-y-0.5">
+									<Label for="vat-reverse-charge" class="text-sm font-medium">Reverse charge</Label>
+									<p class="text-xs text-muted-foreground">Reverse charge mechanism applicable</p>
+								</div>
+								<Switch id="vat-reverse-charge" bind:checked={vatReverseCharge} />
+							</div>
+
+							{#if regime === 'vat_eu'}
+								<div class="flex items-start justify-between gap-4">
+									<div class="space-y-0.5">
+										<Label for="vat-oss" class="text-sm font-medium">OSS registered</Label>
+										<p class="text-xs text-muted-foreground">
+											One Stop Shop registration for EU cross-border sales
+										</p>
+									</div>
+									<Switch id="vat-oss" bind:checked={vatOssRegistered} />
+								</div>
+							{/if}
+						</div>
+					</SettingsSection>
+				{:else if regime === 'sales_tax_us'}
+					<SettingsSection
+						title="Sales tax configuration"
+						description="US Sales Tax-specific settings."
+					>
+						<Field.Field>
+							<Field.Label for="exemption-id">Tax exemption ID</Field.Label>
 							<Input
 								id="exemption-id"
+								class="max-w-sm"
 								bind:value={salesTaxExemptionId}
 								placeholder="Exemption certificate number"
 							/>
-						</div>
-					</Card.Content>
-				</Card.Root>
+							<Field.Description>Optional.</Field.Description>
+						</Field.Field>
+					</SettingsSection>
+				{/if}
 			{/if}
-		{/if}
+		</div>
 
-		<!-- Save Button -->
 		<div class="flex justify-end">
 			<Button onclick={handleSave} disabled={isSaving}>
 				{#if isSaving}
@@ -455,4 +432,4 @@
 			</Button>
 		</div>
 	{/if}
-</div>
+</PageShell>

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import * as Card from '$lib/components/ui/card';
+	import * as Field from '$lib/components/ui/field';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Switch } from '$lib/components/ui/switch';
@@ -10,6 +10,7 @@
 	import { toast } from 'svelte-sonner';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import PageShell from '$lib/components/global/page-shell.svelte';
+	import SettingsSection from '$lib/components/global/settings-section.svelte';
 	import { formatCurrency as i18nFormatCurrency, CURRENCY_CONFIG } from '$lib/utils/i18n';
 	import type { CurrencyCode } from '$lib/utils/i18n';
 	import { createModifierGroup, updateModifierGroup, deleteModifierGroup } from '$lib/api';
@@ -191,80 +192,94 @@
 	}
 </script>
 
-<PageShell title="Modifiers" description="Manage customization options for menu items">
-	{#snippet actions()}
-		<Button onclick={() => (showAddDialog = true)}>
-			<IconPlus class="mr-2 h-4 w-4" />
-			Add Modifier
-		</Button>
-	{/snippet}
-
-	<!-- Search -->
+<PageShell back title="Modifiers" description="Manage customization options for menu items">
 	<div>
-		<div class="relative max-w-sm">
-			<IconSearch class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-			<Input placeholder="Search modifiers..." bind:value={searchQuery} class="pl-9" />
-		</div>
-	</div>
+		<SettingsSection
+			title="Modifier groups"
+			description="Option sets like Size or Toppings that customers choose from when ordering."
+		>
+			{#snippet action()}
+				<Button onclick={() => (showAddDialog = true)}>
+					<IconPlus class="mr-2 h-4 w-4" />
+					Add Modifier
+				</Button>
+			{/snippet}
 
-	<!-- Modifiers List -->
-	<div class="grid gap-4">
-		{#each filteredModifiers as modifier (modifier.id)}
-			<Card.Root>
-				<Card.Header>
-					<div class="flex items-start justify-between">
+			<div class="relative max-w-sm">
+				<IconSearch
+					class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+				/>
+				<Input placeholder="Search modifiers..." bind:value={searchQuery} class="pl-9" />
+			</div>
+
+			{#if filteredModifiers.length === 0}
+				<EmptyState
+					type="empty"
+					title="No modifiers"
+					description="Create modifier groups to customize menu items."
+				/>
+			{:else}
+				<div class="divide-y rounded-lg border">
+					{#each filteredModifiers as modifier (modifier.id)}
 						<div>
-							<Card.Title class="flex items-center gap-2">
-								{modifier.name}
-								{#if modifier.required}
-									<Badge variant="destructive">Required</Badge>
-								{/if}
-								{#if modifier.multiSelect}
-									<Badge variant="secondary">Multi-select</Badge>
-								{/if}
-							</Card.Title>
-							<Card.Description>
-								{modifier.options.length} option{modifier.options.length === 1 ? '' : 's'}
-							</Card.Description>
-						</div>
-						<div class="flex gap-1">
-							<Button variant="ghost" size="icon" onclick={() => editModifier(modifier)}>
-								<IconPencil class="h-4 w-4" />
-							</Button>
-							<Button
-								variant="ghost"
-								size="icon"
-								onclick={() => triggerDeleteModifier(modifier.id)}
-								class="text-destructive hover:text-destructive"
-							>
-								<IconTrash class="h-4 w-4" />
-							</Button>
-						</div>
-					</div>
-				</Card.Header>
-				<Card.Content>
-					<div class="flex flex-wrap gap-2">
-						{#each modifier.options as option}
-							<Badge variant="outline">
-								{option.name}
-								{#if option.price > 0}
-									(+{formatCurrency(option.price)})
-								{/if}
-							</Badge>
-						{/each}
-					</div>
-				</Card.Content>
-			</Card.Root>
-		{/each}
-	</div>
+							<div class="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted/40">
+								<div class="min-w-0">
+									<div class="flex flex-wrap items-center gap-2">
+										<span class="truncate text-sm font-medium">{modifier.name}</span>
+										{#if modifier.required}
+											<Badge variant="destructive">Required</Badge>
+										{:else}
+											<Badge variant="outline">Optional</Badge>
+										{/if}
+										{#if modifier.multiSelect}
+											<Badge variant="secondary">Multi-select</Badge>
+										{/if}
+									</div>
+									<p class="mt-0.5 text-xs text-muted-foreground">
+										{modifier.options.length} option{modifier.options.length === 1 ? '' : 's'}
+									</p>
+								</div>
+								<div class="flex shrink-0 gap-1">
+									<Button
+										variant="ghost"
+										size="icon"
+										aria-label={`Edit ${modifier.name}`}
+										onclick={() => editModifier(modifier)}
+									>
+										<IconPencil class="h-4 w-4" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="icon"
+										aria-label={`Delete ${modifier.name}`}
+										onclick={() => triggerDeleteModifier(modifier.id)}
+										class="text-destructive hover:text-destructive"
+									>
+										<IconTrash class="h-4 w-4" />
+									</Button>
+								</div>
+							</div>
 
-	{#if filteredModifiers.length === 0}
-		<EmptyState
-			type="empty"
-			title="No modifiers"
-			description="Create modifier groups to customize menu items."
-		/>
-	{/if}
+							{#if modifier.options.length > 0}
+								<ul class="divide-y border-t bg-muted/20">
+									{#each modifier.options as option}
+										<li
+											class="flex items-center justify-between gap-4 py-2 pr-4 pl-8 text-sm hover:bg-muted/40"
+										>
+											<span class="min-w-0 truncate">{option.name}</span>
+											<span class="shrink-0 text-xs text-muted-foreground">
+												{option.price > 0 ? `+${formatCurrency(option.price)}` : 'No charge'}
+											</span>
+										</li>
+									{/each}
+								</ul>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			{/if}
+		</SettingsSection>
+	</div>
 </PageShell>
 
 <!-- Add Modifier Dialog -->
@@ -280,50 +295,58 @@
 			<Dialog.Description>Create a new modifier group with options</Dialog.Description>
 		</Dialog.Header>
 		<div class="grid gap-4 py-4">
-			<div class="grid gap-2">
-				<label for="name" class="text-sm font-medium">Name</label>
+			<Field.Field>
+				<Field.Label for="name">Name</Field.Label>
 				<Input
 					id="name"
 					autofocus
 					bind:value={newModifier.name}
 					placeholder="e.g., Size, Toppings"
+					class="max-w-sm"
 				/>
-			</div>
+			</Field.Field>
 
 			<div class="flex items-center gap-6">
 				<div class="flex items-center gap-2">
 					<Switch id="required" bind:checked={newModifier.required} />
-					<label for="required" class="text-sm">Required</label>
+					<Field.Label for="required">Required</Field.Label>
 				</div>
 				<div class="flex items-center gap-2">
 					<Switch id="multi" bind:checked={newModifier.multiSelect} />
-					<label for="multi" class="text-sm">Allow multiple</label>
+					<Field.Label for="multi">Allow multiple</Field.Label>
 				</div>
 			</div>
 
-			<div class="grid gap-2">
-				<label class="text-sm font-medium">Options</label>
-				{#each newModifier.options as option, i}
-					<div class="flex items-center gap-2">
-						<Input bind:value={option.name} placeholder="Option name" class="flex-1" />
-						<div class="relative w-24">
-							<span class="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
-								>{CURRENCY_CONFIG[currency]?.symbol || '$'}</span
-							>
-							<Input type="number" step="0.01" min="0" bind:value={option.price} class="pl-6" />
+			<Field.Set>
+				<Field.Legend>Options</Field.Legend>
+				<div class="flex flex-col gap-2">
+					{#each newModifier.options as option, i}
+						<div class="flex items-center gap-2">
+							<Input bind:value={option.name} placeholder="Option name" class="min-w-0 flex-1" />
+							<div class="relative w-full max-w-[8rem] shrink-0">
+								<span class="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
+									>{CURRENCY_CONFIG[currency]?.symbol || '$'}</span
+								>
+								<Input type="number" step="0.01" min="0" bind:value={option.price} class="pl-6" />
+							</div>
+							{#if newModifier.options.length > 1}
+								<Button
+									variant="ghost"
+									size="icon-sm"
+									aria-label="Remove option"
+									onclick={() => removeOption(i)}
+								>
+									<IconTrash class="h-4 w-4" />
+								</Button>
+							{/if}
 						</div>
-						{#if newModifier.options.length > 1}
-							<Button variant="ghost" size="sm" onclick={() => removeOption(i)}>
-								<IconTrash class="h-4 w-4" />
-							</Button>
-						{/if}
-					</div>
-				{/each}
-				<Button variant="outline" size="sm" onclick={addOption}>
-					<IconPlus class="mr-2 h-4 w-4" />
-					Add Option
-				</Button>
-			</div>
+					{/each}
+					<Button variant="outline" size="sm" class="w-fit" onclick={addOption}>
+						<IconPlus class="mr-2 h-4 w-4" />
+						Add Option
+					</Button>
+				</div>
+			</Field.Set>
 		</div>
 		<Dialog.Footer>
 			<Button variant="outline" onclick={() => (showAddDialog = false)} disabled={saving}
@@ -348,50 +371,58 @@
 		</Dialog.Header>
 		{#if editingModifier}
 			<div class="grid gap-4 py-4">
-				<div class="grid gap-2">
-					<label for="edit-name" class="text-sm font-medium">Name</label>
+				<Field.Field>
+					<Field.Label for="edit-name">Name</Field.Label>
 					<Input
 						id="edit-name"
 						autofocus
 						bind:value={editingModifier.name}
 						placeholder="Modifier name"
+						class="max-w-sm"
 					/>
-				</div>
+				</Field.Field>
 
 				<div class="flex items-center gap-6">
 					<div class="flex items-center gap-2">
 						<Switch id="edit-required" bind:checked={editingModifier.required} />
-						<label for="edit-required" class="text-sm">Required</label>
+						<Field.Label for="edit-required">Required</Field.Label>
 					</div>
 					<div class="flex items-center gap-2">
 						<Switch id="edit-multi" bind:checked={editingModifier.multiSelect} />
-						<label for="edit-multi" class="text-sm">Allow multiple</label>
+						<Field.Label for="edit-multi">Allow multiple</Field.Label>
 					</div>
 				</div>
 
-				<div class="grid gap-2">
-					<label class="text-sm font-medium">Options</label>
-					{#each editingModifier.options as option, i}
-						<div class="flex items-center gap-2">
-							<Input bind:value={option.name} placeholder="Option name" class="flex-1" />
-							<div class="relative w-24">
-								<span class="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
-									>{CURRENCY_CONFIG[currency]?.symbol || '$'}</span
-								>
-								<Input type="number" step="0.01" min="0" bind:value={option.price} class="pl-6" />
+				<Field.Set>
+					<Field.Legend>Options</Field.Legend>
+					<div class="flex flex-col gap-2">
+						{#each editingModifier.options as option, i}
+							<div class="flex items-center gap-2">
+								<Input bind:value={option.name} placeholder="Option name" class="min-w-0 flex-1" />
+								<div class="relative w-full max-w-[8rem] shrink-0">
+									<span class="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
+										>{CURRENCY_CONFIG[currency]?.symbol || '$'}</span
+									>
+									<Input type="number" step="0.01" min="0" bind:value={option.price} class="pl-6" />
+								</div>
+								{#if editingModifier.options.length > 1}
+									<Button
+										variant="ghost"
+										size="icon-sm"
+										aria-label="Remove option"
+										onclick={() => removeEditOption(i)}
+									>
+										<IconTrash class="h-4 w-4" />
+									</Button>
+								{/if}
 							</div>
-							{#if editingModifier.options.length > 1}
-								<Button variant="ghost" size="sm" onclick={() => removeEditOption(i)}>
-									<IconTrash class="h-4 w-4" />
-								</Button>
-							{/if}
-						</div>
-					{/each}
-					<Button variant="outline" size="sm" onclick={addEditOption}>
-						<IconPlus class="mr-2 h-4 w-4" />
-						Add Option
-					</Button>
-				</div>
+						{/each}
+						<Button variant="outline" size="sm" class="w-fit" onclick={addEditOption}>
+							<IconPlus class="mr-2 h-4 w-4" />
+							Add Option
+						</Button>
+					</div>
+				</Field.Set>
 			</div>
 			<Dialog.Footer>
 				<Button variant="outline" onclick={() => (editingModifier = null)} disabled={saving}

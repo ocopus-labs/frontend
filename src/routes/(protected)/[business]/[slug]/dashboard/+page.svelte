@@ -9,8 +9,9 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import * as Alert from '$lib/components/ui/alert';
-	import * as Select from '$lib/components/ui/select';
 	import PageShell from '$lib/components/global/page-shell.svelte';
+	import FilterSelect from '$lib/components/global/filter-select.svelte';
+	import SectionHeader from '$lib/components/global/section-header.svelte';
 	import {
 		IconRefresh,
 		IconAlertTriangle,
@@ -41,12 +42,6 @@
 	let selectedPeriod = $state(data.period || 'month');
 	let isRefreshing = $state(false);
 
-	const periodLabels: Record<string, string> = {
-		today: 'Today',
-		yesterday: 'Yesterday',
-		week: 'This Week',
-		month: 'This Month'
-	};
 
 	function onPeriodChange(value: string) {
 		selectedPeriod = value;
@@ -228,16 +223,16 @@
 		return `${diffDays}d ago`;
 	}
 
-	function getActivityIcon(status: string) {
+	function getActivityDotColor(status: string) {
 		switch (status) {
 			case 'completed':
-				return 'text-success';
+				return 'bg-success';
 			case 'cancelled':
-				return 'text-destructive';
+				return 'bg-destructive';
 			case 'active':
-				return 'text-primary';
+				return 'bg-primary';
 			default:
-				return 'text-muted-foreground';
+				return 'bg-muted-foreground';
 		}
 	}
 
@@ -267,19 +262,16 @@
 		>
 			<IconRefresh class="h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
 		</Button>
-		<Select.Root type="single" value={selectedPeriod} onValueChange={(v) => onPeriodChange(v)}>
-			<Select.Trigger
-				class="w-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm"
-			>
-				{periodLabels[selectedPeriod] ?? selectedPeriod}
-			</Select.Trigger>
-			<Select.Content>
-				<Select.Item value="today">Today</Select.Item>
-				<Select.Item value="yesterday">Yesterday</Select.Item>
-				<Select.Item value="week">This Week</Select.Item>
-				<Select.Item value="month">This Month</Select.Item>
-			</Select.Content>
-		</Select.Root>
+		<FilterSelect
+			value={selectedPeriod}
+			onValueChange={onPeriodChange}
+			options={[
+				{ value: 'today', label: 'Today' },
+				{ value: 'yesterday', label: 'Yesterday' },
+				{ value: 'week', label: 'This Week' },
+				{ value: 'month', label: 'This Month' }
+			]}
+		/>
 		<Button href="{basePath}/pos/new-order" class="shadow-md">
 			<IconPlus class="mr-1.5 h-4 w-4" />
 			New Order
@@ -304,107 +296,118 @@
 		<!-- Stats Cards with sparklines -->
 		<StatsCard {stats} {basePath} />
 
-		<!-- Live Operations Strip -->
-		<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-			<!-- Table Occupancy -->
-			<Card.Root class="p-4">
-				<div class="flex items-center gap-3">
-					<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-chart-3/10">
-						<IconArmchair class="h-5 w-5 text-chart-3" />
-					</div>
-					<div class="min-w-0 flex-1">
-						<p class="text-xs font-medium text-muted-foreground">Table Occupancy</p>
-						{#if tableStats}
-							<div class="mt-1 flex items-center gap-2">
-								<div class="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-									<div
-										class="h-full rounded-full transition-all duration-500 {tableOccupancyPercent >
-										80
-											? 'bg-destructive'
-											: tableOccupancyPercent > 50
-												? 'bg-warning'
-												: 'bg-success'}"
-										style="width: {tableOccupancyPercent}%"
-									></div>
-								</div>
-								<span class="text-sm font-semibold tabular-nums">
-									{tableStats.occupied}/{tableStats.total}
-								</span>
-							</div>
-						{:else}
-							<p class="mt-0.5 text-sm font-semibold">No tables</p>
-						{/if}
-					</div>
-				</div>
-			</Card.Root>
-
-			<!-- Active Orders -->
-			<Card.Root class="p-4">
-				<div class="flex items-center gap-3">
-					<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-chart-1/10">
-						<IconClipboardList class="h-5 w-5 text-chart-1" />
-					</div>
-					<div class="min-w-0 flex-1">
-						<p class="text-xs font-medium text-muted-foreground">Active Orders</p>
-						<p class="text-lg font-bold tabular-nums">
-							{orderStats?.activeOrders ?? data.dashboardStats?.orders?.activeOrders ?? 0}
-						</p>
-					</div>
-				</div>
-			</Card.Root>
-
-			<!-- Order Pipeline -->
-			<Card.Root class="p-4">
-				<div class="flex items-center gap-3">
-					<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-chart-5/10">
-						<IconActivity class="h-5 w-5 text-chart-5" />
-					</div>
-					<div class="min-w-0 flex-1">
-						<p class="mb-1.5 text-xs font-medium text-muted-foreground">Order Pipeline</p>
-						<div class="flex items-center gap-3 text-xs">
-							<div class="flex items-center gap-1">
-								<IconClipboardList class="h-3.5 w-3.5 text-primary" />
-								<span class="font-semibold tabular-nums">
-									{orderStats?.activeOrders ?? data.dashboardStats?.orders?.activeOrders ?? 0}
-								</span>
-								<span class="text-muted-foreground">Active</span>
-							</div>
-							<div class="flex items-center gap-1">
-								<IconCircleCheck class="h-3.5 w-3.5 text-success" />
-								<span class="font-semibold tabular-nums">
-									{orderStats?.completedOrders ?? data.dashboardStats?.orders?.completedOrders ?? 0}
-								</span>
-								<span class="text-muted-foreground">Done</span>
-							</div>
-							{#if orderStats?.cancelledOrders}
-								<div class="flex items-center gap-1">
-									<IconCircleX class="h-3.5 w-3.5 text-destructive" />
-									<span class="font-semibold tabular-nums">
-										{orderStats.cancelledOrders}
+		<!-- Live operations — distinct from the headline KPIs -->
+		<div class="space-y-3">
+			<SectionHeader title="Live operations" description="Real-time floor status" />
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+				<!-- Table Occupancy -->
+				<Card.Root class="p-4">
+					<div class="flex items-center gap-3">
+						<div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-chart-3/10">
+							<IconArmchair class="size-5 text-chart-3" />
+						</div>
+						<div class="min-w-0 flex-1">
+							<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+								Table Occupancy
+							</p>
+							{#if tableStats}
+								<div class="mt-1.5 flex items-center gap-2">
+									<div class="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+										<div
+											class="h-full rounded-full transition-all duration-500 {tableOccupancyPercent >
+											80
+												? 'bg-destructive'
+												: tableOccupancyPercent > 50
+													? 'bg-warning'
+													: 'bg-success'}"
+											style="width: {tableOccupancyPercent}%"
+										></div>
+									</div>
+									<span class="text-sm font-semibold tabular-nums">
+										{tableStats.occupied}/{tableStats.total}
 									</span>
-									<span class="text-muted-foreground">Cancelled</span>
 								</div>
+							{:else}
+								<p class="mt-0.5 text-sm font-semibold">No tables</p>
 							{/if}
 						</div>
 					</div>
-				</div>
-			</Card.Root>
+				</Card.Root>
 
-			<!-- On Duty -->
-			<Card.Root class="p-4">
-				<div class="flex items-center gap-3">
-					<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-chart-4/10">
-						<IconUsersGroup class="h-5 w-5 text-chart-4" />
+				<!-- Active Orders -->
+				<Card.Root class="p-4">
+					<div class="flex items-center gap-3">
+						<div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-chart-1/10">
+							<IconClipboardList class="size-5 text-chart-1" />
+						</div>
+						<div class="min-w-0 flex-1">
+							<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+								Active Orders
+							</p>
+							<p class="text-lg font-bold tabular-nums">
+								{orderStats?.activeOrders ?? data.dashboardStats?.orders?.activeOrders ?? 0}
+							</p>
+						</div>
 					</div>
-					<div class="min-w-0 flex-1">
-						<p class="text-xs font-medium text-muted-foreground">On Duty</p>
-						<p class="text-lg font-bold tabular-nums">
-							{onDutyCount}
-							<span class="text-xs font-normal text-muted-foreground">staff</span>
-						</p>
+				</Card.Root>
+
+				<!-- Order Pipeline -->
+				<Card.Root class="p-4">
+					<div class="flex items-center gap-3">
+						<div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-chart-5/10">
+							<IconActivity class="size-5 text-chart-5" />
+						</div>
+						<div class="min-w-0 flex-1">
+							<p class="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+								Order Pipeline
+							</p>
+							<div class="flex items-center gap-3 text-xs">
+								<div class="flex items-center gap-1">
+									<IconClipboardList class="h-3.5 w-3.5 text-primary" />
+									<span class="font-semibold tabular-nums">
+										{orderStats?.activeOrders ?? data.dashboardStats?.orders?.activeOrders ?? 0}
+									</span>
+									<span class="text-muted-foreground">Active</span>
+								</div>
+								<div class="flex items-center gap-1">
+									<IconCircleCheck class="h-3.5 w-3.5 text-success" />
+									<span class="font-semibold tabular-nums">
+										{orderStats?.completedOrders ?? data.dashboardStats?.orders?.completedOrders ?? 0}
+									</span>
+									<span class="text-muted-foreground">Done</span>
+								</div>
+								{#if orderStats?.cancelledOrders}
+									<div class="flex items-center gap-1">
+										<IconCircleX class="h-3.5 w-3.5 text-destructive" />
+										<span class="font-semibold tabular-nums">
+											{orderStats.cancelledOrders}
+										</span>
+										<span class="text-muted-foreground">Cancelled</span>
+									</div>
+								{/if}
+							</div>
+						</div>
 					</div>
-				</div>
-			</Card.Root>
+				</Card.Root>
+
+				<!-- On Duty -->
+				<Card.Root class="p-4">
+					<div class="flex items-center gap-3">
+						<div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-chart-4/10">
+							<IconUsersGroup class="size-5 text-chart-4" />
+						</div>
+						<div class="min-w-0 flex-1">
+							<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+								On Duty
+							</p>
+							<p class="text-lg font-bold tabular-nums">
+								{onDutyCount}
+								<span class="text-xs font-normal text-muted-foreground">staff</span>
+							</p>
+						</div>
+					</div>
+				</Card.Root>
+			</div>
 		</div>
 
 		<!-- Main Content: Revenue Chart + Live Activity Feed -->
@@ -417,10 +420,7 @@
 						description="Daily revenue over time"
 						data={revenueTrendsData}
 						xKey="date"
-						series={[
-							{ key: 'revenue', label: 'Revenue', color: 'var(--chart-1)' },
-							{ key: 'orders', label: 'Orders', color: 'var(--chart-2)' }
-						]}
+						series={[{ key: 'revenue', label: 'Revenue', color: 'var(--chart-1)' }]}
 					/>
 				{:else}
 					<BarChart title="Revenue Trends" description="Daily revenue over time" />
@@ -447,8 +447,7 @@
 									class="flex items-start gap-3 rounded-md px-2 py-2 transition-colors hover:bg-muted/50"
 								>
 									<div
-										class="mt-0.5 h-2 w-2 shrink-0 rounded-full {getActivityIcon(order.status)}"
-										style="background-color: currentColor;"
+										class="mt-0.5 h-2 w-2 shrink-0 rounded-full {getActivityDotColor(order.status)}"
 									></div>
 									<div class="min-w-0 flex-1">
 										<p class="truncate text-sm">{getActivityLabel(order)}</p>
@@ -492,10 +491,7 @@
 					description="Today's order distribution"
 					data={hourlyChartData}
 					xKey="hour"
-					series={[
-						{ key: 'orders', label: 'Orders', color: 'var(--chart-3)' },
-						{ key: 'revenue', label: 'Revenue', color: 'var(--chart-4)' }
-					]}
+					series={[{ key: 'orders', label: 'Orders', color: 'var(--chart-3)' }]}
 				/>
 			{:else}
 				<BarChart title="Orders by Hour" description="Today's order distribution" />

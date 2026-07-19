@@ -1,6 +1,5 @@
 <script lang="ts">
 	import * as Card from '$lib/components/ui/card';
-	import * as Select from '$lib/components/ui/select';
 	import BarChart from '$lib/components/chart/lazy-bar-chart.svelte';
 	import PieChart from '$lib/components/chart/lazy-pie-chart.svelte';
 	import RevenueHeatmap from '$lib/components/chart/revenue-heatmap.svelte';
@@ -18,8 +17,10 @@
 	import { page } from '$app/stores';
 	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
 	import type { CurrencyCode } from '$lib/utils/i18n';
-	import { TrendBadge } from '$lib/components/data-display';
 	import PageShell from '$lib/components/global/page-shell.svelte';
+	import KpiCard from '$lib/components/global/kpi-card.svelte';
+	import KpiGrid from '$lib/components/global/kpi-grid.svelte';
+	import FilterSelect from '$lib/components/global/filter-select.svelte';
 
 	let { data } = $props();
 
@@ -31,12 +32,6 @@
 		return i18nFormatCurrency(value, currency);
 	}
 
-	const dateRangeLabels: Record<string, string> = {
-		'7d': 'Last 7 days',
-		'30d': 'Last 30 days',
-		'90d': 'Last 90 days',
-		'1y': 'Last year'
-	};
 
 	function onDateRangeChange(value: string) {
 		dateRange = value;
@@ -56,75 +51,77 @@
 	let kpiData = $derived.by(() => {
 		const comparison = data.analyticsComparison?.comparison;
 		if (data.stats) {
-			const { orders, payments } = data.stats;
+			const { orders } = data.stats;
+			const rate = cancellationRate();
 			return [
 				{
-					title: 'Total Revenue',
+					label: 'Total Revenue',
 					value: formatCurrency(orders.totalRevenue),
 					change: comparison?.revenueChange ?? 0,
 					icon: IconCash,
-					color: 'text-chart-5',
-					bgColor: 'bg-chart-5/10'
+					accent: 'chart-5' as const,
+					description: 'vs last period'
 				},
 				{
-					title: 'Total Orders',
+					label: 'Total Orders',
 					value: orders.totalOrders.toLocaleString(),
 					change: comparison?.ordersChange ?? 0,
 					icon: IconShoppingCart,
-					color: 'text-chart-3',
-					bgColor: 'bg-chart-3/10'
+					accent: 'chart-3' as const,
+					description: 'vs last period'
 				},
 				{
-					title: 'Avg Order Value',
+					label: 'Avg Order Value',
 					value: formatCurrency(orders.averageOrderValue),
 					change: comparison?.aovChange ?? 0,
 					icon: IconTrendingUp,
-					color: 'text-chart-4',
-					bgColor: 'bg-chart-4/10'
+					accent: 'chart-4' as const,
+					description: 'vs last period'
 				},
 				{
-					title: 'Cancellation Rate',
-					value: `${cancellationRate()}%`,
+					label: 'Cancellation Rate',
+					value: `${rate}%`,
 					change: 0,
 					icon: IconXboxX,
-					color: cancellationRate() > 10 ? 'text-destructive' : 'text-warning',
-					bgColor: cancellationRate() > 10 ? 'bg-destructive/10' : 'bg-warning/10',
-					subtitle: `${orderStats?.cancelledOrders ?? 0} cancelled of ${orderStats?.totalOrders ?? 0}`
+					accent: rate > 10 ? ('destructive' as const) : ('warning' as const),
+					invertTrend: true,
+					description: `${orderStats?.cancelledOrders ?? 0} cancelled of ${orderStats?.totalOrders ?? 0}`
 				}
 			];
 		}
 		return [
 			{
-				title: 'Total Revenue',
+				label: 'Total Revenue',
 				value: formatCurrency(0),
 				change: 0,
 				icon: IconCash,
-				color: 'text-chart-5',
-				bgColor: 'bg-chart-5/10'
+				accent: 'chart-5' as const,
+				description: 'No data yet'
 			},
 			{
-				title: 'Total Orders',
+				label: 'Total Orders',
 				value: '0',
 				change: 0,
 				icon: IconShoppingCart,
-				color: 'text-chart-3',
-				bgColor: 'bg-chart-3/10'
+				accent: 'chart-3' as const,
+				description: 'No data yet'
 			},
 			{
-				title: 'Avg Order Value',
+				label: 'Avg Order Value',
 				value: formatCurrency(0),
 				change: 0,
 				icon: IconTrendingUp,
-				color: 'text-chart-4',
-				bgColor: 'bg-chart-4/10'
+				accent: 'chart-4' as const,
+				description: 'No data yet'
 			},
 			{
-				title: 'Cancellation Rate',
+				label: 'Cancellation Rate',
 				value: '0%',
 				change: 0,
 				icon: IconXboxX,
-				color: 'text-warning',
-				bgColor: 'bg-warning/10'
+				accent: 'warning' as const,
+				invertTrend: true,
+				description: 'No data yet'
 			}
 		];
 	});
@@ -201,7 +198,12 @@
 	);
 
 	// Rank medal colors
-	const rankColors = ['text-amber-500', 'text-slate-400', 'text-orange-600'];
+	// Medal ranks (gold / silver / bronze) mapped to semantic + chart tokens.
+	const rankChip = [
+		'bg-warning/10 text-warning',
+		'bg-muted text-muted-foreground',
+		'bg-chart-1/10 text-chart-1'
+	];
 
 	// Forecast overlay data: merge actual revenue trends with predicted forecasts
 	const forecastChartData = $derived.by(() => {
@@ -290,67 +292,42 @@
 
 <PageShell title="Analytics" description="Deep dive into your business performance">
 	{#snippet actions()}
-		<Select.Root type="single" value={dateRange} onValueChange={(v) => onDateRangeChange(v)}>
-			<Select.Trigger
-				class="w-[160px] rounded-md border border-input bg-background px-3 py-2 text-sm"
-			>
-				{dateRangeLabels[dateRange] ?? dateRange}
-			</Select.Trigger>
-			<Select.Content>
-				<Select.Item value="7d">Last 7 days</Select.Item>
-				<Select.Item value="30d">Last 30 days</Select.Item>
-				<Select.Item value="90d">Last 90 days</Select.Item>
-				<Select.Item value="1y">Last year</Select.Item>
-			</Select.Content>
-		</Select.Root>
+		<FilterSelect
+			value={dateRange}
+			onValueChange={onDateRangeChange}
+			options={[
+				{ value: '7d', label: 'Last 7 days' },
+				{ value: '30d', label: 'Last 30 days' },
+				{ value: '90d', label: 'Last 90 days' },
+				{ value: '1y', label: 'Last year' }
+			]}
+		/>
 	{/snippet}
 
 	<!-- KPI Cards -->
-	<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-		{#each kpiData as kpi}
-			<Card.Root>
-				<Card.Header class="flex flex-row items-center justify-between pb-2">
-					<Card.Title class="text-sm font-medium text-muted-foreground">
-						{kpi.title}
-					</Card.Title>
-					<div class="flex h-8 w-8 items-center justify-center rounded-lg {kpi.bgColor}">
-						<kpi.icon class="h-4 w-4 {kpi.color}" />
-					</div>
-				</Card.Header>
-				<Card.Content>
-					<div class="text-2xl font-bold">{kpi.value}</div>
-					<div class="mt-1">
-						{#if kpi.change !== 0}
-							<TrendBadge
-								value={kpi.change}
-								changePercent={kpi.change}
-								format="percent"
-								size="sm"
-							/>
-							<span class="ml-1 text-xs text-muted-foreground">from last period</span>
-						{:else if 'subtitle' in kpi && kpi.subtitle}
-							<span class="text-xs text-muted-foreground">{kpi.subtitle}</span>
-						{:else}
-							<span class="text-xs text-muted-foreground">No comparison data</span>
-						{/if}
-					</div>
-				</Card.Content>
-			</Card.Root>
+	<KpiGrid>
+		{#each kpiData as kpi (kpi.label)}
+			<KpiCard
+				label={kpi.label}
+				value={kpi.value}
+				change={kpi.change}
+				icon={kpi.icon}
+				accent={kpi.accent}
+				description={kpi.description}
+				invertTrend={'invertTrend' in kpi ? kpi.invertTrend : false}
+			/>
 		{/each}
-	</div>
+	</KpiGrid>
 
 	<!-- Revenue Trends (Full Width) -->
 	<div>
 		{#if revenueTrendsData.length > 0}
 			<BarChart
 				title="Revenue Trends"
-				description="Revenue and order volume over time"
+				description="Daily revenue over time"
 				data={revenueTrendsData}
 				xKey="date"
-				series={[
-					{ key: 'revenue', label: 'Revenue', color: 'var(--chart-1)' },
-					{ key: 'orders', label: 'Orders', color: 'var(--chart-2)' }
-				]}
+				series={[{ key: 'revenue', label: 'Revenue', color: 'var(--chart-1)' }]}
 			/>
 		{:else}
 			<Card.Root>
@@ -399,7 +376,7 @@
 							{
 								key: 'predictedRevenue',
 								label: 'Predicted Revenue',
-								color: 'var(--chart-5, #a78bfa)'
+								color: 'var(--chart-5)'
 							}
 						]}
 					/>
@@ -434,10 +411,7 @@
 				description="Staffing demand — order volume by hour of day"
 				data={hourlyHistogramData}
 				xKey="hour"
-				series={[
-					{ key: 'orders', label: 'Orders', color: 'var(--chart-3)' },
-					{ key: 'revenue', label: 'Revenue', color: 'var(--chart-4)' }
-				]}
+				series={[{ key: 'orders', label: 'Orders', color: 'var(--chart-3)' }]}
 			/>
 		{:else}
 			<Card.Root>
@@ -492,11 +466,8 @@
 								<span
 									class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold {i <
 									3
-										? rankColors[i] + ' bg-current/10'
-										: 'text-muted-foreground'}"
-									style={i < 3
-										? `background-color: color-mix(in srgb, currentColor 10%, transparent)`
-										: ''}
+										? rankChip[i]
+										: 'bg-muted text-muted-foreground'}"
 								>
 									{i + 1}
 								</span>

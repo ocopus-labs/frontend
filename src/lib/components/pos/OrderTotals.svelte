@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Switch } from '$lib/components/ui/switch';
+	import { Label } from '$lib/components/ui/label';
 	import { createI18nUtils } from '$lib/utils/i18n';
 
 	interface Props {
@@ -44,12 +45,22 @@
 
 	<!-- Tax Toggle Row -->
 	<div class="flex items-center justify-between py-2">
-		<button onclick={onToggleTaxes} class="flex items-center gap-3 text-left">
-			<Switch checked={showTaxes} />
-			<span class="text-sm {showTaxes ? 'text-foreground' : 'text-muted-foreground'}">
+		<!--
+			Switch renders its own <button>, so wrapping it in one was invalid HTML
+			that the parser splits during hydration — and it left the switch not
+			independently focusable. The Label is the click target now.
+		-->
+		<div class="flex items-center gap-3">
+			<Switch id="toggle-taxes" checked={showTaxes} onCheckedChange={onToggleTaxes} />
+			<Label
+				for="toggle-taxes"
+				class="cursor-pointer text-sm font-normal {showTaxes
+					? 'text-foreground'
+					: 'text-muted-foreground'}"
+			>
 				Tax ({taxRate}%)
-			</span>
-		</button>
+			</Label>
+		</div>
 		{#if showTaxes}
 			<span class="text-sm font-medium">{i18n.formatCurrency(taxes)}</span>
 		{:else}
@@ -59,9 +70,14 @@
 
 	<!-- Discount Toggle Row -->
 	<div class="flex items-center justify-between py-2">
-		<button onclick={onToggleDiscount} class="flex items-center gap-3 text-left">
-			<Switch checked={showDiscount} />
-			<span class="text-sm {showDiscount ? 'text-foreground' : 'text-muted-foreground'}">
+		<div class="flex items-center gap-3">
+			<Switch id="toggle-discount" checked={showDiscount} onCheckedChange={onToggleDiscount} />
+			<Label
+				for="toggle-discount"
+				class="cursor-pointer text-sm font-normal {showDiscount
+					? 'text-foreground'
+					: 'text-muted-foreground'}"
+			>
 				Discount
 				{#if showDiscount && discountValue > 0}
 					<span class="ml-1 text-xs text-success">
@@ -70,8 +86,8 @@
 							: i18n.formatCurrency(discountValue)})
 					</span>
 				{/if}
-			</span>
-		</button>
+			</Label>
+		</div>
 		{#if showDiscount && discount > 0}
 			<span class="text-sm font-medium text-success">-{i18n.formatCurrency(discount)}</span>
 		{:else}

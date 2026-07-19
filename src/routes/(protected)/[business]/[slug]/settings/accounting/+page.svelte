@@ -1,11 +1,11 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import MobilePageHeader from '$lib/components/global/mobile-page-header.svelte';
-	import PageHeader from '$lib/components/global/page-header.svelte';
-	import { page } from '$app/stores';
+	import PageShell from '$lib/components/global/page-shell.svelte';
+	import SettingsSection from '$lib/components/global/settings-section.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
+	import * as Field from '$lib/components/ui/field';
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
 	import { toast } from 'svelte-sonner';
@@ -196,103 +196,78 @@
 	}
 </script>
 
-<MobilePageHeader
+<PageShell
+	back
 	title="Accounting Export"
-	backHref={`/${$page.params.business}/${$page.params.slug}/settings`}
-/>
-<div class="flex flex-col gap-6 p-6">
-	<PageHeader
-		back
-		title="Accounting Export"
-		description="Export financial data for your accounting software"
-	/>
-
-	<!-- Step 1: Provider Selection -->
-	<Card.Root>
-		<Card.Header>
-			<Card.Title class="text-base">1. Select Accounting Provider</Card.Title>
-			<Card.Description>Choose the software you want to export data for</Card.Description>
-		</Card.Header>
-		<Card.Content>
+	description="Export financial data for your accounting software"
+>
+	<div>
+		<!-- Step 1: Provider Selection -->
+		<SettingsSection
+			title="1. Select accounting provider"
+			description="Choose the software you want to export data for."
+		>
 			<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
 				{#each PROVIDERS as provider (provider.id)}
-					<button
-						type="button"
-						class="flex flex-col gap-1 rounded-lg border-2 p-4 text-left transition-colors hover:bg-accent {selectedProvider ===
+					<Button
+						variant="outline"
+						onclick={() => (selectedProvider = provider.id)}
+						class="h-auto flex-col items-stretch gap-1 whitespace-normal border-2 p-4 text-left {selectedProvider ===
 						provider.id
 							? 'border-primary bg-primary/5'
 							: 'border-border'}"
-						onclick={() => (selectedProvider = provider.id)}
 					>
-						<div class="flex items-center justify-between">
+						<span class="flex items-center justify-between gap-2">
 							<span class="text-sm font-medium">{provider.name}</span>
 							{#if selectedProvider === provider.id}
-								<IconCheck class="h-4 w-4 text-primary" />
+								<IconCheck class="h-4 w-4 shrink-0 text-primary" />
 							{/if}
-						</div>
-						<span class="text-xs text-muted-foreground">{provider.description}</span>
+						</span>
+						<span class="text-xs font-normal text-muted-foreground">{provider.description}</span>
 						<Badge variant="outline" class="mt-1 w-fit text-[10px]">{provider.format}</Badge>
-					</button>
+					</Button>
 				{/each}
 			</div>
-		</Card.Content>
-	</Card.Root>
+		</SettingsSection>
 
-	<!-- Step 2: Date Range -->
-	<Card.Root>
-		<Card.Header>
-			<Card.Title class="text-base">2. Select Date Range</Card.Title>
-			<Card.Description>Choose the period you want to export data for</Card.Description>
-		</Card.Header>
-		<Card.Content>
-			<div class="flex flex-col gap-4 sm:flex-row sm:items-end">
-				<div class="grid gap-2">
-					<label for="start-date" class="text-sm font-medium">Start Date</label>
+		<!-- Step 2: Date Range -->
+		<SettingsSection
+			title="2. Select date range"
+			description="Choose the period you want to export data for."
+		>
+			<div class="grid gap-4 sm:grid-cols-2">
+				<Field.Field>
+					<Field.Label for="start-date">Start date</Field.Label>
 					<div class="relative">
 						<IconCalendar
 							class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
 						/>
-						<Input
-							id="start-date"
-							type="date"
-							bind:value={startDate}
-							class="w-full pl-10 sm:w-48"
-						/>
+						<Input id="start-date" type="date" bind:value={startDate} class="max-w-sm pl-10" />
 					</div>
-				</div>
-				<div class="grid gap-2">
-					<label for="end-date" class="text-sm font-medium">End Date</label>
+				</Field.Field>
+				<Field.Field>
+					<Field.Label for="end-date">End date</Field.Label>
 					<div class="relative">
 						<IconCalendar
 							class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
 						/>
-						<Input
-							id="end-date"
-							type="date"
-							bind:value={endDate}
-							class="w-full pl-10 sm:w-48"
-						/>
+						<Input id="end-date" type="date" bind:value={endDate} class="max-w-sm pl-10" />
 					</div>
-				</div>
+				</Field.Field>
 			</div>
 			{#if startDate && endDate && startDate >= endDate}
-				<p class="mt-2 text-sm text-destructive">Start date must be before end date</p>
+				<p class="text-sm text-destructive">Start date must be before end date</p>
 			{/if}
-		</Card.Content>
-	</Card.Root>
+		</SettingsSection>
 
-	<!-- Step 3: Generate -->
-	<Card.Root>
-		<Card.Header>
-			<Card.Title class="text-base">3. Generate Export</Card.Title>
-			<Card.Description
-				>{selectedProvider
-					? `Generate a ${getProviderName(selectedProvider)} export`
-					: 'Select a provider and date range to generate'}</Card.Description
-			>
-		</Card.Header>
-		<Card.Content>
-			<div class="flex flex-col gap-4">
+		<!-- Step 3: Generate -->
+		<SettingsSection
+			title="3. Generate export"
+			description={selectedProvider
+				? `Generate a ${getProviderName(selectedProvider)} export`
+				: 'Select a provider and date range to generate'}
+		>
+			<div>
 				<Button onclick={handleGenerate} disabled={!canGenerate || isGenerating}>
 					{#if isGenerating}
 						<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
@@ -302,42 +277,42 @@
 						Generate Export
 					{/if}
 				</Button>
-
-				{#if lastExport}
-					<div class="rounded-lg border bg-muted/30 p-4">
-						<div class="flex items-center justify-between">
-							<div class="flex flex-col gap-1">
-								<p class="text-sm font-medium">
-									{getProviderName(lastExport.provider)} export ready
-								</p>
-								<p class="text-xs text-muted-foreground">
-									{formatDate(lastExport.startDate)} - {formatDate(lastExport.endDate)}
-									{#if lastExport.recordCount !== null}
-										&middot; {lastExport.recordCount} records
-									{/if}
-								</p>
-							</div>
-							{#if lastExport.status === 'ready' || lastExport.status === 'downloaded'}
-								<Button
-									variant="outline"
-									size="sm"
-									onclick={() => handleDownload(lastExport!)}
-									disabled={downloadingId === lastExport.id}
-								>
-									{#if downloadingId === lastExport.id}
-										<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
-									{:else}
-										<IconDownload class="mr-2 h-4 w-4" />
-									{/if}
-									Download
-								</Button>
-							{/if}
-						</div>
-					</div>
-				{/if}
 			</div>
-		</Card.Content>
-	</Card.Root>
+
+			{#if lastExport}
+				<Card.Root class="bg-muted/30 py-4">
+					<Card.Content class="flex items-center justify-between gap-4">
+						<div class="flex flex-col gap-1">
+							<p class="text-sm font-medium">
+								{getProviderName(lastExport.provider)} export ready
+							</p>
+							<p class="text-xs text-muted-foreground">
+								{formatDate(lastExport.startDate)} - {formatDate(lastExport.endDate)}
+								{#if lastExport.recordCount !== null}
+									&middot; {lastExport.recordCount} records
+								{/if}
+							</p>
+						</div>
+						{#if lastExport.status === 'ready' || lastExport.status === 'downloaded'}
+							<Button
+								variant="outline"
+								size="sm"
+								onclick={() => handleDownload(lastExport!)}
+								disabled={downloadingId === lastExport.id}
+							>
+								{#if downloadingId === lastExport.id}
+									<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+								{:else}
+									<IconDownload class="mr-2 h-4 w-4" />
+								{/if}
+								Download
+							</Button>
+						{/if}
+					</Card.Content>
+				</Card.Root>
+			{/if}
+		</SettingsSection>
+	</div>
 
 	<!-- Export History -->
 	<Card.Root>
@@ -426,4 +401,4 @@
 			{/if}
 		</Card.Content>
 	</Card.Root>
-</div>
+</PageShell>

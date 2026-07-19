@@ -3,10 +3,15 @@
 	import type { MenuGroup, MenuItem } from '$lib/types/menu';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
+	import { Textarea } from '$lib/components/ui/textarea';
 	import { Switch } from '$lib/components/ui/switch';
-	import * as Card from '$lib/components/ui/card';
+	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { Label } from '$lib/components/ui/label';
+	import * as Field from '$lib/components/ui/field';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
+	import PageShell from '$lib/components/global/page-shell.svelte';
+	import SettingsSection from '$lib/components/global/settings-section.svelte';
 	import {
 		IconPlus,
 		IconPencil,
@@ -160,77 +165,96 @@
 	onCancel={() => { deleteDialogOpen = false; deleteTarget = null; }}
 />
 
-<div class="flex flex-1 flex-col gap-4 p-4 md:p-6">
-	<!-- Header -->
-	<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-		<div>
-			<h1 class="text-2xl font-bold">Groups</h1>
-			<p class="text-muted-foreground">Create custom item collections for the POS tab bar</p>
-		</div>
-		<Button onclick={openAdd}>
-			<IconPlus class="mr-2 h-4 w-4" /> New Group
-		</Button>
-	</div>
+<PageShell
+	back
+	title="Groups"
+	description="Create custom item collections for the POS tab bar"
+>
+	<div>
+		<SettingsSection
+			title="Item groups"
+			description="Each group shows up as its own tab in the POS. Items can belong to more than one group."
+		>
+			{#snippet action()}
+				<Button onclick={openAdd}>
+					<IconPlus class="mr-2 h-4 w-4" /> New Group
+				</Button>
+			{/snippet}
 
-	<!-- Search -->
-	<div class="relative max-w-sm">
-		<IconSearch class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-		<Input placeholder="Search groups..." bind:value={searchQuery} class="pl-9" />
-	</div>
+			<div class="relative max-w-sm">
+				<IconSearch class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+				<Input placeholder="Search groups..." bind:value={searchQuery} class="pl-9" />
+			</div>
 
-	<!-- Groups List -->
-	<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-		{#each filteredGroups as group (group.id)}
-			<Card.Root>
-				<Card.Header class="pb-3">
-					<div class="flex items-start justify-between">
-						<div>
-							<Card.Title class="flex items-center gap-2">
-								{#if group.color}
-									<span class="h-3 w-3 rounded-full" style="background-color: {group.color}"></span>
+			{#if filteredGroups.length === 0}
+				<EmptyState
+					type="empty"
+					title="No groups"
+					description="Create groups to organize menu items into custom POS tabs."
+				/>
+			{:else}
+				<div class="divide-y rounded-lg border">
+					{#each filteredGroups as group (group.id)}
+						<div class="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted/40">
+							<div class="min-w-0 space-y-1">
+								<div class="flex flex-wrap items-center gap-2">
+									{#if group.color}
+										<span
+											class="h-3 w-3 shrink-0 rounded-full"
+											style="background-color: {group.color}"
+										></span>
+									{/if}
+									<span class="text-sm font-medium">{group.name}</span>
+									<Badge variant={group.isActive ? 'default' : 'secondary'}>
+										{group.isActive ? 'Active' : 'Inactive'}
+									</Badge>
+								</div>
+
+								{#if group.description}
+									<p class="text-sm text-muted-foreground">{group.description}</p>
 								{/if}
-								{group.name}
-							</Card.Title>
-							{#if group.description}
-								<Card.Description>{group.description}</Card.Description>
-							{/if}
-						</div>
-						<Badge variant={group.isActive ? 'default' : 'secondary'}>
-							{group.isActive ? 'Active' : 'Inactive'}
-						</Badge>
-					</div>
-				</Card.Header>
-				<Card.Content class="pb-3">
-					<p class="text-sm text-muted-foreground">
-						{group.itemIds.length} item{group.itemIds.length !== 1 ? 's' : ''}
-					</p>
-					{#if group.itemIds.length > 0}
-						<div class="mt-2 flex flex-wrap gap-1">
-							{#each group.itemIds.slice(0, 5) as itemId}
-								<Badge variant="outline" class="text-xs">{getItemName(itemId)}</Badge>
-							{/each}
-							{#if group.itemIds.length > 5}
-								<Badge variant="outline" class="text-xs">+{group.itemIds.length - 5} more</Badge>
-							{/if}
-						</div>
-					{/if}
-				</Card.Content>
-				<Card.Footer class="gap-2">
-					<Button variant="outline" size="sm" onclick={() => openEdit(group)}>
-						<IconPencil class="mr-1 h-3.5 w-3.5" /> Edit
-					</Button>
-					<Button variant="outline" size="sm" onclick={() => { deleteTarget = group; deleteDialogOpen = true; }}>
-						<IconTrash class="mr-1 h-3.5 w-3.5" /> Delete
-					</Button>
-				</Card.Footer>
-			</Card.Root>
-		{/each}
-	</div>
 
-	{#if filteredGroups.length === 0}
-		<EmptyState type="empty" title="No groups" description="Create groups to organize menu items into custom POS tabs." />
-	{/if}
-</div>
+								<p class="text-xs text-muted-foreground">
+									{group.itemIds.length} item{group.itemIds.length !== 1 ? 's' : ''}
+								</p>
+
+								{#if group.itemIds.length > 0}
+									<div class="flex flex-wrap gap-1">
+										{#each group.itemIds.slice(0, 5) as itemId}
+											<Badge variant="outline" class="text-xs">{getItemName(itemId)}</Badge>
+										{/each}
+										{#if group.itemIds.length > 5}
+											<Badge variant="outline" class="text-xs">+{group.itemIds.length - 5} more</Badge>
+										{/if}
+									</div>
+								{/if}
+							</div>
+
+							<div class="flex shrink-0 items-center gap-1">
+								<Button
+									variant="ghost"
+									size="icon"
+									aria-label="Edit {group.name}"
+									onclick={() => openEdit(group)}
+								>
+									<IconPencil />
+								</Button>
+								<Button
+									variant="ghost"
+									size="icon"
+									aria-label="Delete {group.name}"
+									onclick={() => { deleteTarget = group; deleteDialogOpen = true; }}
+								>
+									<IconTrash />
+								</Button>
+							</div>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		</SettingsSection>
+	</div>
+</PageShell>
 
 <!-- Create/Edit Dialog -->
 <Dialog.Root bind:open={showAddDialog}>
@@ -243,59 +267,74 @@
 		</Dialog.Header>
 
 		<div class="flex flex-col gap-4 py-4">
-			<div>
-				<label for="group-name" class="text-sm font-medium">Name</label>
-				<Input id="group-name" bind:value={formName} placeholder="e.g. Bestsellers, Morning Menu" />
-			</div>
+			<Field.Field>
+				<Field.Label for="group-name">Name</Field.Label>
+				<Input
+					id="group-name"
+					bind:value={formName}
+					placeholder="e.g. Bestsellers, Morning Menu"
+					class="max-w-sm"
+				/>
+			</Field.Field>
 
-			<div>
-				<label for="group-desc" class="text-sm font-medium">Description</label>
-				<Input id="group-desc" bind:value={formDescription} placeholder="Optional description" />
-			</div>
+			<Field.Field>
+				<Field.Label for="group-desc">Description</Field.Label>
+				<Textarea id="group-desc" bind:value={formDescription} rows={2} placeholder="Optional description" />
+			</Field.Field>
 
-			<div>
-				<label for="group-color" class="text-sm font-medium">Tab Color</label>
+			<Field.Field>
+				<Field.Label for="group-color">Tab Color</Field.Label>
 				<div class="flex items-center gap-2">
-					<input type="color" id="group-color" bind:value={formColor} class="h-8 w-8 rounded border cursor-pointer" />
-					<Input bind:value={formColor} placeholder="#6366f1" class="flex-1" />
+					<Input
+						id="group-color"
+						type="color"
+						bind:value={formColor}
+						aria-label="Pick tab colour"
+						class="h-8 w-10 cursor-pointer p-1"
+					/>
+					<Input bind:value={formColor} placeholder="#6366f1" class="max-w-[10rem]" />
 				</div>
-			</div>
+				<Field.Description>Used for this group's tab in the POS.</Field.Description>
+			</Field.Field>
 
 			<div class="flex items-center gap-2">
 				<Switch id="group-active" checked={formIsActive} onCheckedChange={(v) => formIsActive = v} />
-				<label for="group-active" class="text-sm font-medium">
+				<Label for="group-active" class="text-sm font-medium">
 					{formIsActive ? 'Active — visible in POS' : 'Inactive — hidden from POS'}
-				</label>
+				</Label>
 			</div>
 
 			<!-- Item Picker -->
-			<div>
-				<label class="text-sm font-medium">Items ({formItemIds.length} selected)</label>
-				<div class="relative mt-1">
+			<Field.Field>
+				<Field.Label for="group-item-search">Items ({formItemIds.length} selected)</Field.Label>
+				<div class="relative">
 					<IconSearch class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-					<Input placeholder="Search items..." bind:value={itemSearchQuery} class="pl-9" />
+					<Input
+						id="group-item-search"
+						placeholder="Search items..."
+						bind:value={itemSearchQuery}
+						class="pl-9"
+					/>
 				</div>
-				<div class="mt-2 max-h-48 overflow-y-auto rounded-md border p-1">
+				<div class="max-h-48 overflow-y-auto rounded-md border p-1">
 					{#each filteredAvailableItems as item (item.id)}
-						<button
-							type="button"
-							class="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent text-left"
-							onclick={() => toggleItem(item.id)}
-						>
-							<span class="flex h-4 w-4 shrink-0 items-center justify-center rounded border {formItemIds.includes(item.id) ? 'bg-primary border-primary text-primary-foreground' : ''}">
-								{#if formItemIds.includes(item.id)}
-									<svg class="h-3 w-3" viewBox="0 0 12 12"><path d="M3.5 6L5.5 8L8.5 4" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
-								{/if}
-							</span>
-							<span class="truncate">{item.name}</span>
-							<span class="ml-auto text-xs text-muted-foreground">{item.categoryId}</span>
-						</button>
+						<div class="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted/40">
+							<Checkbox
+								id="group-item-{item.id}"
+								checked={formItemIds.includes(item.id)}
+								onCheckedChange={() => toggleItem(item.id)}
+							/>
+							<Label for="group-item-{item.id}" class="min-w-0 flex-1 cursor-pointer truncate font-normal">
+								{item.name}
+							</Label>
+							<span class="ml-auto shrink-0 text-xs text-muted-foreground">{item.categoryId}</span>
+						</div>
 					{/each}
 					{#if filteredAvailableItems.length === 0}
 						<p class="p-2 text-center text-sm text-muted-foreground">No items found</p>
 					{/if}
 				</div>
-			</div>
+			</Field.Field>
 		</div>
 
 		<Dialog.Footer>
