@@ -170,7 +170,17 @@ export async function getGstSummary(
 
 // ==================== E-INVOICE API ====================
 
-export type EinvoiceStatus = 'pending' | 'generated' | 'registered' | 'failed';
+/**
+ * `simulated` = produced locally without government IRP registration. Carries no
+ * legal validity and must never be surfaced as a real e-invoice. Only
+ * `registered` means the IRP accepted it.
+ */
+export type EinvoiceStatus =
+	| 'pending'
+	| 'simulated'
+	| 'generated'
+	| 'registered'
+	| 'failed';
 
 export interface EinvoiceStatusResponse {
 	id: string;

@@ -14,7 +14,6 @@
 	import Building2 from '@lucide/svelte/icons/building-2';
 	import Bell from '@lucide/svelte/icons/bell';
 	import Shield from '@lucide/svelte/icons/shield';
-	import Receipt from '@lucide/svelte/icons/receipt';
 	import Network from '@lucide/svelte/icons/network';
 
 	let {
@@ -45,14 +44,10 @@
 			icon: Network
 		},
 		{
-			title: 'Subscriptions',
-			url: '/dashboard/subscriptions',
-			icon: CreditCard
-		},
-		{
+			// Subscriptions merged into Billing — one destination, three tabs.
 			title: 'Billing',
 			url: '/dashboard/billing',
-			icon: Receipt
+			icon: CreditCard
 		}
 	];
 

@@ -5,11 +5,14 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import * as Card from '$lib/components/ui/card';
 	import * as Dialog from '$lib/components/ui/dialog';
+	import * as Field from '$lib/components/ui/field';
+	import { NativeSelect, NativeSelectOption } from '$lib/components/ui/native-select';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
 	import { IconLoader2, IconPlus, IconTrash, IconGripVertical } from '@tabler/icons-svelte';
 	import { toast } from 'svelte-sonner';
-	import PageHeader from '$lib/components/global/page-header.svelte';
+	import PageShell from '$lib/components/global/page-shell.svelte';
+	import SettingsSection from '$lib/components/global/settings-section.svelte';
 	import {
 		updateLoyaltySettings,
 		getLoyaltyTiers,
@@ -17,7 +20,6 @@
 		getLoyaltyPromotions,
 		createLoyaltyPromotion,
 		type LoyaltySettings,
-		type LoyaltyTier,
 		type LoyaltyTierInput,
 		type LoyaltyPromotion,
 		type CreateLoyaltyPromotionPayload
@@ -273,9 +275,7 @@
 	}
 </script>
 
-<div class="flex flex-col gap-6 p-6">
-	<PageHeader back title="Loyalty & Rewards" description="Configure your customer loyalty program" />
-
+<PageShell back title="Loyalty & Rewards" description="Configure your customer loyalty program">
 	{#if !settings}
 		<Card.Root>
 			<Card.Content class="p-8 text-center">
@@ -283,116 +283,150 @@
 			</Card.Content>
 		</Card.Root>
 	{:else}
-		<!-- Enable/Disable -->
-		<Card.Root>
-			<Card.Header>
-				<Card.Title class="text-base">Program Status</Card.Title>
-				<Card.Description>Enable or disable the loyalty program for your business</Card.Description>
-			</Card.Header>
-			<Card.Content>
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-sm font-medium">Loyalty Program</p>
-						<p class="text-sm text-muted-foreground">
-							{enabled ? 'Customers earn points on every order' : 'Loyalty program is disabled'}
-						</p>
-					</div>
-					<Switch bind:checked={enabled} />
+		<div>
+			<SettingsSection
+				title="Program status"
+				description="Enable or disable the loyalty program for your business."
+			>
+				<div class="flex items-center justify-between gap-4">
+					<p class="text-sm text-muted-foreground">
+						{enabled ? 'Customers earn points on every order' : 'Loyalty program is disabled'}
+					</p>
+					<Switch bind:checked={enabled} aria-label="Loyalty program" />
 				</div>
-			</Card.Content>
-		</Card.Root>
+			</SettingsSection>
 
-		{#if enabled}
-			<!-- Points Configuration -->
-			<Card.Root>
-				<Card.Header>
-					<Card.Title class="text-base">Points Configuration</Card.Title>
-					<Card.Description>Set how points are earned and redeemed</Card.Description>
-				</Card.Header>
-				<Card.Content class="grid gap-4">
-					<div class="grid gap-2">
-						<label for="points-per-unit" class="text-sm font-medium">Points per currency unit spent</label>
+			{#if enabled}
+				<SettingsSection
+					title="Points configuration"
+					description="Set how points are earned and redeemed."
+				>
+					<Field.Field>
+						<Field.Label for="points-per-unit">Points per currency unit spent</Field.Label>
 						<Input
 							id="points-per-unit"
 							type="number"
 							min="0"
 							step="0.1"
 							bind:value={pointsPerUnit}
+							class="max-w-[8rem]"
 						/>
-						<p class="text-xs text-muted-foreground">e.g., 1 = customer earns 1 point for every $1 spent</p>
-					</div>
-					<div class="grid gap-2">
-						<label for="redemption-rate" class="text-sm font-medium">Redemption rate (currency per point)</label>
+						<Field.Description>
+							e.g., 1 = customer earns 1 point for every $1 spent
+						</Field.Description>
+					</Field.Field>
+
+					<Field.Field>
+						<Field.Label for="redemption-rate">Redemption rate (currency per point)</Field.Label>
 						<Input
 							id="redemption-rate"
 							type="number"
 							min="0"
 							step="0.01"
 							bind:value={redemptionRate}
+							class="max-w-[8rem]"
 						/>
-						<p class="text-xs text-muted-foreground">e.g., 0.10 = 10 points = $1 discount</p>
-					</div>
-					<div class="grid gap-2">
-						<label for="min-redemption" class="text-sm font-medium">Minimum points to redeem</label>
+						<Field.Description>e.g., 0.10 = 10 points = $1 discount</Field.Description>
+					</Field.Field>
+
+					<Field.Field>
+						<Field.Label for="min-redemption">Minimum points to redeem</Field.Label>
 						<Input
 							id="min-redemption"
 							type="number"
 							min="1"
 							step="1"
 							bind:value={minimumRedemption}
+							class="max-w-[8rem]"
 						/>
-					</div>
-				</Card.Content>
-			</Card.Root>
+					</Field.Field>
+				</SettingsSection>
 
-			<!-- Tier Thresholds -->
-			<Card.Root>
-				<Card.Header>
-					<Card.Title class="text-base">Tier Thresholds</Card.Title>
-					<Card.Description>Lifetime points needed to reach each tier (customers never downgrade)</Card.Description>
-				</Card.Header>
-				<Card.Content class="grid gap-4 sm:grid-cols-3">
-					<div class="grid gap-2">
-						<label for="tier-silver" class="text-sm font-medium">Silver</label>
-						<Input id="tier-silver" type="number" min="1" bind:value={tierSilver} />
+				<SettingsSection
+					title="Tier thresholds"
+					description="Lifetime points needed to reach each tier (customers never downgrade)."
+				>
+					<div class="grid gap-4 sm:grid-cols-3">
+						<Field.Field>
+							<Field.Label for="tier-silver">Silver</Field.Label>
+							<Input
+								id="tier-silver"
+								type="number"
+								min="1"
+								bind:value={tierSilver}
+								class="max-w-[8rem]"
+							/>
+						</Field.Field>
+						<Field.Field>
+							<Field.Label for="tier-gold">Gold</Field.Label>
+							<Input id="tier-gold" type="number" min="1" bind:value={tierGold} class="max-w-[8rem]" />
+						</Field.Field>
+						<Field.Field>
+							<Field.Label for="tier-platinum">Platinum</Field.Label>
+							<Input
+								id="tier-platinum"
+								type="number"
+								min="1"
+								bind:value={tierPlatinum}
+								class="max-w-[8rem]"
+							/>
+						</Field.Field>
 					</div>
-					<div class="grid gap-2">
-						<label for="tier-gold" class="text-sm font-medium">Gold</label>
-						<Input id="tier-gold" type="number" min="1" bind:value={tierGold} />
-					</div>
-					<div class="grid gap-2">
-						<label for="tier-platinum" class="text-sm font-medium">Platinum</label>
-						<Input id="tier-platinum" type="number" min="1" bind:value={tierPlatinum} />
-					</div>
-				</Card.Content>
-			</Card.Root>
+				</SettingsSection>
 
-			<!-- Tier Multipliers -->
-			<Card.Root>
-				<Card.Header>
-					<Card.Title class="text-base">Tier Multipliers</Card.Title>
-					<Card.Description>Bonus point multiplier for each tier level</Card.Description>
-				</Card.Header>
-				<Card.Content class="grid gap-4 sm:grid-cols-4">
-					<div class="grid gap-2">
-						<label for="mult-bronze" class="text-sm font-medium">Bronze</label>
-						<Input id="mult-bronze" type="number" min="1" step="0.05" bind:value={multBronze} />
+				<SettingsSection
+					title="Tier multipliers"
+					description="Bonus point multiplier for each tier level."
+				>
+					<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+						<Field.Field>
+							<Field.Label for="mult-bronze">Bronze</Field.Label>
+							<Input
+								id="mult-bronze"
+								type="number"
+								min="1"
+								step="0.05"
+								bind:value={multBronze}
+								class="max-w-[8rem]"
+							/>
+						</Field.Field>
+						<Field.Field>
+							<Field.Label for="mult-silver">Silver</Field.Label>
+							<Input
+								id="mult-silver"
+								type="number"
+								min="1"
+								step="0.05"
+								bind:value={multSilver}
+								class="max-w-[8rem]"
+							/>
+						</Field.Field>
+						<Field.Field>
+							<Field.Label for="mult-gold">Gold</Field.Label>
+							<Input
+								id="mult-gold"
+								type="number"
+								min="1"
+								step="0.05"
+								bind:value={multGold}
+								class="max-w-[8rem]"
+							/>
+						</Field.Field>
+						<Field.Field>
+							<Field.Label for="mult-platinum">Platinum</Field.Label>
+							<Input
+								id="mult-platinum"
+								type="number"
+								min="1"
+								step="0.05"
+								bind:value={multPlatinum}
+								class="max-w-[8rem]"
+							/>
+						</Field.Field>
 					</div>
-					<div class="grid gap-2">
-						<label for="mult-silver" class="text-sm font-medium">Silver</label>
-						<Input id="mult-silver" type="number" min="1" step="0.05" bind:value={multSilver} />
-					</div>
-					<div class="grid gap-2">
-						<label for="mult-gold" class="text-sm font-medium">Gold</label>
-						<Input id="mult-gold" type="number" min="1" step="0.05" bind:value={multGold} />
-					</div>
-					<div class="grid gap-2">
-						<label for="mult-platinum" class="text-sm font-medium">Platinum</label>
-						<Input id="mult-platinum" type="number" min="1" step="0.05" bind:value={multPlatinum} />
-					</div>
-				</Card.Content>
-			</Card.Root>
-		{/if}
+				</SettingsSection>
+			{/if}
+		</div>
 
 		<!-- Save Button -->
 		<div class="flex justify-end">
@@ -407,89 +441,83 @@
 		{#if enabled}
 			<Separator />
 
-			<!-- Advanced Tier Configuration -->
-			<Card.Root>
-				<Card.Header>
-					<div class="flex items-center justify-between">
-						<div>
-							<Card.Title class="text-base">Advanced Tier Configuration</Card.Title>
-							<Card.Description>Define custom tiers with names, colors, and point multipliers</Card.Description>
-						</div>
+			<div>
+				<SettingsSection
+					title="Advanced tier configuration"
+					description="Define custom tiers with names, colors, and point multipliers."
+				>
+					{#snippet action()}
 						<Button variant="outline" size="sm" onclick={addTier}>
 							<IconPlus class="mr-2 h-4 w-4" />
 							Add Tier
 						</Button>
-					</div>
-				</Card.Header>
-				<Card.Content>
+					{/snippet}
+
 					{#if !tiersLoaded}
 						<div class="flex items-center justify-center py-6">
 							<IconLoader2 class="h-5 w-5 animate-spin text-muted-foreground" />
 						</div>
 					{:else if tiers.length === 0}
-						<p class="py-6 text-center text-sm text-muted-foreground">
+						<p class="py-6 text-sm text-muted-foreground">
 							No custom tiers configured. Add tiers to define progression levels for your customers.
 						</p>
 					{:else}
-						<div class="space-y-3">
+						<div class="flex flex-col gap-3">
 							{#each tiers as tier, index}
-								<div class="flex items-center gap-3 rounded-md border p-3">
-									<IconGripVertical class="h-4 w-4 shrink-0 text-muted-foreground" />
-									<div class="grid flex-1 gap-3 sm:grid-cols-4">
-										<div class="grid gap-1">
-											<label class="text-xs text-muted-foreground">Name</label>
-											<Input
-												bind:value={tier.name}
-												placeholder="e.g., Silver"
-												class="h-8"
-											/>
-										</div>
-										<div class="grid gap-1">
-											<label class="text-xs text-muted-foreground">Min Points</label>
-											<Input
-												type="number"
-												min="0"
-												bind:value={tier.minPoints}
-												class="h-8"
-											/>
-										</div>
-										<div class="grid gap-1">
-											<label class="text-xs text-muted-foreground">Multiplier</label>
-											<Input
-												type="number"
-												min="0.01"
-												step="0.05"
-												bind:value={tier.multiplier}
-												class="h-8"
-											/>
-										</div>
-										<div class="flex items-end gap-2">
-											<div class="grid flex-1 gap-1">
-												<label class="text-xs text-muted-foreground">Color</label>
-												<div class="flex items-center gap-2">
-													<input
-														type="color"
-														bind:value={tier.color}
-														class="h-8 w-8 cursor-pointer rounded border p-0.5"
-													/>
-													<span class="text-xs text-muted-foreground">{tier.color || '#000000'}</span>
-												</div>
+								<Card.Root size="sm">
+									<Card.Content class="flex items-start gap-3">
+										<IconGripVertical
+											class="h-4 w-4 shrink-0 self-center text-muted-foreground"
+										/>
+										<div class="grid flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+											<Field.Field>
+												<Field.Label class="text-xs text-muted-foreground">Name</Field.Label>
+												<Input bind:value={tier.name} placeholder="e.g., Silver" class="h-8" />
+											</Field.Field>
+											<Field.Field>
+												<Field.Label class="text-xs text-muted-foreground">Min Points</Field.Label>
+												<Input type="number" min="0" bind:value={tier.minPoints} class="h-8" />
+											</Field.Field>
+											<Field.Field>
+												<Field.Label class="text-xs text-muted-foreground">Multiplier</Field.Label>
+												<Input
+													type="number"
+													min="0.01"
+													step="0.05"
+													bind:value={tier.multiplier}
+													class="h-8"
+												/>
+											</Field.Field>
+											<div class="flex items-end gap-2">
+												<Field.Field class="flex-1">
+													<Field.Label class="text-xs text-muted-foreground">Color</Field.Label>
+													<div class="flex items-center gap-2">
+														<Input
+															type="color"
+															bind:value={tier.color}
+															class="h-8 w-10 shrink-0 cursor-pointer p-0.5"
+														/>
+														<span class="text-xs text-muted-foreground">
+															{tier.color || '#000000'}
+														</span>
+													</div>
+												</Field.Field>
+												<Button
+													variant="ghost"
+													size="icon"
+													class="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+													onclick={() => removeTier(index)}
+												>
+													<IconTrash class="h-4 w-4" />
+												</Button>
 											</div>
-											<Button
-												variant="ghost"
-												size="icon"
-												class="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
-												onclick={() => removeTier(index)}
-											>
-												<IconTrash class="h-4 w-4" />
-											</Button>
 										</div>
-									</div>
-								</div>
+									</Card.Content>
+								</Card.Root>
 							{/each}
 						</div>
 
-						<div class="mt-4 flex justify-end">
+						<div class="flex justify-end">
 							<Button onclick={handleSaveTiers} disabled={isSavingTiers} size="sm">
 								{#if isSavingTiers}
 									<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
@@ -498,66 +526,65 @@
 							</Button>
 						</div>
 					{/if}
-				</Card.Content>
-			</Card.Root>
+				</SettingsSection>
 
-			<Separator />
-
-			<!-- Promotions -->
-			<Card.Root>
-				<Card.Header>
-					<div class="flex items-center justify-between">
-						<div>
-							<Card.Title class="text-base">Promotions</Card.Title>
-							<Card.Description>Create bonus point events and multiplier campaigns</Card.Description>
-						</div>
+				<SettingsSection
+					title="Promotions"
+					description="Create bonus point events and multiplier campaigns."
+				>
+					{#snippet action()}
 						<Button variant="outline" size="sm" onclick={openCreatePromotion}>
 							<IconPlus class="mr-2 h-4 w-4" />
 							New Promotion
 						</Button>
-					</div>
-				</Card.Header>
-				<Card.Content>
+					{/snippet}
+
 					{#if !promotionsLoaded}
 						<div class="flex items-center justify-center py-6">
 							<IconLoader2 class="h-5 w-5 animate-spin text-muted-foreground" />
 						</div>
 					{:else if promotions.length === 0}
-						<p class="py-6 text-center text-sm text-muted-foreground">
+						<p class="py-6 text-sm text-muted-foreground">
 							No promotions yet. Create one to boost customer engagement.
 						</p>
 					{:else}
-						<div class="space-y-3">
+						<div class="flex flex-col gap-3">
 							{#each promotions as promo}
 								{@const status = getPromoStatus(promo)}
-								<div class="flex items-center justify-between rounded-md border p-3">
-									<div class="min-w-0 flex-1">
-										<div class="flex items-center gap-2">
-											<p class="text-sm font-medium">{promo.name}</p>
-											<Badge variant={status.variant}>{status.label}</Badge>
+								<Card.Root size="sm">
+									<Card.Content class="flex items-center justify-between gap-3">
+										<div class="min-w-0 flex-1">
+											<div class="flex items-center gap-2">
+												<p class="text-sm font-medium">{promo.name}</p>
+												<Badge variant={status.variant}>{status.label}</Badge>
+											</div>
+											<div
+												class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"
+											>
+												<span class="capitalize">{promo.type.replace('_', ' ')}</span>
+												{#if promo.bonusPoints}
+													<span>+{promo.bonusPoints} pts</span>
+												{/if}
+												{#if promo.multiplier}
+													<span>{promo.multiplier}x multiplier</span>
+												{/if}
+												<span>
+													{new Date(promo.startDate).toLocaleDateString()} - {new Date(
+														promo.endDate
+													).toLocaleDateString()}
+												</span>
+											</div>
 										</div>
-										<div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-											<span class="capitalize">{promo.type.replace('_', ' ')}</span>
-											{#if promo.bonusPoints}
-												<span>+{promo.bonusPoints} pts</span>
-											{/if}
-											{#if promo.multiplier}
-												<span>{promo.multiplier}x multiplier</span>
-											{/if}
-											<span>
-												{new Date(promo.startDate).toLocaleDateString()} - {new Date(promo.endDate).toLocaleDateString()}
-											</span>
-										</div>
-									</div>
-								</div>
+									</Card.Content>
+								</Card.Root>
 							{/each}
 						</div>
 					{/if}
-				</Card.Content>
-			</Card.Root>
+				</SettingsSection>
+			</div>
 		{/if}
 	{/if}
-</div>
+</PageShell>
 
 <!-- Create Promotion Dialog -->
 <Dialog.Root bind:open={showCreatePromotion}>
@@ -568,60 +595,63 @@
 		</Dialog.Header>
 
 		<div class="grid gap-4 py-4">
-			<div class="grid gap-2">
-				<label for="promo-name" class="text-sm font-medium">Name *</label>
-				<Input id="promo-name" bind:value={promoName} placeholder="e.g., Weekend Double Points" />
-			</div>
+			<Field.Field>
+				<Field.Label for="promo-name">Name *</Field.Label>
+				<Input
+					id="promo-name"
+					bind:value={promoName}
+					placeholder="e.g., Weekend Double Points"
+					class="max-w-sm"
+				/>
+			</Field.Field>
 
-			<div class="grid gap-2">
-				<label for="promo-type" class="text-sm font-medium">Type</label>
-				<select
-					id="promo-type"
-					bind:value={promoType}
-					class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-				>
+			<Field.Field>
+				<Field.Label for="promo-type">Type</Field.Label>
+				<NativeSelect id="promo-type" bind:value={promoType} class="sm:max-w-xs">
 					{#each PROMO_TYPES as pt}
-						<option value={pt.value}>{pt.label}</option>
+						<NativeSelectOption value={pt.value}>{pt.label}</NativeSelectOption>
 					{/each}
-				</select>
-			</div>
+				</NativeSelect>
+			</Field.Field>
 
 			{#if promoType === 'bonus_points'}
-				<div class="grid gap-2">
-					<label for="promo-bonus" class="text-sm font-medium">Bonus Points</label>
+				<Field.Field>
+					<Field.Label for="promo-bonus">Bonus Points</Field.Label>
 					<Input
 						id="promo-bonus"
 						type="number"
 						min="1"
 						bind:value={promoBonusPoints}
+						class="max-w-[8rem]"
 					/>
-					<p class="text-xs text-muted-foreground">Extra points awarded per qualifying transaction</p>
-				</div>
+					<Field.Description>Extra points awarded per qualifying transaction</Field.Description>
+				</Field.Field>
 			{/if}
 
 			{#if promoType === 'multiplier'}
-				<div class="grid gap-2">
-					<label for="promo-mult" class="text-sm font-medium">Multiplier</label>
+				<Field.Field>
+					<Field.Label for="promo-mult">Multiplier</Field.Label>
 					<Input
 						id="promo-mult"
 						type="number"
 						min="1.01"
 						step="0.1"
 						bind:value={promoMultiplier}
+						class="max-w-[8rem]"
 					/>
-					<p class="text-xs text-muted-foreground">e.g., 2.0 = double points during this period</p>
-				</div>
+					<Field.Description>e.g., 2.0 = double points during this period</Field.Description>
+				</Field.Field>
 			{/if}
 
-			<div class="grid grid-cols-2 gap-4">
-				<div class="grid gap-2">
-					<label for="promo-start" class="text-sm font-medium">Start Date *</label>
-					<Input id="promo-start" type="date" bind:value={promoStartDate} />
-				</div>
-				<div class="grid gap-2">
-					<label for="promo-end" class="text-sm font-medium">End Date *</label>
-					<Input id="promo-end" type="date" bind:value={promoEndDate} />
-				</div>
+			<div class="grid gap-4 sm:grid-cols-2">
+				<Field.Field>
+					<Field.Label for="promo-start">Start Date *</Field.Label>
+					<Input id="promo-start" type="date" bind:value={promoStartDate} class="max-w-[10rem]" />
+				</Field.Field>
+				<Field.Field>
+					<Field.Label for="promo-end">End Date *</Field.Label>
+					<Input id="promo-end" type="date" bind:value={promoEndDate} class="max-w-[10rem]" />
+				</Field.Field>
 			</div>
 		</div>
 

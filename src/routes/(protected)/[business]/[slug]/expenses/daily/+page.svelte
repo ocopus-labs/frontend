@@ -3,6 +3,7 @@
 	import { goto, invalidate } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
+	import * as Field from '$lib/components/ui/field';
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -485,7 +486,7 @@
 		</Dialog.Header>
 		<div class="grid gap-4 py-4">
 			<div class="grid gap-2">
-				<label for="title" class="text-sm font-medium">Title *</label>
+				<Field.Label for="title">Title *</Field.Label>
 				<Input
 					id="title"
 					autofocus
@@ -495,7 +496,7 @@
 			</div>
 			<div class="grid grid-cols-2 gap-4">
 				<div class="grid gap-2">
-					<label for="category" class="text-sm font-medium">Category *</label>
+					<Field.Label for="category">Category *</Field.Label>
 					<div class="flex gap-2">
 						<Select.Root type="single" bind:value={newExpense.categoryId}>
 							<Select.Trigger class="w-full">
@@ -531,7 +532,7 @@
 					</div>
 				</div>
 				<div class="grid gap-2">
-					<label for="amount" class="text-sm font-medium">Amount *</label>
+					<Field.Label for="amount">Amount *</Field.Label>
 					<div class="relative">
 						<span class="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
 							>{CURRENCY_CONFIG[currency]?.symbol || '$'}</span
@@ -549,11 +550,11 @@
 			</div>
 			<div class="grid grid-cols-2 gap-4">
 				<div class="grid gap-2">
-					<label for="vendor" class="text-sm font-medium">Vendor</label>
+					<Field.Label for="vendor">Vendor</Field.Label>
 					<Input id="vendor" bind:value={newExpense.vendorName} placeholder="Vendor name" />
 				</div>
 				<div class="grid gap-2">
-					<label for="payment" class="text-sm font-medium">Payment Method</label>
+					<Field.Label for="payment">Payment Method</Field.Label>
 					<Select.Root type="single" bind:value={newExpense.paymentMethod}>
 						<Select.Trigger class="w-full">
 							{paymentMethods.find((m) => m.value === newExpense.paymentMethod)?.label ||
@@ -569,12 +570,12 @@
 			</div>
 			<div class="grid grid-cols-2 gap-4">
 				<div class="grid gap-2">
-					<label for="receipt" class="text-sm font-medium">Receipt No.</label>
+					<Field.Label for="receipt">Receipt No.</Field.Label>
 					<Input id="receipt" bind:value={newExpense.receiptNumber} placeholder="Optional" />
 				</div>
 			</div>
 			<div class="grid gap-2">
-				<label for="notes" class="text-sm font-medium">Notes</label>
+				<Field.Label for="notes">Notes</Field.Label>
 				<Input id="notes" bind:value={newExpense.notes} placeholder="Additional details" />
 			</div>
 		</div>
@@ -602,12 +603,12 @@
 		{#if editingExpense}
 			<div class="grid gap-4 py-4">
 				<div class="grid gap-2">
-					<label for="edit-title" class="text-sm font-medium">Title</label>
+					<Field.Label for="edit-title">Title</Field.Label>
 					<Input id="edit-title" autofocus bind:value={editingExpense.title} />
 				</div>
 				<div class="grid grid-cols-2 gap-4">
 					<div class="grid gap-2">
-						<label for="edit-amount" class="text-sm font-medium">Amount</label>
+						<Field.Label for="edit-amount">Amount</Field.Label>
 						<Input
 							id="edit-amount"
 							type="number"
@@ -617,7 +618,7 @@
 						/>
 					</div>
 					<div class="grid gap-2">
-						<label for="edit-payment" class="text-sm font-medium">Payment Method</label>
+						<Field.Label for="edit-payment">Payment Method</Field.Label>
 						<Select.Root type="single" bind:value={editingExpense.paymentMethod}>
 							<Select.Trigger class="w-full">
 								{paymentMethods.find((m) => m.value === editingExpense?.paymentMethod)?.label ||
@@ -632,11 +633,11 @@
 					</div>
 				</div>
 				<div class="grid gap-2">
-					<label for="edit-vendor" class="text-sm font-medium">Vendor</label>
+					<Field.Label for="edit-vendor">Vendor</Field.Label>
 					<Input id="edit-vendor" bind:value={editingExpense.vendorName} />
 				</div>
 				<div class="grid gap-2">
-					<label for="edit-notes" class="text-sm font-medium">Notes</label>
+					<Field.Label for="edit-notes">Notes</Field.Label>
 					<Input id="edit-notes" bind:value={editingExpense.notes} />
 				</div>
 			</div>
@@ -664,7 +665,7 @@
 		</Dialog.Header>
 		<div class="grid gap-4 py-4">
 			<div class="grid gap-2">
-				<label for="cat-name" class="text-sm font-medium">Name *</label>
+				<Field.Label for="cat-name">Name *</Field.Label>
 				<Input
 					id="cat-name"
 					autofocus
@@ -673,7 +674,7 @@
 				/>
 			</div>
 			<div class="grid gap-2">
-				<label for="cat-desc" class="text-sm font-medium">Description</label>
+				<Field.Label for="cat-desc">Description</Field.Label>
 				<Input
 					id="cat-desc"
 					bind:value={newCategoryDescription}
@@ -681,23 +682,25 @@
 				/>
 			</div>
 			<div class="grid gap-2">
-				<label class="text-sm font-medium">Color</label>
+				<Field.Label>Color</Field.Label>
 				<div class="flex flex-wrap gap-2">
 					{#each defaultColors as color}
-						<button
-							type="button"
-							class="h-8 w-8 rounded-full border-2 transition-transform hover:scale-110"
+						<Button
+							variant="ghost"
+							size="icon"
+							class="size-8 rounded-full border-2 transition-transform hover:scale-110 hover:bg-transparent"
 							style="background-color: {color}; border-color: {newCategoryColor === color
 								? 'currentColor'
 								: 'transparent'};"
 							onclick={() => (newCategoryColor = color)}
-						></button>
+							aria-label="Select colour {color}"
+						/>
 					{/each}
 				</div>
 			</div>
 			{#if categories.length > 0}
 				<div class="grid gap-2">
-					<label class="text-sm font-medium">Existing Categories</label>
+					<Field.Label>Existing Categories</Field.Label>
 					<div class="flex flex-wrap gap-2">
 						{#each categories as cat}
 							<span
@@ -706,14 +709,15 @@
 							>
 								<span class="h-2 w-2 rounded-full" style="background-color: {cat.color};"></span>
 								{cat.name}
-								<button
-									type="button"
-									class="ml-1 hover:text-destructive"
+								<Button
+									variant="ghost"
+									size="icon"
+									class="ml-1 size-4 hover:bg-transparent hover:text-destructive"
 									onclick={() => handleDeleteCategory(cat.id)}
-									title="Delete category"
+									aria-label="Delete category {cat.name}"
 								>
-									<IconX class="h-3 w-3" />
-								</button>
+									<IconX class="size-3" />
+								</Button>
 							</span>
 						{/each}
 					</div>

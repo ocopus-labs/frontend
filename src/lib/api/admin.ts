@@ -1,4 +1,7 @@
 import { createApiClient, getApiClient } from './client';
+import type { MoneyByCurrency } from '$lib/utils/money';
+
+export type { MoneyByCurrency };
 
 // ==================== ADMIN API TYPES ====================
 
@@ -7,7 +10,8 @@ export interface PlatformStats {
   activeBusinesses: number;
   totalUsers: number;
   totalOrders: number;
-  totalRevenue: number;
+  /** Per-currency: outlets bill in their own currency, so this is not a scalar. */
+  totalRevenue: MoneyByCurrency;
   businessesByType: Record<string, number>;
   businessesByStatus: Record<string, number>;
   recentBusinesses: Array<{
@@ -33,7 +37,7 @@ export interface PlatformStats {
     businessesThisMonth: number;
     usersThisMonth: number;
     ordersThisMonth: number;
-    revenueThisMonth: number;
+    revenueThisMonth: MoneyByCurrency;
   };
 }
 
@@ -112,8 +116,10 @@ export interface PlatformAnalytics {
     start: string;
     end: string;
   };
+  /** One row per (day, currency) -- a date repeats once per currency traded. */
   dailyStats: Array<{
     date: string;
+    currency: string;
     orders_count: number;
     revenue: number;
   }>;
@@ -129,6 +135,8 @@ export interface PlatformAnalytics {
     id: string;
     name: string;
     type: string;
+    /** A business bills in one currency, so its total is scalar in that code. */
+    currency: string;
     order_count: number;
     total_revenue: number;
   }>;
@@ -370,14 +378,14 @@ export async function getAdminAuditLogs(
 // ==================== LIVE STATS ====================
 
 export interface LiveStats {
-  ordersToday: { count: number; revenue: number };
-  paymentsToday: { count: number; amount: number };
+  ordersToday: { count: number; revenue: MoneyByCurrency };
+  paymentsToday: { count: number; amount: MoneyByCurrency };
   activeBusinesses: number;
   newUsersToday: number;
   webhookHealth: { processed: number; failed: number; pending: number };
   recentErrors: { message: string; timestamp: string; source: string }[];
   ordersPerHour: { hour: string; count: number }[];
-  revenuePerHour: { hour: string; amount: number }[];
+  revenuePerHour: { hour: string; amount: MoneyByCurrency }[];
 }
 
 export async function getAdminLiveStats(
@@ -819,9 +827,9 @@ export async function getAdminRevenueBreakdown(
   endDate?: string,
   options?: { fetch?: typeof fetch }
 ): Promise<{
-  byMethod: Record<string, { count: number; amount: number }>;
+  byMethod: Record<string, { count: number; amount: MoneyByCurrency }>;
   refundRate: { totalPayments: number; totalRefunds: number; rate: number };
-  byPlan: Array<{ planName: string; revenue: number; subscribers: number }>;
+  byPlan: Array<{ planName: string; revenue: MoneyByCurrency; subscribers: number }>;
 }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   const params = new URLSearchParams();

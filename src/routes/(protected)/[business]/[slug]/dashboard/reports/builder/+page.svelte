@@ -2,10 +2,13 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import PageHeader from '$lib/components/global/page-header.svelte';
+	import PageShell from '$lib/components/global/page-shell.svelte';
+	import KpiCard from '$lib/components/global/kpi-card.svelte';
+	import KpiGrid from '$lib/components/global/kpi-grid.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { Label } from '$lib/components/ui/label';
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Table from '$lib/components/ui/table';
@@ -39,9 +42,7 @@
 
 	let { data } = $props();
 
-	const currency = $derived(
-		((data.business as any)?.settings?.currency || 'USD') as CurrencyCode
-	);
+	const currency = $derived(((data.business as any)?.settings?.currency || 'USD') as CurrencyCode);
 
 	function formatCurrency(value: number): string {
 		return i18nFormatCurrency(value, currency);
@@ -111,7 +112,7 @@
 
 	const chartSeries = $derived.by(() => {
 		if (!result) return [];
-		const colors = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
+		const colors = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)'];
 		return result.meta.metrics.map((key, i) => {
 			const metricDef = allMetrics.find((m) => m.key === key);
 			return {
@@ -243,11 +244,12 @@
 	function exportCsv() {
 		if (!result) return;
 		const headers = result.columns.map((c) => c.label);
-		const rows = result.rows.map((row) =>
-			result!.columns.map((col) => {
-				const val = row[col.key];
-				return val != null ? val : '';
-			}) as (string | number)[]
+		const rows = result.rows.map(
+			(row) =>
+				result!.columns.map((col) => {
+					const val = row[col.key];
+					return val != null ? val : '';
+				}) as (string | number)[]
 		);
 		// Add totals row
 		rows.push(
@@ -268,46 +270,41 @@
 	}
 </script>
 
-<div class="space-y-6 pb-8">
-	<PageHeader
-		title="Custom Report Builder"
-		description="Build custom analytics reports by selecting metrics, dimensions, and filters"
-	>
-		{#snippet actions()}
-			<Button
-				variant="outline"
-				size="sm"
-				onclick={() => {
-					const base = $page.url.pathname.replace('/builder', '');
-					goto(base);
-				}}
-			>
-				<IconArrowLeft class="mr-1.5 h-4 w-4" />
-				Back to Reports
-			</Button>
-		{/snippet}
-	</PageHeader>
+<PageShell
+	title="Custom Report Builder"
+	description="Build custom analytics reports by selecting metrics, dimensions, and filters"
+>
+	{#snippet actions()}
+		<Button
+			variant="outline"
+			size="sm"
+			onclick={() => {
+				const base = $page.url.pathname.replace('/builder', '');
+				goto(base);
+			}}
+		>
+			<IconArrowLeft class="mr-1.5 h-4 w-4" />
+			Back to Reports
+		</Button>
+	{/snippet}
 
 	<!-- Step indicator -->
-	<div class="flex items-center justify-center gap-2 px-6">
-		{#each [
-			{ step: 1, label: 'Metrics' },
-			{ step: 2, label: 'Dimensions' },
-			{ step: 3, label: 'Filters' },
-			{ step: 4, label: 'Preview' }
-		] as { step, label }}
+	<div class="flex items-center justify-center gap-2">
+		{#each [{ step: 1, label: 'Metrics' }, { step: 2, label: 'Dimensions' }, { step: 3, label: 'Filters' }, { step: 4, label: 'Preview' }] as { step, label }}
 			<button
 				class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors
 					{currentStep === step
 					? 'bg-primary text-primary-foreground'
 					: currentStep > step
-						? 'bg-primary/20 text-primary cursor-pointer'
+						? 'cursor-pointer bg-primary/20 text-primary'
 						: 'bg-muted text-muted-foreground'}"
 				onclick={() => goToStep(step)}
 				disabled={step > currentStep + 1}
 			>
-				<span class="flex h-5 w-5 items-center justify-center rounded-full text-xs
-					{currentStep >= step ? 'bg-primary-foreground/20' : 'bg-muted-foreground/20'}">
+				<span
+					class="flex h-5 w-5 items-center justify-center rounded-full text-xs
+					{currentStep >= step ? 'bg-primary-foreground/20' : 'bg-muted-foreground/20'}"
+				>
 					{step}
 				</span>
 				{label}
@@ -318,7 +315,7 @@
 		{/each}
 	</div>
 
-	<div class="px-6">
+	<div>
 		<!-- Step 1: Pick Metrics -->
 		{#if currentStep === 1}
 			<Card.Root>
@@ -329,18 +326,27 @@
 				<Card.Content>
 					<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
 						{#each allMetrics as metric}
-							<button
-								class="flex items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-accent
+							<!--
+								Checkbox renders its own <button>, so a <button> wrapper was
+								invalid HTML and left the checkbox unreachable on its own.
+								The Label carries the click target instead.
+							-->
+							<div
+								class="flex items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-accent
 									{selectedMetrics.has(metric.key) ? 'border-primary bg-primary/5' : 'border-border'}"
-								onclick={() => toggleMetric(metric.key)}
 							>
-								<Checkbox checked={selectedMetrics.has(metric.key)} />
-								<div>
-									<p class="font-medium text-sm">{metric.label}</p>
-									<p class="text-xs text-muted-foreground">{metric.description}</p>
+								<Checkbox
+									id="metric-{metric.key}"
+									checked={selectedMetrics.has(metric.key)}
+									onCheckedChange={() => toggleMetric(metric.key)}
+									class="mt-0.5"
+								/>
+								<Label for="metric-{metric.key}" class="cursor-pointer font-normal">
+									<span class="block text-sm font-medium">{metric.label}</span>
+									<span class="block text-xs text-muted-foreground">{metric.description}</span>
 									<Badge variant="outline" class="mt-1 text-xs">{metric.format}</Badge>
-								</div>
-							</button>
+								</Label>
+							</div>
 						{/each}
 					</div>
 				</Card.Content>
@@ -355,7 +361,7 @@
 				</Card.Footer>
 			</Card.Root>
 
-		<!-- Step 2: Pick Dimensions -->
+			<!-- Step 2: Pick Dimensions -->
 		{:else if currentStep === 2}
 			<Card.Root>
 				<Card.Header>
@@ -365,17 +371,21 @@
 				<Card.Content>
 					<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
 						{#each allDimensions as dimension}
-							<button
-								class="flex items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-accent
+							<div
+								class="flex items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-accent
 									{selectedDimensions.has(dimension.key) ? 'border-primary bg-primary/5' : 'border-border'}"
-								onclick={() => toggleDimension(dimension.key)}
 							>
-								<Checkbox checked={selectedDimensions.has(dimension.key)} />
-								<div>
-									<p class="font-medium text-sm">{dimension.label}</p>
-									<p class="text-xs text-muted-foreground">{dimension.description}</p>
-								</div>
-							</button>
+								<Checkbox
+									id="dimension-{dimension.key}"
+									checked={selectedDimensions.has(dimension.key)}
+									onCheckedChange={() => toggleDimension(dimension.key)}
+									class="mt-0.5"
+								/>
+								<Label for="dimension-{dimension.key}" class="cursor-pointer font-normal">
+									<span class="block text-sm font-medium">{dimension.label}</span>
+									<span class="block text-xs text-muted-foreground">{dimension.description}</span>
+								</Label>
+							</div>
 						{/each}
 					</div>
 				</Card.Content>
@@ -396,30 +406,24 @@
 				</Card.Footer>
 			</Card.Root>
 
-		<!-- Step 3: Filters -->
+			<!-- Step 3: Filters -->
 		{:else if currentStep === 3}
 			<Card.Root>
 				<Card.Header>
 					<Card.Title>Filters</Card.Title>
-					<Card.Description>Optionally narrow down the data included in your report</Card.Description>
+					<Card.Description
+						>Optionally narrow down the data included in your report</Card.Description
+					>
 				</Card.Header>
 				<Card.Content>
 					<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 						<div class="space-y-2">
 							<label for="filter-start" class="text-sm font-medium">Start Date</label>
-							<Input
-								id="filter-start"
-								type="date"
-								bind:value={filterStartDate}
-							/>
+							<Input id="filter-start" type="date" bind:value={filterStartDate} />
 						</div>
 						<div class="space-y-2">
 							<label for="filter-end" class="text-sm font-medium">End Date</label>
-							<Input
-								id="filter-end"
-								type="date"
-								bind:value={filterEndDate}
-							/>
+							<Input id="filter-end" type="date" bind:value={filterEndDate} />
 						</div>
 						<div class="space-y-2">
 							<label for="filter-category" class="text-sm font-medium">Category</label>
@@ -462,7 +466,7 @@
 				</Card.Footer>
 			</Card.Root>
 
-		<!-- Step 4: Preview / Results -->
+			<!-- Step 4: Preview / Results -->
 		{:else if currentStep === 4}
 			<div class="space-y-4">
 				<!-- Actions bar -->
@@ -479,11 +483,7 @@
 						{/if}
 						Re-run
 					</Button>
-					<Button
-						variant="outline"
-						size="sm"
-						onclick={() => (showSaveInput = !showSaveInput)}
-					>
+					<Button variant="outline" size="sm" onclick={() => (showSaveInput = !showSaveInput)}>
 						<IconDeviceFloppy class="mr-1.5 h-4 w-4" />
 						Save Report
 					</Button>
@@ -536,23 +536,17 @@
 					</Card.Root>
 				{:else if result}
 					<!-- Summary -->
-					<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-						<Card.Root>
-							<Card.Content class="pt-6">
-								<p class="text-sm text-muted-foreground">Rows</p>
-								<p class="text-2xl font-bold">{result.meta.rowCount}</p>
-							</Card.Content>
-						</Card.Root>
-						{#each Object.entries(result.totals) as [key, value]}
+					<KpiGrid>
+						<KpiCard label="Rows" value={result.meta.rowCount} accent="chart-2" />
+						{#each Object.entries(result.totals) as [key, value] (key)}
 							{@const metricDef = allMetrics.find((m) => m.key === key)}
-							<Card.Root>
-								<Card.Content class="pt-6">
-									<p class="text-sm text-muted-foreground">{metricDef?.label ?? key}</p>
-									<p class="text-2xl font-bold">{formatValue(value, metricDef?.format)}</p>
-								</Card.Content>
-							</Card.Root>
+							<KpiCard
+								label={metricDef?.label ?? key}
+								value={formatValue(value, metricDef?.format)}
+								accent="chart-1"
+							/>
 						{/each}
-					</div>
+					</KpiGrid>
 
 					<!-- Chart -->
 					{#if chartData.length > 0 && chartData.length <= 50}
@@ -594,7 +588,7 @@
 											</Table.Row>
 										{/each}
 										<!-- Totals row -->
-										<Table.Row class="font-bold bg-muted/50">
+										<Table.Row class="bg-muted/50 font-bold">
 											{#each result.columns as col, i}
 												<Table.Cell>
 													{#if i === 0}
@@ -614,7 +608,9 @@
 					</Card.Root>
 				{:else}
 					<Card.Root>
-						<Card.Content class="flex flex-col items-center justify-center py-16 text-muted-foreground">
+						<Card.Content
+							class="flex flex-col items-center justify-center py-16 text-muted-foreground"
+						>
 							<IconReportAnalytics class="mb-3 h-12 w-12" />
 							<p class="text-lg font-medium">No results yet</p>
 							<p class="text-sm">Click "Re-run" to execute the report query</p>
@@ -636,7 +632,7 @@
 						{#each savedReports as saved}
 							<div class="flex items-center justify-between rounded-lg border p-3">
 								<div class="min-w-0 flex-1">
-									<p class="truncate font-medium text-sm">{saved.name}</p>
+									<p class="truncate text-sm font-medium">{saved.name}</p>
 									<p class="text-xs text-muted-foreground">
 										{saved.config.metrics.length} metrics, {saved.config.dimensions.length} dimensions
 									</p>
@@ -644,7 +640,7 @@
 										<Badge variant="secondary" class="mt-1 text-xs">Shared</Badge>
 									{/if}
 								</div>
-								<div class="flex items-center gap-1 ml-2">
+								<div class="ml-2 flex items-center gap-1">
 									<Button
 										variant="ghost"
 										size="icon"
@@ -669,4 +665,4 @@
 			</Card.Root>
 		{/if}
 	</div>
-</div>
+</PageShell>

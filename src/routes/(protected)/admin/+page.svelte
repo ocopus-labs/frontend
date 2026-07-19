@@ -31,9 +31,16 @@
 	import Store from '@lucide/svelte/icons/store';
 	import ScrollText from '@lucide/svelte/icons/scroll-text';
 
+	import { formatCurrency, type CurrencyCode } from '$lib/utils/i18n';
+	import { formatMoney, moneyEntries, moneyIn, soleCurrency } from '$lib/utils/money';
+
 	let { data }: { data: PageData } = $props();
 	const stats = data.stats;
 	const activities = data.activities ?? [];
+
+	// Non-null only when the whole platform bills in a single currency, in which
+	// case one animated figure is honest. Otherwise we render buckets.
+	const revenueCurrency = $derived(soleCurrency(stats?.totalRevenue));
 
 	$effect(() => {
 		if ((data as any).statsError) {
@@ -159,16 +166,42 @@
 					<DollarSign class="h-4 w-4 text-muted-foreground" />
 				</Card.Header>
 				<Card.Content>
-					<div class="text-2xl font-bold">
-						<LiveCounter value={stats.totalRevenue} format="currency" currency="USD" />
-					</div>
-					<div class="mt-1 flex items-center gap-2">
-						<TrendBadge
-							value={stats.totalRevenue}
-							previousValue={stats.totalRevenue - stats.growthMetrics.revenueThisMonth}
-						/>
-						<span class="text-xs text-muted-foreground">this month</span>
-					</div>
+					<!--
+						Revenue spans every tenant, and tenants bill in different
+						currencies. Animate a single figure only when there genuinely is
+						one currency; otherwise show each bucket. Never sum them.
+					-->
+					{#if revenueCurrency}
+						<div class="text-2xl font-bold">
+							<LiveCounter
+								value={moneyIn(stats.totalRevenue, revenueCurrency)}
+								format="currency"
+								currency={revenueCurrency}
+							/>
+						</div>
+						<div class="mt-1 flex items-center gap-2">
+							<TrendBadge
+								value={moneyIn(stats.totalRevenue, revenueCurrency)}
+								previousValue={moneyIn(stats.totalRevenue, revenueCurrency) -
+									moneyIn(stats.growthMetrics.revenueThisMonth, revenueCurrency)}
+							/>
+							<span class="text-xs text-muted-foreground">this month</span>
+						</div>
+					{:else}
+						<div class="flex flex-col gap-0.5">
+							{#each moneyEntries(stats.totalRevenue) as [currency, amount] (currency)}
+								<div class="text-2xl font-bold">
+									{formatCurrency(amount, currency as CurrencyCode)}
+								</div>
+							{/each}
+							{#if moneyEntries(stats.totalRevenue).length === 0}
+								<div class="text-2xl font-bold">{formatMoney(stats.totalRevenue)}</div>
+							{/if}
+						</div>
+						<div class="mt-1">
+							<span class="text-xs text-muted-foreground">across currencies, not converted</span>
+						</div>
+					{/if}
 				</Card.Content>
 			</Card.Root>
 		</div>

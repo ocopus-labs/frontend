@@ -1,12 +1,11 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import * as Card from '$lib/components/ui/card';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Switch } from '$lib/components/ui/switch';
 	import { Button } from '$lib/components/ui/button';
-	import PageHeader from '$lib/components/global/page-header.svelte';
-	import MobilePageHeader from '$lib/components/global/mobile-page-header.svelte';
+	import PageShell from '$lib/components/global/page-shell.svelte';
+	import SettingsSection from '$lib/components/global/settings-section.svelte';
 	import { toast } from 'svelte-sonner';
 	import { invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -31,6 +30,15 @@
 
 	const enabledExtras = $derived(
 		features?.availableFeatures?.filter((f: FeatureInfo) => f.isEnabled && !f.isCore) ?? []
+	);
+
+	// Presentation-only split: core features are always on, the rest are the
+	// toggleable extras. Same list, grouped so each section reads as one idea.
+	const coreFeatures = $derived(
+		features?.availableFeatures?.filter((f: FeatureInfo) => f.isCore) ?? []
+	);
+	const optionalFeatures = $derived(
+		features?.availableFeatures?.filter((f: FeatureInfo) => !f.isCore) ?? []
 	);
 
 	const tierOrder: Record<string, number> = { FREE: 0, PRO: 1, ENTERPRISE: 2 };
@@ -108,28 +116,70 @@
 	}
 </script>
 
-<MobilePageHeader
-	title="Features"
-	backHref={`/${$page.params.business}/${$page.params.slug}/settings`}
-/>
-<div class="flex flex-col gap-6 p-6">
-	{#if !features}
-		<PageHeader back title="Features" description="Manage optional features for your business" />
-		<Card.Root>
-			<Card.Content class="p-8 text-center">
-				<p class="text-muted-foreground">
-					{(data as any).error ?? 'Failed to load features.'}
-				</p>
-			</Card.Content>
-		</Card.Root>
-	{:else}
-		<!-- Header with tier badge and slot usage -->
-		<div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-			<div>
-				<h1 class="text-2xl font-bold">Features</h1>
-				<p class="text-muted-foreground">Enable or disable optional features for your business</p>
+{#snippet featureRow(feature: FeatureInfo)}
+	{@const featureKey = feature.slug || feature.key}
+	{@const locked = isTierLocked(feature.minimumTier, features.tier)}
+	{@const isToggling = togglingKeys.has(featureKey)}
+
+	<div
+		class="flex items-start justify-between gap-4 border-b border-border py-4 first:pt-0 last:border-0 last:pb-0 {locked
+			? 'opacity-70'
+			: ''}"
+	>
+		<div class="min-w-0">
+			<div class="flex flex-wrap items-center gap-1.5">
+				{#if locked}
+					<LockIcon class="size-3.5 shrink-0 text-muted-foreground" />
+				{/if}
+				<span class="text-sm font-medium text-foreground">{feature.label}</span>
+				<Badge variant={getTierBadgeVariant(feature.minimumTier)} class="px-1.5 py-0 text-[10px]">
+					{feature.minimumTier}
+				</Badge>
 			</div>
-			<div class="flex flex-wrap items-center gap-2 pt-1">
+
+			<p class="mt-1 text-xs leading-relaxed text-muted-foreground">{feature.description}</p>
+
+			{#if feature.dependsOn?.length}
+				<p class="mt-1 text-[10px] text-muted-foreground">
+					Requires: {feature.dependsOn.join(', ')}
+				</p>
+			{/if}
+
+			{#if locked}
+				<p class="mt-1 text-xs text-muted-foreground">Requires {feature.minimumTier} plan</p>
+			{:else if isToggling}
+				<p class="mt-1 text-xs text-muted-foreground">Updating...</p>
+			{:else if feature.isCore}
+				<p class="mt-1 text-xs text-muted-foreground">Always enabled</p>
+			{/if}
+		</div>
+
+		<div class="shrink-0">
+			{#if locked}
+				<Button variant="outline" size="sm" class="text-xs" href="/dashboard/billing"
+					>Upgrade</Button
+				>
+			{:else if feature.isCore}
+				<Switch checked={true} disabled={true} />
+			{:else}
+				<Switch
+					checked={feature.isEnabled}
+					disabled={isToggling}
+					onCheckedChange={(checked) => handleToggle(feature, checked)}
+				/>
+			{/if}
+		</div>
+	</div>
+{/snippet}
+
+<PageShell
+	back={`/${$page.params.business}/${$page.params.slug}/settings`}
+	title="Features"
+	description="Enable or disable optional features for your business"
+>
+	{#snippet actions()}
+		{#if features}
+			<div class="flex flex-wrap items-center gap-2">
 				<Badge variant={getTierBadgeVariant(features.tier)} class="text-xs">
 					{features.tier} plan
 				</Badge>
@@ -139,8 +189,16 @@
 					</Badge>
 				{/if}
 			</div>
-		</div>
+		{/if}
+	{/snippet}
 
+	{#if !features}
+		<div class="rounded-lg border border-border bg-card p-8 text-center">
+			<p class="text-sm text-muted-foreground">
+				{(data as any).error ?? 'Failed to load features.'}
+			</p>
+		</div>
+	{:else}
 		<!-- Grace period banner -->
 		{#if features.graceActive}
 			<div class="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/10 p-4">
@@ -168,78 +226,35 @@
 			</div>
 		{/if}
 
-		<!-- Feature cards grid -->
-		<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-			{#each features.availableFeatures as feature (feature.slug || feature.key)}
-				{@const featureKey = feature.slug || feature.key}
-				{@const locked = isTierLocked(feature.minimumTier, features.tier)}
-				{@const isToggling = togglingKeys.has(featureKey)}
+		<div>
+			{#if optionalFeatures.length}
+				<SettingsSection
+					title="Optional features"
+					description="Turn on the extras this business needs. Some require a higher plan."
+				>
+					<div class="flex flex-col">
+						{#each optionalFeatures as feature (feature.slug || feature.key)}
+							{@render featureRow(feature)}
+						{/each}
+					</div>
+				</SettingsSection>
+			{/if}
 
-				<Card.Root class={locked ? 'opacity-70' : ''}>
-					<Card.Header class="pb-3">
-						<div class="flex items-start justify-between gap-2">
-							<div class="flex flex-wrap items-center gap-1.5">
-								<Card.Title class="text-sm font-semibold">{feature.label}</Card.Title>
-								{#if feature.isCore}
-									<Badge variant="secondary" class="px-1.5 py-0 text-[10px]">Core</Badge>
-								{/if}
-							</div>
-							<div class="shrink-0">
-								{#if locked}
-									<LockIcon class="size-4 text-muted-foreground" />
-								{:else if feature.isCore}
-									<Switch checked={true} disabled={true} />
-								{:else}
-									<Switch
-										checked={feature.isEnabled}
-										disabled={isToggling}
-										onCheckedChange={(checked) => handleToggle(feature, checked)}
-									/>
-								{/if}
-							</div>
-						</div>
-					</Card.Header>
-					<Card.Content class="pt-0">
-						<p class="text-xs text-muted-foreground">{feature.description}</p>
-
-						{#if feature.dependsOn?.length}
-							<p class="mt-1 text-[10px] text-muted-foreground">
-								Requires: {feature.dependsOn.join(', ')}
-							</p>
-						{/if}
-
-						<div class="mt-3 flex flex-wrap items-center gap-2">
-							<Badge
-								variant={getTierBadgeVariant(feature.minimumTier)}
-								class="px-1.5 py-0 text-[10px]"
-							>
-								{feature.minimumTier}
-							</Badge>
-
-							{#if locked}
-								<span class="text-xs text-muted-foreground">
-									Requires {feature.minimumTier} plan
-								</span>
-							{:else if isToggling}
-								<span class="text-xs text-muted-foreground">Updating...</span>
-							{:else if feature.isCore}
-								<span class="text-xs text-muted-foreground">Always enabled</span>
-							{/if}
-						</div>
-
-						{#if locked}
-							<div class="mt-3">
-								<Button variant="outline" size="sm" class="w-full text-xs" href="/billing">
-									Upgrade to {feature.minimumTier}
-								</Button>
-							</div>
-						{/if}
-					</Card.Content>
-				</Card.Root>
-			{/each}
+			{#if coreFeatures.length}
+				<SettingsSection
+					title="Included features"
+					description="Core features that ship with every plan and can't be turned off."
+				>
+					<div class="flex flex-col">
+						{#each coreFeatures as feature (feature.slug || feature.key)}
+							{@render featureRow(feature)}
+						{/each}
+					</div>
+				</SettingsSection>
+			{/if}
 		</div>
 	{/if}
-</div>
+</PageShell>
 
 <!-- Swap Feature Dialog -->
 <Dialog.Root bind:open={swapDialogOpen}>
@@ -256,24 +271,26 @@
 		<div class="flex flex-col gap-1 py-4">
 			{#each enabledExtras as extra (extra.slug || extra.key)}
 				{@const extraKey = extra.slug || extra.key}
-				<button
-					type="button"
-					class="flex items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent
-						{swapSelection === extraKey ? 'bg-accent ring-1 ring-primary' : ''}"
+				<Button
+					variant="ghost"
+					class="h-auto w-full justify-start gap-3 px-3 py-2.5 text-left text-sm font-normal {swapSelection ===
+					extraKey
+						? 'bg-accent ring-1 ring-primary'
+						: ''}"
 					onclick={() => (swapSelection = extraKey)}
 				>
 					<span
-						class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 {swapSelection ===
+						class="flex size-4 shrink-0 items-center justify-center rounded-full border-2 {swapSelection ===
 						extraKey
 							? 'border-primary'
 							: 'border-muted-foreground'}"
 					>
 						{#if swapSelection === extraKey}
-							<span class="h-2 w-2 rounded-full bg-primary"></span>
+							<span class="size-2 rounded-full bg-primary"></span>
 						{/if}
 					</span>
 					<span>{extra.label}</span>
-				</button>
+				</Button>
 			{/each}
 		</div>
 
@@ -284,7 +301,7 @@
 				{/if}
 				Swap
 			</Button>
-			<Button variant="outline" class="flex-1" href="/billing">Upgrade to Pro</Button>
+			<Button variant="outline" class="flex-1" href="/dashboard/billing">Upgrade to Pro</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>

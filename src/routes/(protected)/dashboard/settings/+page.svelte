@@ -6,7 +6,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import * as Field from '$lib/components/ui/field/index.js';
 	import { Separator } from '$lib/components/ui/separator';
-	import * as Select from '$lib/components/ui/select';
+	import FilterSelect from '$lib/components/global/filter-select.svelte';
 	import { authClient, useSession } from '$lib/auth';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
@@ -228,16 +228,12 @@
 					<p class="font-medium">Language</p>
 					<p class="text-sm text-muted-foreground">Select your preferred language</p>
 				</div>
-				<Select.Root type="single" bind:value={language}>
-					<Select.Trigger
-						class="h-9 w-[180px] rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
-					>
-						{language === 'en' ? 'English' : language}
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="en">English</Select.Item>
-					</Select.Content>
-				</Select.Root>
+				<FilterSelect
+					class="w-[180px]"
+					value={language}
+					onValueChange={(v) => (language = v)}
+					options={[{ value: 'en', label: 'English' }]}
+				/>
 			</div>
 			<Separator />
 			<div class="flex items-center justify-between">
@@ -245,18 +241,12 @@
 					<p class="font-medium">Timezone</p>
 					<p class="text-sm text-muted-foreground">Set your local timezone</p>
 				</div>
-				<Select.Root type="single" bind:value={timezone}>
-					<Select.Trigger
-						class="h-9 max-w-[220px] rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
-					>
-						{timezone.replace(/_/g, ' ')}
-					</Select.Trigger>
-					<Select.Content>
-						{#each timezoneOptions() as tz}
-							<Select.Item value={tz}>{tz.replace(/_/g, ' ')}</Select.Item>
-						{/each}
-					</Select.Content>
-				</Select.Root>
+				<FilterSelect
+					class="w-[220px]"
+					value={timezone}
+					onValueChange={(v) => (timezone = v)}
+					options={timezoneOptions().map((tz) => ({ value: tz, label: tz.replace(/_/g, ' ') }))}
+				/>
 			</div>
 			<Separator />
 			<div class="flex items-center justify-between">
@@ -264,18 +254,16 @@
 					<p class="font-medium">Date Format</p>
 					<p class="text-sm text-muted-foreground">Choose how dates are displayed</p>
 				</div>
-				<Select.Root type="single" bind:value={dateFormat}>
-					<Select.Trigger
-						class="h-9 w-[180px] rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
-					>
-						{dateFormat}
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="DD/MM/YYYY">DD/MM/YYYY</Select.Item>
-						<Select.Item value="MM/DD/YYYY">MM/DD/YYYY</Select.Item>
-						<Select.Item value="YYYY-MM-DD">YYYY-MM-DD</Select.Item>
-					</Select.Content>
-				</Select.Root>
+				<FilterSelect
+					class="w-[180px]"
+					value={dateFormat}
+					onValueChange={(v) => (dateFormat = v)}
+					options={[
+						{ value: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
+						{ value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
+						{ value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' }
+					]}
+				/>
 			</div>
 		</Card.Content>
 		<Card.Footer>

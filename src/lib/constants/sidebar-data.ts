@@ -123,47 +123,16 @@ export const sidebarData: Record<string, SidebarData> = {
 				icon: UtensilsIcon,
 				requiredFeature: 'menu',
 				allowedRoles: ['owner', 'restaurant_owner', 'manager'],
-				items: [
-					{
-						title: 'Items',
-						url: '/[business]/[slug]/menu/items'
-					},
-					{
-						title: 'Categories',
-						url: '/[business]/[slug]/menu/categories'
-					},
-					{
-						title: 'Modifiers',
-						url: '/[business]/[slug]/menu/modifiers'
-					},
-					{
-						title: 'Groups',
-						url: '/[business]/[slug]/menu/groups'
-					}
-				]
+				// Sections live in the menu tab bar (`menu/+layout.svelte`).
+				// `/menu` redirects to Items.
 			},
 			{
+				// Status views live in the orders tab bar (`orders/+layout.svelte`),
+				// which also adds an overview at /orders. Same reasoning as Settings
+				// and Expenses — one list, not two that drift.
 				title: 'Orders',
 				url: '/[business]/[slug]/orders',
-				icon: ClipboardListIcon,
-				items: [
-					{
-						title: 'Pending',
-						url: '/[business]/[slug]/orders/pending'
-					},
-					{
-						title: 'Pending Approval',
-						url: '/[business]/[slug]/orders/pending-approval'
-					},
-					{
-						title: 'Completed',
-						url: '/[business]/[slug]/orders/completed'
-					},
-					{
-						title: 'History',
-						url: '/[business]/[slug]/orders/history'
-					}
-				]
+				icon: ClipboardListIcon
 			},
 			{
 				title: 'Kitchen Display',
@@ -240,24 +209,13 @@ export const sidebarData: Record<string, SidebarData> = {
 				]
 			},
 			{
+				// Daily/Monthly/Reports live in the expenses tab bar
+				// (`expenses/+layout.svelte`) — see the Settings entry below for why
+				// they aren't duplicated here. `/expenses` redirects to Daily.
 				title: 'Expenses',
 				url: '/[business]/[slug]/expenses',
 				icon: DollarSignIcon,
-				requiredFeature: 'expenses',
-				items: [
-					{
-						title: 'Daily',
-						url: '/[business]/[slug]/expenses/daily'
-					},
-					{
-						title: 'Monthly',
-						url: '/[business]/[slug]/expenses/monthly'
-					},
-					{
-						title: 'Reports',
-						url: '/[business]/[slug]/expenses/reports'
-					}
-				]
+				requiredFeature: 'expenses'
 			},
 			{
 				title: 'Team',
@@ -267,48 +225,13 @@ export const sidebarData: Record<string, SidebarData> = {
 				allowedRoles: ['owner', 'restaurant_owner', 'manager']
 			},
 			{
+				// Settings owns its own tab bar (`settings/+layout.svelte`), which
+				// enumerates all twelve sections. Duplicating them here meant two
+				// lists to keep in sync — and they had already drifted.
 				title: 'Settings',
 				url: '/[business]/[slug]/settings',
 				icon: SettingsIcon,
-				allowedRoles: ['owner', 'restaurant_owner'],
-				items: [
-					{
-						title: 'General',
-						url: '/[business]/[slug]/settings'
-					},
-					{
-						title: 'Tax & Invoicing',
-						url: '/[business]/[slug]/settings/tax'
-					},
-					{
-						title: 'Loyalty',
-						url: '/[business]/[slug]/settings/loyalty'
-					},
-					{
-						title: 'Online Ordering',
-						url: '/[business]/[slug]/settings/online-ordering'
-					},
-					{
-						title: 'UPI Payments',
-						url: '/[business]/[slug]/settings/payments'
-					},
-					{
-						title: 'API Keys',
-						url: '/[business]/[slug]/settings/api-keys'
-					},
-					{
-						title: 'Kitchen Stations',
-						url: '/[business]/[slug]/settings/kitchen-stations'
-					},
-					{
-						title: 'Accounting Export',
-						url: '/[business]/[slug]/settings/accounting'
-					},
-					{
-						title: 'Features',
-						url: '/[business]/[slug]/settings/features'
-					}
-				]
+				allowedRoles: ['owner', 'restaurant_owner']
 			}
 		]
 	}

@@ -9,6 +9,7 @@
 	import type { PageData } from './$types';
 	import type { LiveStats, ActivityFeedItem } from '$lib/api/admin';
 	import { getAdminLiveStats, getAdminActivityFeed } from '$lib/api/admin';
+	import { formatMoney } from '$lib/utils/money';
 
 	import BarChartLazy from '$lib/components/chart/lazy-bar-chart.svelte';
 	import ActivityFeed from '$lib/components/admin/activity-feed.svelte';
@@ -116,9 +117,9 @@
 			: 0
 	);
 
-	function formatCurrency(amount: number): string {
-		return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-	}
+	// These figures span every tenant on the platform, so they arrive as
+	// per-currency buckets. The previous local formatter hardcoded USD and
+	// rendered a mixed-currency sum as dollars.
 </script>
 
 <svelte:head>
@@ -215,7 +216,7 @@
 				<Card.Content>
 					<div class="text-2xl font-bold">{stats.ordersToday.count}</div>
 					<p class="text-xs text-muted-foreground">
-						{formatCurrency(stats.ordersToday.revenue)} revenue
+						{formatMoney(stats.ordersToday.revenue)} revenue
 					</p>
 				</Card.Content>
 			</Card.Root>
@@ -229,7 +230,7 @@
 				<Card.Content>
 					<div class="text-2xl font-bold">{stats.paymentsToday.count}</div>
 					<p class="text-xs text-muted-foreground">
-						{formatCurrency(stats.paymentsToday.amount)} processed
+						{formatMoney(stats.paymentsToday.amount)} processed
 					</p>
 				</Card.Content>
 			</Card.Root>

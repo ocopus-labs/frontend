@@ -1,15 +1,17 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import * as Card from '$lib/components/ui/card';
+	import { Label } from '$lib/components/ui/label';
+	import * as Field from '$lib/components/ui/field';
+	import { NativeSelect, NativeSelectOption } from '$lib/components/ui/native-select';
 	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import PageShell from '$lib/components/global/page-shell.svelte';
+	import SettingsSection from '$lib/components/global/settings-section.svelte';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import { EmptyState } from '$lib/components/data-display';
 	import { toast } from 'svelte-sonner';
@@ -311,35 +313,30 @@
 
 		<!-- Keys Tab -->
 		<Tabs.Content value="keys" class="space-y-4 pt-4">
-			<!-- Stats -->
-			<div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Active Keys</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="flex items-center gap-2">
-							<IconKey class="h-5 w-5 text-muted-foreground" />
-							<span class="text-2xl font-bold">{activeKeys.length}</span>
+			<!-- Usage -->
+			<div>
+				<SettingsSection
+					title="Usage"
+					description="Active keys count towards this business's limit."
+				>
+					<div class="grid grid-cols-3 gap-4">
+						<div>
+							<p class="text-xs text-muted-foreground">Active</p>
+							<div class="mt-1 flex items-center gap-2">
+								<IconKey class="h-4 w-4 text-muted-foreground" />
+								<span class="text-2xl font-semibold">{activeKeys.length}</span>
+							</div>
 						</div>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Revoked</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<span class="text-2xl font-bold text-muted-foreground">{revokedKeys.length}</span>
-					</Card.Content>
-				</Card.Root>
-				<Card.Root>
-					<Card.Header class="pb-2">
-						<Card.Title class="text-sm font-medium">Max Keys</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<span class="text-2xl font-bold">{activeKeys.length} / 5</span>
-					</Card.Content>
-				</Card.Root>
+						<div>
+							<p class="text-xs text-muted-foreground">Revoked</p>
+							<p class="mt-1 text-2xl font-semibold text-muted-foreground">{revokedKeys.length}</p>
+						</div>
+						<div>
+							<p class="text-xs text-muted-foreground">Limit</p>
+							<p class="mt-1 text-2xl font-semibold">{activeKeys.length} / 5</p>
+						</div>
+					</div>
+				</SettingsSection>
 			</div>
 
 			<!-- Active Keys Table -->
@@ -492,21 +489,14 @@
 			</div>
 
 			<!-- App-specific guides -->
-			{#each guides as guide (guide.name)}
-				<Card.Root>
-					<Card.Header>
-						<Card.Title class="text-sm font-medium">{guide.name}</Card.Title>
-						<Card.Description>
+			<div>
+				{#each guides as guide (guide.name)}
+					<SettingsSection title={guide.name} description={guide.notes}>
+						<div class="flex flex-col gap-0.5">
 							{#each guide.configPaths as configPath}
-								<code class="text-xs">{configPath}</code>
-								{#if guide.configPaths.length > 1}<br />{/if}
+								<code class="text-xs break-all text-muted-foreground">{configPath}</code>
 							{/each}
-						</Card.Description>
-					</Card.Header>
-					<Card.Content class="space-y-3">
-						{#if guide.notes}
-							<p class="text-xs text-muted-foreground">{guide.notes}</p>
-						{/if}
+						</div>
 						<div class="relative">
 							<pre
 								class="overflow-x-auto rounded-md bg-muted p-3 text-xs leading-relaxed">{guide.config}</pre>
@@ -520,19 +510,11 @@
 								<IconCopy class="h-3.5 w-3.5" />
 							</Button>
 						</div>
-					</Card.Content>
-				</Card.Root>
-			{/each}
+					</SettingsSection>
+				{/each}
 
-			<!-- Claude Code CLI -->
-			<Card.Root>
-				<Card.Header>
-					<Card.Title class="text-sm font-medium">Claude Code (CLI)</Card.Title>
-					<Card.Description>
-						<code class="text-xs">Run in your terminal</code>
-					</Card.Description>
-				</Card.Header>
-				<Card.Content>
+				<!-- Claude Code CLI -->
+				<SettingsSection title="Claude Code (CLI)" description="Run this in your terminal.">
 					<div class="relative">
 						<pre
 							class="overflow-x-auto rounded-md bg-muted p-3 text-xs leading-relaxed">{claudeCliCommand}</pre>
@@ -546,8 +528,8 @@
 							<IconCopy class="h-3.5 w-3.5" />
 						</Button>
 					</div>
-				</Card.Content>
-			</Card.Root>
+				</SettingsSection>
+			</div>
 
 			<p class="text-xs text-muted-foreground">
 				Replace <code class="rounded bg-muted px-1 font-medium">YOUR_API_KEY</code> with an active
@@ -570,85 +552,81 @@
 		</Dialog.Header>
 		<div class="grid gap-4 py-4">
 			<!-- Name -->
-			<div class="grid gap-2">
-				<label for="key-name" class="text-sm font-medium">Name *</label>
+			<Field.Field>
+				<Field.Label for="key-name">Name *</Field.Label>
 				<Input
 					id="key-name"
 					autofocus
 					bind:value={newKeyName}
 					placeholder="e.g. Inventory Bot, Order Agent"
 					maxlength={100}
+					class="max-w-sm"
 				/>
-			</div>
+			</Field.Field>
 
 			<!-- Expiration -->
-			<div class="grid gap-2">
-				<label for="expires" class="text-sm font-medium">Expiration</label>
-				<select
-					id="expires"
-					bind:value={expiresIn}
-					class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
-				>
-					<option value="never">No expiration</option>
-					<option value="7">7 days</option>
-					<option value="30">30 days</option>
-					<option value="90">90 days</option>
-					<option value="365">1 year</option>
-				</select>
-			</div>
+			<Field.Field>
+				<Field.Label for="expires">Expiration</Field.Label>
+				<NativeSelect id="expires" bind:value={expiresIn} class="w-full sm:max-w-xs">
+					<NativeSelectOption value="never">No expiration</NativeSelectOption>
+					<NativeSelectOption value="7">7 days</NativeSelectOption>
+					<NativeSelectOption value="30">30 days</NativeSelectOption>
+					<NativeSelectOption value="90">90 days</NativeSelectOption>
+					<NativeSelectOption value="365">1 year</NativeSelectOption>
+				</NativeSelect>
+			</Field.Field>
 
 			<!-- Scopes -->
-			<div class="grid gap-2">
-				<label class="text-sm font-medium"
-					>Scopes * <span class="font-normal text-muted-foreground">(what the key can access)</span
-					></label
-				>
+			<Field.Field>
+				<Field.Label>Scopes *</Field.Label>
+				<Field.Description>What the key can access.</Field.Description>
 				<div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
 					{#each AVAILABLE_SCOPES as scope}
-						<button
-							type="button"
-							class="flex items-center gap-2 rounded-md border p-2 text-left text-sm transition-colors hover:bg-accent {selectedScopes.includes(
-								scope.value
-							)
+						{@const scopeChecked = selectedScopes.includes(scope.value)}
+						<div
+							class="flex items-center gap-2 rounded-md border p-2 text-sm transition-colors hover:bg-accent {scopeChecked
 								? 'border-primary bg-primary/5'
 								: ''}"
-							onclick={() => toggleScope(scope.value)}
 						>
-							<Checkbox checked={selectedScopes.includes(scope.value)} />
-							<div>
-								<p class="font-medium">{scope.label}</p>
-							</div>
-						</button>
+							<Checkbox
+								id="scope-{scope.value}"
+								checked={scopeChecked}
+								onCheckedChange={() => toggleScope(scope.value)}
+							/>
+							<Label for="scope-{scope.value}" class="flex-1 cursor-pointer text-sm">
+								{scope.label}
+							</Label>
+						</div>
 					{/each}
 				</div>
-			</div>
+			</Field.Field>
 
 			<!-- Permissions -->
 			{#if filteredPermissions.length > 0}
-				<div class="grid gap-2">
-					<label class="text-sm font-medium"
-						>Permissions * <span class="font-normal text-muted-foreground"
-							>(what actions are allowed)</span
-						></label
-					>
+				<Field.Field>
+					<Field.Label>Permissions *</Field.Label>
+					<Field.Description>What actions are allowed.</Field.Description>
 					<div class="grid gap-1.5">
 						{#each filteredPermissions as perm}
-							<button
-								type="button"
-								class="flex items-center gap-2 rounded-md border p-2 text-left text-sm transition-colors hover:bg-accent {selectedPermissions.includes(
-									perm.value
-								)
+							{@const permChecked = selectedPermissions.includes(perm.value)}
+							<div
+								class="flex items-center gap-2 rounded-md border p-2 text-sm transition-colors hover:bg-accent {permChecked
 									? 'border-primary bg-primary/5'
 									: ''}"
-								onclick={() => togglePermission(perm.value)}
 							>
-								<Checkbox checked={selectedPermissions.includes(perm.value)} />
-								<span>{perm.label}</span>
-								<Badge variant="outline" class="ml-auto text-xs">{perm.scope}</Badge>
-							</button>
+								<Checkbox
+									id="perm-{perm.value}"
+									checked={permChecked}
+									onCheckedChange={() => togglePermission(perm.value)}
+								/>
+								<Label for="perm-{perm.value}" class="flex-1 cursor-pointer text-sm">
+									{perm.label}
+								</Label>
+								<Badge variant="outline" class="text-xs">{perm.scope}</Badge>
+							</div>
 						{/each}
 					</div>
-				</div>
+				</Field.Field>
 			{/if}
 		</div>
 		<Dialog.Footer>

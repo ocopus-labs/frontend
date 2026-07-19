@@ -1,3 +1,5 @@
+import type { MoneyByCurrency } from '$lib/utils/money';
+
 export type BusinessType =
   | 'restaurant'
   | 'cafe'
@@ -110,13 +112,19 @@ export interface FranchiseUser {
 }
 
 export interface FranchiseAnalytics {
-  totalRevenue: number;
+  /**
+   * Per-currency. A franchise can span countries, so the network total is a
+   * set of amounts, never one number.
+   */
+  totalRevenue: MoneyByCurrency;
   totalOrders: number;
   totalLocations: number;
   totalStaff: number;
   locationBreakdown: {
     businessId: string;
     businessName: string;
+    /** A single outlet bills in one currency, so its revenue stays scalar. */
+    currency: string;
     revenue: number;
     orders: number;
   }[];

@@ -119,7 +119,7 @@
 				<DropdownMenu.Separator />
 				{#if !hideUpgrade && !isTopTier}
 					<DropdownMenu.Group>
-						<DropdownMenu.Item onclick={() => goto('/dashboard/subscriptions')}>
+						<DropdownMenu.Item onclick={() => goto('/dashboard/billing')}>
 							<SparklesIcon />
 							{planName ? `Upgrade from ${planName}` : 'Upgrade to Pro'}
 						</DropdownMenu.Item>

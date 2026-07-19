@@ -15,6 +15,10 @@
 		IconChevronRight
 	} from '@tabler/icons-svelte';
 	import PageShell from '$lib/components/global/page-shell.svelte';
+	import KpiCard from '$lib/components/global/kpi-card.svelte';
+	import KpiGrid from '$lib/components/global/kpi-grid.svelte';
+	import * as Alert from '$lib/components/ui/alert';
+	import { EmptyState } from '$lib/components/data-display';
 	import { downloadCsv } from '$lib/utils/export';
 	import type { GstSummary } from '$lib/api';
 
@@ -145,74 +149,48 @@
 	{/snippet}
 
 	{#if data.error}
-		<div class="rounded-lg border border-destructive bg-destructive/10 p-4">
-			<p class="text-sm text-destructive">{data.error}</p>
-		</div>
+		<Alert.Root variant="destructive">
+			<Alert.Title>Couldn't load GST summary</Alert.Title>
+			<Alert.Description>{data.error}</Alert.Description>
+		</Alert.Root>
 	{:else if summary}
 		<!-- Summary Cards -->
-		<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-			<Card.Root>
-				<Card.Header class="pb-2">
-					<Card.Title class="text-xs font-medium text-muted-foreground">Orders</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					<div class="text-2xl font-bold">{formatNumber(summary.orderCount)}</div>
-					<p class="text-xs text-muted-foreground">paid invoices</p>
-				</Card.Content>
-			</Card.Root>
-
-			<Card.Root>
-				<Card.Header class="pb-2">
-					<Card.Title class="text-xs font-medium text-muted-foreground">Taxable Value</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					<div class="text-xl font-bold">{formatCurrency(summary.totalTaxableValue)}</div>
-					<p class="text-xs text-muted-foreground">before tax</p>
-				</Card.Content>
-			</Card.Root>
-
-			<Card.Root>
-				<Card.Header class="pb-2">
-					<Card.Title class="text-xs font-medium text-muted-foreground">CGST Collected</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					<div class="text-xl font-bold text-chart-3">
-						{formatCurrency(summary.cgstCollected)}
-					</div>
-					<p class="text-xs text-muted-foreground">central GST</p>
-				</Card.Content>
-			</Card.Root>
-
-			<Card.Root>
-				<Card.Header class="pb-2">
-					<Card.Title class="text-xs font-medium text-muted-foreground">SGST Collected</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					<div class="text-xl font-bold text-chart-4">
-						{formatCurrency(summary.sgstCollected)}
-					</div>
-					<p class="text-xs text-muted-foreground">state GST</p>
-				</Card.Content>
-			</Card.Root>
-
-			<Card.Root class="col-span-2 sm:col-span-1">
-				<Card.Header class="pb-2">
-					<Card.Title class="text-xs font-medium text-muted-foreground">Total Tax</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					<div class="text-xl font-bold text-chart-6">
-						{formatCurrency(summary.totalTaxCollected)}
-					</div>
-					<p class="text-xs text-muted-foreground">
-						{#if summary.igstCollected > 0}
-							incl. IGST {formatCurrency(summary.igstCollected)}
-						{:else}
-							CGST + SGST
-						{/if}
-					</p>
-				</Card.Content>
-			</Card.Root>
-		</div>
+		<KpiGrid columns={5}>
+			<KpiCard
+				label="Orders"
+				value={formatNumber(summary.orderCount)}
+				description="paid invoices"
+			/>
+			<KpiCard
+				label="Taxable Value"
+				value={formatCurrency(summary.totalTaxableValue)}
+				description="before tax"
+			/>
+			<KpiCard
+				label="CGST Collected"
+				value={formatCurrency(summary.cgstCollected)}
+				accent="chart-3"
+				emphasize
+				description="central GST"
+			/>
+			<KpiCard
+				label="SGST Collected"
+				value={formatCurrency(summary.sgstCollected)}
+				accent="chart-4"
+				emphasize
+				description="state GST"
+			/>
+			<KpiCard
+				class="col-span-2 sm:col-span-1"
+				label="Total Tax"
+				value={formatCurrency(summary.totalTaxCollected)}
+				accent="chart-6"
+				emphasize
+				description={summary.igstCollected > 0
+					? `incl. IGST ${formatCurrency(summary.igstCollected)}`
+					: 'CGST + SGST'}
+			/>
+		</KpiGrid>
 
 		<!-- Tax Rate Breakdown -->
 		<div>
@@ -388,8 +366,11 @@
 			</p>
 		</div>
 	{:else}
-		<div class="flex flex-1 items-center justify-center py-16">
-			<p class="text-sm text-muted-foreground">Loading GST summary...</p>
-		</div>
+		<EmptyState
+			type="no-data"
+			title="No GST data for this period"
+			description="There are no paid invoices in {getMonthLabel(startDate)}. Try another month."
+			icon={IconReceipt2}
+		/>
 	{/if}
 </PageShell>

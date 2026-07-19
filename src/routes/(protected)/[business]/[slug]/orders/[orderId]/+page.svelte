@@ -72,6 +72,9 @@
 
 	function getEinvoiceStatusBadge(status: string | null) {
 		switch (status) {
+			// Locally derived, never registered with the IRP — must not read as valid.
+			case 'simulated':
+				return { variant: 'destructive' as const, text: 'Simulated — Not Valid' };
 			case 'generated':
 				return { variant: 'secondary' as const, text: 'IRN Generated' };
 			case 'registered':

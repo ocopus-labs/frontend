@@ -1,213 +1,75 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import * as Card from '$lib/components/ui/card';
-	import * as Tabs from '$lib/components/ui/tabs';
+	import { Textarea } from '$lib/components/ui/textarea';
+	import * as Field from '$lib/components/ui/field';
+	import PageShell from '$lib/components/global/page-shell.svelte';
+	import SettingsSection from '$lib/components/global/settings-section.svelte';
 	import { toast } from 'svelte-sonner';
-	import {
-		IconDeviceFloppy,
-		IconUser,
-		IconBuilding,
-		IconSettings,
-		IconCreditCard,
-		IconBell,
-		IconShoppingCart,
-		IconChevronRight
-	} from '@tabler/icons-svelte';
+	import IconDeviceFloppy from '@lucide/svelte/icons/save';
 	import { updateBusiness } from '$lib/api/business';
 	import { invalidate } from '$app/navigation';
 	import { useSession } from '$lib/auth';
 	import type { Business } from '$lib/api/types';
-	import { CURRENCY_CONFIG } from '$lib/utils/i18n';
-	import type { CurrencyCode } from '$lib/utils/i18n';
-	import * as Select from '$lib/components/ui/select';
-	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { Switch } from '$lib/components/ui/switch';
-	import { browser } from '$app/environment';
-	import PageShell from '$lib/components/global/page-shell.svelte';
 
 	let { data } = $props();
 
-	// Cast to Business since fallback mock data may not have all fields
 	const business = data.business as Partial<Business> & { name: string };
 	const settings = business.settings ?? ({} as Partial<Business['settings']>);
 	const contact = business.contact ?? ({} as Partial<Business['contact']>);
 	const address = business.address ?? ({} as Partial<Business['address']>);
 
-	// Get user info from session
 	const session = useSession();
 	const user = $derived($session.data?.user);
 
-	const DEFAULT_BUSINESS_HOURS: Record<
-		string,
-		{ open: string; close: string; isClosed?: boolean }
-	> = {
-		Monday: { open: '09:00', close: '22:00', isClosed: false },
-		Tuesday: { open: '09:00', close: '22:00', isClosed: false },
-		Wednesday: { open: '09:00', close: '22:00', isClosed: false },
-		Thursday: { open: '09:00', close: '22:00', isClosed: false },
-		Friday: { open: '09:00', close: '23:00', isClosed: false },
-		Saturday: { open: '10:00', close: '23:00', isClosed: false },
-		Sunday: { open: '10:00', close: '21:00', isClosed: false }
-	};
+	let businessName = $state(business.name ?? '');
+	let description = $state(business.description ?? '');
 
-	// Business info
-	let restaurantName = $state(business.name ?? '');
-	let restaurantAddress = $state(
-		[address.street, address.city, address.state, address.postalCode, address.country]
-			.filter(Boolean)
-			.join(', ')
-	);
-	let restaurantPhone = $state(contact.phone ?? '');
-	let restaurantEmail = $state(contact.email ?? '');
+	// Address is edited as discrete fields. It used to be one comma-joined input
+	// that was split back apart on save, which mangled any address containing a
+	// comma of its own ("12 Main St, Apt 4" lost "Apt 4" into the city slot).
+	let street = $state(address.street ?? '');
+	let city = $state(address.city ?? '');
+	let stateRegion = $state(address.state ?? '');
+	let postalCode = $state(address.postalCode ?? '');
+	let country = $state(address.country ?? '');
+
+	let businessPhone = $state(contact.phone ?? '');
+	let businessEmail = $state(contact.email ?? '');
 	let taxRate = $state(parseFloat(settings.taxRate ?? '0') || 0);
-	let currency = $state(settings.currency ?? 'USD');
 	let timezone = $state(settings.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
 
-	// Owner settings from session
-	let ownerName = $state('');
-	let ownerEmail = $state('');
-	let ownerPhone = $state('');
-
-	// Sync owner fields when session loads
-	$effect(() => {
-		if (user) {
-			ownerName = user.name || '';
-			ownerEmail = user.email || '';
-		}
-	});
-
-	// Business hours - build from saved data or defaults
-	const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-
-	let businessHours = $state(
-		DAYS.map((day) => {
-			const saved = settings.businessHours?.[day];
-			const defaults = DEFAULT_BUSINESS_HOURS[day];
-			return {
-				day,
-				open: saved?.open ?? defaults.open,
-				close: saved?.close ?? defaults.close,
-				closed: saved?.isClosed ?? defaults.isClosed ?? false
-			};
-		})
-	);
-
-	// Payment methods state
-	const rawPaymentMethods = settings.paymentMethods;
-	const savedPaymentMethods: string[] | undefined = Array.isArray(rawPaymentMethods)
-		? rawPaymentMethods
-		: typeof rawPaymentMethods === 'string'
-			? JSON.parse(rawPaymentMethods)
-			: undefined;
-	let paymentMethodCash = $state(savedPaymentMethods ? savedPaymentMethods.includes('cash') : true);
-	let paymentMethodCard = $state(savedPaymentMethods ? savedPaymentMethods.includes('card') : true);
-	let paymentMethodDigital = $state(
-		savedPaymentMethods ? savedPaymentMethods.includes('digital') : false
-	);
-
-	// Notification preferences (stored locally for now; full backend integration later)
-	let emailNotifications = $state(
-		browser ? localStorage.getItem('pref:emailNotifications') !== 'false' : true
-	);
-	let smsNotifications = $state(
-		browser ? localStorage.getItem('pref:smsNotifications') === 'true' : false
-	);
-	let pushNotifications = $state(
-		browser ? localStorage.getItem('pref:pushNotifications') === 'true' : false
-	);
-	let pushPermissionStatus = $state<NotificationPermission | 'unsupported'>(
-		browser && 'Notification' in window ? Notification.permission : 'unsupported'
-	);
-
-	async function togglePushNotifications(enabled: boolean) {
-		if (!browser) return;
-
-		if (enabled) {
-			if (!('Notification' in window)) {
-				toast.error('Push notifications are not supported in this browser.');
-				pushNotifications = false;
-				return;
-			}
-
-			const permission = await Notification.requestPermission();
-			pushPermissionStatus = permission;
-
-			if (permission === 'granted') {
-				pushNotifications = true;
-				localStorage.setItem('pref:pushNotifications', 'true');
-				toast.success('Push notifications enabled.');
-			} else if (permission === 'denied') {
-				pushNotifications = false;
-				localStorage.setItem('pref:pushNotifications', 'false');
-				toast.error('Notification permission was denied. Please enable it in browser settings.');
-			} else {
-				pushNotifications = false;
-				localStorage.setItem('pref:pushNotifications', 'false');
-			}
-		} else {
-			pushNotifications = false;
-			localStorage.setItem('pref:pushNotifications', 'false');
-			toast.success('Push notifications disabled.');
-		}
-	}
-
-	function saveNotificationPreference(key: string, value: boolean) {
-		if (!browser) return;
-		localStorage.setItem(`pref:${key}`, String(value));
-	}
+	// Owner name/email belong to the auth account, not the business — read-only
+	// here so the page doesn't imply it can change them.
+	const ownerName = $derived(user?.name ?? '');
+	const ownerEmail = $derived(user?.email ?? '');
 
 	let saving = $state(false);
 
 	async function saveSettings() {
 		saving = true;
 		try {
-			// Parse the address string back into components
-			const addressParts = restaurantAddress.split(',').map((s) => s.trim());
-
-			const businessHoursRecord: Record<
-				string,
-				{ open: string; close: string; isClosed?: boolean }
-			> = {};
-			for (const hour of businessHours) {
-				businessHoursRecord[hour.day] = {
-					open: hour.open,
-					close: hour.close,
-					isClosed: hour.closed
-				};
-			}
-
-			const paymentMethods: string[] = [];
-			if (paymentMethodCash) paymentMethods.push('cash');
-			if (paymentMethodCard) paymentMethods.push('card');
-			if (paymentMethodDigital) paymentMethods.push('digital');
-
 			await updateBusiness(data.businessId, {
-				name: restaurantName,
-				address: {
-					street: addressParts[0] ?? '',
-					city: addressParts[1] ?? address.city ?? '',
-					state: addressParts[2] ?? address.state ?? '',
-					postalCode: addressParts[3] ?? address.postalCode ?? '',
-					country: addressParts[4] ?? address.country ?? ''
-				},
+				name: businessName,
+				description: description || undefined,
+				address: { street, city, state: stateRegion, postalCode, country },
 				contact: {
-					email: restaurantEmail || undefined,
-					phone: restaurantPhone || undefined,
+					email: businessEmail || undefined,
+					phone: businessPhone || undefined,
 					website: contact.website
 				},
+				// The backend merges `settings` into the stored blob, so sending only
+				// these leaves payment credentials, loyalty and tax config intact.
 				settings: {
 					timezone,
-					currency,
-					taxRate: String(taxRate),
-					businessHours: businessHoursRecord,
-					paymentMethods
+					currency: settings.currency ?? 'INR',
+					taxRate: String(taxRate)
 				}
 			});
 
 			await invalidate('app:settings');
 			await invalidate('app:business-data');
-			toast.success('Settings saved successfully.');
+			toast.success('Settings saved.');
 		} catch (err: unknown) {
 			console.error('Failed to save settings:', err);
 			const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
@@ -216,302 +78,118 @@
 			saving = false;
 		}
 	}
-
-	function updateBusinessHour(index: number, field: string, value: string | boolean) {
-		businessHours[index] = { ...businessHours[index], [field]: value };
-	}
 </script>
 
-<PageShell title="Settings" description="Manage your business settings and preferences">
-	<Tabs.Root value="restaurant" class="w-full">
-		<Tabs.List class="grid w-full grid-cols-5">
-			<Tabs.Trigger value="restaurant">
-				<IconBuilding class="mr-2 h-4 w-4" />
-				Business Info
-			</Tabs.Trigger>
-			<Tabs.Trigger value="owner">
-				<IconUser class="mr-2 h-4 w-4" />
-				Owner
-			</Tabs.Trigger>
-			<Tabs.Trigger value="business">
-				<IconSettings class="mr-2 h-4 w-4" />
-				Hours
-			</Tabs.Trigger>
-			<Tabs.Trigger value="payment">
-				<IconCreditCard class="mr-2 h-4 w-4" />
-				Payment
-			</Tabs.Trigger>
-			<Tabs.Trigger value="notifications">
-				<IconBell class="mr-2 h-4 w-4" />
-				Notifications
-			</Tabs.Trigger>
-		</Tabs.List>
+<PageShell title="General" description="Your business's name, contact details and defaults">
+	<div>
+		<SettingsSection
+			title="Business information"
+			description="Shown on receipts, invoices and your online ordering page."
+		>
+			<Field.Field>
+				<Field.Label for="business-name">Business name</Field.Label>
+				<Input id="business-name" bind:value={businessName} class="max-w-sm" />
+			</Field.Field>
 
-		<Tabs.Content value="restaurant" class="space-y-4">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Business Information</Card.Title>
-					<Card.Description>Basic information about your business</Card.Description>
-				</Card.Header>
-				<Card.Content class="space-y-4">
-					<div class="grid grid-cols-2 gap-4">
-						<div class="space-y-2">
-							<label for="restaurant-name" class="text-sm font-medium">Business Name</label>
-							<Input id="restaurant-name" bind:value={restaurantName} />
-						</div>
-						<div class="space-y-2">
-							<label for="restaurant-phone" class="text-sm font-medium">Phone</label>
-							<Input id="restaurant-phone" bind:value={restaurantPhone} />
-						</div>
-					</div>
-					<div class="space-y-2">
-						<label for="restaurant-address" class="text-sm font-medium">Address</label>
-						<Input id="restaurant-address" bind:value={restaurantAddress} />
-					</div>
-					<div class="grid grid-cols-2 gap-4">
-						<div class="space-y-2">
-							<label for="restaurant-email" class="text-sm font-medium">Email</label>
-							<Input id="restaurant-email" type="email" bind:value={restaurantEmail} />
-						</div>
-						<div class="space-y-2">
-							<label for="tax-rate" class="text-sm font-medium">Tax Rate (%)</label>
-							<Input id="tax-rate" type="number" step="0.1" bind:value={taxRate} />
-						</div>
-					</div>
-					<div class="grid grid-cols-2 gap-4">
-						<div class="space-y-2">
-							<label for="timezone" class="text-sm font-medium">Timezone</label>
-							<Input id="timezone" bind:value={timezone} />
-						</div>
-					</div>
-				</Card.Content>
-			</Card.Root>
-		</Tabs.Content>
-
-		<Tabs.Content value="owner" class="space-y-4">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Owner Information</Card.Title>
-					<Card.Description>Personal information for the business owner</Card.Description>
-				</Card.Header>
-				<Card.Content class="space-y-4">
-					<div class="grid grid-cols-2 gap-4">
-						<div class="space-y-2">
-							<label for="owner-name" class="text-sm font-medium">Full Name</label>
-							<Input id="owner-name" bind:value={ownerName} disabled />
-						</div>
-						<div class="space-y-2">
-							<label for="owner-phone" class="text-sm font-medium">Phone</label>
-							<Input id="owner-phone" bind:value={ownerPhone} />
-						</div>
-					</div>
-					<div class="space-y-2">
-						<label for="owner-email" class="text-sm font-medium">Email</label>
-						<Input id="owner-email" type="email" bind:value={ownerEmail} disabled />
-					</div>
-				</Card.Content>
-			</Card.Root>
-		</Tabs.Content>
-
-		<Tabs.Content value="business" class="space-y-4">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Business Hours</Card.Title>
-					<Card.Description>Set your business's operating hours</Card.Description>
-				</Card.Header>
-				<Card.Content>
-					<div class="space-y-4">
-						{#each businessHours as hour, index (hour.day)}
-							<div class="flex items-center gap-4">
-								<div class="w-20 text-sm font-medium">{hour.day}</div>
-								<div class="flex items-center gap-2">
-									<input
-										type="checkbox"
-										id="closed-{index}"
-										bind:checked={hour.closed}
-										onchange={(e) =>
-											updateBusinessHour(index, 'closed', (e.target as HTMLInputElement).checked)}
-									/>
-									<label for="closed-{index}" class="text-sm">Closed</label>
-								</div>
-								{#if !hour.closed}
-									<div class="flex items-center gap-2">
-										<Input
-											type="time"
-											value={hour.open}
-											onchange={(e) =>
-												updateBusinessHour(index, 'open', (e.target as HTMLInputElement).value)}
-											class="w-32"
-										/>
-										<span class="text-sm">to</span>
-										<Input
-											type="time"
-											value={hour.close}
-											onchange={(e) =>
-												updateBusinessHour(index, 'close', (e.target as HTMLInputElement).value)}
-											class="w-32"
-										/>
-									</div>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				</Card.Content>
-			</Card.Root>
-		</Tabs.Content>
-
-		<Tabs.Content value="payment" class="space-y-4">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Payment Settings</Card.Title>
-					<Card.Description>Configure payment methods and currency</Card.Description>
-				</Card.Header>
-				<Card.Content class="space-y-4">
-					<div class="grid grid-cols-2 gap-4">
-						<div class="space-y-2">
-							<label for="currency" class="text-sm font-medium">Currency</label>
-							<Select.Root type="single" bind:value={currency}>
-								<Select.Trigger class="w-full">
-									{currency} ({CURRENCY_CONFIG[currency as CurrencyCode]?.symbol || ''}) - {CURRENCY_CONFIG[
-										currency as CurrencyCode
-									]?.name || ''}
-								</Select.Trigger>
-								<Select.Content>
-									{#each Object.values(CURRENCY_CONFIG) as curr (curr.code)}
-										<Select.Item value={curr.code}
-											>{curr.code} ({curr.symbol}) - {curr.name}</Select.Item
-										>
-									{/each}
-								</Select.Content>
-							</Select.Root>
-						</div>
-					</div>
-					<div class="space-y-4">
-						<h4 class="text-sm font-medium">Payment Methods</h4>
-						<div class="space-y-2">
-							<div class="flex items-center gap-2">
-								<Checkbox id="cash" bind:checked={paymentMethodCash} />
-								<label for="cash" class="text-sm">Cash</label>
-							</div>
-							<div class="flex items-center gap-2">
-								<Checkbox id="card" bind:checked={paymentMethodCard} />
-								<label for="card" class="text-sm">Credit/Debit Card</label>
-							</div>
-							<div class="flex items-center gap-2">
-								<Checkbox id="digital" bind:checked={paymentMethodDigital} />
-								<label for="digital" class="text-sm">Digital Wallets</label>
-							</div>
-						</div>
-					</div>
-				</Card.Content>
-			</Card.Root>
-		</Tabs.Content>
-
-		<Tabs.Content value="notifications" class="space-y-4">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Notification Preferences</Card.Title>
-					<Card.Description>Choose how you want to receive notifications</Card.Description>
-				</Card.Header>
-				<Card.Content class="space-y-6">
-					<div class="flex items-center justify-between">
-						<div class="space-y-0.5">
-							<label for="email-notifications" class="text-sm font-medium"
-								>Email Notifications</label
-							>
-							<p class="text-xs text-muted-foreground">
-								Receive order updates and reports via email
-							</p>
-						</div>
-						<Switch
-							id="email-notifications"
-							bind:checked={emailNotifications}
-							onCheckedChange={(checked) => {
-								saveNotificationPreference('emailNotifications', checked);
-								toast.success(
-									checked ? 'Email notifications enabled.' : 'Email notifications disabled.'
-								);
-							}}
-						/>
-					</div>
-
-					<div class="flex items-center justify-between">
-						<div class="space-y-0.5">
-							<label for="sms-notifications" class="text-sm font-medium">SMS Notifications</label>
-							<p class="text-xs text-muted-foreground">Receive critical alerts via text message</p>
-						</div>
-						<Switch
-							id="sms-notifications"
-							bind:checked={smsNotifications}
-							onCheckedChange={(checked) => {
-								saveNotificationPreference('smsNotifications', checked);
-								toast.success(
-									checked ? 'SMS notifications enabled.' : 'SMS notifications disabled.'
-								);
-							}}
-						/>
-					</div>
-
-					<div class="flex items-center justify-between">
-						<div class="space-y-0.5">
-							<label for="push-notifications" class="text-sm font-medium">Push Notifications</label>
-							<p class="text-xs text-muted-foreground">
-								{#if pushPermissionStatus === 'unsupported'}
-									Push notifications are not supported in this browser
-								{:else if pushPermissionStatus === 'denied'}
-									Permission denied — enable in browser settings
-								{:else}
-									Get real-time alerts in your browser
-								{/if}
-							</p>
-						</div>
-						<Switch
-							id="push-notifications"
-							checked={pushNotifications}
-							disabled={pushPermissionStatus === 'unsupported' || pushPermissionStatus === 'denied'}
-							onCheckedChange={(checked) => togglePushNotifications(checked)}
-						/>
-					</div>
-				</Card.Content>
-			</Card.Root>
-		</Tabs.Content>
-	</Tabs.Root>
-
-	<Card.Root>
-		<Card.Header>
-			<Card.Title>Online Ordering</Card.Title>
-			<Card.Description>
-				Accept online orders from customers with a shareable link and QR code.
-			</Card.Description>
-		</Card.Header>
-		<Card.Content>
-			<a
-				href="/{data.businessType}/{data.business.slug}/settings/online-ordering"
-				class="group flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
-			>
-				<div class="flex items-start gap-3">
-					<div class="rounded-lg bg-primary/10 p-2 text-primary">
-						<IconShoppingCart class="h-5 w-5" />
-					</div>
-					<div class="space-y-1">
-						<div class="text-sm font-medium">Configure Online Ordering</div>
-						<p class="text-xs text-muted-foreground">
-							Enable online orders, set order types, minimum amount, prep time, payment methods, and
-							get a shareable link + QR code.
-						</p>
-					</div>
-				</div>
-				<IconChevronRight
-					class="h-5 w-5 text-muted-foreground transition-colors group-hover:text-foreground"
+			<Field.Field>
+				<Field.Label for="business-description">Description</Field.Label>
+				<Textarea
+					id="business-description"
+					bind:value={description}
+					rows={3}
+					placeholder="A short line about what you serve — shown to customers ordering online."
 				/>
-			</a>
-		</Card.Content>
-	</Card.Root>
+				<Field.Description>Optional.</Field.Description>
+			</Field.Field>
+		</SettingsSection>
+
+		<SettingsSection
+			title="Contact"
+			description="How customers and delivery partners reach this outlet."
+		>
+			<div class="grid gap-4 sm:grid-cols-2">
+				<Field.Field>
+					<Field.Label for="business-phone">Phone</Field.Label>
+					<Input id="business-phone" type="tel" bind:value={businessPhone} />
+				</Field.Field>
+				<Field.Field>
+					<Field.Label for="business-email">Email</Field.Label>
+					<Input id="business-email" type="email" bind:value={businessEmail} />
+				</Field.Field>
+			</div>
+		</SettingsSection>
+
+		<SettingsSection title="Address" description="Where this outlet physically operates.">
+			<Field.Field>
+				<Field.Label for="street">Street</Field.Label>
+				<Textarea id="street" bind:value={street} rows={2} />
+			</Field.Field>
+
+			<div class="grid gap-4 sm:grid-cols-2">
+				<Field.Field>
+					<Field.Label for="city">City</Field.Label>
+					<Input id="city" bind:value={city} />
+				</Field.Field>
+				<Field.Field>
+					<Field.Label for="state-region">State / region</Field.Label>
+					<Input id="state-region" bind:value={stateRegion} />
+				</Field.Field>
+			</div>
+
+			<div class="grid gap-4 sm:grid-cols-2">
+				<Field.Field>
+					<Field.Label for="postal-code">Postal code</Field.Label>
+					<Input id="postal-code" bind:value={postalCode} class="max-w-[10rem]" />
+				</Field.Field>
+				<Field.Field>
+					<Field.Label for="country">Country</Field.Label>
+					<Input id="country" bind:value={country} />
+				</Field.Field>
+			</div>
+		</SettingsSection>
+
+		<SettingsSection title="Defaults" description="Applied when nothing more specific is set.">
+			<Field.Field>
+				<Field.Label for="tax-rate">Default tax rate (%)</Field.Label>
+				<Input
+					id="tax-rate"
+					type="number"
+					step="0.1"
+					min="0"
+					bind:value={taxRate}
+					class="max-w-[8rem]"
+				/>
+				<Field.Description>Per-item and regional rules override this — see Tax.</Field.Description>
+			</Field.Field>
+
+			<Field.Field>
+				<Field.Label for="timezone">Timezone</Field.Label>
+				<Input id="timezone" bind:value={timezone} class="max-w-sm" />
+				<Field.Description>Used for reporting periods and business hours.</Field.Description>
+			</Field.Field>
+		</SettingsSection>
+
+		<SettingsSection
+			title="Owner"
+			description="From your account. Change these in Account Settings."
+		>
+			<div class="grid gap-4 sm:grid-cols-2">
+				<Field.Field>
+					<Field.Label for="owner-name">Full name</Field.Label>
+					<Input id="owner-name" value={ownerName} disabled />
+				</Field.Field>
+				<Field.Field>
+					<Field.Label for="owner-email">Email</Field.Label>
+					<Input id="owner-email" type="email" value={ownerEmail} disabled />
+				</Field.Field>
+			</div>
+		</SettingsSection>
+	</div>
 
 	<div class="flex justify-end">
 		<Button onclick={saveSettings} disabled={saving}>
-			<IconDeviceFloppy class="mr-2 h-4 w-4" />
-			{saving ? 'Saving...' : 'Save Settings'}
+			<IconDeviceFloppy class="mr-2 size-4" />
+			{saving ? 'Saving…' : 'Save changes'}
 		</Button>
 	</div>
 </PageShell>
