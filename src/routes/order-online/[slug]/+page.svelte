@@ -21,11 +21,13 @@
 	import TruckIcon from '@lucide/svelte/icons/truck';
 	import type { OnlineBusinessConfig, OnlineMenuCategory } from '$lib/api';
 	import { useCustomerSession } from '$lib/customer-auth';
+	import { AuthModal } from '$lib/components/customer-auth';
 	import UserCircleIcon from '@lucide/svelte/icons/user-circle';
 
 	let { data }: { data: PageData } = $props();
 
 	const customerSession = useCustomerSession();
+	let showAuthModal = $state(false);
 
 	const config = $derived(data.config as OnlineBusinessConfig);
 	const business = $derived(config.business);
@@ -304,6 +306,9 @@
 			>
 				<SearchIcon class="h-4 w-4" />
 			</button>
+			<!-- Signed out, the same slot opens sign-in rather than disappearing: the
+			     account entry point has to be discoverable before you have an account,
+			     and /account would bounce a signed-out visitor to checkout. -->
 			{#if $customerSession?.data?.user}
 				<a
 					href="/order-online/{slug}/account"
@@ -312,6 +317,14 @@
 				>
 					<UserCircleIcon class="h-4 w-4" />
 				</a>
+			{:else}
+				<button
+					class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted transition-colors hover:bg-muted"
+					onclick={() => (showAuthModal = true)}
+					aria-label="Sign in"
+				>
+					<UserCircleIcon class="h-4 w-4" />
+				</button>
 			{/if}
 		</div>
 
@@ -939,6 +952,11 @@
 		</div>
 	{/if}
 </div>
+
+<!-- Dismissible here, unlike at checkout: browsing works fine signed out, so
+     sign-in is an offer rather than a gate. googleOnly matches checkout — with
+     no SMS provider wired, phone OTP can't complete. -->
+<AuthModal bind:open={showAuthModal} googleOnly />
 
 <style>
 	.no-scrollbar::-webkit-scrollbar {
