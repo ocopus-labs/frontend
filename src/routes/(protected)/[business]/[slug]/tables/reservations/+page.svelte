@@ -3,7 +3,6 @@
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
@@ -11,12 +10,16 @@
 	import { IconLoader2 } from '@tabler/icons-svelte';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import PageShell from '$lib/components/global/page-shell.svelte';
+	import KpiGrid from '$lib/components/global/kpi-grid.svelte';
+	import KpiCard from '$lib/components/global/kpi-card.svelte';
 	import {
 		IconPlus,
 		IconPencil,
 		IconTrash,
 		IconSearch,
 		IconCalendar,
+		IconClock,
+		IconHourglass,
 		IconUsers,
 		IconPhone,
 		IconCheck,
@@ -289,32 +292,17 @@
 	{/snippet}
 
 	<!-- Stats -->
-	<div class="grid grid-cols-3 gap-4">
-		<Card.Root>
-			<Card.Header class="pb-2">
-				<Card.Title class="text-sm font-medium">Today</Card.Title>
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold">{stats.today}</div>
-			</Card.Content>
-		</Card.Root>
-		<Card.Root>
-			<Card.Header class="pb-2">
-				<Card.Title class="text-sm font-medium">Upcoming</Card.Title>
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold">{stats.upcoming}</div>
-			</Card.Content>
-		</Card.Root>
-		<Card.Root>
-			<Card.Header class="pb-2">
-				<Card.Title class="text-sm font-medium">Pending</Card.Title>
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold text-warning">{stats.pending}</div>
-			</Card.Content>
-		</Card.Root>
-	</div>
+	<KpiGrid columns={3}>
+		<KpiCard label="Today" value={stats.today} icon={IconCalendar} accent="chart-1" />
+		<KpiCard label="Upcoming" value={stats.upcoming} icon={IconClock} accent="chart-2" />
+		<KpiCard
+			label="Pending"
+			value={stats.pending}
+			icon={IconHourglass}
+			accent="warning"
+			emphasize
+		/>
+	</KpiGrid>
 
 	<!-- Filters -->
 	<div class="flex flex-col gap-4 sm:flex-row sm:items-center">

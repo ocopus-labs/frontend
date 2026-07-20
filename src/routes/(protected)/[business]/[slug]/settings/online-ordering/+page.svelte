@@ -46,15 +46,10 @@
 	};
 	const currencySymbol = CURRENCY_SYMBOLS[businessCurrencyCode] ?? businessCurrencyCode;
 
-	// Reactive form state
-	let initialSettings = $state<OnlineOrderingConfig>({
-		authEnabled: false,
-		...initialConfig
-	});
-	let settings = $state<OnlineOrderingConfig>({
-		authEnabled: false,
-		...initialConfig
-	});
+	// Reactive form state. The loader always supplies a complete config (it falls
+	// back to a full default object on error), so no per-field defaults here.
+	let initialSettings = $state<OnlineOrderingConfig>({ ...initialConfig });
+	let settings = $state<OnlineOrderingConfig>({ ...initialConfig });
 	let saving = $state(false);
 
 	const hasChanges = $derived(JSON.stringify(initialSettings) !== JSON.stringify(settings));
@@ -279,6 +274,28 @@
 							aria-label="Require customer sign-in"
 						/>
 					</div>
+
+					<!-- Nested under sign-in: phone verification is an extra step layered on
+					     top of an existing sign-in, so it is meaningless on its own. -->
+					{#if settings.authEnabled}
+						<div class="mt-4 flex items-start justify-between gap-4 border-t border-border pt-4">
+							<div class="space-y-0.5">
+								<Label for="require-phone-verification" class="text-sm font-medium">
+									Also verify phone with an OTP
+								</Label>
+								<p class="text-xs text-muted-foreground">
+									Sends a one-time code to the customer's phone after sign-in. More friction at
+									checkout, so leave this off unless you need a verified number. Customers still
+									enter a phone number either way.
+								</p>
+							</div>
+							<Switch
+								id="require-phone-verification"
+								bind:checked={settings.requirePhoneVerification}
+								aria-label="Also verify phone with an OTP"
+							/>
+						</div>
+					{/if}
 				</SettingsSection>
 
 				<SettingsSection

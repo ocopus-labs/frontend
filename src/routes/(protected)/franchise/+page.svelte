@@ -90,7 +90,7 @@
 		gutter={false}
 	>
 		{#snippet actions()}
-			<Button href="/franchise/create">
+			<Button href="/franchise/setup">
 				<Plus class="mr-1.5 size-4" />
 				Create franchise
 			</Button>
@@ -232,7 +232,7 @@
 			title="No franchises yet"
 			description="Create your first franchise to manage multiple locations under one brand."
 			actionLabel="Create franchise"
-			onAction={() => goto('/franchise/create')}
+			onAction={() => goto('/franchise/setup')}
 			icon={Network}
 		/>
 	{/if}

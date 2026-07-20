@@ -20,6 +20,8 @@
 	import { toast } from 'svelte-sonner';
 	import { EmptyState, StatusPill } from '$lib/components/data-display';
 	import PageShell from '$lib/components/global/page-shell.svelte';
+	import KpiGrid from '$lib/components/global/kpi-grid.svelte';
+	import KpiCard from '$lib/components/global/kpi-card.svelte';
 	import {
 		addToWaitlist,
 		getActiveWaitlist,
@@ -245,38 +247,17 @@
 	{/snippet}
 
 	<!-- Stats -->
-	<div class="grid grid-cols-3 gap-4">
-		<Card.Root>
-			<Card.Header class="pb-2">
-				<Card.Title class="text-sm font-medium">Waiting</Card.Title>
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold text-warning">{stats.waiting}</div>
-			</Card.Content>
-		</Card.Root>
-		<Card.Root>
-			<Card.Header class="pb-2">
-				<Card.Title class="text-sm font-medium">Notified</Card.Title>
-			</Card.Header>
-			<Card.Content>
-				<div class="text-info text-2xl font-bold">{stats.notified}</div>
-			</Card.Content>
-		</Card.Root>
-		<Card.Root>
-			<Card.Header class="pb-2">
-				<Card.Title class="text-sm font-medium">Est. Wait (Next)</Card.Title>
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold">
-					{#if estimatedWaitNext() !== null}
-						{estimatedWaitNext()}m
-					{:else}
-						--
-					{/if}
-				</div>
-			</Card.Content>
-		</Card.Root>
-	</div>
+	<KpiGrid columns={3}>
+		<KpiCard label="Waiting" value={stats.waiting} icon={IconUsers} accent="warning" emphasize />
+		<!-- Was `text-info`, which isn't a defined token — the value rendered plain. -->
+		<KpiCard label="Notified" value={stats.notified} icon={IconBell} accent="chart-2" />
+		<KpiCard
+			label="Est. Wait (Next)"
+			value={estimatedWaitNext() !== null ? `${estimatedWaitNext()}m` : '--'}
+			icon={IconClock}
+			accent="muted"
+		/>
+	</KpiGrid>
 
 	<!-- Queue List -->
 	{#if queue.length > 0}

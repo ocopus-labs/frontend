@@ -3,8 +3,16 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Table from '$lib/components/ui/table';
+	import * as ToggleGroup from '$lib/components/ui/toggle-group';
 	import { Badge } from '$lib/components/ui/badge';
-	import { IconCheck, IconEye, IconPrinter, IconRefresh } from '@tabler/icons-svelte';
+	import {
+		IconCheck,
+		IconEye,
+		IconLayoutGrid,
+		IconPrinter,
+		IconRefresh,
+		IconTable
+	} from '@tabler/icons-svelte';
 	import { SearchInput, FilterDropdown } from '$lib/components/search';
 	import { EmptyState, StatusPill } from '$lib/components/data-display';
 	import PageShell from '$lib/components/global/page-shell.svelte';
@@ -22,6 +30,34 @@
 	import { canModify } from '$lib/utils/permissions';
 
 	let { data }: { data: PageData } = $props();
+
+	/**
+	 * Cards and the table already both existed here — they were just wired to the
+	 * viewport (`md:hidden` / `hidden md:block`). This only lets a desktop user
+	 * override that choice; on mobile the table stays unusable regardless, so the
+	 * toggle is hidden below `md` and this value is ignored there.
+	 */
+	const VIEW_PREF_KEY = 'orders:pending:desktop-view';
+	let desktopView = $state<'table' | 'cards'>('table');
+
+	// Restored on mount rather than at init: reading localStorage during init would
+	// render a different view than the server sent and trip hydration. The cost is
+	// a one-frame flash of the table for users who've chosen cards. `$effect` never
+	// runs on the server, so localStorage needs no `browser` guard here.
+	let viewRestored = false;
+	$effect(() => {
+		if (viewRestored) return;
+		viewRestored = true;
+		const saved = localStorage.getItem(VIEW_PREF_KEY);
+		if (saved === 'cards' || saved === 'table') desktopView = saved;
+	});
+
+	// Guarded on `viewRestored` so the default doesn't overwrite a stored choice
+	// before the restore above has run.
+	$effect(() => {
+		if (!viewRestored) return;
+		localStorage.setItem(VIEW_PREF_KEY, desktopView);
+	});
 
 	const userRole = $derived(((data as any).userRole as string) ?? '');
 
@@ -235,11 +271,38 @@
 						{ value: 'Delivery', label: 'Delivery' }
 					]}
 				/>
+				<!--
+					`onValueChange` rather than `bind:` — a single-type ToggleGroup
+					deselects when you click the active item, which would leave this
+					binary with no value. Ignoring the empty case keeps one selected.
+				-->
+				<ToggleGroup.Root
+					type="single"
+					value={desktopView}
+					onValueChange={(v: string) => {
+						if (v === 'table' || v === 'cards') desktopView = v;
+					}}
+					variant="outline"
+					size="sm"
+					class="hidden md:flex"
+					aria-label="Order list view"
+				>
+					<ToggleGroup.Item value="table" aria-label="Table view">
+						<IconTable class="h-4 w-4" />
+					</ToggleGroup.Item>
+					<ToggleGroup.Item value="cards" aria-label="Card view">
+						<IconLayoutGrid class="h-4 w-4" />
+					</ToggleGroup.Item>
+				</ToggleGroup.Root>
 			</div>
 		</div>
 
-		<!-- Mobile: Card list -->
-		<div class="flex flex-col gap-2 md:hidden">
+		<!-- Cards: always on mobile, on desktop only when chosen -->
+		<div
+			class={desktopView === 'cards'
+				? 'grid gap-2 md:grid-cols-2 xl:grid-cols-3'
+				: 'flex flex-col gap-2 md:hidden'}
+		>
 			{#each filteredOrders as order (order.id)}
 				<!--
 					An <a>, not a <button>: this only navigates, so a link gives
@@ -303,8 +366,10 @@
 			{/each}
 		</div>
 
-		<!-- Desktop: Table -->
-		<div class="hidden overflow-x-auto rounded-md border md:block">
+		<!-- Table: desktop only, and only when chosen -->
+		<div
+			class="hidden overflow-x-auto rounded-md border {desktopView === 'table' ? 'md:block' : ''}"
+		>
 			<Table.Root>
 				<Table.Header>
 					<Table.Row>

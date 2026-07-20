@@ -12,8 +12,7 @@
 	import { EmptyState, StatusPill, TrendBadge } from '$lib/components/data-display';
 	import { toast } from 'svelte-sonner';
 	import { deleteBusiness } from '$lib/api';
-	import { formatCurrency } from '$lib/utils/i18n';
-	import { buildBusinessSummaries } from '$lib/mock/business-summary';
+	import { formatCurrency, type CurrencyCode } from '$lib/utils/i18n';
 	import type { PageData } from './$types';
 
 	import Plus from '@lucide/svelte/icons/plus';
@@ -41,9 +40,12 @@
 
 	const businesses = $derived(data.businesses ?? []);
 
-	// TODO(api): replace with GET /api/account/businesses/summary.
-	// See docs/FRONTEND-API-PENDING.md §2.
-	const summaries = $derived(buildBusinessSummaries(businesses));
+	// Keyed by business id and merged onto the real records at the point of use.
+	// Absent when the summary call failed — the grid degrades to the business
+	// records alone rather than failing outright.
+	const summaries = $derived(
+		new Map((data.summaries ?? []).map((summary) => [summary.businessId, summary]))
+	);
 
 	// --- presentation maps -----------------------------------------------------
 	const businessTypeIcons: Record<string, any> = {
@@ -151,8 +153,10 @@
 	});
 
 	// --- formatting -------------------------------------------------------------
-	function money(amount: number) {
-		return formatCurrency(amount, 'INR');
+	// Each business bills in its own currency, so the card formats with the one
+	// the summary reports rather than an account-wide default.
+	function money(amount: number, currency = 'INR') {
+		return formatCurrency(amount, currency as CurrencyCode);
 	}
 
 	function locationLabel(business: (typeof businesses)[number]) {
@@ -388,7 +392,7 @@
 										</p>
 										<div class="mt-1 flex flex-wrap items-baseline gap-2">
 											<span class="text-xl font-semibold tabular-nums">
-												{money(summary.todayRevenue)}
+												{money(summary.todayRevenue, summary.currency)}
 											</span>
 											<TrendBadge
 												value={summary.revenueChange}

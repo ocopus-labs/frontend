@@ -7,7 +7,9 @@
 	import SettingsSection from '$lib/components/global/settings-section.svelte';
 	import { toast } from 'svelte-sonner';
 	import IconDeviceFloppy from '@lucide/svelte/icons/save';
-	import { updateBusiness } from '$lib/api/business';
+	import IconTrash from '@lucide/svelte/icons/trash-2';
+	import * as ImageCropper from '$lib/components/ui/image-cropper';
+	import { updateBusiness, updateBusinessLogo } from '$lib/api/business';
 	import { invalidate } from '$app/navigation';
 	import { useSession } from '$lib/auth';
 	import type { Business } from '$lib/api/types';
@@ -45,6 +47,33 @@
 	const ownerEmail = $derived(user?.email ?? '');
 
 	let saving = $state(false);
+
+	// The logo saves on its own, not with the rest of the form: it goes to the
+	// dedicated PATCH /business/:id/logo endpoint, which is the only path that
+	// uploads a `data:` URI to the CDN and the only one that can clear a logo.
+	let logo = $state(business.logo ?? '');
+	let logoSaving = $state(false);
+
+	async function persistLogo(next: string) {
+		const previous = logo;
+		logo = next;
+		logoSaving = true;
+		try {
+			await updateBusinessLogo(data.businessId, next);
+			await invalidate('app:settings');
+			await invalidate('app:business-data');
+			toast.success(next ? 'Logo updated.' : 'Logo removed.');
+		} catch (err: unknown) {
+			// Put the previous logo back so the preview doesn't show an image that
+			// was never stored — the failure this whole page exists to surface.
+			logo = previous;
+			console.error('Failed to update logo:', err);
+			const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
+			toast.error(`Failed to update logo: ${message}`);
+		} finally {
+			logoSaving = false;
+		}
+	}
 
 	async function saveSettings() {
 		saving = true;
@@ -100,6 +129,45 @@
 					placeholder="A short line about what you serve — shown to customers ordering online."
 				/>
 				<Field.Description>Optional.</Field.Description>
+			</Field.Field>
+
+			<Field.Field>
+				<Field.Label for="business-logo">Logo</Field.Label>
+				<div class="flex items-center gap-4">
+					<ImageCropper.Root
+						bind:src={logo}
+						onCropped={persistLogo}
+						onUnsupportedFile={() => toast.error('Unsupported file type. Please upload an image.')}
+					>
+						<ImageCropper.UploadTrigger>
+							<ImageCropper.Preview class="rounded-md" />
+						</ImageCropper.UploadTrigger>
+						<ImageCropper.Dialog>
+							<ImageCropper.Cropper cropShape="rect" />
+							<ImageCropper.Controls>
+								<ImageCropper.Crop />
+								<ImageCropper.Cancel />
+							</ImageCropper.Controls>
+						</ImageCropper.Dialog>
+					</ImageCropper.Root>
+
+					{#if logo}
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={logoSaving}
+							onclick={() => persistLogo('')}
+						>
+							<IconTrash class="mr-2 size-4" />
+							Remove
+						</Button>
+					{/if}
+				</div>
+				<Field.Description>
+					{logoSaving
+						? 'Saving logo…'
+						: 'Appears on receipts, your online ordering page and customer displays. Saved as soon as you crop.'}
+				</Field.Description>
 			</Field.Field>
 		</SettingsSection>
 

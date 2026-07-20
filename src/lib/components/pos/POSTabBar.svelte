@@ -91,12 +91,19 @@
 	}
 </script>
 
-<div class="no-scrollbar flex max-w-full gap-1.5 overflow-x-auto pb-1 flex-wrap md:gap-2 md:pb-2">
+<!--
+	Single-line horizontal scroller. `flex-wrap` used to be here alongside
+	`overflow-x-auto` — wrap won, so the row never scrolled and instead stacked
+	3-4 deep on phones, eating the menu grid. Snap + edge fade signal scrollability.
+-->
+<div
+	class="no-scrollbar flex max-w-full snap-x snap-mandatory gap-1.5 overflow-x-auto pb-1 [mask-image:linear-gradient(to_right,black_calc(100%-1.5rem),transparent)] md:gap-2 md:pb-2 md:[mask-image:none]"
+>
 	{#each resolvedTabs as tab (tab.id)}
 		<Button
 			variant={selectedTabId === tab.id ? 'default' : 'outline'}
 			size="sm"
-			class="h-8 shrink-0 px-2.5 text-xs whitespace-nowrap md:h-9 md:px-4 md:text-sm"
+			class="h-8 shrink-0 snap-start px-2.5 text-xs whitespace-nowrap md:h-9 md:px-4 md:text-sm"
 			onclick={() => onTabSelect(tab)}
 		>
 			<span class="truncate">{tab.name}</span>

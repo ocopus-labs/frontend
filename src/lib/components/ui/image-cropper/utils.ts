@@ -109,5 +109,23 @@ export const getCroppedImg = async (
 	// can detect it via startsWith('data:') and upload to Cloudinary.
 	// Blob URLs (blob:http://localhost/...) are only valid in the current
 	// browser session and cannot be processed server-side.
-	return canvas.toDataURL('image/png');
+	//
+	// The uncompressed PNG is the fallback, not the happy path: a crop off a
+	// phone photo runs to several MB, and the API rejects bodies over 5MB before
+	// any handler sees them. Compressing to a bounded WebP first keeps the
+	// upload small — the CDN downsizes to 500x500 anyway, so the extra bytes
+	// buy nothing.
+	const pngDataUrl = () => canvas.toDataURL('image/png');
+
+	const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+
+	if (!blob) return pngDataUrl();
+
+	try {
+		return await compressBlob(blob, quality);
+	} catch {
+		// compressor.js failed, or the browser can't encode WebP. Sending the
+		// larger PNG is better than failing the crop outright.
+		return pngDataUrl();
+	}
 };

@@ -38,6 +38,13 @@
 		size?: 'sm' | 'default' | 'lg';
 		pulse?: boolean;
 		icon?: Component;
+		/**
+		 * Show the leading status dot. Turn it off where the label already carries
+		 * the meaning and the pill is tinted — "Available" next to a green dot on a
+		 * green pill says the same thing three times. Defaults on so existing call
+		 * sites are unchanged.
+		 */
+		dot?: boolean;
 		class?: string;
 	};
 
@@ -47,35 +54,42 @@
 		size = 'default',
 		pulse = false,
 		icon: Icon,
+		dot = true,
 		class: className
 	}: Props = $props();
 
-	const dotColorClass = $derived({
-		success: 'bg-green-500',
-		warning: 'bg-yellow-500',
-		error: 'bg-red-500',
-		info: 'bg-blue-500',
-		neutral: 'bg-muted-foreground',
-		primary: 'bg-primary'
-	}[status]);
+	const dotColorClass = $derived(
+		{
+			success: 'bg-green-500',
+			warning: 'bg-yellow-500',
+			error: 'bg-red-500',
+			info: 'bg-blue-500',
+			neutral: 'bg-muted-foreground',
+			primary: 'bg-primary'
+		}[status]
+	);
 
-	const dotSize = $derived({
-		sm: 'h-1.5 w-1.5',
-		default: 'h-2 w-2',
-		lg: 'h-2.5 w-2.5'
-	}[size]);
+	const dotSize = $derived(
+		{
+			sm: 'h-1.5 w-1.5',
+			default: 'h-2 w-2',
+			lg: 'h-2.5 w-2.5'
+		}[size]
+	);
 
-	const iconSize = $derived({
-		sm: 'h-3 w-3',
-		default: 'h-3.5 w-3.5',
-		lg: 'h-4 w-4'
-	}[size]);
+	const iconSize = $derived(
+		{
+			sm: 'h-3 w-3',
+			default: 'h-3.5 w-3.5',
+			lg: 'h-4 w-4'
+		}[size]
+	);
 </script>
 
 <span class={cn(statusPillVariants({ status, size }), className)} data-slot="status-pill">
 	{#if Icon}
 		<Icon class={iconSize} />
-	{:else}
+	{:else if dot}
 		<span class="relative flex">
 			<span class={cn('rounded-full', dotColorClass, dotSize)}></span>
 			{#if pulse}

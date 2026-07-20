@@ -68,6 +68,13 @@
 
 	const pathname = $derived($page.url.pathname);
 
+	// The POS order screen is a full-screen work surface with its own bottom-anchored
+	// cart bar and its own mobile header (hamburger -> this same sidebar sheet).
+	// Showing the generic nav here occludes the checkout button and burns ~64px of
+	// an already-tight viewport. Scoped to new-order only — /pos/transactions is a
+	// browsing screen where the nav still earns its space.
+	const hiddenOnRoute = $derived(pathname.includes('/pos/new-order'));
+
 	function isActive(href: string): boolean {
 		if (!href) return false;
 		const fullPath = businessBase + href;
@@ -80,7 +87,7 @@
 	}
 </script>
 
-{#if isMobile.current}
+{#if isMobile.current && !hiddenOnRoute}
 	<nav
 		class="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:hidden"
 		style="padding-bottom: env(safe-area-inset-bottom, 0px);"

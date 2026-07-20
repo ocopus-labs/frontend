@@ -3,7 +3,6 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
-	import * as Card from '$lib/components/ui/card';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
@@ -14,11 +13,20 @@
 		IconExternalLink,
 		IconQrcode,
 		IconDownload,
-		IconPrinter
+		IconPrinter,
+		IconArmchair,
+		IconCircleCheck,
+		IconToolsKitchen2,
+		IconCalendar
 	} from '@tabler/icons-svelte';
 	import { EmptyState } from '$lib/components/data-display';
+	import PageShell from '$lib/components/global/page-shell.svelte';
+	import KpiGrid from '$lib/components/global/kpi-grid.svelte';
+	import KpiCard from '$lib/components/global/kpi-card.svelte';
 	import { toast } from 'svelte-sonner';
-	import { TableFloorPlan } from '$lib/components/pos';
+	import { TableServiceGrid } from '$lib/components/pos';
+	import { formatCurrency as i18nFormatCurrency } from '$lib/utils/i18n';
+	import type { CurrencyCode } from '$lib/utils/i18n';
 	import * as Select from '$lib/components/ui/select';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
 	import {
@@ -42,7 +50,21 @@
 	let showAddDialog = $state(false);
 	let editingTable = $state<Table | null>(null);
 	let isSubmitting = $state(false);
+	// Retained for the parked floor plan (see the render block below) — the card
+	// grid has its own Area filter, so nothing reads this while it's out.
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	let selectedSection = $state('');
+
+	// Structural narrowing rather than `as any` (which the orders pages still use):
+	// `settings` isn't on the generated PageData type, but it doesn't need `any`.
+	const currency = $derived(
+		((data.business as { settings?: { currency?: string } } | undefined)?.settings?.currency ||
+			'USD') as CurrencyCode
+	);
+
+	function formatCurrency(amount: number): string {
+		return i18nFormatCurrency(amount, currency);
+	}
 
 	// Delete dialog state (Issue 1.1)
 	let deleteDialogOpen = $state(false);
@@ -208,6 +230,10 @@
 	}
 
 	// Batch drag-and-drop saves (Issue 1.4)
+	// Only the floor plan repositions tables, so this is unreferenced while that
+	// view is parked. Kept — with `saveLayout`/`hasPendingChanges`, which it feeds
+	// — so restoring the floor plan is re-adding its render block and nothing else.
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	async function handlePositionChange(tableId: string, position: { x: number; y: number }) {
 		// Store in pending changes map instead of saving immediately
 		const newMap = new Map(pendingPositionChanges);
@@ -430,115 +456,99 @@
 	}
 </script>
 
-<div class="flex h-full flex-1 flex-col">
-	<div class="flex flex-1 flex-col gap-4">
-		<!-- Header -->
-		<div class="flex flex-col gap-4 px-6 pt-4 sm:flex-row sm:items-center sm:justify-between">
-			<div>
-				<h1 class="text-2xl font-bold">Table Layout</h1>
-				<p class="text-muted-foreground">Manage your restaurant floor plan</p>
-			</div>
-			<div class="flex items-center gap-2">
-				{#if hasPendingChanges}
-					<Badge variant="secondary">{pendingPositionChanges.size} unsaved</Badge>
-					<Button variant="outline" size="sm" onclick={discardLayoutChanges}>Discard</Button>
-					<Button size="sm" onclick={saveLayout} disabled={isSavingLayout}>
-						{#if isSavingLayout}
-							<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
-						{/if}
-						Save Layout
-					</Button>
+<PageShell title="Table Layout" description="Manage your restaurant floor plan">
+	{#snippet actions()}
+		{#if hasPendingChanges}
+			<Badge variant="secondary">{pendingPositionChanges.size} unsaved</Badge>
+			<Button variant="outline" size="sm" onclick={discardLayoutChanges}>Discard</Button>
+			<Button size="sm" onclick={saveLayout} disabled={isSavingLayout}>
+				{#if isSavingLayout}
+					<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
 				{/if}
-				<Button
-					variant="outline"
-					onclick={handleGenerateAllQrs}
-					disabled={isGeneratingAllQrs || tables.length === 0}
-				>
-					{#if isGeneratingAllQrs}
-						<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
-					{:else}
-						<IconQrcode class="mr-2 h-4 w-4" />
-					{/if}
-					Generate All QRs
-				</Button>
-				<Button onclick={handleOpenAddDialog}>
-					<IconPlus class="mr-2 h-4 w-4" />
-					Add Table
-				</Button>
-			</div>
-		</div>
-
-		<!-- Stats -->
-		<div class="grid grid-cols-2 gap-4 px-6 sm:grid-cols-5">
-			<Card.Root>
-				<Card.Header class="pb-2">
-					<Card.Title class="text-sm font-medium">Total</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					<div class="text-2xl font-bold">{stats.total}</div>
-				</Card.Content>
-			</Card.Root>
-			<Card.Root>
-				<Card.Header class="pb-2">
-					<Card.Title class="text-sm font-medium">Available</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					<div class="text-2xl font-bold text-success">{stats.available}</div>
-				</Card.Content>
-			</Card.Root>
-			<Card.Root>
-				<Card.Header class="pb-2">
-					<Card.Title class="text-sm font-medium">Occupied</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					<div class="text-2xl font-bold text-destructive">{stats.occupied}</div>
-				</Card.Content>
-			</Card.Root>
-			<Card.Root>
-				<Card.Header class="pb-2">
-					<Card.Title class="text-sm font-medium">Reserved</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					<div class="text-2xl font-bold text-warning">{stats.reserved}</div>
-				</Card.Content>
-			</Card.Root>
-			<Card.Root>
-				<Card.Header class="pb-2">
-					<Card.Title class="text-sm font-medium">Maintenance</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					<div class="text-2xl font-bold text-warning">{stats.maintenance}</div>
-				</Card.Content>
-			</Card.Root>
-		</div>
-
-		<!-- Floor Plan -->
-		{#if tables.length === 0}
-			<EmptyState
-				type="empty"
-				title="No tables"
-				description="Add tables to set up your floor plan."
-			/>
-		{:else}
-			<div class="flex-1 px-6 pb-6">
-				<TableFloorPlan
-					{tables}
-					{sections}
-					bind:selectedSection
-					onTableSelect={handleTableSelect}
-					onTablePositionChange={handlePositionChange}
-					onOpenOrder={handleOpenOrder}
-					onStatusChange={handleStatusChange}
-					onEditModeChange={(editing) => {
-						if (!editing && hasPendingChanges) {
-							saveLayout();
-						}
-					}}
-				/>
-			</div>
+				Save Layout
+			</Button>
 		{/if}
-	</div>
-</div>
+		<Button
+			variant="outline"
+			onclick={handleGenerateAllQrs}
+			disabled={isGeneratingAllQrs || tables.length === 0}
+		>
+			{#if isGeneratingAllQrs}
+				<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
+			{:else}
+				<IconQrcode class="mr-2 h-4 w-4" />
+			{/if}
+			Generate All QRs
+		</Button>
+		<Button onclick={handleOpenAddDialog}>
+			<IconPlus class="mr-2 h-4 w-4" />
+			Add Table
+		</Button>
+	{/snippet}
+
+	<!-- Stats -->
+	<KpiGrid columns={5}>
+		<KpiCard label="Total" value={stats.total} icon={IconArmchair} accent="muted" />
+		<KpiCard
+			label="Available"
+			value={stats.available}
+			icon={IconCircleCheck}
+			accent="success"
+			emphasize
+		/>
+		<KpiCard
+			label="Occupied"
+			value={stats.occupied}
+			icon={IconUsers}
+			accent="destructive"
+			emphasize
+		/>
+		<KpiCard
+			label="Reserved"
+			value={stats.reserved}
+			icon={IconCalendar}
+			accent="warning"
+			emphasize
+		/>
+		<KpiCard
+			label="Maintenance"
+			value={stats.maintenance}
+			icon={IconToolsKitchen2}
+			accent="chart-4"
+		/>
+	</KpiGrid>
+
+	{#if tables.length === 0}
+		<EmptyState
+			type="empty"
+			title="No tables"
+			description="Add tables to set up your floor plan."
+		/>
+	{:else}
+		<!--
+			Cards only for now — the floor plan is parked, not deleted.
+			`TableFloorPlan` and its handlers (`handlePositionChange`, `saveLayout`,
+			`selectedSection`) are left intact so restoring it is re-adding this
+			block. Note that while it's out, nothing edits `position.x/y`, so table
+			coordinates stay frozen at whatever they were.
+		-->
+		<TableServiceGrid
+			{tables}
+			{sections}
+			{formatCurrency}
+			onSelect={handleTableSelect}
+			onOpenOrder={handleOpenOrder}
+			onStatusChange={handleStatusChange}
+			onGenerateQr={(table) => {
+				// Open the detail dialog first — that's where the generated code is
+				// rendered, so generating without it would produce an invisible QR.
+				handleTableSelect(table);
+				handleGenerateTableQr(table.id);
+			}}
+			onDelete={(table) => triggerDeleteTable(table.id)}
+		/>
+	{/if}
+</PageShell>
 
 <!-- Add Table Dialog -->
 <Dialog.Root bind:open={showAddDialog}>

@@ -7,6 +7,7 @@ export { default as ItemCustomizationDialog } from './ItemCustomizationDialog.sv
 export { default as PaymentDialog } from './PaymentDialog.svelte';
 export { default as TableSelectorDialog } from './TableSelectorDialog.svelte';
 export { default as TableFloorPlan } from './TableFloorPlan.svelte';
+export { default as TableServiceGrid } from './TableServiceGrid.svelte';
 export { default as FloorPlanTable } from './FloorPlanTable.svelte';
 export { default as Receipt } from './Receipt.svelte';
 export { default as ReceiptDialog } from './ReceiptDialog.svelte';

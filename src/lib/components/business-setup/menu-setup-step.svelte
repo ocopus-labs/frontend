@@ -4,11 +4,14 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import * as Field from '$lib/components/ui/field';
 	import { Badge } from '$lib/components/ui/badge';
+	import * as Tabs from '$lib/components/ui/tabs';
+	import * as ToggleGroup from '$lib/components/ui/toggle-group';
 	import { toast } from 'svelte-sonner';
 	import { seedMenuTemplate, bulkImportMenuItems, createMenuItem, seedDefaultCategories } from '$lib/api';
 	import { getMenu } from '$lib/api/menu';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import Check from '@lucide/svelte/icons/check';
+	import StepSuccess from './step-success.svelte';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Upload from '@lucide/svelte/icons/upload';
 	import Sparkles from '@lucide/svelte/icons/sparkles';
@@ -19,11 +22,13 @@
 	let {
 		businessId,
 		businessType,
-		completed = $bindable(false)
+		completed = $bindable(false),
+		summary = $bindable('')
 	}: {
 		businessId: string;
 		businessType: string;
 		completed: boolean;
+		summary?: string;
 	} = $props();
 
 	type Mode = 'template' | 'manual' | 'import';
@@ -80,6 +85,7 @@
 			const result = await seedMenuTemplate(businessId, selectedTemplate);
 			resultMessage = `Created ${result.itemsCreated} items across ${result.categoriesCreated} categories`;
 			completed = true;
+			summary = resultMessage;
 			toast.success(resultMessage);
 		} catch (e: any) {
 			toast.error(e.message || 'Failed to seed template');
@@ -126,6 +132,7 @@
 			itemName = '';
 			itemPrice = '';
 			completed = true;
+			summary = `${addedItems.length} item${addedItems.length === 1 ? '' : 's'} added manually`;
 			toast.success(`Added "${addedItems[addedItems.length - 1].name}"`);
 		} catch (e: any) {
 			toast.error(e.message || 'Failed to add item');
@@ -164,6 +171,7 @@
 			const result = await bulkImportMenuItems(businessId, items);
 			resultMessage = `Imported ${result.itemsCreated} items across ${result.categoriesCreated} categories`;
 			completed = true;
+			summary = resultMessage;
 			toast.success(resultMessage);
 		} catch (e: any) {
 			toast.error(e.message || 'Import failed');
@@ -180,56 +188,48 @@
 	</div>
 
 	{#if completed && resultMessage}
-		<div class="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900 dark:bg-green-950">
-			<Check class="size-5 text-green-600" />
-			<p class="text-sm font-medium text-green-800 dark:text-green-200">{resultMessage}</p>
-		</div>
+		<StepSuccess message={resultMessage} />
 	{/if}
 
-	<!-- Mode selector -->
-	<div class="flex gap-2 rounded-lg border bg-muted/50 p-1">
-		<button
-			class="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors {mode === 'template' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}"
-			onclick={() => (mode = 'template')}
-		>
-			<Sparkles class="size-4" />
-			Use a template
-		</button>
-		<button
-			class="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors {mode === 'manual' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}"
-			onclick={() => (mode = 'manual')}
-		>
-			<PenLine class="size-4" />
-			Add manually
-		</button>
-		<button
-			class="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors {mode === 'import' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}"
-			onclick={() => (mode = 'import')}
-		>
-			<FileUp class="size-4" />
-			Import CSV
-		</button>
-	</div>
+	<!-- Tabs primitive rather than three hand-rolled <button>s: it provides the
+	     tablist/tab/tabpanel roles and arrow-key navigation the old markup had
+	     no way to express. -->
+	<Tabs.Root bind:value={mode}>
+		<Tabs.List class="w-full">
+			<Tabs.Trigger value="template" class="flex-1 gap-2">
+				<Sparkles class="size-4" />
+				Use a template
+			</Tabs.Trigger>
+			<Tabs.Trigger value="manual" class="flex-1 gap-2">
+				<PenLine class="size-4" />
+				Add manually
+			</Tabs.Trigger>
+			<Tabs.Trigger value="import" class="flex-1 gap-2">
+				<FileUp class="size-4" />
+				Import CSV
+			</Tabs.Trigger>
+		</Tabs.List>
 
-	<!-- Template mode -->
-	{#if mode === 'template'}
-		<div class="space-y-4">
+		<Tabs.Content value="template">
+			<div class="space-y-4">
 			<p class="text-sm text-muted-foreground">Choose a template to pre-populate your menu with sample items. You can edit everything later.</p>
-			<div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-				{#each relevantTemplates() as key}
+			<ToggleGroup.Root
+				type="single"
+				bind:value={selectedTemplate}
+				class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4"
+			>
+				{#each relevantTemplates() as key (key)}
 					{@const tmpl = templates[key]}
-					<button
-						class="flex flex-col items-center gap-2 rounded-lg border-2 p-4 text-center transition-colors {selectedTemplate === key ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50 hover:border-muted-foreground/20'}"
-						onclick={() => (selectedTemplate = key)}
+					<ToggleGroup.Item
+						value={key}
+						aria-label={tmpl.label}
+						class="h-auto flex-col gap-2 rounded-lg border-2 p-4 text-center data-[state=on]:border-primary data-[state=on]:bg-primary/5"
 					>
 						<span class="text-2xl">{tmpl.icon}</span>
 						<span class="text-sm font-medium">{tmpl.label}</span>
-						{#if selectedTemplate === key}
-							<Check class="size-4 text-primary" />
-						{/if}
-					</button>
+					</ToggleGroup.Item>
 				{/each}
-			</div>
+			</ToggleGroup.Root>
 			<Button onclick={handleTemplateSeed} disabled={!selectedTemplate || isLoading || completed}>
 				{#if isLoading}
 					<Loader2 class="mr-2 size-4 animate-spin" />
@@ -241,12 +241,11 @@
 					Use this template
 				{/if}
 			</Button>
-		</div>
-	{/if}
+			</div>
+		</Tabs.Content>
 
-	<!-- Manual mode -->
-	{#if mode === 'manual'}
-		<div class="space-y-4">
+		<Tabs.Content value="manual">
+			<div class="space-y-4">
 			<p class="text-sm text-muted-foreground">Add items one by one. Categories will be created automatically.</p>
 			<div class="flex gap-3">
 				<Field.Group class="flex-1">
@@ -281,12 +280,11 @@
 					</div>
 				</div>
 			{/if}
-		</div>
-	{/if}
+			</div>
+		</Tabs.Content>
 
-	<!-- Import mode -->
-	{#if mode === 'import'}
-		<div class="space-y-4">
+		<Tabs.Content value="import">
+			<div class="space-y-4">
 			<p class="text-sm text-muted-foreground">
 				Paste CSV data below. Format: <code class="rounded bg-muted px-1 py-0.5 text-xs">name, price, category, description</code>
 			</p>
@@ -308,6 +306,7 @@
 					Import items
 				{/if}
 			</Button>
-		</div>
-	{/if}
+			</div>
+		</Tabs.Content>
+	</Tabs.Root>
 </div>

@@ -1,16 +1,26 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
+	import { Progress } from '$lib/components/ui/progress';
+	import { Skeleton } from '$lib/components/ui/skeleton';
+	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { Label } from '$lib/components/ui/label';
 	import { cn } from '$lib/utils';
 	import { toast } from 'svelte-sonner';
 	import {
 		createBusiness,
+		updateBusiness,
 		enableFeature,
 		disableFeature,
 		type CreateBusinessPayload,
 		type BusinessType
 	} from '$lib/api';
-	import { addBusinessToFranchise } from '$lib/api/franchise';
+	import { createBusinessUnderFranchise } from '$lib/api/franchise';
+	import {
+		getOnboardingStatus,
+		updateOnboardingState,
+		type UpdateOnboardingPayload
+	} from '$lib/api/onboarding';
 	import { page } from '$app/stores';
 	import { BUSINESS_TYPE_CONFIG } from '$lib/types/business';
 
@@ -243,6 +253,7 @@
 	// Component refs
 	let step1Component = $state<any>(null);
 	let step2Component = $state<any>(null);
+	let paymentComponent = $state<any>(null);
 
 	// Check if tables step should be shown
 	const supportsTable = $derived(() => {
@@ -344,6 +355,90 @@
 		}
 	}
 
+	// ---- Server-side progress -------------------------------------------------
+	//
+	// localStorage stays, but only as a cache for the pre-creation phase: on
+	// step 1 there is no business row yet, so there is nowhere on the server to
+	// put anything. The moment the business exists the server becomes the
+	// source of truth, which is what makes progress survive a different device
+	// or a cleared browser.
+	//
+	// Steps are synced by id, not index -- `visibleSteps` omits Tables for
+	// business types without them, so index 3 means different things for a
+	// restaurant and a salon.
+	let hydratedFromServer = $state(false);
+
+	function stepIndexOf(stepId: string | undefined): number {
+		if (!stepId) return -1;
+		return visibleSteps.findIndex((s) => s.id === stepId);
+	}
+
+	async function hydrateFromServer() {
+		if (!businessId || hydratedFromServer) return;
+		hydratedFromServer = true;
+		try {
+			const status = await getOnboardingStatus(businessId);
+			const saved = status.state ?? {};
+
+			menuCompleted = saved.completed?.menu ?? menuCompleted;
+			tablesCompleted = saved.completed?.tables ?? tablesCompleted;
+			paymentCompleted = saved.completed?.payment ?? paymentCompleted;
+			menuSummary = saved.summaries?.menu ?? menuSummary;
+			tablesSummary = saved.summaries?.tables ?? tablesSummary;
+			paymentSummary = saved.summaries?.payment ?? paymentSummary;
+			if (saved.selectedFeatures?.length) selectedExtras = saved.selectedFeatures;
+
+			// Only move the user forward. If this tab is already further along
+			// than the server knows (they kept working while offline), yanking
+			// them backwards would be worse than a slightly stale server record.
+			const savedIndex = stepIndexOf(saved.currentStepId);
+			if (savedIndex > currentStep) currentStep = savedIndex;
+			const furthestIndex = stepIndexOf(saved.furthestStepId);
+			if (furthestIndex > highestStepReached) highestStepReached = furthestIndex;
+		} catch {
+			// Offline or the endpoint is unreachable -- the local cache is still
+			// perfectly usable, so fall through rather than blocking setup.
+		}
+	}
+
+	$effect(() => {
+		if (businessId) void hydrateFromServer();
+	});
+
+	function progressPayload(): UpdateOnboardingPayload {
+		return {
+			currentStepId: visibleSteps[currentStep]?.id,
+			furthestStepId: visibleSteps[highestStepReached]?.id,
+			completed: {
+				menu: menuCompleted,
+				tables: tablesCompleted,
+				payment: paymentCompleted
+			},
+			summaries: {
+				...(menuSummary ? { menu: menuSummary } : {}),
+				...(tablesSummary ? { tables: tablesSummary } : {}),
+				...(paymentSummary ? { payment: paymentSummary } : {})
+			},
+			selectedFeatures: selectedExtras
+		};
+	}
+
+	async function syncProgress(extra: Partial<UpdateOnboardingPayload> = {}) {
+		if (!businessId) return;
+		try {
+			await updateOnboardingState(businessId, { ...progressPayload(), ...extra });
+		} catch {
+			// Best-effort: localStorage already holds this, and the next step
+			// change retries. Never block navigation on the sync.
+		}
+	}
+
+	/** Called when the user launches. Marks setup finished, then drops the cache. */
+	async function completeOnboarding() {
+		await syncProgress({ complete: true });
+		clearProgress();
+	}
+
 	// Get the real step index (accounting for hidden tables step)
 	function getStepId(visibleIndex: number): string {
 		return visibleSteps[visibleIndex]?.id ?? '';
@@ -398,30 +493,20 @@
 							taxRate: taxRate || '0'
 						}
 					};
-					const result = await createBusiness(payload);
+					// One call either way. Creating under a franchise used to be
+					// create-then-attach, which could leave an orphaned standalone
+					// business if the attach failed; the franchise endpoint now takes
+					// the same payload and links inside the same transaction.
+					const result = franchiseId
+						? await createBusinessUnderFranchise(franchiseId, payload)
+						: await createBusiness(payload);
 					businessId = result.business.id;
 					businessSlug = result.business.slug;
 					businessTypeResult = result.business.type;
 
-					if (franchiseId) {
-						// Attach after creating rather than using the franchise create
-						// endpoint, which doesn't accept logo/subType.
-						try {
-							await addBusinessToFranchise(franchiseId, {
-								businessId: result.business.id,
-								configSource: 'hybrid'
-							});
-							toast.success('Location created and added to the franchise!');
-						} catch {
-							// The business exists — don't fail the flow, but say so and
-							// point at the recovery path.
-							toast.error(
-								'Business created, but adding it to the franchise failed. You can transfer it in from the franchise Locations page.'
-							);
-						}
-					} else {
-						toast.success('Business created!');
-					}
+					toast.success(
+						franchiseId ? 'Location created and added to the franchise!' : 'Business created!'
+					);
 				} catch (error: any) {
 					const msg = error?.message || '';
 					if (
@@ -437,7 +522,49 @@
 				} finally {
 					isSubmitting = false;
 				}
+			} else {
+				// Resumed session: the business already exists, so `createBusiness`
+				// is skipped. Without this, every edit made here on a resume was
+				// silently discarded -- there was no update path at all.
+				isSubmitting = true;
+				try {
+					await updateBusiness(businessId, {
+						name: businessName,
+						description: businessDescription || undefined,
+						subType: restaurantSubType || undefined,
+						address: {
+							street: address || undefined,
+							city: city || undefined,
+							country: country
+						},
+						contact: {
+							email: user?.email || undefined,
+							phone: phone || undefined
+						},
+						settings: {
+							timezone,
+							currency,
+							taxRate: taxRate || '0'
+						}
+					});
+				} catch (error: unknown) {
+					toast.error(
+						error instanceof Error ? error.message : 'Failed to save your changes'
+					);
+					isSubmitting = false;
+					return;
+				} finally {
+					isSubmitting = false;
+				}
 			}
+		}
+
+		// Payment step: persist before advancing. This step deliberately has no
+		// "Skip for now" button, but Next used to advance without saving, so a
+		// user who filled the form and hit Next lost all of it.
+		if (stepId === 'payment' && businessId && !paymentCompleted) {
+			const saved = await paymentComponent?.save();
+			if (!saved) return;
 		}
 
 		// Features step: sync selected extras with the backend
@@ -448,8 +575,15 @@
 			try {
 				for (const slug of toEnable) await enableFeature(businessId, slug);
 				for (const slug of toDisable) await disableFeature(businessId, slug);
-			} catch {
-				// Non-critical — defaults are already reasonable
+			} catch (error: unknown) {
+				// Defaults are already applied server-side, so this isn't fatal --
+				// but it was previously swallowed entirely, leaving the user
+				// believing their picks had been saved.
+				toast.error(
+					error instanceof Error
+						? `Some features couldn't be applied: ${error.message}. You can set them in Settings > Features.`
+						: "Some features couldn't be applied. You can set them in Settings > Features."
+				);
 			}
 		}
 
@@ -458,6 +592,9 @@
 			currentStep++;
 			if (currentStep > highestStepReached) highestStepReached = currentStep;
 			updateStepStatuses();
+			// Persist the new position server-side. Deliberately not awaited --
+			// a slow network must not stall the step transition.
+			void syncProgress();
 			await focusStepHeading();
 		}
 	}
@@ -521,9 +658,10 @@
 				{@const isClickable = index <= highestStepReached}
 				{@const isCurrent = index === currentStep}
 				{@const isCompleted = index < currentStep}
-				<button
+				<Button
+					variant="ghost"
 					class={cn(
-						'flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors',
+						'h-auto w-full items-start justify-start gap-3 rounded-lg px-3 py-3 text-left font-normal transition-colors',
 						isCurrent && 'bg-muted text-foreground',
 						isCompleted && 'text-muted-foreground hover:bg-muted/50',
 						!isClickable && 'cursor-not-allowed text-muted-foreground/60'
@@ -551,7 +689,7 @@
 						<p class="text-sm font-medium">{step.name}</p>
 						<p class="mt-0.5 text-xs text-muted-foreground">{step.description}</p>
 					</div>
-				</button>
+				</Button>
 			{/each}
 		</nav>
 
@@ -575,11 +713,14 @@
 					Log out
 				</Button>
 			{:else if $session.isPending}
+				<!-- Skeleton mirrors the avatar + name/email block above it. Was
+				     hand-rolled `animate-pulse` divs; the dashboard already uses
+				     the shared primitive. -->
 				<div class="flex items-center gap-3 px-3 py-2">
-					<div class="size-9 animate-pulse rounded-full bg-muted"></div>
+					<Skeleton class="size-9 rounded-full" />
 					<div class="flex-1 space-y-2">
-						<div class="h-3 w-20 animate-pulse rounded bg-muted"></div>
-						<div class="h-2 w-32 animate-pulse rounded bg-muted"></div>
+						<Skeleton class="h-3 w-20" />
+						<Skeleton class="h-2 w-32" />
 					</div>
 				</div>
 			{/if}
@@ -595,18 +736,9 @@
 					<span>Step {currentStep + 1} of {totalSteps}</span>
 					<span>{Math.round(((currentStep + 1) / totalSteps) * 100)}%</span>
 				</div>
-				<div
-					class="h-2 w-full overflow-hidden rounded-full bg-muted"
-					role="progressbar"
-					aria-valuenow={currentStep + 1}
-					aria-valuemin={1}
-					aria-valuemax={totalSteps}
-				>
-					<div
-						class="h-full bg-primary transition-all duration-300"
-						style="width: {((currentStep + 1) / totalSteps) * 100}%"
-					></div>
-				</div>
+				<!-- Shared Progress primitive: it carries the progressbar role and
+				     aria values itself, so the hand-written ones came off. -->
+				<Progress value={Math.round(((currentStep + 1) / totalSteps) * 100)} class="h-2" />
 				<p class="mt-2 text-sm font-medium">{visibleSteps[currentStep]?.name}</p>
 				<div class="mt-1 flex justify-center gap-1.5" aria-hidden="true">
 					{#each visibleSteps as _, i}
@@ -663,32 +795,29 @@
 							{#each featureConfig().available as feat}
 								{@const selected = selectedExtras.includes(feat.slug)}
 								{@const disabled = !selected && selectedExtras.length >= featureConfig().slots}
-								<button
-									type="button"
+								<!-- Real Checkbox inside a Label, not a <button> wrapping a
+								     <span> styled to look like one. The old markup announced
+								     itself as a button with no checked state, so a screen
+								     reader user could not tell which features were selected. -->
+								<Label
+									for="feature-{feat.slug}"
 									class={cn(
-										'flex items-center gap-3 rounded-lg border p-3 text-left transition-colors',
+										'flex items-center gap-3 rounded-lg border p-3 text-left font-normal transition-colors',
 										selected
 											? 'border-primary bg-primary/5'
 											: disabled
 												? 'cursor-not-allowed opacity-50'
-												: 'hover:bg-accent'
+												: 'cursor-pointer hover:bg-accent'
 									)}
-									onclick={() => !disabled && toggleExtra(feat.slug)}
 								>
-									<span
-										class={cn(
-											'flex h-5 w-5 shrink-0 items-center justify-center rounded border-2',
-											selected
-												? 'border-primary bg-primary text-primary-foreground'
-												: 'border-muted-foreground'
-										)}
-									>
-										{#if selected}
-											<CheckCircle2 class="h-3.5 w-3.5" />
-										{/if}
-									</span>
+									<Checkbox
+										id="feature-{feat.slug}"
+										checked={selected}
+										{disabled}
+										onCheckedChange={() => toggleExtra(feat.slug)}
+									/>
 									<span class="text-sm font-medium">{feat.label}</span>
-								</button>
+								</Label>
 							{/each}
 						</div>
 						<p class="text-xs text-muted-foreground">
@@ -700,14 +829,22 @@
 						{businessId}
 						businessType={businessTypeResult}
 						bind:completed={menuCompleted}
+						bind:summary={menuSummary}
 					/>
 				{:else if currentStepId === 'tables'}
-					<TablesSetupStep {businessId} bind:completed={tablesCompleted} />
+					<TablesSetupStep
+						{businessId}
+						bind:completed={tablesCompleted}
+						bind:summary={tablesSummary}
+					/>
 				{:else if currentStepId === 'payment'}
 					<PaymentTaxStep
+						bind:this={paymentComponent}
 						{businessId}
 						businessType={businessTypeResult}
+						{country}
 						bind:completed={paymentCompleted}
+						bind:summary={paymentSummary}
 					/>
 				{:else if currentStepId === 'launch'}
 					<ReviewLaunchStep
@@ -719,6 +856,7 @@
 						{menuSummary}
 						tablesSummary={tablesCompleted ? tablesSummary : ''}
 						paymentSummary={paymentCompleted ? paymentSummary : ''}
+						onLaunch={completeOnboarding}
 					/>
 				{/if}
 

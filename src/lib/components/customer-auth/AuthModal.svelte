@@ -11,9 +11,26 @@
 		onSuccess?: () => void;
 		/** When true, Google is the only sign-in method (used at checkout). */
 		googleOnly?: boolean;
+		/**
+		 * When false the modal cannot be dismissed (no close button, Esc and
+		 * outside-click ignored). Used at checkout, where sign-in is the first
+		 * step and there is nothing behind the modal to interact with yet.
+		 */
+		dismissible?: boolean;
+		/** Escape hatch shown when non-dismissible, so the customer isn't trapped. */
+		onCancel?: () => void;
+		/** Label for the escape hatch. */
+		cancelLabel?: string;
 	}
 
-	let { open = $bindable(), onSuccess, googleOnly = false }: Props = $props();
+	let {
+		open = $bindable(),
+		onSuccess,
+		googleOnly = false,
+		dismissible = true,
+		onCancel,
+		cancelLabel = 'Back to menu'
+	}: Props = $props();
 
 	let activeTab = $state<'google' | 'phone'>('google');
 
@@ -30,8 +47,16 @@
 	}
 </script>
 
+<!-- Dismissal is blocked at the content level (no close button, Esc and
+     outside-click ignored) rather than via onOpenChange, which would fight
+     `bind:open` for control of the same state. Mirrors PhoneVerifyGate. -->
 <Dialog bind:open>
-	<DialogContent class="sm:max-w-md">
+	<DialogContent
+		class="sm:max-w-md"
+		showCloseButton={dismissible}
+		escapeKeydownBehavior={dismissible ? undefined : 'ignore'}
+		interactOutsideBehavior={dismissible ? undefined : 'ignore'}
+	>
 		<div in:fade={{ duration: 150 }}>
 			<DialogHeader>
 				<DialogTitle>Sign in to continue</DialogTitle>
@@ -96,6 +121,12 @@
 						<PhoneOtpForm onSuccess={handleSuccess} />
 					</TabsContent>
 				</Tabs>
+			{/if}
+
+			{#if !dismissible && onCancel}
+				<Button variant="ghost" size="sm" class="mt-3 w-full" onclick={onCancel}>
+					{cancelLabel}
+				</Button>
 			{/if}
 
 			<p class="mt-4 text-center text-xs text-muted-foreground">

@@ -79,8 +79,27 @@
 	let authEnabled = $state(
 		!!(data.config as unknown as OnlineBusinessConfig | null)?.onlineOrdering?.authEnabled
 	);
+	let requirePhoneVerification = $state(
+		!!(data.config as unknown as OnlineBusinessConfig | null)?.onlineOrdering
+			?.requirePhoneVerification
+	);
 	let orderType = $state<'takeaway' | 'delivery'>('takeaway');
 	let loaded = $state(false);
+
+	const signedIn = $derived(!!$customerSession?.data?.user);
+	// isPending guards the first paint: the session resolves asynchronously, and
+	// treating "not loaded yet" as "signed out" would flash the sign-in modal at
+	// customers who are already authenticated.
+	const sessionPending = $derived($customerSession?.isPending ?? true);
+
+	// Sign-in is the FIRST step of checkout, not a gate at submit time. Asking
+	// after the customer has typed their name, phone and address is hostile —
+	// and pointless, since Google already gives us their name and email.
+	const needsSignIn = $derived(authEnabled && !sessionPending && !signedIn);
+
+	$effect(() => {
+		if (needsSignIn) showAuthModal = true;
+	});
 
 	// Load cart and config from storage
 	$effect(() => {
@@ -114,7 +133,9 @@
 				if (savedConfig) {
 					try {
 						config = JSON.parse(savedConfig);
-						authEnabled = !!(config as OnlineBusinessConfig)?.onlineOrdering?.authEnabled;
+						const cachedOrdering = (config as OnlineBusinessConfig)?.onlineOrdering;
+						authEnabled = !!cachedOrdering?.authEnabled;
+						requirePhoneVerification = !!cachedOrdering?.requirePhoneVerification;
 					} catch {
 						/* ignore */
 					}
@@ -795,20 +816,29 @@
 	}
 </script>
 
-<!-- AuthModal: opens when authEnabled and user is not signed in -->
+<!-- AuthModal: sign-in is the first step of checkout. It opens on arrival (see
+     `needsSignIn`) rather than at submit time, so name/email arrive prefilled
+     from Google instead of being typed and then thrown away. While sign-in is
+     still required the modal is non-dismissible — the form behind it is not
+     usable yet — with a "Back to menu" escape hatch so nobody gets trapped. -->
 {#if authEnabled}
 	<AuthModal
 		bind:open={showAuthModal}
 		googleOnly
+		dismissible={!needsSignIn}
+		onCancel={() => goto(`/order-online/${slug}`)}
 		onSuccess={() => {
 			showAuthModal = false;
 		}}
 	/>
 {/if}
 
-<!-- PhoneVerifyGate: passthrough wrapper; shows blocking dialog when a Google-signed-in
-     user hasn't verified their phone yet. Only active when authEnabled. -->
-<PhoneVerifyGate {authEnabled}>
+<!-- PhoneVerifyGate: off unless the business opts into OTP on top of sign-in
+     (Settings → Online ordering → "Also verify phone with an OTP"). Defaults
+     off, so a Google sign-in alone is enough to check out — the customer still
+     supplies a phone number on the details form, it just isn't OTP-verified.
+     Mirrors CheckoutAuthGuard's `requirePhoneVerification` check. -->
+<PhoneVerifyGate authEnabled={authEnabled && requirePhoneVerification}>
 	{#if isVerifyingPayment && !orderSuccess}
 		<!-- Verifying payment (returning from Stripe 3DS) -->
 		<div class="flex min-h-svh flex-col items-center justify-center bg-muted/40 px-6">
