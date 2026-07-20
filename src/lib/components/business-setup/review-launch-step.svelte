@@ -3,6 +3,7 @@
 	import Check from '@lucide/svelte/icons/check';
 	import AlertCircle from '@lucide/svelte/icons/alert-circle';
 	import Rocket from '@lucide/svelte/icons/rocket';
+	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import { goto } from '$app/navigation';
 
 	let {
@@ -14,6 +15,7 @@
 		menuSummary,
 		tablesSummary,
 		paymentSummary,
+		onLaunch,
 	}: {
 		businessType: string;
 		businessSlug: string;
@@ -23,6 +25,7 @@
 		menuSummary: string;
 		tablesSummary: string;
 		paymentSummary: string;
+		onLaunch?: () => void | Promise<void>;
 	} = $props();
 
 	const sections = $derived([
@@ -46,7 +49,18 @@
 		},
 	]);
 
-	function launch() {
+	let isLaunching = $state(false);
+
+	async function launch() {
+		// Awaited: this marks onboarding complete server-side and clears the
+		// saved wizard blob. Navigating first would race the write and could
+		// leave the business looking unfinished forever.
+		isLaunching = true;
+		try {
+			await onLaunch?.();
+		} finally {
+			isLaunching = false;
+		}
 		goto(`/${businessType}/${businessSlug}/pos/new-order?tour=true`);
 	}
 </script>
@@ -61,12 +75,14 @@
 		{#each sections as section}
 			<div class="flex items-start gap-3 rounded-lg border p-4">
 				{#if section.done}
-					<div class="mt-0.5 flex size-5 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
-						<Check class="size-3 text-green-600 dark:text-green-400" />
+					<!-- Semantic tokens: `success` for done, `warning` for skipped.
+					     These were hardcoded green-100/amber-100 pairs. -->
+					<div class="mt-0.5 flex size-5 items-center justify-center rounded-full bg-success/15">
+						<Check class="size-3 text-success" />
 					</div>
 				{:else}
-					<div class="mt-0.5 flex size-5 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900">
-						<AlertCircle class="size-3 text-amber-600 dark:text-amber-400" />
+					<div class="mt-0.5 flex size-5 items-center justify-center rounded-full bg-warning/15">
+						<AlertCircle class="size-3 text-warning" />
 					</div>
 				{/if}
 				<div class="flex-1">
@@ -81,9 +97,14 @@
 	</div>
 
 	<div class="pt-4">
-		<Button size="lg" class="w-full text-base" onclick={launch}>
-			<Rocket class="mr-2 size-5" />
-			Launch Your Business
+		<Button size="lg" class="w-full text-base" onclick={launch} disabled={isLaunching}>
+			{#if isLaunching}
+				<Loader2 class="mr-2 size-5 animate-spin" />
+				Finishing setup...
+			{:else}
+				<Rocket class="mr-2 size-5" />
+				Launch Your Business
+			{/if}
 		</Button>
 		<p class="mt-3 text-center text-xs text-muted-foreground">
 			Opens POS with a quick guided walkthrough

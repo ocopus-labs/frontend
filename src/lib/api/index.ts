@@ -709,3 +709,35 @@ export {
 	type MaskedPaymentCredential,
 	type UpdateCredentialPayload
 } from './payment-credentials';
+
+// Account Dashboard API (account-level, spans every business the caller owns)
+export {
+	getAccountDashboard,
+	getBusinessSummaries,
+	toDashboardPeriod,
+	DASHBOARD_PERIODS,
+	PERIOD_OPTIONS,
+	PERIOD_COMPARISON_LABEL,
+	type DashboardPeriod,
+	type AccountDashboard,
+	type AccountTotals,
+	type MetricValue,
+	type BusinessPerformance,
+	type RevenuePoint,
+	type PeakHourPoint,
+	type TopItem,
+	type ActivityEvent,
+	type BusinessSummary,
+	type BusinessAlert
+} from './account-dashboard';
+
+// Onboarding API (setup-wizard progress, persisted server-side)
+export {
+	getOnboardingStatus,
+	updateOnboardingState,
+	listIncompleteOnboarding,
+	type OnboardingState,
+	type OnboardingStatus,
+	type IncompleteOnboarding,
+	type UpdateOnboardingPayload
+} from './onboarding';

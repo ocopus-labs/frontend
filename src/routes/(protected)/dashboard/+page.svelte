@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { navigating, page } from '$app/state';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
 	import * as Avatar from '$lib/components/ui/avatar';
 	import { Skeleton } from '$lib/components/ui/skeleton';
 	import PageHeader from '$lib/components/global/page-header.svelte';
+	import ResumeSetupBanner from '$lib/components/business-setup/resume-setup-banner.svelte';
 	import SectionHeader from '$lib/components/global/section-header.svelte';
 	import FilterSelect from '$lib/components/global/filter-select.svelte';
 	import KpiCard from '$lib/components/global/kpi-card.svelte';
@@ -13,14 +15,14 @@
 	import BarChart from '$lib/components/chart/lazy-bar-chart.svelte';
 	import PieChart from '$lib/components/chart/lazy-pie-chart.svelte';
 	import { LiveCounter, TrendBadge, StatusPill, EmptyState } from '$lib/components/data-display';
-	import { formatCurrency } from '$lib/utils/i18n';
-	import { useSession } from '$lib/auth';
 	import {
-		buildAccountDashboard,
-		PERIOD_OPTIONS,
-		PERIOD_COMPARISON_LABEL,
-		type DashboardPeriod
-	} from '$lib/mock/account-dashboard';
+		formatCurrency,
+		currencyToRegion,
+		REGION_CONFIGS,
+		type CurrencyCode
+	} from '$lib/utils/i18n';
+	import { useSession } from '$lib/auth';
+	import { PERIOD_OPTIONS, PERIOD_COMPARISON_LABEL } from '$lib/api/account-dashboard';
 	import type { PageData } from './$types';
 
 	import Plus from '@lucide/svelte/icons/plus';
@@ -51,13 +53,20 @@
 	const user = $derived($session.data?.user);
 	const firstName = $derived(user?.name?.split(' ')[0] ?? '');
 
-	// TODO(api): swap the mock builder for a real `/api/account/dashboard` fetch.
-	// The period would move into a URL param + `+page.ts` load once that lands.
-	let period = $state<DashboardPeriod>('7d');
+	const period = $derived(data.period);
+	// A period change is a navigation, so the page re-skeletons while the new
+	// window is fetched instead of showing the previous period's numbers.
+	const isLoadingPeriod = $derived(navigating.to?.route.id === page.route.id);
+
+	function onPeriodChange(value: string) {
+		const url = new URL(page.url);
+		url.searchParams.set('period', value);
+		goto(url, { replaceState: true, keepFocus: true, noScroll: true });
+	}
 
 	const businesses = $derived(data.businesses ?? []);
 	const franchises = $derived(data.franchises ?? []);
-	const dashboard = $derived(buildAccountDashboard(businesses, period));
+	const dashboard = $derived(data.dashboard);
 	const comparisonLabel = $derived(PERIOD_COMPARISON_LABEL[period]);
 
 	const businessById = $derived(new Map(businesses.map((b) => [b.id, b])));
@@ -147,15 +156,33 @@
 		return `${Math.floor(hours / 24)}d ago`;
 	}
 
+	// The endpoint reports which currency its figures are in — businesses can
+	// each bill in their own, and there is no conversion.
+	const currency = $derived((dashboard?.currency ?? 'INR') as CurrencyCode);
+	const currencyLocale = $derived(REGION_CONFIGS[currencyToRegion(currency)]?.locale ?? 'en-US');
+	/** Businesses excluded from the totals because they bill in another currency. */
+	const excludedBusinessCount = $derived(
+		dashboard?.mixedCurrency ? businesses.length - dashboard.byBusiness.length : 0
+	);
+
 	function money(amount: number) {
-		return formatCurrency(amount, 'INR');
+		return formatCurrency(amount, currency);
 	}
 
+	/**
+	 * Short form for chart axes and tiles. Lakh/crore grouping only makes sense
+	 * for INR; everything else falls back to thousands/millions.
+	 */
 	function compact(amount: number) {
-		if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(1)}Cr`;
-		if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
-		if (amount >= 1000) return `₹${(amount / 1000).toFixed(1)}K`;
-		return `₹${amount}`;
+		const symbol = money(0).replace(/[\d.,\s]/g, '');
+		if (currency === 'INR') {
+			if (amount >= 10000000) return `${symbol}${(amount / 10000000).toFixed(1)}Cr`;
+			if (amount >= 100000) return `${symbol}${(amount / 100000).toFixed(1)}L`;
+		} else if (amount >= 1000000) {
+			return `${symbol}${(amount / 1000000).toFixed(1)}M`;
+		}
+		if (amount >= 1000) return `${symbol}${(amount / 1000).toFixed(1)}K`;
+		return `${symbol}${amount}`;
 	}
 
 	// --- dismissible upgrade strip -------------------------------------------
@@ -184,11 +211,7 @@
 		gutter={false}
 	>
 		{#snippet actions()}
-			<FilterSelect
-				value={period}
-				options={PERIOD_OPTIONS}
-				onValueChange={(v) => (period = v as DashboardPeriod)}
-			/>
+			<FilterSelect value={period} options={PERIOD_OPTIONS} onValueChange={onPeriodChange} />
 			<Button href="/business/setup">
 				<Plus class="mr-1.5 size-4" />
 				Add business
@@ -196,7 +219,15 @@
 		{/snippet}
 	</PageHeader>
 
-	{#if !data.businesses}
+	<!-- Non-blocking resume prompt. The business is already live and usable;
+	     this only offers to finish the parts that were skipped. -->
+	{#if data.incompleteOnboarding?.length}
+		<div class="space-y-3">
+			<ResumeSetupBanner businesses={data.incompleteOnboarding} />
+		</div>
+	{/if}
+
+	{#if !data.businesses || isLoadingPeriod}
 		<!-- Loading — mirrors the hero + KPI row + main chart row below. -->
 		<Card.Root class="p-6">
 			<Skeleton class="h-3 w-28" />
@@ -249,8 +280,8 @@
 								<LiveCounter
 									value={dashboard.totals.revenue.value}
 									format="currency"
-									currency="INR"
-									locale="hi-IN"
+									{currency}
+									locale={currencyLocale}
 								/>
 							</span>
 							<TrendBadge
@@ -260,9 +291,18 @@
 							/>
 						</div>
 						<p class="mt-1.5 text-sm text-muted-foreground">
-							{comparisonLabel} · across {businesses.length}
-							{businesses.length === 1 ? 'business' : 'businesses'}
+							{comparisonLabel} · across {dashboard.byBusiness.length}
+							{dashboard.byBusiness.length === 1 ? 'business' : 'businesses'}
 						</p>
+						{#if excludedBusinessCount > 0}
+							<!-- No exchange-rate source exists, so other-currency businesses are
+							     left out of the totals rather than converted into them. -->
+							<p class="mt-1 text-xs text-warning">
+								{excludedBusinessCount}
+								{excludedBusinessCount === 1 ? 'business bills' : 'businesses bill'} in another currency
+								and {excludedBusinessCount === 1 ? 'is' : 'are'} not included in these totals.
+							</p>
+						{/if}
 					</div>
 
 					<div class="flex shrink-0 items-center gap-6 lg:pt-1">

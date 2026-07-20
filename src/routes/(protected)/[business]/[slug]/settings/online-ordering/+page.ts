@@ -16,6 +16,8 @@ export const load: PageLoad = async ({ parent, fetch, depends }) => {
       minOrderAmount: 0,
       acceptedPaymentMethods: ['cash', 'online'],
       estimatedPrepTime: 30,
+      authEnabled: false,
+      requirePhoneVerification: false,
     };
     return {
       ...parentData,

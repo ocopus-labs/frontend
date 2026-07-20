@@ -25,6 +25,10 @@
 	const businessId = $derived($page.data.businessId as string | undefined);
 	const basePath = $derived(`/${$page.params.business}/${$page.params.slug}`);
 
+	// POS new-order hides the bottom nav (see bottom-nav.svelte) and sizes itself to
+	// h-[100dvh]; the blanket bottom padding would push it past the viewport.
+	const isPosOrderScreen = $derived($page.url.pathname.includes('/pos/new-order'));
+
 	// WebSocket: listen for subscription plan changes and notify the user
 	let subscriptionCleanup: (() => void) | null = null;
 
@@ -72,7 +76,7 @@
 	<Sidebar.Inset id="main-content">
 		<AnnouncementBanner />
 		<SubscriptionBanner />
-		<div class="pb-20 md:pb-0">
+		<div class={isPosOrderScreen ? '' : 'pb-20 md:pb-0'}>
 			{@render children()}
 		</div>
 	</Sidebar.Inset>

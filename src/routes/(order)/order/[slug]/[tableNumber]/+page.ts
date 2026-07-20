@@ -23,6 +23,9 @@ export const load: PageLoad = async ({ params, fetch }) => {
 		if (err?.statusCode === 400) {
 			error(400, 'Self-ordering is not available for this restaurant');
 		}
+		// Anything else (network failure, CORS rejection, 5xx) would otherwise be
+		// collapsed into an opaque 500 with no trace of the real cause.
+		console.error(`[order/${slug}/${tableNumber}] failed to load menu:`, err);
 		error(500, 'Failed to load menu');
 	}
 };

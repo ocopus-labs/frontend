@@ -3,6 +3,7 @@ import type {
   FranchiseUser,
   FranchiseAnalytics,
   Business,
+  CreateBusinessPayload,
 } from './types';
 import { createApiClient, getApiClient } from './client';
 
@@ -75,9 +76,18 @@ export async function addBusinessToFranchise(
   return api.post(`/franchise/${franchiseId}/businesses`, data);
 }
 
+/**
+ * Creates a location directly under a franchise.
+ *
+ * Takes the same payload as `createBusiness` -- the endpoint now validates
+ * against `CreateBusinessDto` and applies the franchise link inside the
+ * business-creation transaction, so `logo`/`subType` are supported and a
+ * failure can no longer leave an orphaned standalone business the way
+ * create-then-attach could.
+ */
 export async function createBusinessUnderFranchise(
   franchiseId: string,
-  data: { name: string; type: string; description?: string; address: Record<string, unknown>; contact: Record<string, unknown>; settings: Record<string, unknown> },
+  data: CreateBusinessPayload,
   options?: { fetch?: typeof fetch },
 ): Promise<{ message: string; business: Business }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
@@ -155,6 +165,19 @@ export async function updateFranchiseSettings(
 ): Promise<{ message: string; franchise: Franchise }> {
   const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
   return api.patch(`/franchise/${franchiseId}/settings`, settings);
+}
+
+/**
+ * Stores the shared menu template on the franchise. New locations inherit it;
+ * `pushMenuToLocations` applies it to existing ones.
+ */
+export async function updateFranchiseMenuTemplate(
+  franchiseId: string,
+  template: Record<string, unknown>,
+  options?: { fetch?: typeof fetch },
+): Promise<{ message: string; franchise: Franchise }> {
+  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+  return api.patch(`/franchise/${franchiseId}/menu-template`, template);
 }
 
 export async function syncFranchiseSettings(

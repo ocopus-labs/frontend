@@ -3,19 +3,28 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Switch } from '$lib/components/ui/switch';
 	import * as Field from '$lib/components/ui/field';
+	import * as RadioGroup from '$lib/components/ui/radio-group';
+	import { Label } from '$lib/components/ui/label';
+	import { cn } from '$lib/utils';
 	import { toast } from 'svelte-sonner';
-	import { updateBusinessSettings } from '$lib/api';
+	import { updateBusinessSettings, updateTaxSettings, updateUpiSettings } from '$lib/api';
+	import type { TaxRegime as ApiTaxRegime } from '$lib/api/tax';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import Check from '@lucide/svelte/icons/check';
+	import StepSuccess from './step-success.svelte';
 
 	let {
 		businessId,
 		businessType,
-		completed = $bindable(false)
+		country = '',
+		completed = $bindable(false),
+		summary = $bindable('')
 	}: {
 		businessId: string;
 		businessType: string;
+		country?: string;
 		completed: boolean;
+		summary?: string;
 	} = $props();
 
 	// Payment state
@@ -46,7 +55,31 @@
 		}
 	});
 
-	async function handleSave() {
+	// The wizard's regime choices are a friendlier subset of the backend's
+	// `TaxRegime` union. 'vat' is ambiguous, so resolve it from the country
+	// captured in the essentials step.
+	function toApiRegime(regime: Exclude<TaxRegime, 'none'>): ApiTaxRegime {
+		if (regime === 'gst') return 'gst_india';
+		if (regime === 'sales_tax') return 'sales_tax_us';
+		return country.toUpperCase() === 'GB' ? 'vat_uk' : 'vat_eu';
+	}
+
+	/**
+	 * Persists to the three endpoints that actually own this data. Previously
+	 * everything went to `PATCH /business/:id/settings`, where `upiVpa`,
+	 * `taxRegime` and `gstin` were stripped by the global `whitelist: true`
+	 * pipe -- and a success toast was shown anyway.
+	 *
+	 * Exported so the wizard's Next button can save before advancing.
+	 * Returns false if saving failed, so the caller can hold the user here.
+	 */
+	export async function save(): Promise<boolean> {
+		if (completed) return true;
+		if (acceptUpi && !upiVpa.trim()) {
+			toast.error('Enter your UPI ID, or turn UPI off.');
+			return false;
+		}
+
 		isLoading = true;
 		try {
 			const paymentMethods: string[] = [];
@@ -54,21 +87,50 @@
 			if (acceptUpi) paymentMethods.push('upi');
 			if (acceptCard) paymentMethods.push('card');
 
-			await updateBusinessSettings(businessId, {
-				paymentMethods,
-				upiVpa: acceptUpi ? upiVpa : undefined,
-				taxRate: taxRate || '0',
-				taxRegime: taxRegime !== 'none' ? taxRegime : undefined,
-				gstin: taxRegime === 'gst' ? gstin : undefined,
+			await updateBusinessSettings(businessId, { paymentMethods });
+
+			// UPI VPA lives in the QR module's settings -- it is what generates
+			// payment QRs (`qr.service.ts` throws if the VPA is unset).
+			await updateUpiSettings(businessId, {
+				enabled: acceptUpi,
+				vpa: acceptUpi ? upiVpa.trim() : ''
 			});
 
+			// Tax belongs under `settings.tax`, which is the shape `tax.service.ts`
+			// reads. Writing a flat `settings.taxRate` left the tax engine on
+			// defaults no matter what the user picked here.
+			await updateTaxSettings(
+				businessId,
+				taxRegime === 'none'
+					? { enabled: false }
+					: {
+							enabled: true,
+							regime: toApiRegime(taxRegime),
+							defaultTaxRate: Number(taxRate) || 0,
+							...(taxRegime === 'gst' && gstin.trim()
+								? { registrationNumber: gstin.trim() }
+								: {})
+						}
+			);
+
 			completed = true;
+			summary =
+				`${paymentMethods.length} payment method${paymentMethods.length === 1 ? '' : 's'}` +
+				(taxRegime === 'none'
+					? ', no tax'
+					: `, ${taxRegimes.find((r) => r.value === taxRegime)?.label} at ${taxRate}%`);
 			toast.success('Payment and tax settings saved');
-		} catch (e: any) {
-			toast.error(e.message || 'Failed to save settings');
+			return true;
+		} catch (e: unknown) {
+			toast.error(e instanceof Error ? e.message : 'Failed to save settings');
+			return false;
 		} finally {
 			isLoading = false;
 		}
+	}
+
+	async function handleSave() {
+		await save();
 	}
 
 	const taxRegimes = [
@@ -86,10 +148,7 @@
 	</div>
 
 	{#if completed}
-		<div class="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900 dark:bg-green-950">
-			<Check class="size-5 text-green-600" />
-			<p class="text-sm font-medium text-green-800 dark:text-green-200">Settings saved</p>
-		</div>
+		<StepSuccess message={summary || 'Settings saved'} />
 	{/if}
 
 	<!-- Payment methods -->
@@ -97,22 +156,32 @@
 		<p class="text-sm font-medium">Payment methods</p>
 
 		<div class="space-y-3">
-			<label class="flex items-center justify-between rounded-lg border p-4">
-				<div>
-					<p class="text-sm font-medium">Cash</p>
-					<p class="text-xs text-muted-foreground">Accept cash payments</p>
-				</div>
-				<Switch bind:checked={acceptCash} />
-			</label>
+			<!-- Label primitive, not a bare <label>; `for` binds each row to its
+			     Switch so the whole row is a hit target and is announced with it. -->
+			<Label
+				for="accept-cash"
+				class="flex items-center justify-between rounded-lg border p-4 font-normal"
+			>
+				<span>
+					<span class="block text-sm font-medium">Cash</span>
+					<span class="block text-xs text-muted-foreground">Accept cash payments</span>
+				</span>
+				<Switch id="accept-cash" bind:checked={acceptCash} />
+			</Label>
 
 			<div>
-				<label class="flex items-center justify-between rounded-lg border p-4 {acceptUpi ? 'rounded-b-none' : ''}">
-					<div>
-						<p class="text-sm font-medium">UPI</p>
-						<p class="text-xs text-muted-foreground">Accept UPI payments</p>
-					</div>
-					<Switch bind:checked={acceptUpi} />
-				</label>
+				<Label
+					for="accept-upi"
+					class="flex items-center justify-between rounded-lg border p-4 font-normal {acceptUpi
+						? 'rounded-b-none'
+						: ''}"
+				>
+					<span>
+						<span class="block text-sm font-medium">UPI</span>
+						<span class="block text-xs text-muted-foreground">Accept UPI payments</span>
+					</span>
+					<Switch id="accept-upi" bind:checked={acceptUpi} />
+				</Label>
 				{#if acceptUpi}
 					<div class="rounded-b-lg border border-t-0 px-4 py-3">
 						<Field.Group>
@@ -125,13 +194,16 @@
 				{/if}
 			</div>
 
-			<label class="flex items-center justify-between rounded-lg border p-4">
-				<div>
-					<p class="text-sm font-medium">Card</p>
-					<p class="text-xs text-muted-foreground">Accept credit/debit cards</p>
-				</div>
-				<Switch bind:checked={acceptCard} />
-			</label>
+			<Label
+				for="accept-card"
+				class="flex items-center justify-between rounded-lg border p-4 font-normal"
+			>
+				<span>
+					<span class="block text-sm font-medium">Card</span>
+					<span class="block text-xs text-muted-foreground">Accept credit/debit cards</span>
+				</span>
+				<Switch id="accept-card" bind:checked={acceptCard} />
+			</Label>
 		</div>
 	</div>
 
@@ -139,17 +211,27 @@
 	<div class="space-y-4">
 		<p class="text-sm font-medium">Tax configuration</p>
 
-		<div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-			{#each taxRegimes as regime}
-				<button
-					class="rounded-lg border-2 px-3 py-3 text-left transition-colors {taxRegime === regime.value ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50 hover:border-muted-foreground/20'}"
-					onclick={() => (taxRegime = regime.value)}
+		<!-- RadioGroup: these options are mutually exclusive, which raw buttons
+		     could not convey. Each option is a real radio with a bound label. -->
+		<RadioGroup.Root bind:value={taxRegime} class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+			{#each taxRegimes as regime (regime.value)}
+				<Label
+					for="tax-regime-{regime.value}"
+					class={cn(
+						'flex cursor-pointer items-start gap-2 rounded-lg border-2 px-3 py-3 text-left font-normal transition-colors',
+						taxRegime === regime.value
+							? 'border-primary bg-primary/5'
+							: 'border-transparent bg-muted/50 hover:border-muted-foreground/20'
+					)}
 				>
-					<p class="text-sm font-medium">{regime.label}</p>
-					<p class="mt-0.5 text-xs text-muted-foreground">{regime.description}</p>
-				</button>
+					<RadioGroup.Item id="tax-regime-{regime.value}" value={regime.value} class="mt-0.5" />
+					<span class="min-w-0">
+						<span class="block text-sm font-medium">{regime.label}</span>
+						<span class="mt-0.5 block text-xs text-muted-foreground">{regime.description}</span>
+					</span>
+				</Label>
 			{/each}
-		</div>
+		</RadioGroup.Root>
 
 		{#if taxRegime !== 'none'}
 			<div class="flex gap-4">

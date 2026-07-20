@@ -2,17 +2,20 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Field from '$lib/components/ui/field';
+	import * as ToggleGroup from '$lib/components/ui/toggle-group';
 	import { toast } from 'svelte-sonner';
 	import { bulkCreateTables } from '$lib/api/table';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
-	import Check from '@lucide/svelte/icons/check';
+	import StepSuccess from './step-success.svelte';
 
 	let {
 		businessId,
-		completed = $bindable(false)
+		completed = $bindable(false),
+		summary = $bindable('')
 	}: {
 		businessId: string;
 		completed: boolean;
+		summary?: string;
 	} = $props();
 
 	const presets = [4, 8, 12, 16, 20];
@@ -57,6 +60,7 @@
 			const result = await bulkCreateTables(businessId, tableCount, capacity);
 			createdCount = result.tables.length;
 			completed = true;
+			summary = `${createdCount} table${createdCount === 1 ? '' : 's'}, seats ${capacity}`;
 			toast.success(`Created ${createdCount} tables`);
 		} catch (e: any) {
 			toast.error(e.message || 'Failed to create tables');
@@ -73,23 +77,33 @@
 	</div>
 
 	{#if completed}
-		<div class="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900 dark:bg-green-950">
-			<Check class="size-5 text-green-600" />
-			<p class="text-sm font-medium text-green-800 dark:text-green-200">Created {createdCount} tables</p>
-		</div>
+		<StepSuccess message="Created {createdCount} tables" />
 	{:else}
 		<!-- Table count selector -->
 		<div class="space-y-3">
 			<p class="text-sm font-medium">How many tables?</p>
 			<div class="flex flex-wrap gap-2">
-				{#each presets as count}
-					<button
-						class="rounded-lg border-2 px-5 py-2.5 text-sm font-medium transition-colors {tableCount === count && !isCustom ? 'border-primary bg-primary/5 text-primary' : 'border-transparent bg-muted/50 hover:border-muted-foreground/20'}"
-						onclick={() => selectPreset(count)}
-					>
-						{count}
-					</button>
-				{/each}
+				<!-- ToggleGroup rather than raw buttons: single-select is exactly
+				     what this is, and it brings roving focus with it. Bound to a
+				     string because toggle values are strings. -->
+				<ToggleGroup.Root
+					type="single"
+					value={isCustom ? '' : String(tableCount)}
+					onValueChange={(v: string) => {
+						if (v) selectPreset(Number(v));
+					}}
+					class="flex flex-wrap gap-2"
+				>
+					{#each presets as count (count)}
+						<ToggleGroup.Item
+							value={String(count)}
+							aria-label="{count} tables"
+							class="h-auto rounded-lg border-2 px-5 py-2.5 text-sm font-medium data-[state=on]:border-primary data-[state=on]:bg-primary/5 data-[state=on]:text-primary"
+						>
+							{count}
+						</ToggleGroup.Item>
+					{/each}
+				</ToggleGroup.Root>
 				<div class="flex items-center gap-2">
 					<Input
 						type="number"

@@ -1,21 +1,31 @@
 import { getBusinessContext } from '$lib/api';
 import { VALID_BUSINESS_TYPES, BUSINESS_TYPE_CONFIG } from '$lib/types/business';
-import { redirect } from '@sveltejs/kit';
+import { isRedirect, redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 
 /**
- * Map route segments to required feature slugs.
- * If the URL contains one of these segments and the feature is not enabled,
- * the user is redirected to the dashboard.
+ * Map route prefixes to required feature slugs.
+ * If the path after the business slug *starts with* one of these keys and the
+ * feature is not enabled, the user is redirected to the dashboard.
+ *
+ * Keys are matched with `startsWith`, so a nested route must be spelled out in
+ * full — `/reservations` never matched anything, because the route it meant to
+ * guard is `/tables/reservations`. Nested entries are listed after the parent
+ * they sit under so a missing dependency (`tables`) is reported before the
+ * extra that depends on it (`reservations`).
  */
 const ROUTE_FEATURE_MAP: Record<string, string> = {
 	'/tables': 'tables',
+	// Reservations is a separate extra that only `dependsOn: ['tables']`, and it
+	// gates the waitlist controller too (`@RequireBusinessFeature('reservations')`
+	// on both reservation.controller.ts and waitlist.controller.ts).
+	'/tables/reservations': 'reservations',
+	'/tables/waitlist': 'reservations',
 	'/menu': 'menu',
 	'/inventory': 'inventory',
 	'/expenses': 'expenses',
 	'/kitchen-display': 'kds',
-	'/team': 'team',
-	'/reservations': 'reservations',
+	'/team': 'team'
 };
 
 export const load: LayoutServerLoad = async ({ params, url, fetch, depends }) => {
@@ -32,7 +42,11 @@ export const load: LayoutServerLoad = async ({ params, url, fetch, depends }) =>
 
 	try {
 		// Single API call: business + role + subscription
-		const { business: businessData, userRole, subscription } = await getBusinessContext(slug, { fetch });
+		const {
+			business: businessData,
+			userRole,
+			subscription
+		} = await getBusinessContext(slug, { fetch });
 
 		// Route protection: redirect if accessing a disabled feature
 		const enabledFeatures = businessData.enabledFeatures ?? [];
@@ -55,9 +69,17 @@ export const load: LayoutServerLoad = async ({ params, url, fetch, depends }) =>
 			config: businessConfig,
 			userRole,
 			subscription,
-			enabledFeatures,
+			enabledFeatures
 		};
 	} catch (err) {
+		// `redirect()` signals by throwing, so the feature guard above unwinds into
+		// this catch. Without the re-throw every `feature_disabled` redirect was
+		// rewritten to the generic business-unavailable one — the user still landed
+		// on the dashboard, so it looked fine, but the slug was lost (the banner
+		// could never say which feature was off) and a bogus fetch failure was
+		// logged on every hit.
+		if (isRedirect(err)) throw err;
+
 		console.error('Failed to fetch business context:', err);
 		redirect(307, '/dashboard?error=business-unavailable');
 	}

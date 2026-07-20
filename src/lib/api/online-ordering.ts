@@ -10,6 +10,7 @@ export interface OnlineOrderingConfig {
 	acceptedPaymentMethods: string[];
 	estimatedPrepTime: number;
 	authEnabled: boolean;
+	requirePhoneVerification: boolean;
 }
 
 export async function getOnlineOrderingSettings(

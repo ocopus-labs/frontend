@@ -13,8 +13,10 @@
 		IconClock,
 		IconUser,
 		IconLoader2,
-		IconScan
+		IconScan,
+		IconMenu2
 	} from '@tabler/icons-svelte';
+	import { useSidebar } from '$lib/components/ui/sidebar/index.js';
 
 	import {
 		POSTabBar,
@@ -28,7 +30,7 @@
 		ManageTabsDialog,
 		BarcodeScanner,
 		type OrderItemType,
-		type ResolvedTab,
+		type ResolvedTab
 	} from '$lib/components/pos';
 	import { getFavorites, addFavorite, removeFavorite, lookupMenuItemByBarcode } from '$lib/api';
 
@@ -38,7 +40,21 @@
 	import type { Table } from '$lib/api/table';
 	import { createShortcutHandler } from '$lib/utils/keyboard-shortcuts';
 
-	import { createOrder, createPayment, createSplitPayment, startTableSession, getLoyaltyAccount, getLoyaltySettings, redeemLoyaltyPoints, type CreateOrderPayload, type CreateOrderItemPayload, type PaymentMethod, type Customer, type LoyaltyAccount, type LoyaltySettings } from '$lib/api';
+	import {
+		createOrder,
+		createPayment,
+		createSplitPayment,
+		startTableSession,
+		getLoyaltyAccount,
+		getLoyaltySettings,
+		redeemLoyaltyPoints,
+		type CreateOrderPayload,
+		type CreateOrderItemPayload,
+		type PaymentMethod,
+		type Customer,
+		type LoyaltyAccount,
+		type LoyaltySettings
+	} from '$lib/api';
 	import { currencyToRegion, createI18nUtils } from '$lib/utils/i18n';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
@@ -50,9 +66,13 @@
 	import { invalidate } from '$app/navigation';
 	import PosTour from '$lib/components/pos/pos-tour.svelte';
 
-
 	// Get data from load function
 	let { data } = $props();
+
+	// Mobile POS hides the global bottom nav, so the header hamburger is the only
+	// visible way out of this screen (edge-swipe opens the same sheet, but a
+	// gesture alone isn't discoverable enough to be the sole exit).
+	const sidebar = useSidebar();
 
 	// Derive region from business currency settings
 	const region = $derived(currencyToRegion((data.business as any)?.settings?.currency || 'USD'));
@@ -84,11 +104,13 @@
 	$effect(() => {
 		const businessId = (data.business as any)?.id;
 		if (businessId) {
-			getLoyaltySettings(businessId).then((r) => {
-				loyaltySettings = r.settings;
-			}).catch(() => {
-				// Loyalty settings not available, ignore
-			});
+			getLoyaltySettings(businessId)
+				.then((r) => {
+					loyaltySettings = r.settings;
+				})
+				.catch(() => {
+					// Loyalty settings not available, ignore
+				});
 		}
 	});
 
@@ -97,11 +119,13 @@
 		const customer = selectedCustomer;
 		const businessId = (data.business as any)?.id;
 		if (customer && businessId && loyaltySettings?.enabled) {
-			getLoyaltyAccount(businessId, customer.id).then((r) => {
-				customerLoyalty = r.account;
-			}).catch(() => {
-				customerLoyalty = null;
-			});
+			getLoyaltyAccount(businessId, customer.id)
+				.then((r) => {
+					customerLoyalty = r.account;
+				})
+				.catch(() => {
+					customerLoyalty = null;
+				});
 		} else {
 			customerLoyalty = null;
 			loyaltyDiscount = 0;
@@ -179,7 +203,9 @@
 	function clearCartStorage() {
 		const businessId = (data.business as any)?.id;
 		if (businessId) {
-			try { sessionStorage.removeItem(`pos-cart-${businessId}`); } catch {}
+			try {
+				sessionStorage.removeItem(`pos-cart-${businessId}`);
+			} catch {}
 		}
 	}
 
@@ -214,7 +240,9 @@
 				const res = await getFavorites(bid);
 				favoriteIds = res.favorites;
 			}
-		} catch { /* non-critical */ }
+		} catch {
+			/* non-critical */
+		}
 
 		// Listen for menu publishes to invalidate cache
 		menuCleanup = await onMenuPublished(() => {
@@ -232,11 +260,15 @@
 		const bid = (data as any).business?.id;
 		if (!bid) return;
 		if (favoriteIds.includes(id)) {
-			favoriteIds = favoriteIds.filter(f => f !== id);
-			removeFavorite(bid, id).catch(() => { favoriteIds = [...favoriteIds, id]; });
+			favoriteIds = favoriteIds.filter((f) => f !== id);
+			removeFavorite(bid, id).catch(() => {
+				favoriteIds = [...favoriteIds, id];
+			});
 		} else {
 			favoriteIds = [...favoriteIds, id];
-			addFavorite(bid, id).catch(() => { favoriteIds = favoriteIds.filter(f => f !== id); });
+			addFavorite(bid, id).catch(() => {
+				favoriteIds = favoriteIds.filter((f) => f !== id);
+			});
 		}
 	}
 
@@ -269,7 +301,7 @@
 					image: menuItem.image || '',
 					modifiers: {},
 					menuItemId: menuItem.id,
-					basePrice: menuItem.price,
+					basePrice: menuItem.price
 				};
 				orderItems = [...orderItems, newOrderItem];
 				toast.success(`${menuItem.name} added to order`);
@@ -284,7 +316,7 @@
 	// Item counts per category for tab badges
 	const itemCounts = $derived(() => {
 		const map = new Map<string, number>();
-		for (const item of (data.menuItems as any[])) {
+		for (const item of data.menuItems as any[]) {
 			map.set(item.categoryId, (map.get(item.categoryId) ?? 0) + 1);
 		}
 		return map;
@@ -317,25 +349,25 @@
 		const tab = selectedTab;
 		if (tab) {
 			if (tab.type === 'category') {
-				items = items.filter(item => item.categoryId === tab.referenceId);
+				items = items.filter((item) => item.categoryId === tab.referenceId);
 			} else if (tab.type === 'group') {
 				const group = (data.groups ?? []).find((g: any) => g.id === tab.referenceId);
 				if (group) {
 					const idSet = new Set(group.itemIds);
-					items = items.filter(item => idSet.has(item.id));
+					items = items.filter((item) => idSet.has(item.id));
 				}
 			} else if (tab.type === 'favorites') {
 				const favSet = new Set(favoriteIds);
-				items = items.filter(item => favSet.has(item.id));
+				items = items.filter((item) => favSet.has(item.id));
 			}
 		}
 
 		// Filter by debounced search
 		if (debouncedSearchQuery) {
 			const query = debouncedSearchQuery.toLowerCase();
-			items = items.filter((item) =>
-				item.name.toLowerCase().includes(query) ||
-				item.description?.toLowerCase().includes(query)
+			items = items.filter(
+				(item) =>
+					item.name.toLowerCase().includes(query) || item.description?.toLowerCase().includes(query)
 			);
 		}
 
@@ -530,8 +562,8 @@
 		// Map UI values to API values
 		const typeMap: Record<string, 'dine_in' | 'takeaway' | 'delivery'> = {
 			'Dine-In': 'dine_in',
-			'Takeaway': 'takeaway',
-			'Delivery': 'delivery'
+			Takeaway: 'takeaway',
+			Delivery: 'delivery'
 		};
 		orderType = typeMap[type] || 'dine_in';
 	}
@@ -579,7 +611,9 @@
 				customerLoyalty = { ...customerLoyalty, points: result.newBalance };
 			}
 
-			toast.success(`Redeemed ${redeemAmount} points for ${i18n.formatCurrency(result.discountAmount)} discount`);
+			toast.success(
+				`Redeemed ${redeemAmount} points for ${i18n.formatCurrency(result.discountAmount)} discount`
+			);
 			showRedeemDialog = false;
 		} catch (error: any) {
 			toast.error(error?.message || 'Failed to redeem points');
@@ -597,7 +631,7 @@
 
 		if (orderType === 'dine_in' && data.supportsTable && !selectedTable) {
 			toast.error('Please select a table for dine-in orders');
-			showTableSelector = true;
+			openTableSelector();
 			return;
 		}
 
@@ -616,7 +650,7 @@
 		// Validate table selection for dine-in orders when business supports tables
 		if (orderType === 'dine_in' && data.supportsTable && !selectedTable) {
 			toast.error('Please select a table for dine-in orders');
-			showTableSelector = true;
+			openTableSelector();
 			return;
 		}
 
@@ -630,33 +664,40 @@
 				name: item.name,
 				quantity: item.quantity,
 				basePrice: (item as any).basePrice || item.price,
-				modifiers: item.modifiers ? {
-					size: item.modifiers.size ? {
-						id: crypto.randomUUID(),
-						name: item.modifiers.size,
-						price: item._modifierPrices?.sizePrice ?? 0
-					} : undefined,
-					spiceLevel: item.modifiers.spiceLevel ? {
-						id: crypto.randomUUID(),
-						name: item.modifiers.spiceLevel,
-						price: item._modifierPrices?.spiceLevelPrice ?? 0
-					} : undefined,
-					preparation: item.modifiers.preparation,
-					addOns: item.modifiers.addOns?.map((name) => ({
-						id: crypto.randomUUID(),
-						name,
-						price: item._modifierPrices?.addOnPrices?.[name] ?? 0
-					})),
-					removals: item.modifiers.removals,
-					specialInstructions: item.modifiers.specialInstructions
-				} : undefined
+				modifiers: item.modifiers
+					? {
+							size: item.modifiers.size
+								? {
+										id: crypto.randomUUID(),
+										name: item.modifiers.size,
+										price: item._modifierPrices?.sizePrice ?? 0
+									}
+								: undefined,
+							spiceLevel: item.modifiers.spiceLevel
+								? {
+										id: crypto.randomUUID(),
+										name: item.modifiers.spiceLevel,
+										price: item._modifierPrices?.spiceLevelPrice ?? 0
+									}
+								: undefined,
+							preparation: item.modifiers.preparation,
+							addOns: item.modifiers.addOns?.map((name) => ({
+								id: crypto.randomUUID(),
+								name,
+								price: item._modifierPrices?.addOnPrices?.[name] ?? 0
+							})),
+							removals: item.modifiers.removals,
+							specialInstructions: item.modifiers.specialInstructions
+						}
+					: undefined
 			}));
 
 			const orderPayload: CreateOrderPayload = {
 				orderType,
 				customerId: selectedCustomer?.id,
 				tableId: orderType === 'dine_in' && selectedTable ? selectedTable.id : undefined,
-				tableNumber: orderType === 'dine_in' && selectedTable ? selectedTable.tableNumber : undefined,
+				tableNumber:
+					orderType === 'dine_in' && selectedTable ? selectedTable.tableNumber : undefined,
 				customerInfo: selectedCustomer
 					? {
 							name: selectedCustomer.name,
@@ -666,10 +707,13 @@
 					: undefined,
 				items,
 				taxRate: showTaxes ? taxRate : 0,
-				discount: showDiscount && discountValue > 0 ? {
-					type: discountType,
-					value: discountValue
-				} : undefined
+				discount:
+					showDiscount && discountValue > 0
+						? {
+								type: discountType,
+								value: discountValue
+							}
+						: undefined
 			};
 
 			// --- Offline queue (Part 4) ---
@@ -724,7 +768,6 @@
 			currentBalanceDue = Number(result.order.balanceDue);
 			showPaymentDialog = true;
 			showOrderSummary = false;
-
 		} catch (error) {
 			console.error('Failed to create order:', error);
 			toast.error('Failed to create order. Please try again.');
@@ -733,9 +776,31 @@
 		}
 	}
 
+	// The table picker is a Dialog; the mobile order summary is a Drawer. Both render
+	// at z-50 and Dialog.Content hardcodes its own overlay, so stacking them puts the
+	// drawer on top of the dialog's dim layer. Show one at a time instead: drop the
+	// drawer on the way in, restore it on the way out.
+	let reopenSummaryAfterTable = $state(false);
+
+	function openTableSelector() {
+		if (showOrderSummary) {
+			showOrderSummary = false;
+			reopenSummaryAfterTable = true;
+		}
+		showTableSelector = true;
+	}
+
+	function closeTableSelector() {
+		showTableSelector = false;
+		if (reopenSummaryAfterTable) {
+			reopenSummaryAfterTable = false;
+			showOrderSummary = true;
+		}
+	}
+
 	function handleTableSelect(table: Table) {
 		selectedTable = table;
-		showTableSelector = false;
+		closeTableSelector();
 	}
 
 	async function handlePaymentComplete(result: {
@@ -753,7 +818,8 @@
 				orderId: currentOrderId,
 				amount: result.amount,
 				method: result.paymentMethod,
-				cashReceived: result.paymentMethod === 'cash' ? result.amount + (result.change || 0) : undefined
+				cashReceived:
+					result.paymentMethod === 'cash' ? result.amount + (result.change || 0) : undefined
 			});
 
 			if (result.change && result.change > 0) {
@@ -776,7 +842,6 @@
 				currentBalanceDue = paymentResult.remainingBalance;
 				toast.info(`Remaining balance: ${i18n.formatCurrency(paymentResult.remainingBalance)}`);
 			}
-
 		} catch (error) {
 			console.error('Failed to process payment:', error);
 			toast.error('Failed to process payment. Please try again.');
@@ -851,38 +916,54 @@
 	}
 
 	// Transform for legacy MenuItem type expected by components
-	const legacyMenuItem = $derived(selectedItem ? {
-		id: selectedItem.id,
-		name: selectedItem.name,
-		price: selectedItem.price,
-		image: selectedItem.image,
-		available: selectedItem.available,
-		modifiers: selectedItem.modifiers ? {
-			sizes: selectedItem.modifiers.sizes?.map(s => ({ name: s.name, price: s.price })),
-			spiceLevels: selectedItem.modifiers.spiceLevels?.map(s => ({ name: s.name, price: s.price })),
-			preparation: selectedItem.modifiers.preparation,
-			addOns: selectedItem.modifiers.addOns?.map(a => ({ name: a.name, price: a.price })),
-			removals: selectedItem.modifiers.removals
-		} : undefined
-	} : null);
+	const legacyMenuItem = $derived(
+		selectedItem
+			? {
+					id: selectedItem.id,
+					name: selectedItem.name,
+					price: selectedItem.price,
+					image: selectedItem.image,
+					available: selectedItem.available,
+					modifiers: selectedItem.modifiers
+						? {
+								sizes: selectedItem.modifiers.sizes?.map((s) => ({ name: s.name, price: s.price })),
+								spiceLevels: selectedItem.modifiers.spiceLevels?.map((s) => ({
+									name: s.name,
+									price: s.price
+								})),
+								preparation: selectedItem.modifiers.preparation,
+								addOns: selectedItem.modifiers.addOns?.map((a) => ({
+									name: a.name,
+									price: a.price
+								})),
+								removals: selectedItem.modifiers.removals
+							}
+						: undefined
+				}
+			: null
+	);
 
 	// Transform menu items for MenuItemCard component (1.19 — includes menuItemId for cart qty)
-	const displayMenuItems = $derived(filteredMenuItems().map(item => ({
-		id: item.id,
-		name: item.name,
-		price: item.price,
-		image: item.image,
-		available: item.available,
-		modifiers: item.modifiers ? {
-			sizes: item.modifiers.sizes?.map(s => ({ name: s.name, price: s.price })),
-			spiceLevels: item.modifiers.spiceLevels?.map(s => ({ name: s.name, price: s.price })),
-			preparation: item.modifiers.preparation,
-			addOns: item.modifiers.addOns?.map(a => ({ name: a.name, price: a.price })),
-			removals: item.modifiers.removals
-		} : undefined,
-		_original: item,
-		_menuItemId: item.menuItemId
-	})));
+	const displayMenuItems = $derived(
+		filteredMenuItems().map((item) => ({
+			id: item.id,
+			name: item.name,
+			price: item.price,
+			image: item.image,
+			available: item.available,
+			modifiers: item.modifiers
+				? {
+						sizes: item.modifiers.sizes?.map((s) => ({ name: s.name, price: s.price })),
+						spiceLevels: item.modifiers.spiceLevels?.map((s) => ({ name: s.name, price: s.price })),
+						preparation: item.modifiers.preparation,
+						addOns: item.modifiers.addOns?.map((a) => ({ name: a.name, price: a.price })),
+						removals: item.modifiers.removals
+					}
+				: undefined,
+			_original: item,
+			_menuItemId: item.menuItemId
+		}))
+	);
 
 	function handleAddToOrderFromCard(item: any) {
 		addToOrder(item._original);
@@ -901,28 +982,60 @@
 		if (Math.abs(dx) < 100) return;
 		// Find current tab index in POSTabBar resolved tabs by selectedTabId
 		// Simple approach: just use data.categories + groups as fallback
-		const allCatIds = (data.rawCategories ?? []).filter((c: any) => c.isActive).map((c: any) => c.id);
+		const allCatIds = (data.rawCategories ?? [])
+			.filter((c: any) => c.isActive)
+			.map((c: any) => c.id);
 		const allGroupIds = (data.groups ?? []).filter((g: any) => g.isActive).map((g: any) => g.id);
-		const tabIds = ['all', ...(favoriteIds.length > 0 ? ['favorites'] : []), ...allCatIds.map((id: string) => `cat-${id}`), ...allGroupIds.map((id: string) => `grp-${id}`)];
+		const tabIds = [
+			'all',
+			...(favoriteIds.length > 0 ? ['favorites'] : []),
+			...allCatIds.map((id: string) => `cat-${id}`),
+			...allGroupIds.map((id: string) => `grp-${id}`)
+		];
 		const currentIdx = tabIds.indexOf(selectedTabId);
 		if (currentIdx === -1) return;
-		const nextIdx = dx < 0
-			? Math.min(currentIdx + 1, tabIds.length - 1)
-			: Math.max(currentIdx - 1, 0);
+		const nextIdx =
+			dx < 0 ? Math.min(currentIdx + 1, tabIds.length - 1) : Math.max(currentIdx - 1, 0);
 		if (nextIdx === currentIdx) return;
 		const nextId = tabIds[nextIdx];
 		if (nextId === 'all') {
-			selectedTabId = 'all'; selectedTab = null;
+			selectedTabId = 'all';
+			selectedTab = null;
 		} else if (nextId === 'favorites') {
-			selectedTabId = 'favorites'; selectedTab = { id: 'favorites', type: 'favorites', referenceId: 'favorites', name: 'Favorites', count: favoriteIds.length };
+			selectedTabId = 'favorites';
+			selectedTab = {
+				id: 'favorites',
+				type: 'favorites',
+				referenceId: 'favorites',
+				name: 'Favorites',
+				count: favoriteIds.length
+			};
 		} else if (nextId.startsWith('cat-')) {
 			const catId = nextId.slice(4);
 			const cat = (data.rawCategories ?? []).find((c: any) => c.id === catId);
-			if (cat) { selectedTabId = nextId; selectedTab = { id: nextId, type: 'category', referenceId: catId, name: cat.name, count: 0 }; }
+			if (cat) {
+				selectedTabId = nextId;
+				selectedTab = {
+					id: nextId,
+					type: 'category',
+					referenceId: catId,
+					name: cat.name,
+					count: 0
+				};
+			}
 		} else if (nextId.startsWith('grp-')) {
 			const grpId = nextId.slice(4);
 			const grp = (data.groups ?? []).find((g: any) => g.id === grpId);
-			if (grp) { selectedTabId = nextId; selectedTab = { id: nextId, type: 'group', referenceId: grpId, name: grp.name, count: grp.itemIds.length }; }
+			if (grp) {
+				selectedTabId = nextId;
+				selectedTab = {
+					id: nextId,
+					type: 'group',
+					referenceId: grpId,
+					name: grp.name,
+					count: grp.itemIds.length
+				};
+			}
 		}
 	}
 
@@ -993,7 +1106,9 @@
 				showShortcutHelp = false;
 				showCustomizationDialog = false;
 				showOrderConfirmation = false;
-				showTableSelector = false;
+				// via closeTableSelector so the drawer-restore flag can't go stale and
+				// pop the summary open on some later, unrelated close
+				closeTableSelector();
 				showRedeemDialog = false;
 			}
 		}
@@ -1010,28 +1125,58 @@
 
 <div class="flex h-[100dvh] overflow-hidden bg-background">
 	<!-- Main Content Area -->
-	<div class="flex flex-1 flex-col">
-		<!-- Header -->
-		<div class="flex flex-1 flex-col overflow-hidden lg:flex-row">
+	<div class="flex flex-1 flex-col overflow-hidden">
+		<!-- Header (mobile only — desktop/tablet have the persistent app sidebar) -->
+		<div class="flex shrink-0 items-center gap-2 border-b border-border px-2 py-1.5 md:hidden">
+			<Button
+				variant="ghost"
+				size="icon"
+				class="h-9 w-9 shrink-0"
+				onclick={() => sidebar.setOpenMobile(true)}
+				aria-label="Open navigation"
+			>
+				<IconMenu2 class="h-5 w-5" />
+			</Button>
+			<div class="min-w-0 flex-1">
+				<div class="truncate text-sm leading-tight font-semibold">
+					{orderType === 'dine_in' ? 'Dine-In' : orderType === 'takeaway' ? 'Takeaway' : 'Delivery'}
+				</div>
+				{#if selectedTable?.displayName}
+					<div class="truncate text-xs leading-tight text-muted-foreground">
+						{selectedTable.displayName}
+					</div>
+				{/if}
+			</div>
+		</div>
+
+		<div class="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
 			<!-- Menu Section -->
 			<div class="flex flex-1 flex-col overflow-hidden lg:min-w-0" data-tour="menu-grid">
 				<!-- Category Tabs & Search -->
-				<div class="sticky top-0 z-30 border-b border-border bg-background p-2 md:static md:p-4 lg:p-6">
+				<div
+					class="sticky top-0 z-30 border-b border-border bg-background p-2 md:static md:p-4 lg:p-6"
+				>
 					<div class="mb-2 flex items-center gap-2 md:mb-3 lg:mb-4">
-						<div class="flex-1 min-w-0">
-						<POSTabBar
-							categories={data.rawCategories ?? []}
-							groups={data.groups ?? []}
-							posLayout={data.posLayout}
-							itemCounts={itemCounts()}
-							totalItems={(data.menuItems ?? []).length}
-							favoriteCount={favoriteIds.length}
-							{selectedTabId}
-							onTabSelect={handleTabSelect}
-						/>
+						<div class="min-w-0 flex-1">
+							<POSTabBar
+								categories={data.rawCategories ?? []}
+								groups={data.groups ?? []}
+								posLayout={data.posLayout}
+								itemCounts={itemCounts()}
+								totalItems={(data.menuItems ?? []).length}
+								favoriteCount={favoriteIds.length}
+								{selectedTabId}
+								onTabSelect={handleTabSelect}
+							/>
 						</div>
 						{#if isManager}
-							<Button variant="ghost" size="icon" class="shrink-0 h-8 w-8" onclick={() => showManageTabs = true} title="Manage tabs">
+							<Button
+								variant="ghost"
+								size="icon"
+								class="h-8 w-8 shrink-0"
+								onclick={() => (showManageTabs = true)}
+								title="Manage tabs"
+							>
 								<IconEdit class="h-4 w-4" />
 							</Button>
 						{/if}
@@ -1062,9 +1207,18 @@
 				</div>
 
 				<!-- Menu Grid -->
-				<div class="flex-1 overflow-y-auto pb-40 lg:pb-0" ontouchstart={onMenuTouchStart} ontouchend={onMenuTouchEnd}>
+				<div
+					class="flex-1 overflow-y-auto pb-28 lg:pb-0"
+					ontouchstart={onMenuTouchStart}
+					ontouchend={onMenuTouchEnd}
+				>
 					{#if displayMenuItems.length === 0}
-						<EmptyState type="no-results" title="No items found" description="Try a different search term." size="sm" />
+						<EmptyState
+							type="no-results"
+							title="No items found"
+							description="Try a different search term."
+							size="sm"
+						/>
 					{:else}
 						<div
 							class="flex flex-col gap-1.5 p-2 sm:grid sm:grid-cols-2 sm:gap-3 sm:p-3 md:grid-cols-3 md:gap-4 md:p-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
@@ -1107,27 +1261,31 @@
 				</div>
 				<div class="min-h-0 flex-1 overflow-hidden">
 					<OrderSummary
-					{orderItems}
-					orderType={orderType === 'dine_in' ? 'Dine-In' : orderType === 'takeaway' ? 'Takeaway' : 'Delivery'}
-					selectedTableDisplay={selectedTable?.displayName || null}
-					showTableSelection={data.supportsTable}
-					{subtotal}
-					{showTaxes}
-					{taxRate}
-					{taxes}
-					{showDiscount}
-					{discountType}
-					{discountValue}
-					{discount}
-					{totalPayment}
-					onOrderTypeChange={handleOrderTypeChange}
-					onRemoveItem={removeFromOrder}
-					onUpdateQuantity={updateQuantity}
-					onToggleTaxes={toggleTaxes}
-					onToggleDiscount={toggleDiscount}
-					onTableSelectClick={() => showTableSelector = true}
-					{region}
-				/>
+						{orderItems}
+						orderType={orderType === 'dine_in'
+							? 'Dine-In'
+							: orderType === 'takeaway'
+								? 'Takeaway'
+								: 'Delivery'}
+						selectedTableDisplay={selectedTable?.displayName || null}
+						showTableSelection={data.supportsTable}
+						{subtotal}
+						{showTaxes}
+						{taxRate}
+						{taxes}
+						{showDiscount}
+						{discountType}
+						{discountValue}
+						{discount}
+						{totalPayment}
+						onOrderTypeChange={handleOrderTypeChange}
+						onRemoveItem={removeFromOrder}
+						onUpdateQuantity={updateQuantity}
+						onToggleTaxes={toggleTaxes}
+						onToggleDiscount={toggleDiscount}
+						onTableSelectClick={openTableSelector}
+						{region}
+					/>
 				</div>
 				<div class="shrink-0 border-t border-border p-4" data-tour="send-order">
 					<Button
@@ -1144,84 +1302,107 @@
 
 		<!-- Mobile: Order Summary Drawer -->
 		{#if orderItems.length > 0}
-		<Drawer.Root bind:open={showOrderSummary}>
-			<div
-				class="safe-bottom fixed right-0 bottom-0 left-0 z-40 border-t border-border bg-background/95 p-2.5 pb-[calc(0.625rem+4rem)] backdrop-blur-sm lg:hidden"
-			>
-				<Drawer.Trigger class="w-full">
-					<Button class="h-12 w-full gap-3 text-base" size="lg">
-						<div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary-foreground/20 text-sm font-bold">
-							{orderItems.length}
-						</div>
-						<span class="flex-1 text-left">View Order</span>
-						<span class="font-bold">{i18n.formatCurrency(totalPayment)}</span>
-					</Button>
-				</Drawer.Trigger>
-			</div>
-
-			<Drawer.Portal>
-				<Drawer.Overlay class="fixed inset-0 z-50 bg-black/40" />
-				<Drawer.Content
-					class="fixed inset-x-0 bottom-0 z-50 mt-10 flex max-h-[90dvh] flex-col rounded-t-xl border bg-background"
+			<Drawer.Root bind:open={showOrderSummary}>
+				<!--
+				Explicit calc() for the safe-area inset rather than the `.safe-bottom`
+				class: a `p-*`/`pb-*` utility on the same element overrides it, which is
+				what silently killed the inset here before. No nav-clearance padding —
+				the bottom nav is hidden on this route.
+			-->
+				<div
+					class="fixed right-0 bottom-0 left-0 z-50 border-t border-border bg-background/95 px-2.5 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] backdrop-blur-sm lg:hidden"
 				>
-					<!-- Drag Handle -->
-					<div class="flex justify-center py-3">
-						<div class="h-1.5 w-12 rounded-full bg-muted-foreground/30"></div>
-					</div>
-					<!-- Customer Picker (mobile only) -->
-					<div class="border-b border-border px-4 pb-3">
-						<CustomerPicker businessId={(data.business as any)?.id} bind:selectedCustomer />
-						{#if selectedCustomer && customerLoyalty && loyaltySettings?.enabled}
-							<div class="mt-2 flex items-center justify-between rounded-md bg-muted/50 px-3 py-2">
-								<div class="flex items-center gap-2 text-sm">
-									<span class="font-medium">{customerLoyalty.points} pts</span>
-									<Badge variant="secondary" class="text-xs capitalize">{customerLoyalty.tier}</Badge>
-								</div>
-								{#if customerLoyalty.points >= loyaltySettings.minimumRedemption}
-									<Button variant="outline" size="sm" class="h-7 text-xs" onclick={openRedeemDialog}>
-										Redeem Points
-									</Button>
-								{/if}
+					<Drawer.Trigger class="w-full">
+						<Button class="h-12 w-full gap-3 text-base" size="lg">
+							<div
+								class="flex h-6 w-6 items-center justify-center rounded-full bg-primary-foreground/20 text-sm font-bold"
+							>
+								{orderItems.length}
 							</div>
-						{/if}
-					</div>
-					<div class="min-h-0 flex-1 overflow-hidden">
-						<OrderSummary
-							{orderItems}
-							orderType={orderType === 'dine_in' ? 'Dine-In' : orderType === 'takeaway' ? 'Takeaway' : 'Delivery'}
-							selectedTableDisplay={selectedTable?.displayName || null}
-							showTableSelection={data.supportsTable}
-							{subtotal}
-							{showTaxes}
-							{taxRate}
-							{taxes}
-							{showDiscount}
-							{discountType}
-							{discountValue}
-							{discount}
-							{totalPayment}
-							onOrderTypeChange={handleOrderTypeChange}
-							onRemoveItem={removeFromOrder}
-							onUpdateQuantity={updateQuantity}
-							onToggleTaxes={toggleTaxes}
-							onToggleDiscount={toggleDiscount}
-							onTableSelectClick={() => showTableSelector = true}
-							{region}
-						/>
-					</div>
-					<div class="safe-bottom border-t border-border p-3">
-						<Button
-							class="h-12 w-full text-base"
-							size="lg"
-							onclick={handlePlaceOrder}
-							disabled={orderItems.length === 0 || isSubmitting}
-						>
-							{isSubmitting ? 'Creating Order...' : 'Place Order'}
+							<span class="flex-1 text-left">View Order</span>
+							<span class="font-bold">{i18n.formatCurrency(totalPayment)}</span>
 						</Button>
-					</div>
-				</Drawer.Content>
-			</Drawer.Portal>
-		</Drawer.Root>
+					</Drawer.Trigger>
+				</div>
+
+				<Drawer.Portal>
+					<Drawer.Overlay class="fixed inset-0 z-50 bg-black/40" />
+					<Drawer.Content
+						class="fixed inset-x-0 bottom-0 z-50 mt-10 flex max-h-[90dvh] flex-col rounded-t-xl border bg-background"
+					>
+						<!-- Drag Handle -->
+						<div class="flex justify-center py-3">
+							<div class="h-1.5 w-12 rounded-full bg-muted-foreground/30"></div>
+						</div>
+						<!-- Customer Picker (mobile only) -->
+						<div class="border-b border-border px-4 pb-3">
+							<CustomerPicker businessId={(data.business as any)?.id} bind:selectedCustomer />
+							{#if selectedCustomer && customerLoyalty && loyaltySettings?.enabled}
+								<div
+									class="mt-2 flex items-center justify-between rounded-md bg-muted/50 px-3 py-2"
+								>
+									<div class="flex items-center gap-2 text-sm">
+										<span class="font-medium">{customerLoyalty.points} pts</span>
+										<Badge variant="secondary" class="text-xs capitalize"
+											>{customerLoyalty.tier}</Badge
+										>
+									</div>
+									{#if customerLoyalty.points >= loyaltySettings.minimumRedemption}
+										<Button
+											variant="outline"
+											size="sm"
+											class="h-7 text-xs"
+											onclick={openRedeemDialog}
+										>
+											Redeem Points
+										</Button>
+									{/if}
+								</div>
+							{/if}
+						</div>
+						<div class="min-h-0 flex-1 overflow-hidden">
+							<OrderSummary
+								{orderItems}
+								orderType={orderType === 'dine_in'
+									? 'Dine-In'
+									: orderType === 'takeaway'
+										? 'Takeaway'
+										: 'Delivery'}
+								selectedTableDisplay={selectedTable?.displayName || null}
+								showTableSelection={data.supportsTable}
+								{subtotal}
+								{showTaxes}
+								{taxRate}
+								{taxes}
+								{showDiscount}
+								{discountType}
+								{discountValue}
+								{discount}
+								{totalPayment}
+								onOrderTypeChange={handleOrderTypeChange}
+								onRemoveItem={removeFromOrder}
+								onUpdateQuantity={updateQuantity}
+								onToggleTaxes={toggleTaxes}
+								onToggleDiscount={toggleDiscount}
+								onTableSelectClick={openTableSelector}
+								{region}
+							/>
+						</div>
+						<div
+							class="border-t border-border px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]"
+						>
+							<Button
+								class="h-12 w-full text-base"
+								size="lg"
+								onclick={handlePlaceOrder}
+								disabled={orderItems.length === 0 || isSubmitting}
+							>
+								{isSubmitting ? 'Creating Order...' : 'Place Order'}
+							</Button>
+						</div>
+					</Drawer.Content>
+				</Drawer.Portal>
+			</Drawer.Root>
 		{/if}
 	</div>
 </div>
@@ -1253,7 +1434,9 @@
 <ConfirmDialog
 	bind:open={showOrderConfirmation}
 	title="Confirm Order"
-	description="{orderItems.length} item{orderItems.length !== 1 ? 's' : ''} - Total: {i18n.formatCurrency(totalPayment)}"
+	description="{orderItems.length} item{orderItems.length !== 1
+		? 's'
+		: ''} - Total: {i18n.formatCurrency(totalPayment)}"
 	confirmLabel="Place Order"
 	onConfirm={() => submitOrder()}
 />
@@ -1280,7 +1463,7 @@
 		tables={data.tables}
 		selectedTableId={selectedTable?.id || null}
 		onSelect={handleTableSelect}
-		onCancel={() => showTableSelector = false}
+		onCancel={closeTableSelector}
 	/>
 {/if}
 
@@ -1293,8 +1476,7 @@
 				{#if customerLoyalty}
 					{customerLoyalty.points} points available.
 					{#if loyaltySettings}
-						Min: {loyaltySettings.minimumRedemption} pts.
-						Rate: {loyaltySettings.redemptionRate} per point.
+						Min: {loyaltySettings.minimumRedemption} pts. Rate: {loyaltySettings.redemptionRate} per point.
 					{/if}
 				{/if}
 			</Dialog.Description>
@@ -1313,7 +1495,9 @@
 			</div>
 			{#if redeemAmount > 0 && loyaltySettings}
 				<p class="text-sm text-muted-foreground">
-					Discount: <span class="font-medium">{i18n.formatCurrency(redeemAmount * loyaltySettings.redemptionRate)}</span>
+					Discount: <span class="font-medium"
+						>{i18n.formatCurrency(redeemAmount * loyaltySettings.redemptionRate)}</span
+					>
 				</p>
 			{/if}
 		</div>
@@ -1368,6 +1552,8 @@
 />
 
 <!-- Shortcut hint -->
-<div class="fixed right-2 bottom-2 z-10 text-xs text-muted-foreground opacity-50 pointer-events-none select-none">
+<div
+	class="pointer-events-none fixed right-2 bottom-2 z-10 text-xs text-muted-foreground opacity-50 select-none"
+>
 	Press F1 for shortcuts
 </div>

@@ -19,6 +19,7 @@ export interface OnlineBusinessConfig {
 		acceptedPaymentMethods: string[];
 		estimatedPrepTime: number;
 		authEnabled?: boolean;
+		requirePhoneVerification?: boolean;
 	};
 	deliveryZones: Array<{
 		id: string;

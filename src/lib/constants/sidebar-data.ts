@@ -122,7 +122,7 @@ export const sidebarData: Record<string, SidebarData> = {
 				url: '/[business]/[slug]/menu',
 				icon: UtensilsIcon,
 				requiredFeature: 'menu',
-				allowedRoles: ['owner', 'restaurant_owner', 'manager'],
+				allowedRoles: ['owner', 'restaurant_owner', 'manager']
 				// Sections live in the menu tab bar (`menu/+layout.svelte`).
 				// `/menu` redirects to Items.
 			},
@@ -152,20 +152,13 @@ export const sidebarData: Record<string, SidebarData> = {
 				]
 			},
 			{
+				// Layout/Reservations/Waitlist live in the tables tab bar
+				// (`tables/+layout.svelte`) — same reasoning as Expenses and Menu.
+				// `/tables` redirects to Layout.
 				title: 'Tables',
 				url: '/[business]/[slug]/tables',
 				icon: TableIcon,
-				requiredFeature: 'tables',
-				items: [
-					{
-						title: 'Layout',
-						url: '/[business]/[slug]/tables/layout'
-					},
-					{
-						title: 'Reservations',
-						url: '/[business]/[slug]/tables/reservations'
-					}
-				]
+				requiredFeature: 'tables'
 			},
 			{
 				title: 'Customers',

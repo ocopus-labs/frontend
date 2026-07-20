@@ -10,9 +10,12 @@
 	import { toast } from 'svelte-sonner';
 	import { updateFranchise, syncFranchiseSettings } from '$lib/api/franchise';
 
+	import * as ImageCropper from '$lib/components/ui/image-cropper';
+
 	import Save from '@lucide/svelte/icons/save';
 	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 	import Info from '@lucide/svelte/icons/info';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
 
 	import type { PageData } from './$types';
 
@@ -26,23 +29,28 @@
 	// across navigations instead of freezing on whatever the first load returned.
 	const franchiseName = $derived(franchise?.name ?? '');
 	const franchiseDescription = $derived(franchise?.description ?? '');
+	const franchiseLogo = $derived(franchise?.logo ?? '');
 
 	// Editable copies. Seeded (and re-seeded) from the derived server values.
 	let name = $state('');
 	let description = $state('');
+	let logo = $state('');
 	let saving = $state(false);
 	let syncing = $state(false);
 
 	$effect(() => {
 		name = franchiseName;
 		description = franchiseDescription;
+		logo = franchiseLogo;
 	});
 
 	async function handleSave() {
 		if (!franchise?.id || !isOwner) return;
 		saving = true;
 		try {
-			await updateFranchise(franchise.id, { name, description });
+			// `logo` is sent on every save so an empty string clears it — the backend
+			// treats '' as an explicit removal and uploads a `data:` URI to the CDN.
+			await updateFranchise(franchise.id, { name, description, logo });
 			toast.success('Franchise updated');
 		} catch (err: any) {
 			toast.error(err?.message || 'Failed to update franchise');
@@ -163,6 +171,42 @@
 					/>
 					<Field.Description id="franchise-desc-desc">
 						Optional. Internal context for franchise staff — customers never see this.
+					</Field.Description>
+				</Field.Field>
+			</Field.Group>
+
+			<Field.Group>
+				<Field.Field>
+					<Field.Label for="franchise-logo">Logo</Field.Label>
+					<div class="flex items-center gap-4">
+						<ImageCropper.Root
+							bind:src={logo}
+							onCropped={(src) => (logo = src)}
+							onUnsupportedFile={() =>
+								toast.error('Unsupported file type. Please upload an image.')}
+						>
+							<ImageCropper.UploadTrigger>
+								<ImageCropper.Preview class="rounded-md" />
+							</ImageCropper.UploadTrigger>
+							<ImageCropper.Dialog>
+								<ImageCropper.Cropper cropShape="rect" />
+								<ImageCropper.Controls>
+									<ImageCropper.Crop />
+									<ImageCropper.Cancel />
+								</ImageCropper.Controls>
+							</ImageCropper.Dialog>
+						</ImageCropper.Root>
+
+						{#if logo && isOwner}
+							<Button variant="outline" size="sm" onclick={() => (logo = '')}>
+								<Trash2 class="mr-2 size-4" />
+								Remove
+							</Button>
+						{/if}
+					</div>
+					<Field.Description id="franchise-logo-desc">
+						Optional. Shown in the franchise header and location switcher. Saved with the rest of
+						this form.
 					</Field.Description>
 				</Field.Field>
 			</Field.Group>
