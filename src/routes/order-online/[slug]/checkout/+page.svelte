@@ -149,7 +149,7 @@
 
 			// If no cart, go back to menu (unless we're resuming from 3DS).
 			if (!isStripeReturn && (!saved || cart.length === 0)) {
-				goto(`/${slug}`, { replaceState: true });
+				goto(`/order-online/${slug}`, { replaceState: true });
 			}
 		}
 	});
@@ -431,7 +431,7 @@
 		} else if (step === 'confirm') {
 			step = 'details';
 		} else {
-			goto(`/${slug}`);
+			goto(`/order-online/${slug}`);
 		}
 	}
 
@@ -911,7 +911,7 @@
 					</a>
 					<button
 						class="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-border bg-card px-5 py-3 text-sm font-medium text-foreground transition-all hover:bg-muted active:scale-[0.98]"
-						onclick={() => goto(`/${slug}`)}
+						onclick={() => goto(`/order-online/${slug}`)}
 					>
 						Order More
 					</button>
