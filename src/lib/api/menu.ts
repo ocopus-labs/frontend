@@ -60,6 +60,12 @@ export interface CreateMenuItemPayload {
 	taxCategory?: string;
 	customTaxRate?: number;
 	ingredients?: MenuItemIngredientPayload[];
+
+	// Service fields (salon, spa, clinic) — see CreateMenuItemDto on the backend.
+	durationMinutes?: number;
+	bufferBeforeMinutes?: number;
+	bufferAfterMinutes?: number;
+	eligibleStaffIds?: string[];
 }
 
 export interface ModifierGroupOptionPayload {

@@ -63,6 +63,18 @@ export interface MenuItem {
 	customTaxRate?: number;
 	barcode?: string;
 	barcodeFormat?: string;
+
+	// Service fields (salon, spa, clinic). Mirrors the backend MenuItem — a
+	// service is a catalog row like any other, so it shares this type rather
+	// than getting a parallel one the POS and order paths would have to learn.
+	// `durationMinutes` is booked staff time, distinct from `preparationTime`
+	// (how long the kitchen needs); they answer different questions.
+	durationMinutes?: number;
+	bufferBeforeMinutes?: number;
+	bufferAfterMinutes?: number;
+	/** BusinessUser ids that may perform this service. Empty/absent = anyone. */
+	eligibleStaffIds?: string[];
+
 	createdAt: string;
 	updatedAt: string;
 }

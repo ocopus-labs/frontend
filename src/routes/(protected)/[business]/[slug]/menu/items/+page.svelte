@@ -24,6 +24,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { catalogVocabulary, isServiceVertical } from '$lib/utils/catalog';
 	import { Switch } from '$lib/components/ui/switch';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import ConfirmDialog from '$lib/components/global/confirm-dialog.svelte';
@@ -47,6 +48,11 @@
 
 	const businessId = data.businessId;
 	const businessType = data.businessType;
+	// A salon's catalog rows are services: no vegetarian flag, no kitchen
+	// routing, but a booking duration. Same rows, same API — only the fields
+	// that mean anything for this vertical are shown.
+	const isService = isServiceVertical(businessType);
+	const vocab = catalogVocabulary(businessType);
 	const config = data.config;
 
 	function invalidateMenuData() {
@@ -86,6 +92,10 @@
 	let formImage = $state('');
 	let formIsVegetarian = $state(false);
 	let formRequiresKitchen: boolean | null = $state(null);
+	// Service verticals book staff time instead of cooking. `durationMinutes` is
+	// what Phase 2's availability engine slices the day into, so it is the one
+	// field a salon must fill in — hence required-looking, not tucked away.
+	let formDurationMinutes = $state('');
 	let formIsCombo = $state(false);
 	let formComboComponents = $state<{ menuItemId: string; name: string; quantity: number }[]>([]);
 	let comboSearch = $state('');
@@ -172,6 +182,7 @@
 		formImage = '';
 		formIsVegetarian = false;
 		formRequiresKitchen = null;
+		formDurationMinutes = '';
 		formIsCombo = false;
 		formComboComponents = [];
 		comboSearch = '';
@@ -191,6 +202,7 @@
 		formImage = item.image || '';
 		formIsVegetarian = item.isVegetarian || false;
 		formRequiresKitchen = item.requiresKitchen ?? null;
+		formDurationMinutes = item.durationMinutes?.toString() ?? '';
 		formIsCombo = item.isCombo || false;
 		formComboComponents = item.comboComponents ? [...item.comboComponents] : [];
 		comboSearch = '';
@@ -225,6 +237,7 @@
 				image: formImage || undefined,
 				isVegetarian: formIsVegetarian,
 				requiresKitchen: formRequiresKitchen,
+				durationMinutes: formDurationMinutes ? parseInt(formDurationMinutes, 10) : undefined,
 				isCombo: formIsCombo || undefined,
 				comboComponents:
 					formIsCombo && formComboComponents.length > 0 ? formComboComponents : undefined,
@@ -263,6 +276,7 @@
 				image: formImage || undefined,
 				isVegetarian: formIsVegetarian,
 				requiresKitchen: formRequiresKitchen,
+				durationMinutes: formDurationMinutes ? parseInt(formDurationMinutes, 10) : undefined,
 				isCombo: formIsCombo || undefined,
 				comboComponents:
 					formIsCombo && formComboComponents.length > 0 ? formComboComponents : undefined,
@@ -840,42 +854,64 @@
 					{/if}
 				</div>
 			</div>
-			<div class="grid grid-cols-4 items-center gap-4">
-				<Field.Label for="add-vegetarian" class="w-full justify-end text-right">
-					Vegetarian
-				</Field.Label>
-				<div class="col-span-3 flex items-center gap-2">
-					<Checkbox id="add-vegetarian" bind:checked={formIsVegetarian} />
-					<Field.Label for="add-vegetarian" class="text-sm font-normal text-muted-foreground">
-						Mark as vegetarian
+			{#if isService}
+				<div class="grid grid-cols-4 items-center gap-4">
+					<Field.Label for="add-duration" class="w-full justify-end text-right">
+						Duration
 					</Field.Label>
+					<div class="col-span-3">
+						<Input
+							id="add-duration"
+							type="number"
+							min="0"
+							max="1440"
+							placeholder="e.g. 45"
+							bind:value={formDurationMinutes}
+							aria-describedby="add-duration-desc"
+						/>
+						<Field.Description id="add-duration-desc">
+							Minutes of staff time this {vocab.item.toLowerCase()} books. Drives appointment slot length.
+						</Field.Description>
+					</div>
 				</div>
-			</div>
-			<div class="grid grid-cols-4 items-center gap-4">
-				<Field.Label class="w-full justify-end text-right">Kitchen prep</Field.Label>
-				<div class="col-span-3">
-					<Select.Root
-						type="single"
-						value={formRequiresKitchen === null ? 'inherit' : formRequiresKitchen ? 'yes' : 'no'}
-						onValueChange={(v) => {
-							formRequiresKitchen = v === 'inherit' ? null : v === 'yes';
-						}}
-					>
-						<Select.Trigger class="w-full">
-							{formRequiresKitchen === null
-								? 'Use category default'
-								: formRequiresKitchen
-									? 'Yes'
-									: 'No (instant)'}
-						</Select.Trigger>
-						<Select.Content>
-							<Select.Item value="inherit">Use category default</Select.Item>
-							<Select.Item value="yes">Yes</Select.Item>
-							<Select.Item value="no">No (instant)</Select.Item>
-						</Select.Content>
-					</Select.Root>
+			{:else}
+				<div class="grid grid-cols-4 items-center gap-4">
+					<Field.Label for="add-vegetarian" class="w-full justify-end text-right">
+						Vegetarian
+					</Field.Label>
+					<div class="col-span-3 flex items-center gap-2">
+						<Checkbox id="add-vegetarian" bind:checked={formIsVegetarian} />
+						<Field.Label for="add-vegetarian" class="text-sm font-normal text-muted-foreground">
+							Mark as vegetarian
+						</Field.Label>
+					</div>
 				</div>
-			</div>
+				<div class="grid grid-cols-4 items-center gap-4">
+					<Field.Label class="w-full justify-end text-right">Kitchen prep</Field.Label>
+					<div class="col-span-3">
+						<Select.Root
+							type="single"
+							value={formRequiresKitchen === null ? 'inherit' : formRequiresKitchen ? 'yes' : 'no'}
+							onValueChange={(v) => {
+								formRequiresKitchen = v === 'inherit' ? null : v === 'yes';
+							}}
+						>
+							<Select.Trigger class="w-full">
+								{formRequiresKitchen === null
+									? 'Use category default'
+									: formRequiresKitchen
+										? 'Yes'
+										: 'No (instant)'}
+							</Select.Trigger>
+							<Select.Content>
+								<Select.Item value="inherit">Use category default</Select.Item>
+								<Select.Item value="yes">Yes</Select.Item>
+								<Select.Item value="no">No (instant)</Select.Item>
+							</Select.Content>
+						</Select.Root>
+					</div>
+				</div>
+			{/if}
 
 			<!-- Combo toggle -->
 			<div class="grid grid-cols-4 items-center gap-4">
@@ -1016,42 +1052,64 @@
 					{/if}
 				</div>
 			</div>
-			<div class="grid grid-cols-4 items-center gap-4">
-				<Field.Label for="edit-vegetarian" class="w-full justify-end text-right">
-					Vegetarian
-				</Field.Label>
-				<div class="col-span-3 flex items-center gap-2">
-					<Checkbox id="edit-vegetarian" bind:checked={formIsVegetarian} />
-					<Field.Label for="edit-vegetarian" class="text-sm font-normal text-muted-foreground">
-						Mark as vegetarian
+			{#if isService}
+				<div class="grid grid-cols-4 items-center gap-4">
+					<Field.Label for="edit-duration" class="w-full justify-end text-right">
+						Duration
 					</Field.Label>
+					<div class="col-span-3">
+						<Input
+							id="edit-duration"
+							type="number"
+							min="0"
+							max="1440"
+							placeholder="e.g. 45"
+							bind:value={formDurationMinutes}
+							aria-describedby="edit-duration-desc"
+						/>
+						<Field.Description id="edit-duration-desc">
+							Minutes of staff time this {vocab.item.toLowerCase()} books. Drives appointment slot length.
+						</Field.Description>
+					</div>
 				</div>
-			</div>
-			<div class="grid grid-cols-4 items-center gap-4">
-				<Field.Label class="w-full justify-end text-right">Kitchen prep</Field.Label>
-				<div class="col-span-3">
-					<Select.Root
-						type="single"
-						value={formRequiresKitchen === null ? 'inherit' : formRequiresKitchen ? 'yes' : 'no'}
-						onValueChange={(v) => {
-							formRequiresKitchen = v === 'inherit' ? null : v === 'yes';
-						}}
-					>
-						<Select.Trigger class="w-full">
-							{formRequiresKitchen === null
-								? 'Use category default'
-								: formRequiresKitchen
-									? 'Yes'
-									: 'No (instant)'}
-						</Select.Trigger>
-						<Select.Content>
-							<Select.Item value="inherit">Use category default</Select.Item>
-							<Select.Item value="yes">Yes</Select.Item>
-							<Select.Item value="no">No (instant)</Select.Item>
-						</Select.Content>
-					</Select.Root>
+			{:else}
+				<div class="grid grid-cols-4 items-center gap-4">
+					<Field.Label for="edit-vegetarian" class="w-full justify-end text-right">
+						Vegetarian
+					</Field.Label>
+					<div class="col-span-3 flex items-center gap-2">
+						<Checkbox id="edit-vegetarian" bind:checked={formIsVegetarian} />
+						<Field.Label for="edit-vegetarian" class="text-sm font-normal text-muted-foreground">
+							Mark as vegetarian
+						</Field.Label>
+					</div>
 				</div>
-			</div>
+				<div class="grid grid-cols-4 items-center gap-4">
+					<Field.Label class="w-full justify-end text-right">Kitchen prep</Field.Label>
+					<div class="col-span-3">
+						<Select.Root
+							type="single"
+							value={formRequiresKitchen === null ? 'inherit' : formRequiresKitchen ? 'yes' : 'no'}
+							onValueChange={(v) => {
+								formRequiresKitchen = v === 'inherit' ? null : v === 'yes';
+							}}
+						>
+							<Select.Trigger class="w-full">
+								{formRequiresKitchen === null
+									? 'Use category default'
+									: formRequiresKitchen
+										? 'Yes'
+										: 'No (instant)'}
+							</Select.Trigger>
+							<Select.Content>
+								<Select.Item value="inherit">Use category default</Select.Item>
+								<Select.Item value="yes">Yes</Select.Item>
+								<Select.Item value="no">No (instant)</Select.Item>
+							</Select.Content>
+						</Select.Root>
+					</div>
+				</div>
+			{/if}
 
 			<!-- Combo toggle -->
 			<div class="grid grid-cols-4 items-center gap-4">
