@@ -1,7 +1,10 @@
 import type { MoneyByCurrency } from '$lib/utils/money';
 
-export type BusinessType =
-	'restaurant' | 'cafe' | 'bar' | 'salon' | 'spa' | 'gym' | 'retail' | 'clinic' | 'other';
+// Re-exported, not re-declared. This union and `VALID_BUSINESS_TYPES` were two
+// separate lists that had already drifted apart — this one had nine types, the
+// routing one had four.
+import type { BusinessType } from '$lib/types/business';
+export type { BusinessType };
 
 export interface BusinessAddress {
 	street?: string;
