@@ -4,7 +4,10 @@
 	import BusinessSwitcher from './business-switcher.svelte';
 	import GlobalSearch from '$lib/components/search/global-search.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
-	import { sidebarData } from '$lib/constants/sidebar-data';
+	import { sidebarData, type NavItem } from '$lib/constants/sidebar-data';
+	import { catalogFeatureSlug, catalogVocabulary, isServiceVertical } from '$lib/utils/catalog';
+	import ScissorsIcon from '@lucide/svelte/icons/scissors';
+	import ShoppingBagIcon from '@lucide/svelte/icons/shopping-bag';
 	import { page } from '$app/stores';
 	import type { ComponentProps } from 'svelte';
 	import type { Business } from '$lib/api/types';
@@ -51,9 +54,35 @@
 		sidebarData[businessType as keyof typeof sidebarData] || sidebarData.restaurant
 	);
 
+	// The catalog is one section with several names, and `sidebar-data.ts` only
+	// knows the restaurant's. Retitling is the cosmetic half; the load-bearing
+	// half is `requiredFeature`. A salon can enable `services` and never `menu`,
+	// so leaving the entry gated on `menu` makes nav-main's feature filter drop
+	// it and the catalog has no link at all — reachable only by typing the URL.
+	const catalogVocab = $derived(catalogVocabulary(businessType));
+	const catalogIsService = $derived(isServiceVertical(businessType));
+	const catalogIcon = $derived(
+		catalogIsService
+			? ScissorsIcon
+			: businessType === 'retail' || businessType === 'gym'
+				? ShoppingBagIcon
+				: undefined
+	);
+
+	function withCatalogVocabulary(item: NavItem): NavItem {
+		if (item.requiredFeature !== 'menu') return item;
+		return {
+			...item,
+			title: catalogVocab.section,
+			url: item.url.replace(/\/menu(?=$|\/)/, catalogIsService ? '/services' : '/menu'),
+			icon: catalogIcon ?? item.icon,
+			requiredFeature: catalogFeatureSlug(businessType)
+		};
+	}
+
 	// Process nav items to replace URL placeholders
 	const navMainItems = $derived(
-		rawData.navMain.map((item) => ({
+		rawData.navMain.map(withCatalogVocabulary).map((item) => ({
 			...item,
 			url: replaceUrlPlaceholders(item.url),
 			items: item.items?.map((subItem) => ({

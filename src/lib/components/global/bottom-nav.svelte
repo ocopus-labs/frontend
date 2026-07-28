@@ -17,6 +17,8 @@
 	import ContactIcon from '@lucide/svelte/icons/contact';
 	import StarIcon from '@lucide/svelte/icons/star';
 	import UtensilsIcon from '@lucide/svelte/icons/utensils';
+	import ScissorsIcon from '@lucide/svelte/icons/scissors';
+	import { catalogFeatureSlug, catalogVocabulary, isServiceVertical } from '$lib/utils/catalog';
 	import PackageIcon from '@lucide/svelte/icons/package';
 	import TicketPercentIcon from '@lucide/svelte/icons/ticket-percent';
 	import LandmarkIcon from '@lucide/svelte/icons/landmark';
@@ -150,15 +152,43 @@
 		}
 	];
 
+	// Same rewrite the sidebar does (`dashboard-sidebar.svelte`) — the drawer
+	// mirrors it, so a salon that gets "Services" in the sidebar must not get
+	// "Menu" here. Beyond the label, `feature` decides visibility: a salon can
+	// enable `services` and never `menu`, so the unrewritten entry is filtered
+	// out below and mobile loses the catalog entirely.
+	const businessType = $derived($page.params.business || 'restaurant');
+	const catalogIsService = $derived(isServiceVertical(businessType));
+
+	function withCatalogVocabulary(item: MoreItem): MoreItem {
+		if (item.feature !== 'menu') return item;
+		return {
+			...item,
+			label: catalogVocabulary(businessType).section,
+			// `/services` is a redirect stub, not a section — there is no
+			// `/services/items`. Point at the stub and let it land on the shared
+			// page rather than rewriting the deep link into a 404.
+			href: catalogIsService ? '/services' : item.href,
+			icon: catalogIsService
+				? ScissorsIcon
+				: businessType === 'retail' || businessType === 'gym'
+					? ShoppingBagIcon
+					: item.icon,
+			feature: catalogFeatureSlug(businessType)
+		};
+	}
+
 	const visibleGroups = $derived(
 		moreGroups
 			.map((group) => ({
 				label: group.label,
-				items: group.items.filter(
-					(item) =>
-						(!item.feature || enabledFeatures.includes(item.feature)) &&
-						(!item.roles || item.roles.includes(userRole))
-				)
+				items: group.items
+					.map(withCatalogVocabulary)
+					.filter(
+						(item) =>
+							(!item.feature || enabledFeatures.includes(item.feature)) &&
+							(!item.roles || item.roles.includes(userRole))
+					)
 			}))
 			.filter((group) => group.items.length > 0)
 	);

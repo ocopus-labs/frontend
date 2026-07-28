@@ -38,12 +38,20 @@ export interface CatalogVocabulary {
 	item: string;
 }
 
+/**
+ * Must stay in step with the `menu` feature's `labels` map in the backend
+ * registry (`feature-registry.ts`), which is what Settings → Features shows for
+ * the same thing. Two names for one screen is a bug report waiting to happen.
+ */
 export function catalogVocabulary(businessType: string | null | undefined): CatalogVocabulary {
 	if (isServiceVertical(businessType)) {
 		return { section: 'Services', items: 'Services', item: 'Service' };
 	}
 	if (businessType === 'retail') {
 		return { section: 'Catalog', items: 'Products', item: 'Product' };
+	}
+	if (businessType === 'gym') {
+		return { section: 'Products', items: 'Products', item: 'Product' };
 	}
 	return { section: 'Menu', items: 'Items', item: 'Item' };
 }
