@@ -89,11 +89,13 @@
 		{#each announcements as announcement (announcement.id)}
 			{@const Icon = getIcon(announcement.type)}
 			<div
-				class="flex items-start gap-3 border-b px-4 py-2.5 text-sm {getTypeStyles(announcement.type)}"
+				class="flex items-start gap-3 border-b px-4 py-2.5 text-sm {getTypeStyles(
+					announcement.type
+				)}"
 				role="alert"
 			>
 				<Icon class="mt-0.5 h-4 w-4 shrink-0" />
-				<div class="flex-1 min-w-0">
+				<div class="min-w-0 flex-1">
 					<span class="font-medium">{announcement.title}</span>
 					{#if announcement.content}
 						<span class="ml-1 opacity-90">{announcement.content}</span>
@@ -102,7 +104,7 @@
 				{#if !announcement.isPinned}
 					<button
 						onclick={() => handleDismiss(announcement.id)}
-						class="shrink-0 rounded-sm p-0.5 opacity-70 hover:opacity-100 transition-opacity"
+						class="shrink-0 rounded-sm p-0.5 opacity-70 transition-opacity hover:opacity-100"
 						aria-label="Dismiss announcement"
 					>
 						<X class="h-4 w-4" />

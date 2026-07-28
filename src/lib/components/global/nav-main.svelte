@@ -127,7 +127,7 @@
 										{/if}
 										<span class={locked ? 'text-muted-foreground' : ''}>{item.title}</span>
 										{#if locked && item.requiredPlan}
-											<Badge variant="outline" class="ml-auto mr-1 text-[10px] px-1.5 py-0">
+											<Badge variant="outline" class="mr-1 ml-auto px-1.5 py-0 text-[10px]">
 												{item.requiredPlan}
 											</Badge>
 										{:else}
@@ -177,7 +177,7 @@
 								{/if}
 								<span class={locked ? 'text-muted-foreground' : ''}>{item.title}</span>
 								{#if locked && item.requiredPlan}
-									<Badge variant="outline" class="ml-auto mr-1 text-[10px] px-1.5 py-0">
+									<Badge variant="outline" class="mr-1 ml-auto px-1.5 py-0 text-[10px]">
 										{item.requiredPlan}
 									</Badge>
 								{/if}

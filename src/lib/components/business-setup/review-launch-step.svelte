@@ -15,7 +15,7 @@
 		menuSummary,
 		tablesSummary,
 		paymentSummary,
-		onLaunch,
+		onLaunch
 	}: {
 		businessType: string;
 		businessSlug: string;
@@ -33,20 +33,20 @@
 			label: 'Menu',
 			done: menuCompleted,
 			summary: menuCompleted ? menuSummary : 'Not set up yet',
-			settingsPath: `/${businessType}/${businessSlug}/menu/items`,
+			settingsPath: `/${businessType}/${businessSlug}/menu/items`
 		},
 		{
 			label: 'Tables',
 			done: tablesCompleted,
 			summary: tablesCompleted ? tablesSummary : 'Not set up',
-			settingsPath: `/${businessType}/${businessSlug}/tables/layout`,
+			settingsPath: `/${businessType}/${businessSlug}/tables/layout`
 		},
 		{
 			label: 'Payment & Tax',
 			done: paymentCompleted,
 			summary: paymentCompleted ? paymentSummary : 'Using defaults',
-			settingsPath: `/${businessType}/${businessSlug}/settings/payments`,
-		},
+			settingsPath: `/${businessType}/${businessSlug}/settings/payments`
+		}
 	]);
 
 	let isLaunching = $state(false);
@@ -68,7 +68,9 @@
 <div class="space-y-8">
 	<div>
 		<h1 class="step-heading text-3xl font-bold" tabindex="-1">You're all set!</h1>
-		<p class="mt-2 text-muted-foreground">Here's a summary of your setup. You can change anything later in Settings.</p>
+		<p class="mt-2 text-muted-foreground">
+			Here's a summary of your setup. You can change anything later in Settings.
+		</p>
 	</div>
 
 	<div class="space-y-3">
@@ -90,7 +92,9 @@
 					<p class="mt-0.5 text-sm text-muted-foreground">{section.summary}</p>
 				</div>
 				{#if !section.done}
-					<a href={section.settingsPath} class="text-xs text-primary hover:underline">Set up later</a>
+					<a href={section.settingsPath} class="text-xs text-primary hover:underline"
+						>Set up later</a
+					>
 				{/if}
 			</div>
 		{/each}

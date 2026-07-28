@@ -95,7 +95,7 @@
 				<!-- Connector line -->
 				{#if showConnector && !isLast}
 					<div
-						class="bg-border absolute left-4 top-10 h-full w-px -translate-x-1/2"
+						class="absolute top-10 left-4 h-full w-px -translate-x-1/2 bg-border"
 						class:top-8={compact}
 					></div>
 				{/if}
@@ -103,7 +103,7 @@
 				<!-- Icon or Avatar -->
 				<div class="relative z-10 flex-shrink-0">
 					{#if item.avatar}
-						<Avatar.Root class={cn('border-background border-2', compact ? 'h-6 w-6' : 'h-8 w-8')}>
+						<Avatar.Root class={cn('border-2 border-background', compact ? 'h-6 w-6' : 'h-8 w-8')}>
 							{#if item.avatar.src}
 								<Avatar.Image src={item.avatar.src} alt={item.avatar.fallback} />
 							{/if}
@@ -123,7 +123,7 @@
 				</div>
 
 				<!-- Content -->
-				<div class="flex-1 min-w-0">
+				<div class="min-w-0 flex-1">
 					{#if itemSlot}
 						{@render itemSlot(item)}
 					{:else}
@@ -131,7 +131,7 @@
 							<div class="min-w-0 flex-1">
 								<p
 									class={cn(
-										'font-medium leading-tight',
+										'leading-tight font-medium',
 										compact ? 'text-sm' : 'text-sm',
 										item.status === 'pending' && 'text-muted-foreground'
 									)}
@@ -139,14 +139,14 @@
 									{item.title}
 								</p>
 								{#if item.description}
-									<p class="text-muted-foreground mt-0.5 text-sm">{item.description}</p>
+									<p class="mt-0.5 text-sm text-muted-foreground">{item.description}</p>
 								{/if}
 							</div>
 							<div class="flex flex-shrink-0 items-center gap-2">
 								{#if item.meta}
-									<span class="text-muted-foreground text-xs">{item.meta}</span>
+									<span class="text-xs text-muted-foreground">{item.meta}</span>
 								{/if}
-								<time class="text-muted-foreground whitespace-nowrap text-xs">
+								<time class="text-xs whitespace-nowrap text-muted-foreground">
 									{formatTimestamp(item.timestamp)}
 								</time>
 							</div>

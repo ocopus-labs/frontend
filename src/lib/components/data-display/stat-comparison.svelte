@@ -37,17 +37,14 @@
 	const isPositive = $derived(invertTrend ? change < 0 : change > 0);
 </script>
 
-<div
-	class={cn('rounded-xl border bg-card p-4', className)}
-	data-slot="stat-comparison"
->
+<div class={cn('rounded-xl border bg-card p-4', className)} data-slot="stat-comparison">
 	<!-- Header -->
 	<div class="mb-4 flex items-center justify-between">
 		<div class="flex items-center gap-2">
 			{#if Icon}
-				<Icon class="text-muted-foreground h-4 w-4" />
+				<Icon class="h-4 w-4 text-muted-foreground" />
 			{/if}
-			<span class="text-muted-foreground text-sm font-medium">{label}</span>
+			<span class="text-sm font-medium text-muted-foreground">{label}</span>
 		</div>
 		{#if showTrend}
 			<TrendBadge value={currentValue} {previousValue} invertColors={invertTrend} />
@@ -58,8 +55,8 @@
 	<div class="flex items-center gap-4">
 		<!-- Previous value -->
 		<div class="flex-1 rounded-lg bg-muted/50 p-3">
-			<p class="text-muted-foreground mb-1 text-xs">{previousLabel}</p>
-			<p class="text-lg font-semibold tabular-nums text-muted-foreground">
+			<p class="mb-1 text-xs text-muted-foreground">{previousLabel}</p>
+			<p class="text-lg font-semibold text-muted-foreground tabular-nums">
 				<LiveCounter value={previousValue} {format} {currency} />
 			</p>
 		</div>
@@ -67,21 +64,13 @@
 		<!-- Arrow -->
 		<div class="flex-shrink-0">
 			<ArrowRightIcon
-				class={cn(
-					'h-5 w-5 transition-colors',
-					isPositive ? 'text-success' : 'text-destructive'
-				)}
+				class={cn('h-5 w-5 transition-colors', isPositive ? 'text-success' : 'text-destructive')}
 			/>
 		</div>
 
 		<!-- Current value -->
-		<div
-			class={cn(
-				'flex-1 rounded-lg p-3',
-				isPositive ? 'bg-success/10' : 'bg-destructive/10'
-			)}
-		>
-			<p class="text-muted-foreground mb-1 text-xs">{currentLabel}</p>
+		<div class={cn('flex-1 rounded-lg p-3', isPositive ? 'bg-success/10' : 'bg-destructive/10')}>
+			<p class="mb-1 text-xs text-muted-foreground">{currentLabel}</p>
 			<p
 				class={cn(
 					'text-lg font-bold tabular-nums',
@@ -95,7 +84,7 @@
 
 	<!-- Change indicator -->
 	<div class="mt-3 text-center">
-		<span class="text-muted-foreground text-xs">
+		<span class="text-xs text-muted-foreground">
 			{change >= 0 ? '+' : ''}<LiveCounter value={change} {format} {currency} /> change
 		</span>
 	</div>

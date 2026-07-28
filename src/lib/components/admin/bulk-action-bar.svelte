@@ -17,7 +17,7 @@
 
 {#if selectedCount > 0}
 	<div
-		class="bg-muted fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border px-4 py-3 shadow-lg"
+		class="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border bg-muted px-4 py-3 shadow-lg"
 	>
 		<span class="text-sm font-medium">{selectedCount} selected</span>
 		{#each actions as action}

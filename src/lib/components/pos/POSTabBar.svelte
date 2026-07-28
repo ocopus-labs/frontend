@@ -22,7 +22,16 @@
 		onTabSelect: (tab: ResolvedTab) => void;
 	}
 
-	let { categories, groups, posLayout, itemCounts, totalItems, favoriteCount, selectedTabId, onTabSelect }: Props = $props();
+	let {
+		categories,
+		groups,
+		posLayout,
+		itemCounts,
+		totalItems,
+		favoriteCount,
+		selectedTabId,
+		onTabSelect
+	}: Props = $props();
 
 	const resolvedTabs = $derived(buildTabs());
 
@@ -34,55 +43,65 @@
 
 		// Favorites tab (only if user has favorites)
 		if (favoriteCount > 0) {
-			tabs.push({ id: 'favorites', type: 'favorites', referenceId: 'favorites', name: 'Favorites', count: favoriteCount });
+			tabs.push({
+				id: 'favorites',
+				type: 'favorites',
+				referenceId: 'favorites',
+				name: 'Favorites',
+				count: favoriteCount
+			});
 		}
 
 		if (posLayout && posLayout.tabs.length > 0) {
 			// Use saved layout order
 			for (const tab of posLayout.tabs.sort((a, b) => a.sortOrder - b.sortOrder)) {
 				if (tab.type === 'category') {
-					const cat = categories.find(c => c.id === tab.referenceId);
+					const cat = categories.find((c) => c.id === tab.referenceId);
 					if (cat && cat.isActive) {
 						tabs.push({
 							id: tab.id,
 							type: 'category',
 							referenceId: cat.id,
 							name: cat.name,
-							count: itemCounts.get(cat.id) ?? 0,
+							count: itemCounts.get(cat.id) ?? 0
 						});
 					}
 				} else if (tab.type === 'group') {
-					const grp = groups.find(g => g.id === tab.referenceId);
+					const grp = groups.find((g) => g.id === tab.referenceId);
 					if (grp && grp.isActive) {
 						tabs.push({
 							id: tab.id,
 							type: 'group',
 							referenceId: grp.id,
 							name: grp.name,
-							count: grp.itemIds.length,
+							count: grp.itemIds.length
 						});
 					}
 				}
 			}
 		} else {
 			// Default: show all active categories sorted by sortOrder
-			for (const cat of categories.filter(c => c.isActive).sort((a, b) => a.sortOrder - b.sortOrder)) {
+			for (const cat of categories
+				.filter((c) => c.isActive)
+				.sort((a, b) => a.sortOrder - b.sortOrder)) {
 				tabs.push({
 					id: `cat-${cat.id}`,
 					type: 'category',
 					referenceId: cat.id,
 					name: cat.name,
-					count: itemCounts.get(cat.id) ?? 0,
+					count: itemCounts.get(cat.id) ?? 0
 				});
 			}
 			// Then active groups
-			for (const grp of groups.filter(g => g.isActive).sort((a, b) => a.sortOrder - b.sortOrder)) {
+			for (const grp of groups
+				.filter((g) => g.isActive)
+				.sort((a, b) => a.sortOrder - b.sortOrder)) {
 				tabs.push({
 					id: `grp-${grp.id}`,
 					type: 'group',
 					referenceId: grp.id,
 					name: grp.name,
-					count: grp.itemIds.length,
+					count: grp.itemIds.length
 				});
 			}
 		}
@@ -97,7 +116,7 @@
 	3-4 deep on phones, eating the menu grid. Snap + edge fade signal scrollability.
 -->
 <div
-	class="no-scrollbar flex max-w-full snap-x snap-mandatory gap-1.5 overflow-x-auto pb-1 [mask-image:linear-gradient(to_right,black_calc(100%-1.5rem),transparent)] md:gap-2 md:pb-2 md:[mask-image:none]"
+	class="no-scrollbar flex max-w-full snap-x snap-mandatory gap-1.5 overflow-x-auto [mask-image:linear-gradient(to_right,black_calc(100%-1.5rem),transparent)] pb-1 md:gap-2 md:[mask-image:none] md:pb-2"
 >
 	{#each resolvedTabs as tab (tab.id)}
 		<Button

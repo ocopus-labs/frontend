@@ -1,5 +1,11 @@
 import type { PageLoad } from './$types';
-import { getCustomers, getCustomerStats, getCustomerInsights, getLoyaltySettings, getLoyaltyLeaderboard } from '$lib/api';
+import {
+	getCustomers,
+	getCustomerStats,
+	getCustomerInsights,
+	getLoyaltySettings,
+	getLoyaltyLeaderboard
+} from '$lib/api';
 
 export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 	depends('app:customers');
@@ -12,28 +18,35 @@ export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 	const status = url.searchParams.get('status') || '';
 
 	try {
-		const [customersData, statsData, insightsData, loyaltySettingsResult, leaderboardResult] = await Promise.allSettled([
-			getCustomers(
-				businessId,
-				{
-					search: search || undefined,
-					status: status || undefined,
-					limit,
-					offset
-				},
-				{ fetch }
-			),
-			getCustomerStats(businessId, { fetch }),
-			getCustomerInsights(businessId, { fetch }),
-			getLoyaltySettings(businessId, { fetch }),
-			getLoyaltyLeaderboard(businessId, { fetch })
-		]);
+		const [customersData, statsData, insightsData, loyaltySettingsResult, leaderboardResult] =
+			await Promise.allSettled([
+				getCustomers(
+					businessId,
+					{
+						search: search || undefined,
+						status: status || undefined,
+						limit,
+						offset
+					},
+					{ fetch }
+				),
+				getCustomerStats(businessId, { fetch }),
+				getCustomerInsights(businessId, { fetch }),
+				getLoyaltySettings(businessId, { fetch }),
+				getLoyaltyLeaderboard(businessId, { fetch })
+			]);
 
-		const customers = customersData.status === 'fulfilled' ? customersData.value : { customers: [], total: 0 };
-		const stats = statsData.status === 'fulfilled' ? statsData.value : { stats: { total: 0, active: 0, inactive: 0, newThisMonth: 0 } };
+		const customers =
+			customersData.status === 'fulfilled' ? customersData.value : { customers: [], total: 0 };
+		const stats =
+			statsData.status === 'fulfilled'
+				? statsData.value
+				: { stats: { total: 0, active: 0, inactive: 0, newThisMonth: 0 } };
 		const insights = insightsData.status === 'fulfilled' ? insightsData.value : null;
-		const loyaltySettings = loyaltySettingsResult.status === 'fulfilled' ? loyaltySettingsResult.value.settings : null;
-		const leaderboard = leaderboardResult.status === 'fulfilled' ? leaderboardResult.value.leaderboard : [];
+		const loyaltySettings =
+			loyaltySettingsResult.status === 'fulfilled' ? loyaltySettingsResult.value.settings : null;
+		const leaderboard =
+			leaderboardResult.status === 'fulfilled' ? leaderboardResult.value.leaderboard : [];
 
 		return {
 			...parentData,
@@ -44,7 +57,7 @@ export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 			pagination: { limit, offset },
 			filters: { search, status },
 			loyaltySettings,
-			loyaltyLeaderboard: leaderboard,
+			loyaltyLeaderboard: leaderboard
 		};
 	} catch (err) {
 		console.error('Failed to load customers:', err);

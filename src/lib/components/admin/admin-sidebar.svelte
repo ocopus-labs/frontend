@@ -16,6 +16,7 @@
 	import ScrollText from '@lucide/svelte/icons/scroll-text';
 	import WebhookIcon from '@lucide/svelte/icons/webhook';
 	import Activity from '@lucide/svelte/icons/activity';
+	import SparklesIcon from '@lucide/svelte/icons/sparkles';
 	import Settings from '@lucide/svelte/icons/settings';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 
@@ -82,6 +83,11 @@
 			title: 'Monitoring',
 			url: '/admin/monitoring',
 			icon: Activity
+		},
+		{
+			title: 'AI Providers',
+			url: '/admin/ai-providers',
+			icon: SparklesIcon
 		},
 		{
 			title: 'Settings',

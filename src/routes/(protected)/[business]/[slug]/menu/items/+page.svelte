@@ -1096,9 +1096,7 @@
 
 		<div class="grid gap-4 py-4">
 			<div class="grid grid-cols-4 items-center gap-4">
-				<Field.Label for="category-name" class="w-full justify-end text-right">
-					Name *
-				</Field.Label>
+				<Field.Label for="category-name" class="w-full justify-end text-right">Name *</Field.Label>
 				<Input id="category-name" autofocus bind:value={newCategoryName} class="col-span-3" />
 			</div>
 		</div>

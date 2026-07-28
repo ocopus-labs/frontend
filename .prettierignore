@@ -7,3 +7,19 @@ bun.lockb
 
 # Miscellaneous
 /static/
+
+# Vendored component registries.
+#
+# Installed by CLI (`shadcn-svelte add`, and the ai-elements registry — see
+# components.json) and deliberately kept as upstream produces them so they can
+# be re-synced. Reformatting them to this repo's style would put a permanent
+# diff between us and upstream, and make every future `add` land with
+# formatting noise on top of the actual change.
+#
+# These accounted for 526 of the 800 files failing `prettier --check`, which is
+# why `npm run lint` had never passed repo-wide.
+src/lib/components/ui/
+src/lib/components/ai-elements/
+
+# Storybook scaffolding, generated rather than written.
+src/stories/

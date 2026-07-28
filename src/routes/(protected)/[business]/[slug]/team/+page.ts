@@ -1,5 +1,11 @@
 import type { PageLoad } from './$types';
-import { getTeamMembers, getTeamStats, getAvailableRoles, getPermissionTree, getCurrentShift } from '$lib/api';
+import {
+	getTeamMembers,
+	getTeamStats,
+	getAvailableRoles,
+	getPermissionTree,
+	getCurrentShift
+} from '$lib/api';
 
 export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 	depends('app:team');
@@ -11,13 +17,14 @@ export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 	const offset = (page - 1) * limit;
 
 	try {
-		const [membersData, statsData, rolesData, permissionTreeData, currentShiftData] = await Promise.all([
-			getTeamMembers(businessId, { limit, offset }, { fetch }),
-			getTeamStats(businessId, { fetch }),
-			getAvailableRoles(businessId, { fetch }),
-			getPermissionTree(businessId, { fetch }).catch(() => null),
-			getCurrentShift(businessId, { fetch }).catch(() => null)
-		]);
+		const [membersData, statsData, rolesData, permissionTreeData, currentShiftData] =
+			await Promise.all([
+				getTeamMembers(businessId, { limit, offset }, { fetch }),
+				getTeamStats(businessId, { fetch }),
+				getAvailableRoles(businessId, { fetch }),
+				getPermissionTree(businessId, { fetch }).catch(() => null),
+				getCurrentShift(businessId, { fetch }).catch(() => null)
+			]);
 
 		const total = membersData.total;
 		const totalPages = Math.max(1, Math.ceil(total / limit));

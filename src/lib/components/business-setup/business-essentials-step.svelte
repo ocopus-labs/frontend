@@ -5,6 +5,7 @@
 	import * as ImageCropper from '$lib/components/ui/image-cropper';
 	import SearchSelect from '$lib/components/global/search-select.svelte';
 	import { REGION_CONFIGS } from '$lib/utils/i18n';
+	import { VALID_BUSINESS_TYPES, BUSINESS_TYPE_CONFIG } from '$lib/types/business';
 	import { z } from 'zod';
 	import { toast } from 'svelte-sonner';
 
@@ -48,24 +49,22 @@
 		currency: z.string().min(1, 'Please select a currency')
 	});
 
-	// Options for dropdowns
-	const businessTypeOptions = [
-		{ label: 'Restaurant', value: 'restaurant' },
-		{ label: 'Cafe / Coffee Shop', value: 'cafe' },
-		{ label: 'Bar / Pub', value: 'bar' },
-		{ label: 'Salon / Spa', value: 'salon' },
-		{ label: 'Gym / Fitness', value: 'gym' },
-		{ label: 'Retail Store', value: 'retail' },
-		{ label: 'Clinic', value: 'clinic' },
-		{ label: 'Other', value: 'other' }
-	];
+	// Derived from the type list rather than hand-maintained: a picker that
+	// offers a type the router rejects creates a business its owner cannot open,
+	// which is exactly what happened to salon, spa, gym and clinic.
+	const businessTypeOptions = VALID_BUSINESS_TYPES.map((value) => ({
+		label: BUSINESS_TYPE_CONFIG[value].label,
+		value
+	}));
 
+	// `food-truck` is deliberately absent — it is a top-level business type now,
+	// with its own feature set (menu + delivery, no tables). Leaving it here too
+	// would give operators two routes to the same thing with different features.
 	const restaurantSubTypeOptions = [
 		{ label: 'Fine Dining', value: 'fine-dining' },
 		{ label: 'Casual Dining', value: 'casual-dining' },
 		{ label: 'Quick Service / Fast Food', value: 'quick-service' },
 		{ label: 'Fast Casual', value: 'fast-casual' },
-		{ label: 'Food Truck', value: 'food-truck' },
 		{ label: 'Cafe / Bistro', value: 'cafe' },
 		{ label: 'Bar / Pub', value: 'bar' },
 		{ label: 'Bakery', value: 'bakery' },
@@ -183,7 +182,9 @@
 				{#if errors.businessName}
 					<Field.Error id="business-name-error">{errors.businessName}</Field.Error>
 				{:else}
-					<Field.Description id="business-name-desc">This is how customers will see your business</Field.Description>
+					<Field.Description id="business-name-desc"
+						>This is how customers will see your business</Field.Description
+					>
 				{/if}
 			</Field.Field>
 		</Field.Group>
@@ -218,7 +219,9 @@
 						label="Restaurant Type"
 						describedBy="restaurant-subtype-desc"
 					/>
-					<Field.Description id="restaurant-subtype-desc">What type of restaurant service do you offer?</Field.Description>
+					<Field.Description id="restaurant-subtype-desc"
+						>What type of restaurant service do you offer?</Field.Description
+					>
 				</Field.Field>
 			</Field.Group>
 		{/if}
@@ -323,7 +326,9 @@
 				{#if errors.timezone}
 					<Field.Error id="timezone-error">{errors.timezone}</Field.Error>
 				{:else}
-					<Field.Description id="timezone-desc">Used for reporting and business hours calculation</Field.Description>
+					<Field.Description id="timezone-desc"
+						>Used for reporting and business hours calculation</Field.Description
+					>
 				{/if}
 			</Field.Field>
 		</Field.Group>

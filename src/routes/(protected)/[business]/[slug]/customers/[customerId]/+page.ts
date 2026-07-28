@@ -1,5 +1,11 @@
 import type { PageLoad } from './$types';
-import { getCustomerWithOrders, getLoyaltyAccount, getLoyaltyTransactions, getLoyaltySettings, getLoyaltyTierProgress } from '$lib/api';
+import {
+	getCustomerWithOrders,
+	getLoyaltyAccount,
+	getLoyaltyTransactions,
+	getLoyaltySettings,
+	getLoyaltyTierProgress
+} from '$lib/api';
 
 export const load: PageLoad = async ({ parent, fetch, params, depends }) => {
 	depends('app:customer-detail');
@@ -8,19 +14,22 @@ export const load: PageLoad = async ({ parent, fetch, params, depends }) => {
 	const customerId = params.customerId;
 
 	try {
-		const [customerResult, loyaltyResult, transactionsResult, settingsResult, tierProgressResult] = await Promise.allSettled([
-			getCustomerWithOrders(businessId, customerId, { fetch }),
-			getLoyaltyAccount(businessId, customerId, { fetch }),
-			getLoyaltyTransactions(businessId, customerId, { limit: 5 }, { fetch }),
-			getLoyaltySettings(businessId, { fetch }),
-			getLoyaltyTierProgress(businessId, customerId, { fetch }),
-		]);
+		const [customerResult, loyaltyResult, transactionsResult, settingsResult, tierProgressResult] =
+			await Promise.allSettled([
+				getCustomerWithOrders(businessId, customerId, { fetch }),
+				getLoyaltyAccount(businessId, customerId, { fetch }),
+				getLoyaltyTransactions(businessId, customerId, { limit: 5 }, { fetch }),
+				getLoyaltySettings(businessId, { fetch }),
+				getLoyaltyTierProgress(businessId, customerId, { fetch })
+			]);
 
 		const customer = customerResult.status === 'fulfilled' ? customerResult.value : null;
 		const loyalty = loyaltyResult.status === 'fulfilled' ? loyaltyResult.value : null;
-		const transactions = transactionsResult.status === 'fulfilled' ? transactionsResult.value : null;
+		const transactions =
+			transactionsResult.status === 'fulfilled' ? transactionsResult.value : null;
 		const loyaltySettings = settingsResult.status === 'fulfilled' ? settingsResult.value : null;
-		const tierProgress = tierProgressResult.status === 'fulfilled' ? tierProgressResult.value : null;
+		const tierProgress =
+			tierProgressResult.status === 'fulfilled' ? tierProgressResult.value : null;
 
 		return {
 			...parentData,
@@ -29,7 +38,7 @@ export const load: PageLoad = async ({ parent, fetch, params, depends }) => {
 			loyaltyAccount: loyalty?.account ?? null,
 			loyaltyTransactions: transactions?.transactions ?? [],
 			loyaltySettings: loyaltySettings?.settings ?? null,
-			tierProgress,
+			tierProgress
 		};
 	} catch (err) {
 		console.error('Failed to load customer:', err);

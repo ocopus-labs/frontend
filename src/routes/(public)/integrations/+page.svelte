@@ -162,20 +162,20 @@
 		<div aria-hidden="true" class="absolute inset-0 -z-10">
 			<div class="dot-grid absolute inset-0 opacity-30 dark:opacity-15"></div>
 			<div
-				class="absolute left-1/2 top-0 h-[500px] w-[700px] -translate-x-1/2 -translate-y-1/4 rounded-full bg-primary/5 blur-3xl"
+				class="absolute top-0 left-1/2 h-[500px] w-[700px] -translate-x-1/2 -translate-y-1/4 rounded-full bg-primary/5 blur-3xl"
 			></div>
 		</div>
 
 		<div class="mx-auto max-w-7xl px-6 text-center lg:px-8">
-			<p class="animate-fade-up text-sm font-semibold uppercase tracking-wider text-primary">
+			<p class="animate-fade-up text-sm font-semibold tracking-wider text-primary uppercase">
 				Integrations
 			</p>
-			<h1 class="animate-fade-up delay-100 mt-3 font-display text-4xl md:text-5xl lg:text-6xl">
+			<h1 class="animate-fade-up font-display mt-3 text-4xl delay-100 md:text-5xl lg:text-6xl">
 				Connect your <span class="italic">entire</span> ecosystem
 			</h1>
-			<p class="animate-fade-up delay-200 mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-				From UPI payments to food delivery aggregators — {APP_NAME} integrates with the tools
-				Indian businesses use every day.
+			<p class="animate-fade-up mx-auto mt-4 max-w-2xl text-lg text-muted-foreground delay-200">
+				From UPI payments to food delivery aggregators — {APP_NAME} integrates with the tools Indian businesses
+				use every day.
 			</p>
 		</div>
 	</section>
@@ -242,7 +242,7 @@
 			>
 				<div
 					aria-hidden="true"
-					class="absolute -right-20 -top-20 size-64 rounded-full border border-primary-foreground/10"
+					class="absolute -top-20 -right-20 size-64 rounded-full border border-primary-foreground/10"
 				></div>
 
 				<div class="relative z-10">

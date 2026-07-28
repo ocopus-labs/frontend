@@ -72,7 +72,12 @@ for (const file of walk(SRC)) {
 		}
 		if (!whitelisted) {
 			for (const m of line.matchAll(GRAY_UTIL)) {
-				violations.push({ rel, line: i + 1, tok: m[0], why: 'gray-scale utility (use a semantic token)' });
+				violations.push({
+					rel,
+					line: i + 1,
+					tok: m[0],
+					why: 'gray-scale utility (use a semantic token)'
+				});
 			}
 		}
 	});

@@ -548,9 +548,7 @@
 						}
 					});
 				} catch (error: unknown) {
-					toast.error(
-						error instanceof Error ? error.message : 'Failed to save your changes'
-					);
+					toast.error(error instanceof Error ? error.message : 'Failed to save your changes');
 					isSubmitting = false;
 					return;
 				} finally {

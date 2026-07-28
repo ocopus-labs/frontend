@@ -82,7 +82,9 @@
 	// Calculate subscription health
 	const subscriptionHealth = $derived(
 		stats?.subscriptionStats
-			? Math.round((stats.subscriptionStats.active / Math.max(stats.subscriptionStats.total, 1)) * 100)
+			? Math.round(
+					(stats.subscriptionStats.active / Math.max(stats.subscriptionStats.total, 1)) * 100
+				)
 			: 0
 	);
 </script>
@@ -289,7 +291,11 @@
 							<div class="flex items-center justify-between">
 								<StatusPill
 									label={status}
-									status={status === 'active' ? 'success' : status === 'suspended' ? 'error' : 'warning'}
+									status={status === 'active'
+										? 'success'
+										: status === 'suspended'
+											? 'error'
+											: 'warning'}
 								/>
 								<span class="font-semibold">{count}</span>
 							</div>
@@ -313,7 +319,11 @@
 							value={subscriptionHealth}
 							max={100}
 							size="lg"
-							color={subscriptionHealth > 80 ? 'success' : subscriptionHealth > 50 ? 'warning' : 'destructive'}
+							color={subscriptionHealth > 80
+								? 'success'
+								: subscriptionHealth > 50
+									? 'warning'
+									: 'destructive'}
 							label="Active"
 						/>
 						<div class="flex-1 space-y-2">

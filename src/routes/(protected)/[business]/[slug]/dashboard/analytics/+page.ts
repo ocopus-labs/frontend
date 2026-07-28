@@ -76,9 +76,7 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 			getTopSellingItems(businessId, { limit: 10, days }, { fetch }),
 			getRevenueTrends(businessId, days, { fetch }),
 			getAnalyticsDashboard(businessId, { fetch }).catch(() => null),
-			getPaymentMethodBreakdown(businessId, { period: period as any }, { fetch }).catch(
-				() => null
-			),
+			getPaymentMethodBreakdown(businessId, { period: period as any }, { fetch }).catch(() => null),
 			getHourlyBreakdown(businessId, undefined, { fetch }).catch(() => null),
 			getOrderStats(businessId, undefined, { fetch }).catch(() => null),
 			getSalesForecast(businessId, 7, { fetch }).catch(() => null),

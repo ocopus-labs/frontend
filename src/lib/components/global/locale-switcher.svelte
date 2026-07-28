@@ -9,14 +9,18 @@
 
 <DropdownMenu.Root>
 	<DropdownMenu.Trigger
-		class="inline-flex items-center justify-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 {className}"
+		class="inline-flex items-center justify-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none {className}"
 		aria-label="Change language"
 	>
 		<LanguagesIcon class="h-4 w-4" />
-		<span class="hidden sm:inline">{SUPPORTED_LOCALES.find((l) => l.code === locale.current)?.label ?? 'English'}</span>
+		<span class="hidden sm:inline"
+			>{SUPPORTED_LOCALES.find((l) => l.code === locale.current)?.label ?? 'English'}</span
+		>
 	</DropdownMenu.Trigger>
 	<DropdownMenu.Content align="end" class="w-40">
-		<DropdownMenu.Label class="text-xs font-normal text-muted-foreground">Language</DropdownMenu.Label>
+		<DropdownMenu.Label class="text-xs font-normal text-muted-foreground"
+			>Language</DropdownMenu.Label
+		>
 		<DropdownMenu.Separator />
 		{#each SUPPORTED_LOCALES as loc (loc.code)}
 			<DropdownMenu.Item

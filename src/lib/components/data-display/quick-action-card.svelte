@@ -8,7 +8,8 @@
 				default: 'hover:border-primary/50 hover:bg-primary/5',
 				outline: 'border-2 border-dashed hover:border-primary hover:bg-primary/5',
 				filled: 'border-transparent bg-muted hover:bg-muted/80',
-				gradient: 'border-transparent bg-gradient-to-br from-primary/10 to-primary/5 hover:from-primary/20 hover:to-primary/10'
+				gradient:
+					'border-transparent bg-gradient-to-br from-primary/10 to-primary/5 hover:from-primary/20 hover:to-primary/10'
 			},
 			size: {
 				sm: 'gap-2 p-4',
@@ -66,23 +67,29 @@
 		class: className
 	}: Props = $props();
 
-	const iconSizeClass = $derived({
-		sm: 'h-8 w-8',
-		default: 'h-10 w-10',
-		lg: 'h-12 w-12'
-	}[size]);
+	const iconSizeClass = $derived(
+		{
+			sm: 'h-8 w-8',
+			default: 'h-10 w-10',
+			lg: 'h-12 w-12'
+		}[size]
+	);
 
-	const titleSizeClass = $derived({
-		sm: 'text-sm',
-		default: 'text-base',
-		lg: 'text-lg'
-	}[size]);
+	const titleSizeClass = $derived(
+		{
+			sm: 'text-sm',
+			default: 'text-base',
+			lg: 'text-lg'
+		}[size]
+	);
 
-	const descSizeClass = $derived({
-		sm: 'text-xs',
-		default: 'text-sm',
-		lg: 'text-sm'
-	}[size]);
+	const descSizeClass = $derived(
+		{
+			sm: 'text-xs',
+			default: 'text-sm',
+			lg: 'text-sm'
+		}[size]
+	);
 </script>
 
 <svelte:element
@@ -100,7 +107,7 @@
 	data-slot="quick-action-card"
 >
 	{#if badge}
-		<Badge variant={badgeVariant} class="absolute right-3 top-3">
+		<Badge variant={badgeVariant} class="absolute top-3 right-3">
 			{badge}
 		</Badge>
 	{/if}
@@ -128,7 +135,7 @@
 
 		{#if showArrow}
 			<ArrowRightIcon
-				class="text-muted-foreground h-4 w-4 transition-transform group-hover:translate-x-1"
+				class="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1"
 			/>
 		{/if}
 	{/if}

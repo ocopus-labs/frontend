@@ -73,8 +73,8 @@
 					onclick={() => onOrderTypeChange(type.id)}
 					class="flex flex-col items-center justify-center gap-1 rounded-md p-2 transition-all active:scale-95 md:gap-1.5 md:p-3
 						{orderType === type.id
-							? 'bg-primary text-primary-foreground shadow-sm'
-							: 'bg-muted/50 text-muted-foreground hover:bg-muted'}"
+						? 'bg-primary text-primary-foreground shadow-sm'
+						: 'bg-muted/50 text-muted-foreground hover:bg-muted'}"
 				>
 					<type.icon class="h-4 w-4 md:h-5 md:w-5" />
 					<span class="text-[11px] font-medium md:text-xs">{type.label}</span>

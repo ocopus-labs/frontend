@@ -83,7 +83,7 @@
 				await disableFeature(businessId, key);
 				toast.success(`${feature.label} disabled`);
 			}
-			await invalidate('app:business-features');
+			await refreshAfterToggle();
 		} catch (err) {
 			toast.error(userFriendlyError(err));
 		} finally {
@@ -91,6 +91,19 @@
 			next.delete(key);
 			togglingKeys = next;
 		}
+	}
+
+	/**
+	 * Re-run every load that depends on the feature list.
+	 *
+	 * `app:business-features` alone was not enough. The `[slug]` layout declares
+	 * `depends('app:business-data')` and its `enabledFeatures` is what the route
+	 * guard redirects on, so a toggle left the guard holding the previous list for
+	 * the rest of the client-side session — enabling a feature and navigating to it
+	 * bounced straight back with `?feature_disabled=...` until a full page load.
+	 */
+	async function refreshAfterToggle() {
+		await Promise.all([invalidate('app:business-features'), invalidate('app:business-data')]);
 	}
 
 	async function handleSwap() {
@@ -107,7 +120,7 @@
 			swapDialogOpen = false;
 			swapTarget = null;
 			swapSelection = null;
-			await invalidate('app:business-features');
+			await refreshAfterToggle();
 		} catch (err) {
 			toast.error(userFriendlyError(err));
 		} finally {

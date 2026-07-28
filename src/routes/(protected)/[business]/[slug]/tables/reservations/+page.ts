@@ -14,12 +14,16 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 	// Load tables independently so they're available even if reservation APIs fail
 	const [reservationResult, tablesResult] = await Promise.allSettled([
 		Promise.all([
-			getReservations(businessId, {
-				date: dateParam || undefined,
-				status: statusParam as any || undefined,
-				limit,
-				offset
-			}, { fetch }),
+			getReservations(
+				businessId,
+				{
+					date: dateParam || undefined,
+					status: (statusParam as any) || undefined,
+					limit,
+					offset
+				},
+				{ fetch }
+			),
 			getReservationStats(businessId, { fetch })
 		]),
 		getTables(businessId, undefined, { fetch })
@@ -61,6 +65,9 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 		limit,
 		total: 0,
 		totalPages: 1,
-		error: reservationResult.reason instanceof Error ? reservationResult.reason.message : 'Failed to load reservations'
+		error:
+			reservationResult.reason instanceof Error
+				? reservationResult.reason.message
+				: 'Failed to load reservations'
 	};
 };

@@ -65,9 +65,44 @@
 	const activeKeys = $derived(apiKeys.filter((k) => k.isActive));
 	const revokedKeys = $derived(apiKeys.filter((k) => !k.isActive));
 
-	const filteredPermissions = $derived(
-		AVAILABLE_PERMISSIONS.filter((p) => selectedScopes.includes(p.scope))
+	// Permissions this role may grant, loaded in +page.ts. If the lookup failed
+	// we fall back to the full catalogue — the backend still enforces the
+	// ceiling, so the worst case is the old behaviour rather than a dead form.
+	const grantableRole = $derived(data.grantable?.role ?? '');
+	const grantablePermissions = $derived(
+		data.grantable
+			? AVAILABLE_PERMISSIONS.filter((p) => data.grantable!.permissions.includes(p.value as string))
+			: AVAILABLE_PERMISSIONS
 	);
+
+	/** Scopes with at least one permission this role can grant. */
+	const grantableScopes = $derived(
+		AVAILABLE_SCOPES.filter(
+			(s) => s.value === 'destructive' || grantablePermissions.some((p) => p.scope === s.value)
+		)
+	);
+
+	const filteredPermissions = $derived(
+		grantablePermissions.filter((p) => selectedScopes.includes(p.scope))
+	);
+
+	/**
+	 * Select everything this role can grant. Deliberately excludes the
+	 * `destructive` scope — it unlocks refunds, cancellations and drawer
+	 * closes, which should stay a conscious extra click rather than something
+	 * a convenience button turns on silently.
+	 */
+	function selectAdministrator() {
+		selectedScopes = grantableScopes
+			.filter((s) => s.value !== 'destructive')
+			.map((s) => s.value as string);
+		selectedPermissions = grantablePermissions.map((p) => p.value as string);
+	}
+
+	function clearSelection() {
+		selectedScopes = [];
+		selectedPermissions = [];
+	}
 
 	// MCP connection guide data
 	const mcpEndpoint = `${env.PUBLIC_API_BASE ?? ''}/mcp`;
@@ -579,9 +614,24 @@
 			<!-- Scopes -->
 			<Field.Field>
 				<Field.Label>Scopes *</Field.Label>
-				<Field.Description>What the key can access.</Field.Description>
+				<Field.Description>
+					What the key can access. Only options your role
+					{#if grantableRole}(<span class="font-medium">{grantableRole}</span>){/if}
+					can grant are shown.
+				</Field.Description>
+				<div class="flex flex-wrap items-center gap-2 pb-1">
+					<Button type="button" variant="outline" size="sm" onclick={selectAdministrator}>
+						Administrator — everything I can grant
+					</Button>
+					{#if selectedScopes.length > 0}
+						<Button type="button" variant="ghost" size="sm" onclick={clearSelection}>Clear</Button>
+					{/if}
+					<span class="text-xs text-muted-foreground">
+						{selectedPermissions.length} permission{selectedPermissions.length === 1 ? '' : 's'} selected
+					</span>
+				</div>
 				<div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-					{#each AVAILABLE_SCOPES as scope}
+					{#each grantableScopes as scope}
 						{@const scopeChecked = selectedScopes.includes(scope.value)}
 						<div
 							class="flex items-center gap-2 rounded-md border p-2 text-sm transition-colors hover:bg-accent {scopeChecked

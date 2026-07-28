@@ -1,5 +1,10 @@
 import type { PageLoad } from './$types';
-import { getFullReport, getSalesSummary, getTopSellingItemsAnalytics, getPaymentMethodBreakdown } from '$lib/api';
+import {
+	getFullReport,
+	getSalesSummary,
+	getTopSellingItemsAnalytics,
+	getPaymentMethodBreakdown
+} from '$lib/api';
 
 export const load: PageLoad = async ({ parent, fetch, url }) => {
 	const parentData = await parent();
@@ -11,7 +16,11 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 	const endDate = url.searchParams.get('endDate');
 
 	try {
-		const params = { period: period as any, startDate: startDate || undefined, endDate: endDate || undefined };
+		const params = {
+			period: period as any,
+			startDate: startDate || undefined,
+			endDate: endDate || undefined
+		};
 
 		const [reportData, salesData, topItemsData, paymentsData] = await Promise.all([
 			getFullReport(businessId, params, { fetch }),

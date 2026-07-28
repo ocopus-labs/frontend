@@ -114,12 +114,15 @@ Pages use the business type to conditionally render content:
 Defined in `src/lib/types/business.ts`:
 
 ```typescript
-export const BUSINESS_TYPE_CONFIG: Record<BusinessType, {
-	label: string;
-	description: string;
-	defaultMenuCategories: string[];
-	features: string[];
-}> = {
+export const BUSINESS_TYPE_CONFIG: Record<
+	BusinessType,
+	{
+		label: string;
+		description: string;
+		defaultMenuCategories: string[];
+		features: string[];
+	}
+> = {
 	restaurant: {
 		label: 'Restaurant',
 		description: 'Full-service restaurant management',

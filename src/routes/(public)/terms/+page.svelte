@@ -18,13 +18,13 @@
 		</div>
 
 		<div class="mx-auto max-w-7xl px-6 text-center lg:px-8">
-			<p class="animate-fade-up text-sm font-semibold uppercase tracking-wider text-primary">
+			<p class="animate-fade-up text-sm font-semibold tracking-wider text-primary uppercase">
 				Legal
 			</p>
-			<h1 class="animate-fade-up delay-100 mt-3 font-display text-4xl md:text-5xl">
+			<h1 class="animate-fade-up font-display mt-3 text-4xl delay-100 md:text-5xl">
 				Terms of Service
 			</h1>
-			<p class="animate-fade-up delay-200 mt-4 text-muted-foreground">
+			<p class="animate-fade-up mt-4 text-muted-foreground delay-200">
 				Last updated: February 2026
 			</p>
 		</div>
@@ -32,11 +32,13 @@
 
 	<section class="pb-24">
 		<div class="mx-auto max-w-3xl px-6 lg:px-8">
-			<article class="prose prose-neutral dark:prose-invert max-w-none space-y-8 text-sm leading-relaxed text-muted-foreground [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:text-foreground [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-foreground [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-1">
+			<article
+				class="prose prose-neutral dark:prose-invert max-w-none space-y-8 text-sm leading-relaxed text-muted-foreground [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:text-foreground [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-foreground [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-6"
+			>
 				<p>
 					These Terms of Service ("Terms") govern your access to and use of the {APP_NAME}
-					services, website, and applications (collectively, the "Service"). By using the Service,
-					you agree to be bound by these Terms.
+					services, website, and applications (collectively, the "Service"). By using the Service, you
+					agree to be bound by these Terms.
 				</p>
 
 				<h2>1. Acceptance of Terms</h2>
@@ -92,16 +94,16 @@
 
 				<h2>7. Intellectual Property</h2>
 				<p>
-					The Service, including its design, features, and content, is owned by {APP_NAME} and
-					protected by intellectual property laws. You may not copy, modify, or create derivative
-					works based on the Service.
+					The Service, including its design, features, and content, is owned by {APP_NAME} and protected
+					by intellectual property laws. You may not copy, modify, or create derivative works based on
+					the Service.
 				</p>
 
 				<h2>8. Limitation of Liability</h2>
 				<p>
-					To the maximum extent permitted by law, {APP_NAME} shall not be liable for any indirect,
-					incidental, special, consequential, or punitive damages, including loss of profits, data,
-					or business opportunities, arising from your use of the Service.
+					To the maximum extent permitted by law, {APP_NAME} shall not be liable for any indirect, incidental,
+					special, consequential, or punitive damages, including loss of profits, data, or business opportunities,
+					arising from your use of the Service.
 				</p>
 
 				<h2>9. Termination</h2>

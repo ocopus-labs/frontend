@@ -13,12 +13,7 @@
 	import { bulkBusinessAction } from '$lib/api/admin';
 	import type { PageData } from './$types';
 
-	import {
-		SearchInput,
-		FilterBar,
-		FilterDropdown,
-		type Filter
-	} from '$lib/components/search';
+	import { SearchInput, FilterBar, FilterDropdown, type Filter } from '$lib/components/search';
 	import { StatusPill, EmptyState, LiveCounter } from '$lib/components/data-display';
 
 	import Eye from '@lucide/svelte/icons/eye';
@@ -77,9 +72,13 @@
 	async function confirmBulkAction() {
 		try {
 			const result = await bulkBusinessAction({ ids: [...selectedIds], action: bulkAction });
-			toast.success(`${result.processed} business${result.processed !== 1 ? 'es' : ''} ${bulkAction === 'suspend' ? 'suspended' : 'activated'}`);
+			toast.success(
+				`${result.processed} business${result.processed !== 1 ? 'es' : ''} ${bulkAction === 'suspend' ? 'suspended' : 'activated'}`
+			);
 			if (result.failed > 0) {
-				toast.warning(`${result.failed} business${result.failed !== 1 ? 'es' : ''} failed to update`);
+				toast.warning(
+					`${result.failed} business${result.failed !== 1 ? 'es' : ''} failed to update`
+				);
 			}
 			selectedIds = new Set();
 			bulkDialogOpen = false;
@@ -173,17 +172,29 @@
 	// Active filters for chips
 	const activeFilters = $derived<Filter[]>([
 		...(searchQuery ? [{ id: 'search', label: 'Search', value: searchQuery }] : []),
-		...(statusFilter ? [{
-			id: 'status',
-			label: 'Status',
-			value: statusOptions.find(s => s.value === statusFilter)?.label || statusFilter,
-			variant: (statusFilter === 'active' ? 'primary' : statusFilter === 'suspended' ? 'destructive' : 'default') as Filter['variant']
-		}] : []),
-		...(typeFilter ? [{
-			id: 'type',
-			label: 'Type',
-			value: typeOptions.find(t => t.value === typeFilter)?.label || typeFilter
-		}] : [])
+		...(statusFilter
+			? [
+					{
+						id: 'status',
+						label: 'Status',
+						value: statusOptions.find((s) => s.value === statusFilter)?.label || statusFilter,
+						variant: (statusFilter === 'active'
+							? 'primary'
+							: statusFilter === 'suspended'
+								? 'destructive'
+								: 'default') as Filter['variant']
+					}
+				]
+			: []),
+		...(typeFilter
+			? [
+					{
+						id: 'type',
+						label: 'Type',
+						value: typeOptions.find((t) => t.value === typeFilter)?.label || typeFilter
+					}
+				]
+			: [])
 	]);
 
 	// Business type icons
@@ -335,10 +346,7 @@
 									{/if}
 								</div>
 								<div>
-									<a
-										href="/admin/businesses/{business.id}"
-										class="font-medium hover:underline"
-									>
+									<a href="/admin/businesses/{business.id}" class="font-medium hover:underline">
 										{business.name}
 									</a>
 									<p class="text-xs text-muted-foreground">{business.slug}</p>
@@ -346,7 +354,7 @@
 							</div>
 						</Table.Cell>
 						<Table.Cell>
-							<Badge variant="outline" class="capitalize gap-1">
+							<Badge variant="outline" class="gap-1 capitalize">
 								<TypeIcon class="h-3 w-3" />
 								{business.type}
 							</Badge>
@@ -366,7 +374,7 @@
 						</Table.Cell>
 						<Table.Cell class="text-right tabular-nums">{business._count.orders}</Table.Cell>
 						<Table.Cell class="text-right tabular-nums">{business._count.businessUsers}</Table.Cell>
-						<Table.Cell class="text-muted-foreground text-sm">
+						<Table.Cell class="text-sm text-muted-foreground">
 							{formatDate(business.createdAt)}
 						</Table.Cell>
 						<Table.Cell>
@@ -374,7 +382,7 @@
 								variant="ghost"
 								size="sm"
 								href="/admin/businesses/{business.id}"
-								class="opacity-0 group-hover:opacity-100 transition-opacity"
+								class="opacity-0 transition-opacity group-hover:opacity-100"
 							>
 								<Eye class="h-4 w-4" />
 							</Button>
@@ -387,10 +395,14 @@
 								type="no-results"
 								title="No businesses found"
 								description={searchQuery || statusFilter || typeFilter
-									? "Try adjusting your search or filters"
-									: "No businesses have been registered yet"}
-								actionLabel={searchQuery || statusFilter || typeFilter ? "Clear filters" : undefined}
-								onAction={searchQuery || statusFilter || typeFilter ? handleClearFilters : undefined}
+									? 'Try adjusting your search or filters'
+									: 'No businesses have been registered yet'}
+								actionLabel={searchQuery || statusFilter || typeFilter
+									? 'Clear filters'
+									: undefined}
+								onAction={searchQuery || statusFilter || typeFilter
+									? handleClearFilters
+									: undefined}
 								size="sm"
 							/>
 						</Table.Cell>
@@ -426,7 +438,7 @@
 						return start + i;
 					}) as pageNum}
 						<Button
-							variant={pageNum === data.page ? "default" : "ghost"}
+							variant={pageNum === data.page ? 'default' : 'ghost'}
 							size="sm"
 							class="w-9"
 							onclick={() => goToPage(pageNum)}
@@ -468,7 +480,9 @@
 	description={bulkAction === 'suspend'
 		? `Are you sure you want to suspend ${selectedIds.size} business${selectedIds.size !== 1 ? 'es' : ''}? They will be unable to operate until reactivated.`
 		: `Are you sure you want to activate ${selectedIds.size} business${selectedIds.size !== 1 ? 'es' : ''}?`}
-	confirmLabel={bulkAction === 'suspend' ? `Suspend ${selectedIds.size} Businesses` : `Activate ${selectedIds.size} Businesses`}
+	confirmLabel={bulkAction === 'suspend'
+		? `Suspend ${selectedIds.size} Businesses`
+		: `Activate ${selectedIds.size} Businesses`}
 	variant={bulkAction === 'suspend' ? 'destructive' : 'default'}
 	onConfirm={confirmBulkAction}
 />

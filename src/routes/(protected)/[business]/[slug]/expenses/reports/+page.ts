@@ -11,7 +11,9 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 
 	const now = new Date();
 	const defaultEndDate = now.toISOString().split('T')[0];
-	const defaultStartDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+	const defaultStartDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
+		.toISOString()
+		.split('T')[0];
 
 	const startDate = startDateParam || defaultStartDate;
 	const endDate = endDateParam || defaultEndDate;

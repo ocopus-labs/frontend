@@ -299,7 +299,11 @@
 
 						<Field.Field>
 							<Field.Label for="default-rate">Default tax rate (%)</Field.Label>
-							<NativeSelect id="default-rate" class="w-full max-w-[8rem]" bind:value={defaultTaxRate}>
+							<NativeSelect
+								id="default-rate"
+								class="w-full max-w-[8rem]"
+								bind:value={defaultTaxRate}
+							>
 								{#each selectedRegime.standardRates as rate}
 									<NativeSelectOption value={rate}>{rate}%</NativeSelectOption>
 								{/each}
@@ -346,7 +350,8 @@
 						<div class="space-y-6">
 							<div class="flex items-start justify-between gap-4">
 								<div class="space-y-0.5">
-									<Label for="gst-composition" class="text-sm font-medium">Composition scheme</Label>
+									<Label for="gst-composition" class="text-sm font-medium">Composition scheme</Label
+									>
 									<p class="text-xs text-muted-foreground">
 										Registered under GST Composition Scheme
 									</p>

@@ -36,6 +36,7 @@
 	import Sparkles from '@lucide/svelte/icons/sparkles';
 	import Dumbbell from '@lucide/svelte/icons/dumbbell';
 	import Stethoscope from '@lucide/svelte/icons/stethoscope';
+	import Truck from '@lucide/svelte/icons/truck';
 	import Receipt from '@lucide/svelte/icons/receipt';
 	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
 	import UserPlus from '@lucide/svelte/icons/user-plus';
@@ -79,6 +80,7 @@
 		restaurant: UtensilsCrossed,
 		cafe: Coffee,
 		bar: Wine,
+		food_truck: Truck,
 		salon: Scissors,
 		spa: Sparkles,
 		gym: Dumbbell,

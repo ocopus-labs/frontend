@@ -50,7 +50,7 @@
 
 		<div class="space-y-4 py-4">
 			<div class="rounded-lg border p-4">
-				<div class="flex items-center justify-between mb-3">
+				<div class="mb-3 flex items-center justify-between">
 					<span class="font-semibold">{requiredPlan} Plan</span>
 					<Badge variant={requiredPlan === 'ENTERPRISE' ? 'default' : 'secondary'}>
 						{requiredPlan === 'ENTERPRISE' ? 'Best Value' : 'Popular'}
@@ -71,9 +71,7 @@
 			<Button variant="outline" onclick={() => (open = false)} class="w-full sm:w-auto">
 				Maybe Later
 			</Button>
-			<Button href="/dashboard/billing" class="w-full sm:w-auto">
-				View Plans
-			</Button>
+			<Button href="/dashboard/billing" class="w-full sm:w-auto">View Plans</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>

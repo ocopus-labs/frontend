@@ -40,7 +40,8 @@
 		<h1 class="text-2xl font-bold tracking-tight">We'll be right back</h1>
 
 		<p class="mt-3 text-muted-foreground">
-			We're performing scheduled maintenance to improve your experience. This usually takes just a few minutes.
+			We're performing scheduled maintenance to improve your experience. This usually takes just a
+			few minutes.
 		</p>
 
 		<Button variant="outline" class="mt-8" onclick={checkStatus} disabled={checking}>
@@ -53,8 +54,6 @@
 			{/if}
 		</Button>
 
-		<p class="mt-6 text-xs text-muted-foreground">
-			Auto-checking every 30 seconds
-		</p>
+		<p class="mt-6 text-xs text-muted-foreground">Auto-checking every 30 seconds</p>
 	</div>
 </div>

@@ -29,6 +29,15 @@
 	--success-foreground: oklch(1 0 0);
 	--warning: oklch(0.79 0.16 84);
 	--warning-foreground: oklch(0.21 0 0);
+	/* Text-safe variants of the status hues.
+
+	   --success / --warning are tuned as *fill* colours and are far too light to
+	   read as text: on their usual tinted backgrounds (bg-success/10 etc.) they
+	   land near 3.0:1 and 1.9:1, well under the 4.5:1 minimum. Status badges
+	   render label text in these instead. Dark mode needs no such split — the
+	   fills there are already light enough against a dark surface. */
+	--success-text: oklch(0.45 0.14 149.2);
+	--warning-text: oklch(0.52 0.13 84);
 	--border: oklch(0.9219 0 0);
 	--input: oklch(0.9219 0 0);
 	--ring: oklch(0.6848 0.1832 41.8733);
@@ -96,6 +105,10 @@
 	--success-foreground: oklch(0.208 0 0);
 	--warning: oklch(0.82 0.16 84);
 	--warning-foreground: oklch(0.21 0 0);
+	/* On dark surfaces the fills already clear 4.5:1 as text, so these alias
+	   them rather than diverging — the token stays usable in both modes. */
+	--success-text: var(--success);
+	--warning-text: var(--warning);
 	--border: oklch(0.2972 0 0);
 	--input: oklch(0.2972 0 0);
 	--ring: oklch(0.6848 0.1832 41.8733);
@@ -158,8 +171,10 @@
 	--color-destructive-foreground: var(--destructive-foreground);
 	--color-success: var(--success);
 	--color-success-foreground: var(--success-foreground);
+	--color-success-text: var(--success-text);
 	--color-warning: var(--warning);
 	--color-warning-foreground: var(--warning-foreground);
+	--color-warning-text: var(--warning-text);
 	--color-border: var(--border);
 	--color-input: var(--input);
 	--color-ring: var(--ring);
@@ -213,6 +228,62 @@
 	body {
 		@apply bg-background text-foreground;
 		letter-spacing: var(--tracking-normal);
+	}
+
+	/* Motion is decorative here — nothing in this product conveys meaning
+	   through movement alone, so honouring the OS setting costs nothing and
+	   prevents nausea for people who need it. Applies to every animation and
+	   transition, including the ones tw-animate-css and the AI-elements
+	   collapsibles bring in, which is why it lives here rather than being
+	   opted into per component. */
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+			scroll-behavior: auto !important;
+		}
+	}
+}
+
+/* =========================================================================
+   Touch targets
+
+   The button scale in this product is dense: `default` is 28px tall and the
+   largest variant is 32px, so no size in the scale meets the 44x44px minimum
+   for a touch target. Rather than rebase the scale — which would move layout
+   on every screen — the *hit area* is expanded on coarse pointers only, using
+   a centred pseudo-element. Desktop rendering is untouched; a finger gets a
+   44px target.
+
+   Caveat: overlapping expansions. Two 24px buttons sitting a few pixels apart
+   will have overlapping hit areas, and the later sibling wins. Dense icon
+   toolbars should use the explicit `touch` / `icon-touch` button sizes instead
+   of relying on this.
+   ========================================================================= */
+@media (pointer: coarse) {
+	[data-slot='button']:not([data-touch-target='off']),
+	[data-slot='toggle'],
+	[data-slot='checkbox'],
+	[data-slot='radio-group-item'] {
+		position: relative;
+	}
+
+	[data-slot='button']:not([data-touch-target='off'])::after,
+	[data-slot='toggle']::after,
+	[data-slot='checkbox']::after,
+	[data-slot='radio-group-item']::after {
+		content: '';
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: 100%;
+		height: 100%;
+		min-width: 44px;
+		min-height: 44px;
+		transform: translate(-50%, -50%);
 	}
 }
 

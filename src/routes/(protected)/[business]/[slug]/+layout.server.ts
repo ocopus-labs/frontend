@@ -25,7 +25,12 @@ const ROUTE_FEATURE_MAP: Record<string, string> = {
 	'/inventory': 'inventory',
 	'/expenses': 'expenses',
 	'/kitchen-display': 'kds',
-	'/team': 'team'
+	'/team': 'team',
+	// The backend gates every agent endpoint on this slug, so without the entry
+	// the page renders, calls `/status`, and shows a 403 the operator has to
+	// interpret — rather than the dashboard banner every other disabled feature
+	// produces.
+	'/assistant': 'ai-assistant'
 };
 
 export const load: LayoutServerLoad = async ({ params, url, fetch, depends }) => {

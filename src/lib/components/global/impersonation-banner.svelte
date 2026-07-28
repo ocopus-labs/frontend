@@ -32,7 +32,7 @@
 
 {#if isImpersonating}
 	<div
-		class="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-3 bg-amber-500 px-4 py-2 text-black shadow-md"
+		class="fixed top-0 right-0 left-0 z-50 flex items-center justify-center gap-3 bg-amber-500 px-4 py-2 text-black shadow-md"
 		role="alert"
 		aria-live="assertive"
 	>

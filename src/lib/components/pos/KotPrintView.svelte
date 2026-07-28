@@ -49,8 +49,10 @@
 		style="text-align: center; font-size: 10px; border-bottom: 1px dashed black; padding-bottom: 4px; margin-bottom: 4px;"
 	>
 		{orderType.replace('_', ' ').toUpperCase()}
-		{#if tableNumber} | Table: {tableNumber}{/if}
-		{#if staffName} | {staffName}{/if}
+		{#if tableNumber}
+			| Table: {tableNumber}{/if}
+		{#if staffName}
+			| {staffName}{/if}
 	</div>
 
 	<div style="font-size: 10px; margin-bottom: 4px;">

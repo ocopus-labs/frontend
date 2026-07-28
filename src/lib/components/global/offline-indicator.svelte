@@ -42,14 +42,14 @@
 </script>
 
 {#if !isOnline}
-	<div class="bg-orange-500 text-white text-center text-sm py-1.5 px-4">
+	<div class="bg-orange-500 px-4 py-1.5 text-center text-sm text-white">
 		You are offline — orders will be saved locally
 		{#if pendingCount > 0}
-			<span class="ml-2 bg-white/20 rounded-full px-2 py-0.5 text-xs">{pendingCount} pending</span>
+			<span class="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs">{pendingCount} pending</span>
 		{/if}
 	</div>
 {:else if pendingCount > 0}
-	<div class="bg-blue-500 text-white text-center text-sm py-1.5 px-4">
+	<div class="bg-blue-500 px-4 py-1.5 text-center text-sm text-white">
 		{pendingCount} offline order{pendingCount === 1 ? '' : 's'} pending sync...
 	</div>
 {/if}

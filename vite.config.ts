@@ -22,7 +22,8 @@ export default defineConfig({
 			manifest: {
 				name: 'RestaurantPro',
 				short_name: 'RestaurantPro',
-				description: 'Multi-tenant POS and billing platform for restaurants, salons, gyms, cafes and more',
+				description:
+					'Multi-tenant POS and billing platform for restaurants, salons, gyms, cafes and more',
 				theme_color: '#b45a1e',
 				background_color: '#ffffff',
 				display: 'standalone',
@@ -82,6 +83,22 @@ export default defineConfig({
 							}
 						}
 					},
+					// SvelteKit server load data — cached so client-side navigation works offline
+					{
+						urlPattern: /\/__data\.json(\?.*)?$/i,
+						handler: 'NetworkFirst',
+						options: {
+							cacheName: 'sveltekit-data-cache',
+							expiration: {
+								maxEntries: 50,
+								maxAgeSeconds: 60 * 60 // 1 hour
+							},
+							cacheableResponse: {
+								statuses: [0, 200]
+							},
+							networkTimeoutSeconds: 5
+						}
+					},
 					{
 						urlPattern: /\/api\/auth\/.*/i,
 						handler: 'NetworkOnly',
@@ -98,7 +115,7 @@ export default defineConfig({
 							cacheName: 'api-cache',
 							expiration: {
 								maxEntries: 100,
-								maxAgeSeconds: 60 * 5 // 5 minutes
+								maxAgeSeconds: 60 * 30 // 30 minutes — longer TTL for offline resilience
 							},
 							cacheableResponse: {
 								statuses: [0, 200]
@@ -130,11 +147,18 @@ export default defineConfig({
 						return 'vendor-table';
 					}
 					// Vendor chunk: auth libraries
-					if (id.includes('node_modules/better-auth') || id.includes('node_modules/@dodopayments/better-auth')) {
+					if (
+						id.includes('node_modules/better-auth') ||
+						id.includes('node_modules/@dodopayments/better-auth')
+					) {
 						return 'vendor-auth';
 					}
 					// Vendor chunk: form/UI libraries
-					if (id.includes('node_modules/bits-ui') || id.includes('node_modules/formsnap') || id.includes('node_modules/sveltekit-superforms')) {
+					if (
+						id.includes('node_modules/bits-ui') ||
+						id.includes('node_modules/formsnap') ||
+						id.includes('node_modules/sveltekit-superforms')
+					) {
 						return 'vendor-ui';
 					}
 				}

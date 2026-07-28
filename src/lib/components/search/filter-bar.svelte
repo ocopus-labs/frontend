@@ -68,7 +68,7 @@
 			{filterButtonLabel}
 			{#if hasActiveFilters}
 				<span
-					class="bg-primary text-primary-foreground flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium"
+					class="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground"
 				>
 					{activeFilters.length}
 				</span>
@@ -93,7 +93,7 @@
 					variant="ghost"
 					size="sm"
 					onclick={onClearAll}
-					class="text-muted-foreground hover:text-foreground h-7 gap-1 px-2 text-xs"
+					class="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
 				>
 					<XIcon class="h-3 w-3" />
 					Clear all

@@ -107,9 +107,7 @@
 							enabled: true,
 							regime: toApiRegime(taxRegime),
 							defaultTaxRate: Number(taxRate) || 0,
-							...(taxRegime === 'gst' && gstin.trim()
-								? { registrationNumber: gstin.trim() }
-								: {})
+							...(taxRegime === 'gst' && gstin.trim() ? { registrationNumber: gstin.trim() } : {})
 						}
 			);
 
@@ -134,10 +132,10 @@
 	}
 
 	const taxRegimes = [
-		{ value: 'none' as const, label: 'No Tax', description: 'I\'ll configure this later' },
+		{ value: 'none' as const, label: 'No Tax', description: "I'll configure this later" },
 		{ value: 'gst' as const, label: 'GST (India)', description: 'Goods and Services Tax' },
 		{ value: 'vat' as const, label: 'VAT', description: 'Value Added Tax' },
-		{ value: 'sales_tax' as const, label: 'Sales Tax', description: 'US Sales Tax' },
+		{ value: 'sales_tax' as const, label: 'Sales Tax', description: 'US Sales Tax' }
 	];
 </script>
 

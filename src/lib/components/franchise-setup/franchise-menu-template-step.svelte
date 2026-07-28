@@ -78,8 +78,8 @@
 	<div>
 		<h1 class="step-heading text-3xl font-bold" tabindex="-1">Shared menu template</h1>
 		<p class="mt-2 text-muted-foreground">
-			Pick a starting menu. It's applied to your first location and inherited by every location
-			you add later.
+			Pick a starting menu. It's applied to your first location and inherited by every location you
+			add later.
 		</p>
 	</div>
 
@@ -121,8 +121,6 @@
 				Apply template
 			{/if}
 		</Button>
-		<p class="text-sm text-muted-foreground">
-			You can edit every item afterwards, per location.
-		</p>
+		<p class="text-sm text-muted-foreground">You can edit every item afterwards, per location.</p>
 	</div>
 </div>

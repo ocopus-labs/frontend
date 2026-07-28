@@ -264,7 +264,10 @@
 		}
 	}
 
-	function getPromoStatus(promo: LoyaltyPromotion): { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' } {
+	function getPromoStatus(promo: LoyaltyPromotion): {
+		label: string;
+		variant: 'default' | 'secondary' | 'outline' | 'destructive';
+	} {
 		const now = new Date();
 		const start = new Date(promo.startDate);
 		const end = new Date(promo.endDate);
@@ -359,7 +362,13 @@
 						</Field.Field>
 						<Field.Field>
 							<Field.Label for="tier-gold">Gold</Field.Label>
-							<Input id="tier-gold" type="number" min="1" bind:value={tierGold} class="max-w-[8rem]" />
+							<Input
+								id="tier-gold"
+								type="number"
+								min="1"
+								bind:value={tierGold}
+								class="max-w-[8rem]"
+							/>
 						</Field.Field>
 						<Field.Field>
 							<Field.Label for="tier-platinum">Platinum</Field.Label>
@@ -466,9 +475,7 @@
 							{#each tiers as tier, index}
 								<Card.Root size="sm">
 									<Card.Content class="flex items-start gap-3">
-										<IconGripVertical
-											class="h-4 w-4 shrink-0 self-center text-muted-foreground"
-										/>
+										<IconGripVertical class="h-4 w-4 shrink-0 self-center text-muted-foreground" />
 										<div class="grid flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
 											<Field.Field>
 												<Field.Label class="text-xs text-muted-foreground">Name</Field.Label>

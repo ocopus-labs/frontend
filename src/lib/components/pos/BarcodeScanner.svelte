@@ -74,8 +74,8 @@
 				video: {
 					facingMode: 'environment',
 					width: { ideal: 640 },
-					height: { ideal: 480 },
-				},
+					height: { ideal: 480 }
+				}
 			});
 
 			if (videoRef) {
@@ -114,8 +114,8 @@
 					'codabar',
 					'itf',
 					'qr_code',
-					'data_matrix',
-				],
+					'data_matrix'
+				]
 			});
 
 			const detectFrame = async () => {
@@ -189,16 +189,19 @@
 	});
 </script>
 
-<Dialog.Root bind:open onOpenChange={(o) => { if (!o) handleClose(); }}>
+<Dialog.Root
+	bind:open
+	onOpenChange={(o) => {
+		if (!o) handleClose();
+	}}
+>
 	<Dialog.Content class="sm:max-w-lg">
 		<Dialog.Header>
 			<Dialog.Title class="flex items-center gap-2">
 				<IconScan class="h-5 w-5" />
 				Scan Barcode
 			</Dialog.Title>
-			<Dialog.Description>
-				Point camera at a barcode or use a USB scanner.
-			</Dialog.Description>
+			<Dialog.Description>Point camera at a barcode or use a USB scanner.</Dialog.Description>
 		</Dialog.Header>
 
 		<div class="space-y-4">
@@ -216,24 +219,13 @@
 			{:else}
 				<div class="relative overflow-hidden rounded-lg bg-black">
 					<!-- svelte-ignore element_invalid_self_closing_tag -->
-					<video
-						bind:this={videoRef}
-						class="h-auto w-full"
-						playsinline
-						muted
-					/>
+					<video bind:this={videoRef} class="h-auto w-full" playsinline muted />
 					{#if isScanning}
-						<div
-							class="pointer-events-none absolute inset-0 flex items-center justify-center"
-						>
-							<div
-								class="h-48 w-64 rounded-lg border-2 border-primary/60"
-							></div>
+						<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+							<div class="h-48 w-64 rounded-lg border-2 border-primary/60"></div>
 						</div>
-						<div class="absolute bottom-2 left-2 right-2">
-							<div
-								class="rounded-md bg-black/60 px-3 py-1.5 text-center text-xs text-white"
-							>
+						<div class="absolute right-2 bottom-2 left-2">
+							<div class="rounded-md bg-black/60 px-3 py-1.5 text-center text-xs text-white">
 								{#if scanCooldown}
 									Barcode detected!
 								{:else}
@@ -247,9 +239,7 @@
 
 			<div class="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
 				<p class="font-medium">USB Scanner Active</p>
-				<p class="mt-0.5">
-					Scan with a USB barcode scanner at any time while this dialog is open.
-				</p>
+				<p class="mt-0.5">Scan with a USB barcode scanner at any time while this dialog is open.</p>
 			</div>
 		</div>
 

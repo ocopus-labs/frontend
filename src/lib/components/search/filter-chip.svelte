@@ -5,8 +5,7 @@
 		base: 'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all select-none',
 		variants: {
 			variant: {
-				default:
-					'bg-secondary text-secondary-foreground border-transparent hover:bg-secondary/80',
+				default: 'bg-secondary text-secondary-foreground border-transparent hover:bg-secondary/80',
 				outline: 'bg-background text-foreground border-input hover:bg-accent',
 				primary: 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20',
 				destructive:
@@ -59,7 +58,9 @@
 		</span>
 	{/if}
 
-	<span class="font-medium">{label}{#if value}<span class="text-current/70">:</span>{/if}</span>
+	<span class="font-medium"
+		>{label}{#if value}<span class="text-current/70">:</span>{/if}</span
+	>
 
 	{#if value}
 		<span class="font-normal">{value}</span>
@@ -72,7 +73,7 @@
 				e.stopPropagation();
 				onRemove?.();
 			}}
-			class="hover:bg-foreground/10 ml-0.5 rounded-full p-0.5 transition-colors focus:outline-none"
+			class="ml-0.5 rounded-full p-0.5 transition-colors hover:bg-foreground/10 focus:outline-none"
 			aria-label="Remove filter"
 		>
 			<XIcon class="h-3 w-3" />

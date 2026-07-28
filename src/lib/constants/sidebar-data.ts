@@ -15,6 +15,7 @@ import SettingsIcon from '@lucide/svelte/icons/settings';
 import LandmarkIcon from '@lucide/svelte/icons/landmark';
 import StarIcon from '@lucide/svelte/icons/star';
 import TicketPercentIcon from '@lucide/svelte/icons/ticket-percent';
+import SparklesIcon from '@lucide/svelte/icons/sparkles';
 export interface NavSubItem {
 	title: string;
 	url: string;
@@ -95,6 +96,14 @@ export const sidebarData: Record<string, SidebarData> = {
 						url: '/[business]/[slug]/dashboard/reports'
 					}
 				]
+			},
+			{
+				// Second, under Dashboard: the assistant answers the same
+				// questions the dashboard does, and until B1 it had no nav entry
+				// at all — it was reachable only by typing the URL.
+				title: 'Assistant',
+				url: '/[business]/[slug]/assistant',
+				icon: SparklesIcon
 			},
 			{
 				title: 'POS',

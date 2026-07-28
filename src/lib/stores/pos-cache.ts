@@ -12,7 +12,10 @@
 import { writable, get } from 'svelte/store';
 import { getMenu } from '$lib/api/menu';
 import { getTables } from '$lib/api/table';
-import { cacheMenu as persistMenuToIDB, getCachedMenu as getMenuFromIDB } from '$lib/utils/offline-store';
+import {
+	cacheMenu as persistMenuToIDB,
+	getCachedMenu as getMenuFromIDB
+} from '$lib/utils/offline-store';
 import type { MenuResponse } from '$lib/types/menu';
 
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes

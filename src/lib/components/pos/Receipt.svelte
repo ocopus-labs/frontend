@@ -184,7 +184,9 @@
 			</div>
 		{/if}
 		{#if receipt.discount > 0}
-			<div class="my-[3px] flex justify-between text-[11px] text-emerald-600 dark:text-emerald-400 print:text-[9px]">
+			<div
+				class="my-[3px] flex justify-between text-[11px] text-emerald-600 dark:text-emerald-400 print:text-[9px]"
+			>
 				<span>Discount</span>
 				<span>-{i18n.formatCurrency(receipt.discount)}</span>
 			</div>

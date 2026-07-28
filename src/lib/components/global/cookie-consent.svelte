@@ -14,7 +14,7 @@
 		const consent = {
 			essential: true,
 			analytics,
-			acceptedAt: new Date().toISOString(),
+			acceptedAt: new Date().toISOString()
 		};
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(consent));
 		showBanner = false;
@@ -27,27 +27,28 @@
 			body: JSON.stringify({
 				consents: [
 					{ type: 'essential', granted: true },
-					{ type: 'analytics', granted: analytics },
-				],
-			}),
+					{ type: 'analytics', granted: analytics }
+				]
+			})
 		}).catch(() => {});
 	}
 </script>
 
 {#if showBanner}
-	<div class="fixed inset-x-0 bottom-0 z-[100] border-t bg-background/95 backdrop-blur p-4 md:p-6 shadow-lg">
-		<div class="mx-auto flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+	<div
+		class="fixed inset-x-0 bottom-0 z-[100] border-t bg-background/95 p-4 shadow-lg backdrop-blur md:p-6"
+	>
+		<div
+			class="mx-auto flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+		>
 			<p class="text-sm text-muted-foreground">
-				We use essential cookies for the app to function. Optional analytics cookies help us improve.
+				We use essential cookies for the app to function. Optional analytics cookies help us
+				improve.
 				<a href="/privacy" class="underline hover:text-foreground">Privacy Policy</a>
 			</p>
 			<div class="flex shrink-0 gap-2">
-				<Button variant="outline" size="sm" onclick={() => accept(false)}>
-					Essential Only
-				</Button>
-				<Button size="sm" onclick={() => accept(true)}>
-					Accept All
-				</Button>
+				<Button variant="outline" size="sm" onclick={() => accept(false)}>Essential Only</Button>
+				<Button size="sm" onclick={() => accept(true)}>Accept All</Button>
 			</div>
 		</div>
 	</div>

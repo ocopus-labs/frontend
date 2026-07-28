@@ -57,20 +57,31 @@
 
 	// Calculate change if not provided
 	const calculatedChange = $derived(
-		changeValue !== undefined ? changeValue :
-		previousValue !== undefined ? value - previousValue : 0
+		changeValue !== undefined
+			? changeValue
+			: previousValue !== undefined
+				? value - previousValue
+				: 0
 	);
 
 	const calculatedPercent = $derived(
-		changePercent !== undefined ? changePercent :
-		previousValue !== undefined && previousValue !== 0
-			? ((value - previousValue) / Math.abs(previousValue)) * 100
-			: 0
+		changePercent !== undefined
+			? changePercent
+			: previousValue !== undefined && previousValue !== 0
+				? ((value - previousValue) / Math.abs(previousValue)) * 100
+				: 0
 	);
 
 	const trend = $derived<'up' | 'down' | 'neutral'>(
-		calculatedChange > 0 ? (invertColors ? 'down' : 'up') :
-		calculatedChange < 0 ? (invertColors ? 'up' : 'down') : 'neutral'
+		calculatedChange > 0
+			? invertColors
+				? 'down'
+				: 'up'
+			: calculatedChange < 0
+				? invertColors
+					? 'up'
+					: 'down'
+				: 'neutral'
 	);
 
 	const displayValue = $derived(() => {
@@ -88,11 +99,13 @@
 		}
 	});
 
-	const iconSize = $derived({
-		sm: 'h-3 w-3',
-		default: 'h-3.5 w-3.5',
-		lg: 'h-4 w-4'
-	}[size]);
+	const iconSize = $derived(
+		{
+			sm: 'h-3 w-3',
+			default: 'h-3.5 w-3.5',
+			lg: 'h-4 w-4'
+		}[size]
+	);
 </script>
 
 <span class={cn(trendBadgeVariants({ trend, size }), className)} data-slot="trend-badge">

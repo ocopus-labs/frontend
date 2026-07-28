@@ -8,14 +8,14 @@ export const load: PageLoad = async ({ parent, fetch, depends }) => {
 	try {
 		const [groupsData, menuData] = await Promise.all([
 			getGroups(businessId, { fetch }),
-			getMenu(businessId, { fetch }),
+			getMenu(businessId, { fetch })
 		]);
 
 		return {
 			businessId,
 			business,
 			groups: groupsData.groups,
-			menuItems: menuData.items,
+			menuItems: menuData.items
 		};
 	} catch (err) {
 		console.warn('Failed to fetch groups:', err);
@@ -23,7 +23,7 @@ export const load: PageLoad = async ({ parent, fetch, depends }) => {
 			businessId,
 			business,
 			groups: [],
-			menuItems: [],
+			menuItems: []
 		};
 	}
 };

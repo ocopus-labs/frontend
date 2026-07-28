@@ -14,12 +14,7 @@
 	import { bulkUserAction, impersonateUser } from '$lib/api/admin';
 	import type { PageData } from './$types';
 
-	import {
-		SearchInput,
-		FilterBar,
-		FilterDropdown,
-		type Filter
-	} from '$lib/components/search';
+	import { SearchInput, FilterBar, FilterDropdown, type Filter } from '$lib/components/search';
 	import { StatusPill, EmptyState, LiveCounter } from '$lib/components/data-display';
 
 	import Eye from '@lucide/svelte/icons/eye';
@@ -77,7 +72,9 @@
 	async function confirmBulkAction() {
 		try {
 			const result = await bulkUserAction({ ids: [...selectedIds], action: bulkAction });
-			toast.success(`${result.processed} user${result.processed !== 1 ? 's' : ''} ${bulkAction === 'ban' ? 'banned' : 'unbanned'}`);
+			toast.success(
+				`${result.processed} user${result.processed !== 1 ? 's' : ''} ${bulkAction === 'ban' ? 'banned' : 'unbanned'}`
+			);
 			if (result.failed > 0) {
 				toast.warning(`${result.failed} user${result.failed !== 1 ? 's' : ''} failed to update`);
 			}
@@ -205,20 +202,30 @@
 	// Active filters for chips
 	const activeFilters = $derived<Filter[]>([
 		...(searchQuery ? [{ id: 'search', label: 'Search', value: searchQuery }] : []),
-		...(statusFilter ? [{
-			id: 'status',
-			label: 'Status',
-			value: statusFilter === 'true' ? 'Banned' : 'Active',
-			variant: (statusFilter === 'true' ? 'destructive' : 'primary') as Filter['variant']
-		}] : []),
-		...(roleFilter ? [{
-			id: 'role',
-			label: 'Role',
-			value: roleOptions.find(r => r.value === roleFilter)?.label || roleFilter
-		}] : [])
+		...(statusFilter
+			? [
+					{
+						id: 'status',
+						label: 'Status',
+						value: statusFilter === 'true' ? 'Banned' : 'Active',
+						variant: (statusFilter === 'true' ? 'destructive' : 'primary') as Filter['variant']
+					}
+				]
+			: []),
+		...(roleFilter
+			? [
+					{
+						id: 'role',
+						label: 'Role',
+						value: roleOptions.find((r) => r.value === roleFilter)?.label || roleFilter
+					}
+				]
+			: [])
 	]);
 
-	function getRoleBadgeVariant(role: string | null): 'default' | 'destructive' | 'secondary' | 'outline' {
+	function getRoleBadgeVariant(
+		role: string | null
+	): 'default' | 'destructive' | 'secondary' | 'outline' {
 		if (role === 'super_admin') return 'destructive';
 		if (role === 'franchise_owner') return 'default';
 		return 'secondary';
@@ -343,10 +350,7 @@
 									<Avatar.Fallback>{getInitials(user.name, user.email)}</Avatar.Fallback>
 								</Avatar.Root>
 								<div>
-									<a
-										href="/admin/users/{user.id}"
-										class="font-medium hover:underline"
-									>
+									<a href="/admin/users/{user.id}" class="font-medium hover:underline">
 										{user.name || 'Unnamed User'}
 									</a>
 									<p class="text-xs text-muted-foreground">{user.email}</p>
@@ -357,12 +361,12 @@
 							{#if user.role}
 								<Badge variant={getRoleBadgeVariant(user.role)} class="capitalize">
 									{#if user.role === 'super_admin'}
-										<Shield class="h-3 w-3 mr-1" />
+										<Shield class="mr-1 h-3 w-3" />
 									{/if}
 									{user.role.replace('_', ' ')}
 								</Badge>
 							{:else}
-								<span class="text-muted-foreground text-sm">No role</span>
+								<span class="text-sm text-muted-foreground">No role</span>
 							{/if}
 						</Table.Cell>
 						<Table.Cell>
@@ -381,7 +385,7 @@
 						</Table.Cell>
 						<Table.Cell class="text-right tabular-nums">{user._count.businessUsers}</Table.Cell>
 						<Table.Cell class="text-right tabular-nums">{user._count.orders}</Table.Cell>
-						<Table.Cell class="text-muted-foreground text-sm">
+						<Table.Cell class="text-sm text-muted-foreground">
 							{formatDate(user.createdAt)}
 						</Table.Cell>
 						<Table.Cell>
@@ -414,10 +418,14 @@
 								type="no-results"
 								title="No users found"
 								description={searchQuery || statusFilter || roleFilter
-									? "Try adjusting your search or filters"
-									: "No users have registered yet"}
-								actionLabel={searchQuery || statusFilter || roleFilter ? "Clear filters" : undefined}
-								onAction={searchQuery || statusFilter || roleFilter ? handleClearFilters : undefined}
+									? 'Try adjusting your search or filters'
+									: 'No users have registered yet'}
+								actionLabel={searchQuery || statusFilter || roleFilter
+									? 'Clear filters'
+									: undefined}
+								onAction={searchQuery || statusFilter || roleFilter
+									? handleClearFilters
+									: undefined}
 								size="sm"
 							/>
 						</Table.Cell>
@@ -453,7 +461,7 @@
 						return start + i;
 					}) as pageNum}
 						<Button
-							variant={pageNum === data.page ? "default" : "ghost"}
+							variant={pageNum === data.page ? 'default' : 'ghost'}
 							size="sm"
 							class="w-9"
 							onclick={() => goToPage(pageNum)}
@@ -495,7 +503,9 @@
 	description={bulkAction === 'ban'
 		? `Are you sure you want to ban ${selectedIds.size} user${selectedIds.size !== 1 ? 's' : ''}? They will be unable to access the platform.`
 		: `Are you sure you want to unban ${selectedIds.size} user${selectedIds.size !== 1 ? 's' : ''}?`}
-	confirmLabel={bulkAction === 'ban' ? `Ban ${selectedIds.size} Users` : `Unban ${selectedIds.size} Users`}
+	confirmLabel={bulkAction === 'ban'
+		? `Ban ${selectedIds.size} Users`
+		: `Unban ${selectedIds.size} Users`}
 	variant={bulkAction === 'ban' ? 'destructive' : 'default'}
 	onConfirm={confirmBulkAction}
 />

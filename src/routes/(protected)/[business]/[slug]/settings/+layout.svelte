@@ -14,6 +14,7 @@
 	import Gift from '@lucide/svelte/icons/gift';
 	import Blocks from '@lucide/svelte/icons/blocks';
 	import KeyRound from '@lucide/svelte/icons/key-round';
+	import SparklesIcon from '@lucide/svelte/icons/sparkles';
 
 	let { data, children } = $props();
 
@@ -53,7 +54,11 @@
 		{ label: 'Loyalty', href: `${base}/loyalty`, icon: Gift },
 
 		{ label: 'Features', href: `${base}/features`, icon: Blocks, startsGroup: true },
-		{ label: 'API keys', href: `${base}/api-keys`, icon: KeyRound }
+		{ label: 'API keys', href: `${base}/api-keys`, icon: KeyRound },
+		// Sits in the platform group rather than beside the assistant itself:
+		// this is the billing-shaped question ("what is it costing us"), and it
+		// is where an owner looks for it.
+		{ label: 'Assistant usage', href: `${base}/assistant-usage`, icon: SparklesIcon }
 	]);
 </script>
 

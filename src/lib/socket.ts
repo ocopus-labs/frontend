@@ -31,7 +31,8 @@ export async function getSocket(): Promise<Socket | null> {
 
 	if (!socket) {
 		const { io } = await loadSocketIO();
-		const backendUrl = env.PUBLIC_API_BASE?.replace(/\/api(\/v\d+)?$/, '') || 'http://localhost:3000';
+		const backendUrl =
+			env.PUBLIC_API_BASE?.replace(/\/api(\/v\d+)?$/, '') || 'http://localhost:3000';
 		socket = io(`${backendUrl}/orders`, {
 			withCredentials: true,
 			autoConnect: false,
@@ -87,7 +88,9 @@ export async function leaveBusiness(businessId: string): Promise<void> {
 	}
 }
 
-export async function onOrderCreated(callback: OrderSocketEvents['order:created']): Promise<() => void> {
+export async function onOrderCreated(
+	callback: OrderSocketEvents['order:created']
+): Promise<() => void> {
 	const sock = await getSocket();
 	if (sock) {
 		sock.on('order:created', callback);
@@ -96,7 +99,9 @@ export async function onOrderCreated(callback: OrderSocketEvents['order:created'
 	return () => {};
 }
 
-export async function onOrderUpdated(callback: OrderSocketEvents['order:updated']): Promise<() => void> {
+export async function onOrderUpdated(
+	callback: OrderSocketEvents['order:updated']
+): Promise<() => void> {
 	const sock = await getSocket();
 	if (sock) {
 		sock.on('order:updated', callback);
@@ -105,7 +110,9 @@ export async function onOrderUpdated(callback: OrderSocketEvents['order:updated'
 	return () => {};
 }
 
-export async function onOrderCompleted(callback: OrderSocketEvents['order:completed']): Promise<() => void> {
+export async function onOrderCompleted(
+	callback: OrderSocketEvents['order:completed']
+): Promise<() => void> {
 	const sock = await getSocket();
 	if (sock) {
 		sock.on('order:completed', callback);
@@ -114,7 +121,9 @@ export async function onOrderCompleted(callback: OrderSocketEvents['order:comple
 	return () => {};
 }
 
-export async function onItemStatus(callback: OrderSocketEvents['item:status']): Promise<() => void> {
+export async function onItemStatus(
+	callback: OrderSocketEvents['item:status']
+): Promise<() => void> {
 	const sock = await getSocket();
 	if (sock) {
 		sock.on('item:status', callback);
@@ -123,7 +132,9 @@ export async function onItemStatus(callback: OrderSocketEvents['item:status']): 
 	return () => {};
 }
 
-export async function onMenuPublished(callback: (data: { businessId: string }) => void): Promise<() => void> {
+export async function onMenuPublished(
+	callback: (data: { businessId: string }) => void
+): Promise<() => void> {
 	const sock = await getSocket();
 	if (sock) {
 		sock.on('menu:published', callback);

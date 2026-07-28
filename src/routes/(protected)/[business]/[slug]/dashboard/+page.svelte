@@ -42,7 +42,6 @@
 	let selectedPeriod = $state(data.period || 'month');
 	let isRefreshing = $state(false);
 
-
 	function onPeriodChange(value: string) {
 		selectedPeriod = value;
 		const url = new URL($page.url);
@@ -307,7 +306,7 @@
 							<IconArmchair class="size-5 text-chart-3" />
 						</div>
 						<div class="min-w-0 flex-1">
-							<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+							<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 								Table Occupancy
 							</p>
 							{#if tableStats}
@@ -341,7 +340,7 @@
 							<IconClipboardList class="size-5 text-chart-1" />
 						</div>
 						<div class="min-w-0 flex-1">
-							<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+							<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 								Active Orders
 							</p>
 							<p class="text-lg font-bold tabular-nums">
@@ -358,7 +357,7 @@
 							<IconActivity class="size-5 text-chart-5" />
 						</div>
 						<div class="min-w-0 flex-1">
-							<p class="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+							<p class="mb-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
 								Order Pipeline
 							</p>
 							<div class="flex items-center gap-3 text-xs">
@@ -372,7 +371,9 @@
 								<div class="flex items-center gap-1">
 									<IconCircleCheck class="h-3.5 w-3.5 text-success" />
 									<span class="font-semibold tabular-nums">
-										{orderStats?.completedOrders ?? data.dashboardStats?.orders?.completedOrders ?? 0}
+										{orderStats?.completedOrders ??
+											data.dashboardStats?.orders?.completedOrders ??
+											0}
 									</span>
 									<span class="text-muted-foreground">Done</span>
 								</div>
@@ -397,7 +398,7 @@
 							<IconUsersGroup class="size-5 text-chart-4" />
 						</div>
 						<div class="min-w-0 flex-1">
-							<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+							<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 								On Duty
 							</p>
 							<p class="text-lg font-bold tabular-nums">

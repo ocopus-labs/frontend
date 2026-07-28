@@ -3,7 +3,14 @@
 	import type { DisplayOrder } from '$lib/api';
 	import { getDisplayQueue } from '$lib/api';
 	import { browser } from '$app/environment';
-	import { connectSocket, joinBusiness, leaveBusiness, onOrderUpdated, onOrderCreated, onOrderCompleted } from '$lib/socket';
+	import {
+		connectSocket,
+		joinBusiness,
+		leaveBusiness,
+		onOrderUpdated,
+		onOrderCreated,
+		onOrderCompleted
+	} from '$lib/socket';
 
 	let { data }: { data: PageData } = $props();
 
@@ -103,20 +110,21 @@
 		const existing = readyTimers.get(orderId);
 		if (existing) clearTimeout(existing);
 
-		const timer = setTimeout(() => {
-			orders = orders.filter((o) => o.id !== orderId);
-			readyTimers.delete(orderId);
-			lastReadyIds.delete(orderId);
-		}, 5 * 60 * 1000); // 5 minutes
+		const timer = setTimeout(
+			() => {
+				orders = orders.filter((o) => o.id !== orderId);
+				readyTimers.delete(orderId);
+				lastReadyIds.delete(orderId);
+			},
+			5 * 60 * 1000
+		); // 5 minutes
 
 		readyTimers.set(orderId, timer);
 	}
 
 	function handleQueueUpdate(newOrders: DisplayOrder[]) {
 		// Check for new ready orders
-		const newReadyIds = new Set(
-			newOrders.filter((o) => o.status === 'ready').map((o) => o.id)
-		);
+		const newReadyIds = new Set(newOrders.filter((o) => o.status === 'ready').map((o) => o.id));
 		let hasNewReady = false;
 		for (const id of newReadyIds) {
 			if (!lastReadyIds.has(id)) {
@@ -299,7 +307,13 @@
 		<!-- Preparing column -->
 		<section class="column preparing-column">
 			<div class="column-header preparing-header">
-				<svg class="column-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<svg
+					class="column-icon"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+				>
 					<circle cx="12" cy="12" r="10" />
 					<polyline points="12 6 12 12 16 14" />
 				</svg>
@@ -315,7 +329,13 @@
 				{/each}
 				{#if preparingOrders.length === 0}
 					<div class="empty-state">
-						<svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+						<svg
+							class="empty-icon"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.5"
+						>
 							<path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
 						</svg>
 						<p>No orders preparing</p>
@@ -327,7 +347,13 @@
 		<!-- Ready column -->
 		<section class="column ready-column">
 			<div class="column-header ready-header">
-				<svg class="column-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+				<svg
+					class="column-icon"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2.5"
+				>
 					<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
 				</svg>
 				<h2>Ready for Pickup</h2>
@@ -342,7 +368,13 @@
 				{/each}
 				{#if readyOrders.length === 0}
 					<div class="empty-state">
-						<svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+						<svg
+							class="empty-icon"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.5"
+						>
 							<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 						</svg>
 						<p>No orders ready</p>
@@ -365,7 +397,12 @@
 		flex-direction: column;
 		background: #0f172a;
 		color: #f8fafc;
-		font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+		font-family:
+			system-ui,
+			-apple-system,
+			'Segoe UI',
+			Roboto,
+			sans-serif;
 		overflow: hidden;
 	}
 
@@ -543,7 +580,9 @@
 		justify-content: center;
 		padding: 1.25rem 0.75rem;
 		border-radius: 1rem;
-		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		transition:
+			transform 0.2s ease,
+			box-shadow 0.2s ease;
 		animation: fadeIn 0.3s ease;
 	}
 
@@ -557,7 +596,9 @@
 		background: linear-gradient(135deg, #052e16 0%, #14532d 100%);
 		border: 2px solid #166534;
 		box-shadow: 0 0 20px rgba(74, 222, 128, 0.15);
-		animation: fadeIn 0.3s ease, readyPulse 2s ease-in-out 1;
+		animation:
+			fadeIn 0.3s ease,
+			readyPulse 2s ease-in-out 1;
 	}
 
 	.token-number {
@@ -610,7 +651,8 @@
 
 	/* ==================== Animations ==================== */
 	@keyframes ping {
-		75%, 100% {
+		75%,
+		100% {
 			transform: scale(2);
 			opacity: 0;
 		}

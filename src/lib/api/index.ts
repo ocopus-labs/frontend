@@ -413,6 +413,7 @@ export {
 	createApiKey,
 	revokeApiKey,
 	rotateApiKey,
+	getGrantablePermissions,
 	AVAILABLE_SCOPES,
 	AVAILABLE_PERMISSIONS,
 	type ApiKey,
@@ -741,3 +742,33 @@ export {
 	type IncompleteOnboarding,
 	type UpdateOnboardingPayload
 } from './onboarding';
+
+// Agent API (assistant sessions, history, usage). Contract v1 —
+// docs/contracts/agent-api.md. Serve from fixtures with PUBLIC_AGENT_MOCK=1.
+export {
+	getAgentStatus,
+	createSession,
+	listSessions,
+	getSession,
+	updateSession,
+	deleteSession,
+	sendMessageFeedback,
+	getUsage,
+	chatStreamUrl,
+	AGENT_MOCK,
+	type AgentSession,
+	type AgentMessage,
+	type AgentStatus,
+	type MessagePart,
+	type ToolPart,
+	type ToolPartState,
+	type ToolApproval,
+	type ToolResultEnvelope,
+	type TableColumn,
+	type ValueFormat,
+	type SessionListResponse,
+	type SessionDetailResponse,
+	type UsageResponse,
+	type ListSessionsParams,
+	type UpdateSessionParams
+} from './agent';

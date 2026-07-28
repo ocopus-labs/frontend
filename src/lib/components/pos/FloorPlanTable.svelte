@@ -122,10 +122,11 @@
 					{shapeClasses()} {sizeClasses()} {colors.bg} {colors.border}
 					{isSelected ? 'ring-2 ring-primary ring-offset-2' : ''}
 					{isFocused ? 'ring-2 ring-primary' : ''}
-					{isDragging ? 'opacity-70 scale-105 cursor-grabbing z-50' : ''}
+					{isDragging ? 'z-50 scale-105 cursor-grabbing opacity-70' : ''}
 					{isEditMode ? 'cursor-grab hover:scale-105' : 'cursor-pointer hover:shadow-lg'}
-					focus:outline-none focus:ring-2 focus:ring-primary"
-				style="left: {table.position.x}px; top: {table.position.y}px; transform: translate(-50%, -50%);"
+					focus:ring-2 focus:ring-primary focus:outline-none"
+				style="left: {table.position.x}px; top: {table.position
+					.y}px; transform: translate(-50%, -50%);"
 				aria-label="{table.displayName}, {table.capacity} seats, {table.status.replace('_', ' ')}"
 				onpointerdown={handlePointerDown}
 				onclick={handleClick}
@@ -178,9 +179,7 @@
 
 			<div class="flex flex-wrap gap-1">
 				{#if table.status === 'available'}
-					<Button size="sm" class="flex-1" onclick={() => onOpenOrder?.(table)}>
-						Start Order
-					</Button>
+					<Button size="sm" class="flex-1" onclick={() => onOpenOrder?.(table)}>Start Order</Button>
 				{:else if table.status === 'occupied'}
 					<Button size="sm" variant="outline" class="flex-1" onclick={() => onOpenOrder?.(table)}>
 						View Order
@@ -193,9 +192,7 @@
 						Close
 					</Button>
 				{:else if table.status === 'reserved'}
-					<Button size="sm" class="flex-1" onclick={() => onOpenOrder?.(table)}>
-						Seat Party
-					</Button>
+					<Button size="sm" class="flex-1" onclick={() => onOpenOrder?.(table)}>Seat Party</Button>
 				{/if}
 			</div>
 		</div>

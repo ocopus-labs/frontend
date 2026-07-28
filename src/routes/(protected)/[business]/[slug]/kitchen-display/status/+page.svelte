@@ -251,7 +251,13 @@
 	// Extract short display ID from order number (e.g., "ORD-k1a2b3-xY4z" → "#xY4z")
 	function shortOrderId(orderNumber: string): string {
 		const parts = orderNumber.split('-');
-		return '#' + (parts.length >= 3 ? parts[parts.length - 1] : parts[parts.length - 1] || orderNumber).toUpperCase();
+		return (
+			'#' +
+			(parts.length >= 3
+				? parts[parts.length - 1]
+				: parts[parts.length - 1] || orderNumber
+			).toUpperCase()
+		);
 	}
 
 	let clockTime = $derived(
@@ -279,12 +285,12 @@
 		<div class="flex items-center gap-4">
 			<h1 class="text-lg font-bold tracking-wide text-gray-200">ORDER STATUS</h1>
 			{#if isConnected}
-				<Badge variant="outline" class="border-green-500/50 text-green-400 gap-1">
+				<Badge variant="outline" class="gap-1 border-green-500/50 text-green-400">
 					<IconWifi class="h-3 w-3" />
 					Live
 				</Badge>
 			{:else}
-				<Badge variant="outline" class="border-red-500/50 text-red-400 gap-1 animate-pulse">
+				<Badge variant="outline" class="animate-pulse gap-1 border-red-500/50 text-red-400">
 					<IconWifiOff class="h-3 w-3" />
 					Reconnecting
 				</Badge>
@@ -295,17 +301,32 @@
 		<span class="font-mono text-lg text-gray-400">{clockTime}</span>
 
 		<div class="flex items-center gap-1">
-			<Button variant="ghost" size="icon" class="h-9 w-9 text-gray-400 hover:text-white" onclick={refreshOrders}>
+			<Button
+				variant="ghost"
+				size="icon"
+				class="h-9 w-9 text-gray-400 hover:text-white"
+				onclick={refreshOrders}
+			>
 				<IconRefresh class="h-4 w-4" />
 			</Button>
-			<Button variant="ghost" size="icon" class="h-9 w-9 text-gray-400 hover:text-white" onclick={toggleSound}>
+			<Button
+				variant="ghost"
+				size="icon"
+				class="h-9 w-9 text-gray-400 hover:text-white"
+				onclick={toggleSound}
+			>
 				{#if soundEnabled}
 					<IconVolume class="h-4 w-4" />
 				{:else}
 					<IconVolumeOff class="h-4 w-4" />
 				{/if}
 			</Button>
-			<Button variant="ghost" size="icon" class="h-9 w-9 text-gray-400 hover:text-white" onclick={toggleFullscreen}>
+			<Button
+				variant="ghost"
+				size="icon"
+				class="h-9 w-9 text-gray-400 hover:text-white"
+				onclick={toggleFullscreen}
+			>
 				{#if isFullscreen}
 					<IconMinimize class="h-4 w-4" />
 				{:else}
@@ -319,7 +340,9 @@
 	<div class="flex flex-1 flex-col pt-14 md:flex-row">
 		<!-- PREPARING column -->
 		<div class="flex flex-1 flex-col">
-			<div class="bg-gradient-to-r from-amber-600 to-amber-700 px-4 py-2.5 flex items-center justify-between shadow-lg">
+			<div
+				class="flex items-center justify-between bg-gradient-to-r from-amber-600 to-amber-700 px-4 py-2.5 shadow-lg"
+			>
 				<h2 class="text-lg font-bold tracking-wide">PREPARING</h2>
 				<span class="text-sm text-amber-100/80">{preparingOrders.length}</span>
 			</div>
@@ -334,17 +357,19 @@
 						{@const elapsed = getElapsed(order.createdAt)}
 						{@const progress = getProgress(order)}
 						<div
-							class="relative overflow-hidden rounded-lg border bg-gray-900 p-3.5 transition-all duration-300 {getElapsedBg(elapsed)} {order.priority === 'urgent'
-								? 'ring-2 ring-red-500 animate-pulse'
+							class="relative overflow-hidden rounded-lg border bg-gray-900 p-3.5 transition-all duration-300 {getElapsedBg(
+								elapsed
+							)} {order.priority === 'urgent'
+								? 'animate-pulse ring-2 ring-red-500'
 								: order.priority === 'high'
 									? 'ring-2 ring-yellow-500'
 									: ''}"
 						>
 							<!-- Priority accent -->
 							{#if order.priority === 'urgent'}
-								<div class="absolute top-0 left-0 right-0 h-1 bg-red-500"></div>
+								<div class="absolute top-0 right-0 left-0 h-1 bg-red-500"></div>
 							{:else if order.priority === 'high'}
-								<div class="absolute top-0 left-0 right-0 h-1 bg-yellow-500"></div>
+								<div class="absolute top-0 right-0 left-0 h-1 bg-yellow-500"></div>
 							{/if}
 
 							<div class="flex items-center justify-between gap-3">
@@ -358,23 +383,30 @@
 										</span>
 									</div>
 									<div class="mt-1.5 flex flex-wrap items-center gap-1">
-										<Badge variant="secondary" class="text-[10px] px-1.5 py-0">
+										<Badge variant="secondary" class="px-1.5 py-0 text-[10px]">
 											{formatOrderType(order.orderType)}
 										</Badge>
 										{#if order.orderType === 'dine_in' && order.tableNumber}
-											<Badge variant="outline" class="text-[10px] px-1.5 py-0 border-blue-500/50 text-blue-400">
+											<Badge
+												variant="outline"
+												class="border-blue-500/50 px-1.5 py-0 text-[10px] text-blue-400"
+											>
 												T{order.tableNumber}
 											</Badge>
 										{/if}
 										{#if order.priority === 'urgent'}
-											<Badge variant="destructive" class="text-[10px] px-1.5 py-0 animate-pulse">URGENT</Badge>
+											<Badge variant="destructive" class="animate-pulse px-1.5 py-0 text-[10px]"
+												>URGENT</Badge
+											>
 										{:else if order.priority === 'high'}
-											<Badge class="bg-yellow-600 text-[10px] px-1.5 py-0 text-white">HIGH</Badge>
+											<Badge class="bg-yellow-600 px-1.5 py-0 text-[10px] text-white">HIGH</Badge>
 										{/if}
 									</div>
 								</div>
-								<div class="text-right text-xs text-gray-500 shrink-0">
-									{order.items.filter((i: OrderItem) => i.status === 'ready' || i.status === 'served').length}/{order.items.length}
+								<div class="shrink-0 text-right text-xs text-gray-500">
+									{order.items.filter(
+										(i: OrderItem) => i.status === 'ready' || i.status === 'served'
+									).length}/{order.items.length}
 								</div>
 							</div>
 
@@ -382,7 +414,12 @@
 							<div class="mt-3">
 								<div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-800">
 									<div
-										class="h-full rounded-full transition-all duration-700 ease-out {progress === 100 ? 'bg-green-500' : progress > 0 ? 'bg-amber-500' : 'bg-gray-700'}"
+										class="h-full rounded-full transition-all duration-700 ease-out {progress ===
+										100
+											? 'bg-green-500'
+											: progress > 0
+												? 'bg-amber-500'
+												: 'bg-gray-700'}"
 										style="width: {progress}%"
 									></div>
 								</div>
@@ -393,20 +430,22 @@
 
 				{#if preparingOrders.length === 0}
 					<div class="flex flex-col items-center justify-center py-20 text-gray-600">
-						<div class="text-6xl mb-4">&#9203;</div>
+						<div class="mb-4 text-6xl">&#9203;</div>
 						<p class="text-xl font-medium">Waiting for orders</p>
-						<p class="text-sm mt-1">New orders will appear here</p>
+						<p class="mt-1 text-sm">New orders will appear here</p>
 					</div>
 				{/if}
 			</div>
 		</div>
 
 		<!-- Divider -->
-		<div class="hidden md:block w-px bg-gray-800"></div>
+		<div class="hidden w-px bg-gray-800 md:block"></div>
 
 		<!-- READY column -->
 		<div class="flex flex-1 flex-col">
-			<div class="bg-gradient-to-r from-green-600 to-green-700 px-4 py-2.5 flex items-center justify-between shadow-lg">
+			<div
+				class="flex items-center justify-between bg-gradient-to-r from-green-600 to-green-700 px-4 py-2.5 shadow-lg"
+			>
 				<h2 class="text-lg font-bold tracking-wide">READY</h2>
 				<span class="text-sm text-green-100/80">{readyOrders().length}</span>
 			</div>
@@ -420,19 +459,28 @@
 					{#each readyOrders() as order (order.id)}
 						{@const isNew = newlyReadyIds.has(order.id)}
 						<div
-							class="rounded-lg border border-green-600/40 bg-gray-900 p-3.5 transition-all duration-500 {isNew ? 'ring-4 ring-green-400 scale-105' : ''} {order.status === 'completed' ? 'opacity-60' : ''}"
+							class="rounded-lg border border-green-600/40 bg-gray-900 p-3.5 transition-all duration-500 {isNew
+								? 'scale-105 ring-4 ring-green-400'
+								: ''} {order.status === 'completed' ? 'opacity-60' : ''}"
 						>
 							<div class="flex items-center justify-between gap-3">
 								<div class="min-w-0">
-									<span class="font-mono text-2xl font-bold text-green-400 {isNew ? 'animate-bounce' : ''}">
+									<span
+										class="font-mono text-2xl font-bold text-green-400 {isNew
+											? 'animate-bounce'
+											: ''}"
+									>
 										{shortOrderId(order.orderNumber)}
 									</span>
 									<div class="mt-1 flex items-center gap-1">
-										<Badge variant="secondary" class="text-[10px] px-1.5 py-0">
+										<Badge variant="secondary" class="px-1.5 py-0 text-[10px]">
 											{formatOrderType(order.orderType)}
 										</Badge>
 										{#if order.orderType === 'dine_in' && order.tableNumber}
-											<Badge variant="outline" class="text-[10px] px-1.5 py-0 border-blue-500/50 text-blue-400">
+											<Badge
+												variant="outline"
+												class="border-blue-500/50 px-1.5 py-0 text-[10px] text-blue-400"
+											>
 												T{order.tableNumber}
 											</Badge>
 										{/if}
@@ -440,10 +488,12 @@
 								</div>
 								<div class="shrink-0">
 									{#if order.status === 'completed'}
-										<Badge class="bg-green-800 text-green-200 text-[10px] px-1.5 py-0">PICKED UP</Badge>
+										<Badge class="bg-green-800 px-1.5 py-0 text-[10px] text-green-200"
+											>PICKED UP</Badge
+										>
 									{:else}
 										<div class="flex items-center gap-1.5 text-green-400">
-											<div class="h-2.5 w-2.5 rounded-full bg-green-400 animate-ping"></div>
+											<div class="h-2.5 w-2.5 animate-ping rounded-full bg-green-400"></div>
 											<span class="text-xs font-semibold">READY</span>
 										</div>
 									{/if}
@@ -455,9 +505,9 @@
 
 				{#if readyOrders().length === 0}
 					<div class="flex flex-col items-center justify-center py-20 text-gray-600">
-						<div class="text-6xl mb-4">&#10003;</div>
+						<div class="mb-4 text-6xl">&#10003;</div>
 						<p class="text-xl font-medium">All caught up</p>
-						<p class="text-sm mt-1">Completed orders will appear here</p>
+						<p class="mt-1 text-sm">Completed orders will appear here</p>
 					</div>
 				{/if}
 			</div>

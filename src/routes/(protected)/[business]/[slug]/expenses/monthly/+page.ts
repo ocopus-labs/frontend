@@ -8,7 +8,8 @@ export const load: PageLoad = async ({ parent, fetch, url }) => {
 	// Get month from URL or default to current month
 	const monthParam = url.searchParams.get('month');
 	const now = new Date();
-	const selectedMonth = monthParam || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+	const selectedMonth =
+		monthParam || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
 	// Calculate date range for the month
 	const [year, month] = selectedMonth.split('-').map(Number);

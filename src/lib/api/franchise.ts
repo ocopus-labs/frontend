@@ -1,79 +1,92 @@
 import type {
-  Franchise,
-  FranchiseUser,
-  FranchiseAnalytics,
-  Business,
-  CreateBusinessPayload,
+	Franchise,
+	FranchiseUser,
+	FranchiseAnalytics,
+	Business,
+	CreateBusinessPayload
 } from './types';
 import { createApiClient, getApiClient } from './client';
 
 // ==================== FRANCHISE API ====================
 
 export async function createFranchise(
-  data: { name: string; description?: string; logo?: string; settings?: Record<string, unknown>; branding?: Record<string, unknown> },
-  options?: { fetch?: typeof fetch },
+	data: {
+		name: string;
+		description?: string;
+		logo?: string;
+		settings?: Record<string, unknown>;
+		branding?: Record<string, unknown>;
+	},
+	options?: { fetch?: typeof fetch }
 ): Promise<{ message: string; franchise: Franchise }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.post('/franchise', data);
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.post('/franchise', data);
 }
 
-export async function getUserFranchises(
-  options?: { fetch?: typeof fetch },
-): Promise<{ franchises: Franchise[] }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.get('/franchise');
+export async function getUserFranchises(options?: {
+	fetch?: typeof fetch;
+}): Promise<{ franchises: Franchise[] }> {
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.get('/franchise');
 }
 
 export async function getFranchiseById(
-  id: string,
-  options?: { fetch?: typeof fetch },
+	id: string,
+	options?: { fetch?: typeof fetch }
 ): Promise<{ franchise: Franchise; userRole: string }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.get(`/franchise/${id}`);
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.get(`/franchise/${id}`);
 }
 
 export async function getFranchiseBySlug(
-  slug: string,
-  options?: { fetch?: typeof fetch },
+	slug: string,
+	options?: { fetch?: typeof fetch }
 ): Promise<{ franchise: Franchise; userRole: string }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.get(`/franchise/slug/${slug}`);
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.get(`/franchise/slug/${slug}`);
 }
 
 export async function updateFranchise(
-  id: string,
-  data: Partial<{ name: string; description: string; logo: string; status: string; settings: Record<string, unknown>; branding: Record<string, unknown> }>,
-  options?: { fetch?: typeof fetch },
+	id: string,
+	data: Partial<{
+		name: string;
+		description: string;
+		logo: string;
+		status: string;
+		settings: Record<string, unknown>;
+		branding: Record<string, unknown>;
+	}>,
+	options?: { fetch?: typeof fetch }
 ): Promise<{ message: string; franchise: Franchise }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.patch(`/franchise/${id}`, data);
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.patch(`/franchise/${id}`, data);
 }
 
 export async function deleteFranchise(
-  id: string,
-  options?: { fetch?: typeof fetch },
+	id: string,
+	options?: { fetch?: typeof fetch }
 ): Promise<{ message: string }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.delete(`/franchise/${id}`);
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.delete(`/franchise/${id}`);
 }
 
 // ==================== BUSINESS MANAGEMENT ====================
 
 export async function getFranchiseBusinesses(
-  franchiseId: string,
-  options?: { fetch?: typeof fetch },
+	franchiseId: string,
+	options?: { fetch?: typeof fetch }
 ): Promise<{ businesses: Business[] }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.get(`/franchise/${franchiseId}/businesses`);
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.get(`/franchise/${franchiseId}/businesses`);
 }
 
 export async function addBusinessToFranchise(
-  franchiseId: string,
-  data: { businessId: string; configSource?: string },
-  options?: { fetch?: typeof fetch },
+	franchiseId: string,
+	data: { businessId: string; configSource?: string },
+	options?: { fetch?: typeof fetch }
 ): Promise<{ message: string; business: Business }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.post(`/franchise/${franchiseId}/businesses`, data);
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.post(`/franchise/${franchiseId}/businesses`, data);
 }
 
 /**
@@ -86,85 +99,85 @@ export async function addBusinessToFranchise(
  * create-then-attach could.
  */
 export async function createBusinessUnderFranchise(
-  franchiseId: string,
-  data: CreateBusinessPayload,
-  options?: { fetch?: typeof fetch },
+	franchiseId: string,
+	data: CreateBusinessPayload,
+	options?: { fetch?: typeof fetch }
 ): Promise<{ message: string; business: Business }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.post(`/franchise/${franchiseId}/businesses/create`, data);
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.post(`/franchise/${franchiseId}/businesses/create`, data);
 }
 
 export async function removeBusinessFromFranchise(
-  franchiseId: string,
-  businessId: string,
-  options?: { fetch?: typeof fetch },
+	franchiseId: string,
+	businessId: string,
+	options?: { fetch?: typeof fetch }
 ): Promise<{ message: string }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.delete(`/franchise/${franchiseId}/businesses/${businessId}`);
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.delete(`/franchise/${franchiseId}/businesses/${businessId}`);
 }
 
 // ==================== STAFF MANAGEMENT ====================
 
 export async function getFranchiseStaff(
-  franchiseId: string,
-  options?: { fetch?: typeof fetch },
+	franchiseId: string,
+	options?: { fetch?: typeof fetch }
 ): Promise<{ staff: FranchiseUser[] }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.get(`/franchise/${franchiseId}/staff`);
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.get(`/franchise/${franchiseId}/staff`);
 }
 
 export async function inviteFranchiseStaff(
-  franchiseId: string,
-  data: { email: string; role: string; permissions?: string[] },
-  options?: { fetch?: typeof fetch },
+	franchiseId: string,
+	data: { email: string; role: string; permissions?: string[] },
+	options?: { fetch?: typeof fetch }
 ): Promise<{ message: string; member: FranchiseUser }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.post(`/franchise/${franchiseId}/staff`, data);
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.post(`/franchise/${franchiseId}/staff`, data);
 }
 
 export async function updateFranchiseStaff(
-  franchiseId: string,
-  userId: string,
-  data: { role?: string; permissions?: string[]; status?: string },
-  options?: { fetch?: typeof fetch },
+	franchiseId: string,
+	userId: string,
+	data: { role?: string; permissions?: string[]; status?: string },
+	options?: { fetch?: typeof fetch }
 ): Promise<{ message: string; member: FranchiseUser }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.patch(`/franchise/${franchiseId}/staff/${userId}`, data);
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.patch(`/franchise/${franchiseId}/staff/${userId}`, data);
 }
 
 export async function removeFranchiseStaff(
-  franchiseId: string,
-  userId: string,
-  options?: { fetch?: typeof fetch },
+	franchiseId: string,
+	userId: string,
+	options?: { fetch?: typeof fetch }
 ): Promise<{ message: string }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.delete(`/franchise/${franchiseId}/staff/${userId}`);
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.delete(`/franchise/${franchiseId}/staff/${userId}`);
 }
 
 // ==================== ANALYTICS ====================
 
 export async function getFranchiseAnalytics(
-  franchiseId: string,
-  params?: { startDate?: string; endDate?: string },
-  options?: { fetch?: typeof fetch },
+	franchiseId: string,
+	params?: { startDate?: string; endDate?: string },
+	options?: { fetch?: typeof fetch }
 ): Promise<{ analytics: FranchiseAnalytics }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  const query = new URLSearchParams();
-  if (params?.startDate) query.set('startDate', params.startDate);
-  if (params?.endDate) query.set('endDate', params.endDate);
-  const qs = query.toString();
-  return api.get(`/franchise/${franchiseId}/analytics${qs ? `?${qs}` : ''}`);
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	const query = new URLSearchParams();
+	if (params?.startDate) query.set('startDate', params.startDate);
+	if (params?.endDate) query.set('endDate', params.endDate);
+	const qs = query.toString();
+	return api.get(`/franchise/${franchiseId}/analytics${qs ? `?${qs}` : ''}`);
 }
 
 // ==================== SETTINGS ====================
 
 export async function updateFranchiseSettings(
-  franchiseId: string,
-  settings: Record<string, unknown>,
-  options?: { fetch?: typeof fetch },
+	franchiseId: string,
+	settings: Record<string, unknown>,
+	options?: { fetch?: typeof fetch }
 ): Promise<{ message: string; franchise: Franchise }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.patch(`/franchise/${franchiseId}/settings`, settings);
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.patch(`/franchise/${franchiseId}/settings`, settings);
 }
 
 /**
@@ -172,44 +185,44 @@ export async function updateFranchiseSettings(
  * `pushMenuToLocations` applies it to existing ones.
  */
 export async function updateFranchiseMenuTemplate(
-  franchiseId: string,
-  template: Record<string, unknown>,
-  options?: { fetch?: typeof fetch },
+	franchiseId: string,
+	template: Record<string, unknown>,
+	options?: { fetch?: typeof fetch }
 ): Promise<{ message: string; franchise: Franchise }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.patch(`/franchise/${franchiseId}/menu-template`, template);
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.patch(`/franchise/${franchiseId}/menu-template`, template);
 }
 
 export async function syncFranchiseSettings(
-  franchiseId: string,
-  options?: { fetch?: typeof fetch },
+	franchiseId: string,
+	options?: { fetch?: typeof fetch }
 ): Promise<{ message: string; synced: number }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.post(`/franchise/${franchiseId}/sync-settings`);
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.post(`/franchise/${franchiseId}/sync-settings`);
 }
 
 // ==================== AUDIT TRAIL ====================
 
 export async function getFranchiseAuditTrail(
-  franchiseId: string,
-  params?: { limit?: number; offset?: number },
-  options?: { fetch?: typeof fetch },
+	franchiseId: string,
+	params?: { limit?: number; offset?: number },
+	options?: { fetch?: typeof fetch }
 ): Promise<{ logs: import('./types').FranchiseAuditLog[]; total: number }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  const query = new URLSearchParams();
-  if (params?.limit !== undefined) query.set('limit', String(params.limit));
-  if (params?.offset !== undefined) query.set('offset', String(params.offset));
-  const qs = query.toString();
-  return api.get(`/franchise/${franchiseId}/audit-trail${qs ? `?${qs}` : ''}`);
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	const query = new URLSearchParams();
+	if (params?.limit !== undefined) query.set('limit', String(params.limit));
+	if (params?.offset !== undefined) query.set('offset', String(params.offset));
+	const qs = query.toString();
+	return api.get(`/franchise/${franchiseId}/audit-trail${qs ? `?${qs}` : ''}`);
 }
 
 // ==================== MENU SYNC ====================
 
 export async function pushMenuToLocations(
-  franchiseId: string,
-  locationIds?: string[],
-  options?: { fetch?: typeof fetch },
+	franchiseId: string,
+	locationIds?: string[],
+	options?: { fetch?: typeof fetch }
 ): Promise<{ message: string; synced: number }> {
-  const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
-  return api.post(`/franchise/${franchiseId}/sync-menu`, { locationIds });
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	return api.post(`/franchise/${franchiseId}/sync-menu`, { locationIds });
 }

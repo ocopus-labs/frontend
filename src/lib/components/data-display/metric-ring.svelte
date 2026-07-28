@@ -64,41 +64,49 @@
 
 	const percentage = $derived(Math.min(100, Math.max(0, ($animatedValue / max) * 100)));
 
-	const sizeConfig = $derived({
-		sm: { viewBox: 48, radius: 18 },
-		default: { viewBox: 64, radius: 26 },
-		lg: { viewBox: 80, radius: 32 },
-		xl: { viewBox: 96, radius: 40 }
-	}[size]);
+	const sizeConfig = $derived(
+		{
+			sm: { viewBox: 48, radius: 18 },
+			default: { viewBox: 64, radius: 26 },
+			lg: { viewBox: 80, radius: 32 },
+			xl: { viewBox: 96, radius: 40 }
+		}[size]
+	);
 
 	const circumference = $derived(2 * Math.PI * sizeConfig.radius);
 	const strokeDashoffset = $derived(circumference - (percentage / 100) * circumference);
 
-	const colorClasses = $derived({
-		primary: 'stroke-primary',
-		success: 'stroke-success',
-		warning: 'stroke-warning',
-		destructive: 'stroke-destructive',
-		muted: 'stroke-muted-foreground'
-	}[color]);
+	const colorClasses = $derived(
+		{
+			primary: 'stroke-primary',
+			success: 'stroke-success',
+			warning: 'stroke-warning',
+			destructive: 'stroke-destructive',
+			muted: 'stroke-muted-foreground'
+		}[color]
+	);
 
 	const displayValue = $derived(
 		valueFormat ? valueFormat($animatedValue, max) : `${Math.round(percentage)}%`
 	);
 
-	const textSizeClass = $derived({
-		sm: 'text-sm',
-		default: 'text-lg',
-		lg: 'text-2xl',
-		xl: 'text-3xl'
-	}[size]);
+	const textSizeClass = $derived(
+		{
+			sm: 'text-sm',
+			default: 'text-lg',
+			lg: 'text-2xl',
+			xl: 'text-3xl'
+		}[size]
+	);
 
-	const labelSizeClass = $derived({
-		sm: 'text-[10px]',
-		default: 'text-xs',
-		lg: 'text-sm',
-		xl: 'text-base'
-	}[size]);
+	const labelSizeClass = $derived(
+		{
+			sm: 'text-[10px]',
+			default: 'text-xs',
+			lg: 'text-sm',
+			xl: 'text-base'
+		}[size]
+	);
 </script>
 
 <div class={cn(metricRingVariants({ size }), className)} data-slot="metric-ring">

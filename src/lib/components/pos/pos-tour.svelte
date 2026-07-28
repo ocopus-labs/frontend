@@ -29,10 +29,11 @@
 				element: '[data-tour="table-selector"]',
 				popover: {
 					title: 'Select a table',
-					description: 'Tap a table to start a dine-in order. You can also choose takeaway or delivery.',
+					description:
+						'Tap a table to start a dine-in order. You can also choose takeaway or delivery.',
 					side: 'bottom',
-					align: 'center',
-				},
+					align: 'center'
+				}
 			});
 		}
 
@@ -42,18 +43,19 @@
 				title: 'Add items',
 				description: 'Browse your menu and tap items to add them to the order.',
 				side: 'left',
-				align: 'start',
-			},
+				align: 'start'
+			}
 		});
 
 		steps.push({
 			element: '[data-tour="send-order"]',
 			popover: {
 				title: 'Send to kitchen',
-				description: 'When ready, send the order to the kitchen. Your first order is just a tap away!',
+				description:
+					'When ready, send the order to the kitchen. Your first order is just a tap away!',
 				side: 'top',
-				align: 'center',
-			},
+				align: 'center'
+			}
 		});
 
 		// Start tour after a brief delay to let page render
@@ -66,7 +68,7 @@
 				onDestroyStarted: () => {
 					localStorage.setItem(tourKey, 'true');
 					d.destroy();
-				},
+				}
 			});
 
 			d.drive();

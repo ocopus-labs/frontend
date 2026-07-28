@@ -45,7 +45,14 @@
 	}
 
 	// Tooltip state
-	let tooltip = $state<{ visible: boolean; x: number; y: number; day: string; hour: number; revenue: number }>({
+	let tooltip = $state<{
+		visible: boolean;
+		x: number;
+		y: number;
+		day: string;
+		hour: number;
+		revenue: number;
+	}>({
 		visible: false,
 		x: 0,
 		y: 0,
@@ -75,11 +82,15 @@
 	}
 </script>
 
-<div class="relative w-full overflow-x-auto" role="img" aria-label="Revenue heatmap by day and hour">
+<div
+	class="relative w-full overflow-x-auto"
+	role="img"
+	aria-label="Revenue heatmap by day and hour"
+>
 	<!-- Hour column headers -->
 	<div class="mb-1 flex" style="padding-left: 2.75rem;">
 		{#each HOURS as hour}
-			<div class="flex-1 text-center text-[9px] text-muted-foreground leading-none select-none">
+			<div class="flex-1 text-center text-[9px] leading-none text-muted-foreground select-none">
 				{#if hour % 3 === 0}
 					{hourLabel(hour)}
 				{/if}
@@ -91,7 +102,7 @@
 	{#each DAYS as day}
 		<div class="mb-0.5 flex items-center gap-0">
 			<!-- Day label -->
-			<div class="w-10 shrink-0 text-right pr-2 text-xs text-muted-foreground select-none">
+			<div class="w-10 shrink-0 pr-2 text-right text-xs text-muted-foreground select-none">
 				{day}
 			</div>
 			<!-- Hour cells -->
@@ -100,7 +111,7 @@
 				{@const opacity = cellOpacity(rev)}
 				<!-- svelte-ignore a11y_mouse_events_have_key_events -->
 				<div
-					class="flex-1 aspect-square rounded-[2px] cursor-default transition-transform hover:scale-110 hover:z-10 relative"
+					class="relative aspect-square flex-1 cursor-default rounded-[2px] transition-transform hover:z-10 hover:scale-110"
 					style="background-color: rgba(34,197,94,{opacity}); min-width: 12px; min-height: 12px;"
 					onmouseenter={(e) => showTooltip(e, day, hour, rev)}
 					onmouseleave={hideTooltip}

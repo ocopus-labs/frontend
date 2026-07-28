@@ -46,8 +46,14 @@
 			year: '2024',
 			event: 'Launched beta with support for restaurants, salons, and gyms.'
 		},
-		{ year: '2025', event: 'Added multi-location support, inventory management, and UPI payments.' },
-		{ year: '2025', event: 'Expanded to 7+ business types with KOT, appointments, and subscriptions.' }
+		{
+			year: '2025',
+			event: 'Added multi-location support, inventory management, and UPI payments.'
+		},
+		{
+			year: '2025',
+			event: 'Expanded to 7+ business types with KOT, appointments, and subscriptions.'
+		}
 	];
 </script>
 
@@ -65,23 +71,22 @@
 		<div aria-hidden="true" class="absolute inset-0 -z-10">
 			<div class="dot-grid absolute inset-0 opacity-30 dark:opacity-15"></div>
 			<div
-				class="absolute left-1/2 top-0 h-[500px] w-[700px] -translate-x-1/2 -translate-y-1/4 rounded-full bg-primary/5 blur-3xl"
+				class="absolute top-0 left-1/2 h-[500px] w-[700px] -translate-x-1/2 -translate-y-1/4 rounded-full bg-primary/5 blur-3xl"
 			></div>
 		</div>
 
 		<div class="mx-auto max-w-7xl px-6 lg:px-8">
 			<div class="mx-auto max-w-3xl text-center">
-				<p class="animate-fade-up text-sm font-semibold uppercase tracking-wider text-primary">
+				<p class="animate-fade-up text-sm font-semibold tracking-wider text-primary uppercase">
 					About us
 				</p>
-				<h1
-					class="animate-fade-up delay-100 mt-3 font-display text-4xl md:text-5xl lg:text-6xl"
-				>
+				<h1 class="animate-fade-up font-display mt-3 text-4xl delay-100 md:text-5xl lg:text-6xl">
 					Empowering businesses with <span class="italic">modern</span> POS technology
 				</h1>
-				<p class="animate-fade-up delay-200 mt-6 text-lg leading-relaxed text-muted-foreground">
-					We are on a mission to give every Indian business — from a street-side cafe to a multi-city
-					franchise — access to world-class point of sale tools, without the enterprise price tag.
+				<p class="animate-fade-up mt-6 text-lg leading-relaxed text-muted-foreground delay-200">
+					We are on a mission to give every Indian business — from a street-side cafe to a
+					multi-city franchise — access to world-class point of sale tools, without the enterprise
+					price tag.
 				</p>
 			</div>
 		</div>
@@ -92,15 +97,15 @@
 		<div class="mx-auto max-w-7xl px-6 lg:px-8">
 			<div class="grid items-center gap-16 lg:grid-cols-2">
 				<div>
-					<p class="text-sm font-semibold uppercase tracking-wider text-primary">Our story</p>
-					<h2 class="mt-3 font-display text-3xl md:text-4xl">
+					<p class="text-sm font-semibold tracking-wider text-primary uppercase">Our story</p>
+					<h2 class="font-display mt-3 text-3xl md:text-4xl">
 						Born from a <span class="italic">real</span> problem
 					</h2>
-					<div class="mt-6 space-y-4 text-muted-foreground leading-relaxed">
+					<div class="mt-6 space-y-4 leading-relaxed text-muted-foreground">
 						<p>
-							{APP_NAME} was born from a simple observation: small and mid-sized businesses in India
-							were either stuck with outdated cash registers or forced to pay exorbitant fees for
-							enterprise software that wasn't built for their needs.
+							{APP_NAME} was born from a simple observation: small and mid-sized businesses in India were
+							either stuck with outdated cash registers or forced to pay exorbitant fees for enterprise
+							software that wasn't built for their needs.
 						</p>
 						<p>
 							We set out to change that. Our team of developers and business owners came together to
@@ -108,24 +113,24 @@
 							and affordability that small businesses deserve.
 						</p>
 						<p>
-							Today, {APP_NAME} supports restaurants, salons, gyms, clinics, and more — all from a
-							single, unified platform that adapts to each business type's unique workflow.
+							Today, {APP_NAME} supports restaurants, salons, gyms, clinics, and more — all from a single,
+							unified platform that adapts to each business type's unique workflow.
 						</p>
 					</div>
 				</div>
 
 				<!-- Visual: Timeline -->
 				<div class="relative">
-					<div class="absolute left-4 top-0 bottom-0 w-px bg-border"></div>
+					<div class="absolute top-0 bottom-0 left-4 w-px bg-border"></div>
 					<div class="space-y-8">
 						{#each milestones as m, i}
 							<div class="relative pl-12">
 								<div
-									class="absolute left-2 top-1 flex size-5 items-center justify-center rounded-full border bg-background"
+									class="absolute top-1 left-2 flex size-5 items-center justify-center rounded-full border bg-background"
 								>
 									<div class="size-2 rounded-full bg-primary"></div>
 								</div>
-								<p class="text-xs font-semibold uppercase tracking-wider text-primary">{m.year}</p>
+								<p class="text-xs font-semibold tracking-wider text-primary uppercase">{m.year}</p>
 								<p class="mt-1 text-sm leading-relaxed text-muted-foreground">{m.event}</p>
 							</div>
 						{/each}
@@ -139,8 +144,8 @@
 	<section class="py-24">
 		<div class="mx-auto max-w-7xl px-6 lg:px-8">
 			<div class="mx-auto max-w-2xl text-center">
-				<p class="text-sm font-semibold uppercase tracking-wider text-primary">Our values</p>
-				<h2 class="mt-3 font-display text-3xl md:text-4xl">
+				<p class="text-sm font-semibold tracking-wider text-primary uppercase">Our values</p>
+				<h2 class="font-display mt-3 text-3xl md:text-4xl">
 					What <span class="italic">drives</span> us
 				</h2>
 				<p class="mt-4 text-muted-foreground">
@@ -191,7 +196,7 @@
 			>
 				<div
 					aria-hidden="true"
-					class="absolute -right-20 -top-20 size-64 rounded-full border border-primary-foreground/10"
+					class="absolute -top-20 -right-20 size-64 rounded-full border border-primary-foreground/10"
 				></div>
 				<div
 					aria-hidden="true"
