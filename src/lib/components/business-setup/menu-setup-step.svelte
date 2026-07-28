@@ -7,7 +7,12 @@
 	import * as Tabs from '$lib/components/ui/tabs';
 	import * as ToggleGroup from '$lib/components/ui/toggle-group';
 	import { toast } from 'svelte-sonner';
-	import { seedMenuTemplate, bulkImportMenuItems, createMenuItem, seedDefaultCategories } from '$lib/api';
+	import {
+		seedMenuTemplate,
+		bulkImportMenuItems,
+		createMenuItem,
+		seedDefaultCategories
+	} from '$lib/api';
 	import { getMenu } from '$lib/api/menu';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import Check from '@lucide/svelte/icons/check';
@@ -44,7 +49,7 @@
 		bakery: { label: 'Bakery', icon: '🧁' },
 		'fast-food': { label: 'Fast Food', icon: '🍔' },
 		salon: { label: 'Salon', icon: '💇' },
-		gym: { label: 'Gym', icon: '🏋️' },
+		gym: { label: 'Gym', icon: '🏋️' }
 	};
 
 	// Filter templates by business type
@@ -55,7 +60,7 @@
 			bar: ['bar'],
 			salon: ['salon'],
 			gym: ['gym'],
-			bakery: ['bakery'],
+			bakery: ['bakery']
 		};
 		const keys = typeMap[businessType] || Object.keys(templates);
 		return keys.filter((k) => k in templates);
@@ -114,9 +119,7 @@
 
 			// Find or use first category
 			const menu = await getMenu(businessId);
-			let cat = menu.categories.find(
-				(c) => c.name.toLowerCase() === category.toLowerCase()
-			);
+			let cat = menu.categories.find((c) => c.name.toLowerCase() === category.toLowerCase());
 			if (!cat && menu.categories.length > 0) {
 				cat = menu.categories[0];
 			}
@@ -125,10 +128,13 @@
 				name: itemName.trim(),
 				price,
 				categoryId: cat?.id || '',
-				isAvailable: true,
+				isAvailable: true
 			});
 
-			addedItems = [...addedItems, { name: itemName.trim(), price, category: cat?.name || category }];
+			addedItems = [
+				...addedItems,
+				{ name: itemName.trim(), price, category: cat?.name || category }
+			];
 			itemName = '';
 			itemPrice = '';
 			completed = true;
@@ -151,15 +157,17 @@
 			return;
 		}
 
-		const items = lines.map((line) => {
-			const [name, priceStr, category, description] = line.split(',').map((s) => s.trim());
-			return {
-				name: name || 'Unnamed',
-				price: Number(priceStr) || 0,
-				category: category || 'General',
-				description: description || undefined,
-			};
-		}).filter((i) => i.name && i.price > 0);
+		const items = lines
+			.map((line) => {
+				const [name, priceStr, category, description] = line.split(',').map((s) => s.trim());
+				return {
+					name: name || 'Unnamed',
+					price: Number(priceStr) || 0,
+					category: category || 'General',
+					description: description || undefined
+				};
+			})
+			.filter((i) => i.name && i.price > 0);
 
 		if (!items.length) {
 			toast.error('No valid items found. Format: name, price, category, description');
@@ -212,100 +220,113 @@
 
 		<Tabs.Content value="template">
 			<div class="space-y-4">
-			<p class="text-sm text-muted-foreground">Choose a template to pre-populate your menu with sample items. You can edit everything later.</p>
-			<ToggleGroup.Root
-				type="single"
-				bind:value={selectedTemplate}
-				class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4"
-			>
-				{#each relevantTemplates() as key (key)}
-					{@const tmpl = templates[key]}
-					<ToggleGroup.Item
-						value={key}
-						aria-label={tmpl.label}
-						class="h-auto flex-col gap-2 rounded-lg border-2 p-4 text-center data-[state=on]:border-primary data-[state=on]:bg-primary/5"
-					>
-						<span class="text-2xl">{tmpl.icon}</span>
-						<span class="text-sm font-medium">{tmpl.label}</span>
-					</ToggleGroup.Item>
-				{/each}
-			</ToggleGroup.Root>
-			<Button onclick={handleTemplateSeed} disabled={!selectedTemplate || isLoading || completed}>
-				{#if isLoading}
-					<Loader2 class="mr-2 size-4 animate-spin" />
-					Seeding menu...
-				{:else if completed}
-					<Check class="mr-2 size-4" />
-					Menu created
-				{:else}
-					Use this template
-				{/if}
-			</Button>
+				<p class="text-sm text-muted-foreground">
+					Choose a template to pre-populate your menu with sample items. You can edit everything
+					later.
+				</p>
+				<ToggleGroup.Root
+					type="single"
+					bind:value={selectedTemplate}
+					class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4"
+				>
+					{#each relevantTemplates() as key (key)}
+						{@const tmpl = templates[key]}
+						<ToggleGroup.Item
+							value={key}
+							aria-label={tmpl.label}
+							class="h-auto flex-col gap-2 rounded-lg border-2 p-4 text-center data-[state=on]:border-primary data-[state=on]:bg-primary/5"
+						>
+							<span class="text-2xl">{tmpl.icon}</span>
+							<span class="text-sm font-medium">{tmpl.label}</span>
+						</ToggleGroup.Item>
+					{/each}
+				</ToggleGroup.Root>
+				<Button onclick={handleTemplateSeed} disabled={!selectedTemplate || isLoading || completed}>
+					{#if isLoading}
+						<Loader2 class="mr-2 size-4 animate-spin" />
+						Seeding menu...
+					{:else if completed}
+						<Check class="mr-2 size-4" />
+						Menu created
+					{:else}
+						Use this template
+					{/if}
+				</Button>
 			</div>
 		</Tabs.Content>
 
 		<Tabs.Content value="manual">
 			<div class="space-y-4">
-			<p class="text-sm text-muted-foreground">Add items one by one. Categories will be created automatically.</p>
-			<div class="flex gap-3">
-				<Field.Group class="flex-1">
-					<Field.Field>
-						<Input placeholder="Item name" bind:value={itemName} />
-					</Field.Field>
-				</Field.Group>
-				<Field.Group class="w-28">
-					<Field.Field>
-						<Input type="number" placeholder="Price" bind:value={itemPrice} />
-					</Field.Field>
-				</Field.Group>
-				<Button onclick={handleAddItem} disabled={!itemName.trim() || !itemPrice || isLoading} size="default">
-					{#if isLoading}
-						<Loader2 class="size-4 animate-spin" />
-					{:else}
-						<Plus class="size-4" />
-					{/if}
-				</Button>
-			</div>
-
-			{#if addedItems.length > 0}
-				<div class="space-y-1">
-					<p class="text-sm font-medium">{addedItems.length} item{addedItems.length !== 1 ? 's' : ''} added</p>
-					<div class="max-h-48 space-y-1 overflow-auto rounded-lg border p-2">
-						{#each addedItems as item}
-							<div class="flex items-center justify-between rounded px-2 py-1 text-sm">
-								<span>{item.name}</span>
-								<span class="text-muted-foreground">{item.price}</span>
-							</div>
-						{/each}
-					</div>
+				<p class="text-sm text-muted-foreground">
+					Add items one by one. Categories will be created automatically.
+				</p>
+				<div class="flex gap-3">
+					<Field.Group class="flex-1">
+						<Field.Field>
+							<Input placeholder="Item name" bind:value={itemName} />
+						</Field.Field>
+					</Field.Group>
+					<Field.Group class="w-28">
+						<Field.Field>
+							<Input type="number" placeholder="Price" bind:value={itemPrice} />
+						</Field.Field>
+					</Field.Group>
+					<Button
+						onclick={handleAddItem}
+						disabled={!itemName.trim() || !itemPrice || isLoading}
+						size="default"
+					>
+						{#if isLoading}
+							<Loader2 class="size-4 animate-spin" />
+						{:else}
+							<Plus class="size-4" />
+						{/if}
+					</Button>
 				</div>
-			{/if}
+
+				{#if addedItems.length > 0}
+					<div class="space-y-1">
+						<p class="text-sm font-medium">
+							{addedItems.length} item{addedItems.length !== 1 ? 's' : ''} added
+						</p>
+						<div class="max-h-48 space-y-1 overflow-auto rounded-lg border p-2">
+							{#each addedItems as item}
+								<div class="flex items-center justify-between rounded px-2 py-1 text-sm">
+									<span>{item.name}</span>
+									<span class="text-muted-foreground">{item.price}</span>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
 			</div>
 		</Tabs.Content>
 
 		<Tabs.Content value="import">
 			<div class="space-y-4">
-			<p class="text-sm text-muted-foreground">
-				Paste CSV data below. Format: <code class="rounded bg-muted px-1 py-0.5 text-xs">name, price, category, description</code>
-			</p>
-			<Textarea
-				placeholder={"Butter Chicken, 350, Main Course, Creamy tomato curry\nNaan, 60, Breads, Soft leavened bread\nMango Lassi, 120, Beverages, Sweet yogurt drink"}
-				bind:value={csvText}
-				rows={6}
-				class="font-mono text-sm"
-			/>
-			<Button onclick={handleCsvImport} disabled={!csvText.trim() || isLoading || completed}>
-				{#if isLoading}
-					<Loader2 class="mr-2 size-4 animate-spin" />
-					Importing...
-				{:else if completed}
-					<Check class="mr-2 size-4" />
-					Imported
-				{:else}
-					<Upload class="mr-2 size-4" />
-					Import items
-				{/if}
-			</Button>
+				<p class="text-sm text-muted-foreground">
+					Paste CSV data below. Format: <code class="rounded bg-muted px-1 py-0.5 text-xs"
+						>name, price, category, description</code
+					>
+				</p>
+				<Textarea
+					placeholder={'Butter Chicken, 350, Main Course, Creamy tomato curry\nNaan, 60, Breads, Soft leavened bread\nMango Lassi, 120, Beverages, Sweet yogurt drink'}
+					bind:value={csvText}
+					rows={6}
+					class="font-mono text-sm"
+				/>
+				<Button onclick={handleCsvImport} disabled={!csvText.trim() || isLoading || completed}>
+					{#if isLoading}
+						<Loader2 class="mr-2 size-4 animate-spin" />
+						Importing...
+					{:else if completed}
+						<Check class="mr-2 size-4" />
+						Imported
+					{:else}
+						<Upload class="mr-2 size-4" />
+						Import items
+					{/if}
+				</Button>
 			</div>
 		</Tabs.Content>
 	</Tabs.Root>

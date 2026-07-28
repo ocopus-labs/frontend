@@ -10,7 +10,10 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 	const startDate = url.searchParams.get('startDate') || undefined;
 	const endDate = url.searchParams.get('endDate') || undefined;
 
-	const result = await getAdminAuditLogs({ page, limit, userId, resource, action, startDate, endDate }, { fetch });
+	const result = await getAdminAuditLogs(
+		{ page, limit, userId, resource, action, startDate, endDate },
+		{ fetch }
+	);
 
 	return {
 		...result,

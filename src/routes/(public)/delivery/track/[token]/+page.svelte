@@ -21,14 +21,28 @@
 	let isRefreshing = $state(false);
 
 	const steps: { status: DeliveryStatus; label: string; description: string }[] = [
-		{ status: 'pending', label: 'Order Placed', description: 'Your delivery request has been received' },
-		{ status: 'assigned', label: 'Driver Assigned', description: 'A driver has been assigned to your delivery' },
+		{
+			status: 'pending',
+			label: 'Order Placed',
+			description: 'Your delivery request has been received'
+		},
+		{
+			status: 'assigned',
+			label: 'Driver Assigned',
+			description: 'A driver has been assigned to your delivery'
+		},
 		{ status: 'picked_up', label: 'Picked Up', description: 'Your order has been picked up' },
 		{ status: 'in_transit', label: 'On the Way', description: 'Your order is on its way to you' },
 		{ status: 'delivered', label: 'Delivered', description: 'Your order has been delivered' }
 	];
 
-	const statusOrder: DeliveryStatus[] = ['pending', 'assigned', 'picked_up', 'in_transit', 'delivered'];
+	const statusOrder: DeliveryStatus[] = [
+		'pending',
+		'assigned',
+		'picked_up',
+		'in_transit',
+		'delivered'
+	];
 
 	const currentStepIndex = $derived(
 		delivery ? statusOrder.indexOf(delivery.status as DeliveryStatus) : -1
@@ -65,7 +79,9 @@
 
 	function getEstimatedDelivery(): string | null {
 		if (!delivery?.estimatedMinutes || !delivery.createdAt) return null;
-		const est = new Date(new Date(delivery.createdAt).getTime() + delivery.estimatedMinutes * 60000);
+		const est = new Date(
+			new Date(delivery.createdAt).getTime() + delivery.estimatedMinutes * 60000
+		);
 		return est.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 	}
 
@@ -90,7 +106,8 @@
 			<IconTruckDelivery class="mx-auto h-12 w-12 text-muted-foreground" />
 			<h1 class="mt-4 text-xl font-semibold">Delivery Not Found</h1>
 			<p class="mt-2 text-sm text-muted-foreground">
-				We couldn't find a delivery with this tracking link. It may have expired or the link is incorrect.
+				We couldn't find a delivery with this tracking link. It may have expired or the link is
+				incorrect.
 			</p>
 		</div>
 	{:else if delivery}
@@ -105,9 +122,7 @@
 			{:else if delivery.status === 'delivered'}
 				<Badge class="mt-2 bg-success text-white">Delivered</Badge>
 			{:else}
-				<p class="mt-1 text-sm text-muted-foreground">
-					Track your delivery in real-time
-				</p>
+				<p class="mt-1 text-sm text-muted-foreground">Track your delivery in real-time</p>
 			{/if}
 		</div>
 
@@ -122,7 +137,9 @@
 					</div>
 					<p class="mt-1 text-2xl font-bold">{eta}</p>
 					{#if delivery.estimatedMinutes}
-						<p class="text-xs text-muted-foreground">{delivery.estimatedMinutes} minutes from order</p>
+						<p class="text-xs text-muted-foreground">
+							{delivery.estimatedMinutes} minutes from order
+						</p>
 					{/if}
 				</div>
 			{/if}
@@ -154,7 +171,9 @@
 							<!-- Connector Line -->
 							{#if i < steps.length - 1}
 								<div
-									class="absolute top-8 h-full w-0.5 {isCompleted && currentStepIndex > i ? 'bg-primary' : 'bg-muted-foreground/20'}"
+									class="absolute top-8 h-full w-0.5 {isCompleted && currentStepIndex > i
+										? 'bg-primary'
+										: 'bg-muted-foreground/20'}"
 								></div>
 							{/if}
 						</div>
@@ -162,7 +181,11 @@
 						<!-- Step Content -->
 						<div class="flex-1 pb-1">
 							<div class="flex items-center gap-2">
-								<p class="text-sm font-semibold {isCompleted ? 'text-foreground' : 'text-muted-foreground'}">
+								<p
+									class="text-sm font-semibold {isCompleted
+										? 'text-foreground'
+										: 'text-muted-foreground'}"
+								>
 									{step.label}
 								</p>
 								{#if isCurrent && !isFailed && delivery.status !== 'delivered'}

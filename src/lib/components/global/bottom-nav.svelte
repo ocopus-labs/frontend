@@ -241,7 +241,7 @@
 
 	<Drawer.Root bind:open={moreOpen}>
 		<Drawer.Content class="max-h-[85vh]">
-			<Drawer.Header class="gap-0.5 px-5 pb-3 pt-3 text-left md:text-left">
+			<Drawer.Header class="gap-0.5 px-5 pt-3 pb-3 text-left md:text-left">
 				<Drawer.Title class="text-base font-semibold">More</Drawer.Title>
 				<Drawer.Description class="text-xs text-muted-foreground">
 					Everything else in this business
@@ -251,7 +251,7 @@
 			<nav class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-1">
 				{#each visibleGroups as group}
 					<h3
-						class="px-1 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+						class="px-1 pt-3 pb-2 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase"
 					>
 						{group.label}
 					</h3>
@@ -264,9 +264,7 @@
 									onclick={() => (moreOpen = false)}
 									aria-current={active ? 'page' : undefined}
 									class="flex h-full flex-col items-center gap-2 rounded-xl border px-1 py-3 text-center transition-all duration-150 active:scale-95
-										{active
-										? 'border-primary/30 bg-primary/10'
-										: 'border-transparent bg-muted/60 hover:bg-accent'}"
+										{active ? 'border-primary/30 bg-primary/10' : 'border-transparent bg-muted/60 hover:bg-accent'}"
 								>
 									<span
 										class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-background shadow-sm
@@ -275,7 +273,7 @@
 										<item.icon class="h-[18px] w-[18px]" />
 									</span>
 									<span
-										class="text-[11px] font-medium leading-tight {active
+										class="text-[11px] leading-tight font-medium {active
 											? 'text-primary'
 											: 'text-foreground'}"
 									>
@@ -289,7 +287,7 @@
 			</nav>
 
 			<Drawer.Footer
-				class="px-4 pb-4 pt-3"
+				class="px-4 pt-3 pb-4"
 				style="padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));"
 			>
 				<Button variant="outline" class="w-full justify-center gap-2" onclick={openSidebar}>

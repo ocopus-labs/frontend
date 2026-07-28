@@ -91,5 +91,7 @@ const ORDER_TYPE_LABELS: Record<string, string> = {
 };
 
 export function formatOrderType(type: string): string {
-	return ORDER_TYPE_LABELS[type] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+	return (
+		ORDER_TYPE_LABELS[type] || type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+	);
 }

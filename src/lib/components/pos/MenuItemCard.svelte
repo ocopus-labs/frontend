@@ -34,11 +34,20 @@
 		onToggleFavorite?: (itemId: string | number) => void;
 	}
 
-	let { item, onAddToOrder, cartQuantity = 0, region = 'in', isFavorite = false, onToggleFavorite }: Props = $props();
+	let {
+		item,
+		onAddToOrder,
+		cartQuantity = 0,
+		region = 'in',
+		isFavorite = false,
+		onToggleFavorite
+	}: Props = $props();
 
 	const comboLabel = $derived(
 		item.isCombo && item.comboComponents?.length
-			? item.comboComponents.map(c => c.quantity > 1 ? `${c.quantity}x ${c.name}` : c.name).join(' + ')
+			? item.comboComponents
+					.map((c) => (c.quantity > 1 ? `${c.quantity}x ${c.name}` : c.name))
+					.join(' + ')
 			: ''
 	);
 
@@ -46,151 +55,140 @@
 </script>
 
 <ContextMenu.Root>
-<ContextMenu.Trigger class="contents">
-
-<!-- Mobile: horizontal card (hidden on sm+) -->
-<button
-	type="button"
-	class="group flex w-full items-center gap-3 overflow-hidden rounded-xl border bg-card p-2 text-left shadow-sm transition-all active:scale-[0.98] sm:hidden"
-	class:opacity-50={!item.available}
-	disabled={!item.available}
-	onclick={() => item.available && onAddToOrder(item)}
->
-	<div class="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg">
-		<img
-			src={item.image}
-			alt={item.name}
-			class="h-full w-full object-cover"
-			loading="lazy"
-		/>
-		{#if !item.available}
-			<Badge
-				class="absolute top-0.5 right-0.5 text-[9px] px-1 py-0"
-				variant="destructive"
-			>
-				N/A
-			</Badge>
-		{/if}
-		{#if item.available && item.requiresKitchen === false}
-			<Badge
-				class="absolute bottom-0.5 left-0.5 text-[9px] px-1 py-0 bg-amber-500 text-white"
-			>
-				<IconBolt class="h-2.5 w-2.5 mr-0.5" />Instant
-			</Badge>
-		{/if}
-		{#if item.isCombo}
-			<Badge
-				class="absolute top-0.5 left-0.5 text-[9px] px-1 py-0 bg-violet-500 text-white"
-			>
-				Combo
-			</Badge>
-		{/if}
-	</div>
-	<div class="flex min-w-0 flex-1 flex-col gap-0.5">
-		<h3 class="line-clamp-1 text-sm font-medium leading-tight">
-			{item.name}
-		</h3>
-		{#if comboLabel}
-			<span class="line-clamp-1 text-[10px] text-muted-foreground">{comboLabel}</span>
-		{/if}
-		<span class="text-sm font-bold text-primary">
-			{i18n.formatCurrency(item.price)}
-		</span>
-	</div>
-	{#if item.available && cartQuantity > 0}
-		<div class="flex h-7 min-w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary px-2 text-xs font-bold text-primary-foreground shadow-md">
-			{cartQuantity}
-		</div>
-	{:else if item.available}
-		<div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
-			<IconPlus class="h-3.5 w-3.5" />
-		</div>
-	{/if}
-</button>
-
-<!-- Desktop: full card with button (hidden on mobile) -->
-<Card.Root class="group hidden gap-2 overflow-hidden py-0 transition-all hover:shadow-md sm:flex sm:flex-col md:gap-3">
-	<div class="relative aspect-[4/3] w-full overflow-hidden">
-		<img
-			src={item.image}
-			alt={item.name}
-			class="h-full w-full rounded-t-lg object-cover"
-			loading="lazy"
-		/>
-		{#if !item.available}
-			<Badge
-				class="absolute top-2 right-2 text-xs"
-				variant="destructive"
-			>
-				Unavailable
-			</Badge>
-		{/if}
-		{#if cartQuantity > 0}
-			<div class="absolute right-2 bottom-2 flex h-7 min-w-7 items-center justify-center rounded-full bg-primary px-2 text-xs font-bold text-primary-foreground shadow-md">
-				{cartQuantity}
+	<ContextMenu.Trigger class="contents">
+		<!-- Mobile: horizontal card (hidden on sm+) -->
+		<button
+			type="button"
+			class="group flex w-full items-center gap-3 overflow-hidden rounded-xl border bg-card p-2 text-left shadow-sm transition-all active:scale-[0.98] sm:hidden"
+			class:opacity-50={!item.available}
+			disabled={!item.available}
+			onclick={() => item.available && onAddToOrder(item)}
+		>
+			<div class="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg">
+				<img src={item.image} alt={item.name} class="h-full w-full object-cover" loading="lazy" />
+				{#if !item.available}
+					<Badge class="absolute top-0.5 right-0.5 px-1 py-0 text-[9px]" variant="destructive">
+						N/A
+					</Badge>
+				{/if}
+				{#if item.available && item.requiresKitchen === false}
+					<Badge class="absolute bottom-0.5 left-0.5 bg-amber-500 px-1 py-0 text-[9px] text-white">
+						<IconBolt class="mr-0.5 h-2.5 w-2.5" />Instant
+					</Badge>
+				{/if}
+				{#if item.isCombo}
+					<Badge class="absolute top-0.5 left-0.5 bg-violet-500 px-1 py-0 text-[9px] text-white">
+						Combo
+					</Badge>
+				{/if}
 			</div>
-		{/if}
-		{#if item.available && item.requiresKitchen === false}
-			<Badge
-				class="absolute top-2 left-2 text-xs bg-amber-500 text-white"
-			>
-				<IconBolt class="h-3 w-3 mr-0.5" />Instant
-			</Badge>
-		{/if}
-		{#if item.isCombo}
-			<Badge
-				class="absolute top-2 {item.requiresKitchen === false ? 'left-20' : 'left-2'} text-xs bg-violet-500 text-white"
-			>
-				Combo
-			</Badge>
-		{/if}
-	</div>
-	<div class="p-2.5 pt-0">
-		<h3 class="line-clamp-2 min-h-8 text-sm font-semibold md:text-base">
-			{item.name}
-		</h3>
-		{#if comboLabel}
-			<p class="line-clamp-1 text-xs text-muted-foreground -mt-1 mb-1">{comboLabel}</p>
-		{/if}
-		<div class="flex items-center justify-between">
-			<span class="text-base font-bold md:text-lg">
-				{i18n.formatCurrency(item.price)}
-			</span>
-		</div>
-		{#if item.available}
-			<Button
-				size="sm"
-				onclick={() => onAddToOrder(item)}
-				class="mt-2 h-8 w-full shrink-0 px-3 text-xs md:h-9 md:text-sm"
-			>
-				<IconPlus class="mr-1 h-4 w-4" />
-				Add<span class="hidden md:inline">&nbsp;to Cart</span>
-			</Button>
-		{:else}
-			<Button
-				size="sm"
-				variant="outline"
-				disabled
-				class="mt-2 h-8 w-full shrink-0 px-3 text-xs md:h-9 md:text-sm"
-			>
-				N/A
-			</Button>
-		{/if}
-	</div>
-</Card.Root>
+			<div class="flex min-w-0 flex-1 flex-col gap-0.5">
+				<h3 class="line-clamp-1 text-sm leading-tight font-medium">
+					{item.name}
+				</h3>
+				{#if comboLabel}
+					<span class="line-clamp-1 text-[10px] text-muted-foreground">{comboLabel}</span>
+				{/if}
+				<span class="text-sm font-bold text-primary">
+					{i18n.formatCurrency(item.price)}
+				</span>
+			</div>
+			{#if item.available && cartQuantity > 0}
+				<div
+					class="flex h-7 min-w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary px-2 text-xs font-bold text-primary-foreground shadow-md"
+				>
+					{cartQuantity}
+				</div>
+			{:else if item.available}
+				<div
+					class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md"
+				>
+					<IconPlus class="h-3.5 w-3.5" />
+				</div>
+			{/if}
+		</button>
 
-</ContextMenu.Trigger>
-{#if onToggleFavorite}
-<ContextMenu.Content class="w-48">
-	<ContextMenu.Item onclick={() => onToggleFavorite(item.id)}>
-		{#if isFavorite}
-			<IconHeartFilled class="mr-2 h-4 w-4 text-red-500" />
-			Remove from Favorites
-		{:else}
-			<IconHeart class="mr-2 h-4 w-4" />
-			Add to Favorites
-		{/if}
-	</ContextMenu.Item>
-</ContextMenu.Content>
-{/if}
+		<!-- Desktop: full card with button (hidden on mobile) -->
+		<Card.Root
+			class="group hidden gap-2 overflow-hidden py-0 transition-all hover:shadow-md sm:flex sm:flex-col md:gap-3"
+		>
+			<div class="relative aspect-[4/3] w-full overflow-hidden">
+				<img
+					src={item.image}
+					alt={item.name}
+					class="h-full w-full rounded-t-lg object-cover"
+					loading="lazy"
+				/>
+				{#if !item.available}
+					<Badge class="absolute top-2 right-2 text-xs" variant="destructive">Unavailable</Badge>
+				{/if}
+				{#if cartQuantity > 0}
+					<div
+						class="absolute right-2 bottom-2 flex h-7 min-w-7 items-center justify-center rounded-full bg-primary px-2 text-xs font-bold text-primary-foreground shadow-md"
+					>
+						{cartQuantity}
+					</div>
+				{/if}
+				{#if item.available && item.requiresKitchen === false}
+					<Badge class="absolute top-2 left-2 bg-amber-500 text-xs text-white">
+						<IconBolt class="mr-0.5 h-3 w-3" />Instant
+					</Badge>
+				{/if}
+				{#if item.isCombo}
+					<Badge
+						class="absolute top-2 {item.requiresKitchen === false
+							? 'left-20'
+							: 'left-2'} bg-violet-500 text-xs text-white"
+					>
+						Combo
+					</Badge>
+				{/if}
+			</div>
+			<div class="p-2.5 pt-0">
+				<h3 class="line-clamp-2 min-h-8 text-sm font-semibold md:text-base">
+					{item.name}
+				</h3>
+				{#if comboLabel}
+					<p class="-mt-1 mb-1 line-clamp-1 text-xs text-muted-foreground">{comboLabel}</p>
+				{/if}
+				<div class="flex items-center justify-between">
+					<span class="text-base font-bold md:text-lg">
+						{i18n.formatCurrency(item.price)}
+					</span>
+				</div>
+				{#if item.available}
+					<Button
+						size="sm"
+						onclick={() => onAddToOrder(item)}
+						class="mt-2 h-8 w-full shrink-0 px-3 text-xs md:h-9 md:text-sm"
+					>
+						<IconPlus class="mr-1 h-4 w-4" />
+						Add<span class="hidden md:inline">&nbsp;to Cart</span>
+					</Button>
+				{:else}
+					<Button
+						size="sm"
+						variant="outline"
+						disabled
+						class="mt-2 h-8 w-full shrink-0 px-3 text-xs md:h-9 md:text-sm"
+					>
+						N/A
+					</Button>
+				{/if}
+			</div>
+		</Card.Root>
+	</ContextMenu.Trigger>
+	{#if onToggleFavorite}
+		<ContextMenu.Content class="w-48">
+			<ContextMenu.Item onclick={() => onToggleFavorite(item.id)}>
+				{#if isFavorite}
+					<IconHeartFilled class="mr-2 h-4 w-4 text-red-500" />
+					Remove from Favorites
+				{:else}
+					<IconHeart class="mr-2 h-4 w-4" />
+					Add to Favorites
+				{/if}
+			</ContextMenu.Item>
+		</ContextMenu.Content>
+	{/if}
 </ContextMenu.Root>

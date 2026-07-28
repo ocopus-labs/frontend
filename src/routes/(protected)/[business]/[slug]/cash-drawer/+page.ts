@@ -7,13 +7,13 @@ export const load: PageLoad = async ({ parent, fetch }) => {
 
 	const [currentResult, historyResult] = await Promise.all([
 		getCurrentSession(businessId, { fetch }).catch(() => ({ session: null })),
-		getDrawerHistory(businessId, { limit: 20 }, { fetch }).catch(() => ({ sessions: [], total: 0 })),
+		getDrawerHistory(businessId, { limit: 20 }, { fetch }).catch(() => ({ sessions: [], total: 0 }))
 	]);
 
 	return {
 		...parentData,
 		currentSession: currentResult.session,
 		history: historyResult.sessions,
-		historyTotal: historyResult.total,
+		historyTotal: historyResult.total
 	};
 };

@@ -23,10 +23,9 @@
 		taxRate: z
 			.string()
 			.optional()
-			.refine(
-				(val) => !val || (!isNaN(Number(val)) && Number(val) >= 0 && Number(val) <= 100),
-				{ message: 'Tax rate must be a number between 0 and 100' }
-			)
+			.refine((val) => !val || (!isNaN(Number(val)) && Number(val) >= 0 && Number(val) <= 100), {
+				message: 'Tax rate must be a number between 0 and 100'
+			})
 	});
 
 	// Validate function - always succeeds unless taxRate is invalid
@@ -57,7 +56,9 @@
 <div class="space-y-8">
 	<div>
 		<h1 class="step-heading text-3xl font-bold" tabindex="-1">Location & Details</h1>
-		<p class="mt-2 text-muted-foreground">All optional — you can configure these from your dashboard later.</p>
+		<p class="mt-2 text-muted-foreground">
+			All optional — you can configure these from your dashboard later.
+		</p>
 	</div>
 
 	<div class="space-y-6">
@@ -80,12 +81,7 @@
 		<Field.Group>
 			<Field.Field>
 				<Field.Label for="store-phone">Phone Number (Optional)</Field.Label>
-				<Input
-					id="store-phone"
-					type="tel"
-					placeholder="+1 (555) 000-0000"
-					bind:value={phone}
-				/>
+				<Input id="store-phone" type="tel" placeholder="+1 (555) 000-0000" bind:value={phone} />
 			</Field.Field>
 		</Field.Group>
 
@@ -104,7 +100,9 @@
 				{#if errors.taxRate}
 					<Field.Error id="tax-rate-error">{errors.taxRate}</Field.Error>
 				{:else}
-					<Field.Description id="tax-rate-desc">Standard tax rate for transactions at this location</Field.Description>
+					<Field.Description id="tax-rate-desc"
+						>Standard tax rate for transactions at this location</Field.Description
+					>
 				{/if}
 			</Field.Field>
 		</Field.Group>

@@ -35,12 +35,14 @@ For a truly unified platform serving diverse business types, we move beyond trad
 
 For a truly unified platform across restaurant, retail, salon, and service businesses, we need foundational infrastructure that goes beyond basic transactional tools:
 
-#### 1. **Multi-Location Support** 
+#### 1. **Multi-Location Support**
+
 - **Why**: Most SMBs either operate multiple locations or plan to expand. Treating single-location as the default creates technical debt and poor UX.
 - **Impact**: Unified dashboard view, centralized reporting, per-location customization
 - **Implementation**: Location selector in header, location-specific settings, consolidated analytics
 
 #### 2. **Team & Permissions Management**
+
 - **Why**: Different team members need different access levels (manager vs cashier vs owner). Security and operational efficiency depend on this.
 - **What to include**:
   - Role-based access control (RBAC)
@@ -49,6 +51,7 @@ For a truly unified platform across restaurant, retail, salon, and service busin
   - Shift management and staff scheduling
 
 #### 3. **Customer Intelligence & CRM**
+
 - **Why**: Every business type benefits from understanding customer behavior. Restaurants track reservations, retail tracks purchases, salons track appointments.
 - **What to include**:
   - Customer profile with transaction history
@@ -58,6 +61,7 @@ For a truly unified platform across restaurant, retail, salon, and service busin
   - Customer lifetime value metrics
 
 #### 4. **Operational Metrics & Reporting**
+
 - **Why**: Business decisions need data. What's selling? What's slow? What's profitable?
 - **What to include**:
   - Real-time dashboard with KPIs (revenue, transactions, avg order value)
@@ -68,6 +72,7 @@ For a truly unified platform across restaurant, retail, salon, and service busin
   - Time-series data for trend analysis
 
 #### 5. **Inventory Management**
+
 - **Why**: From restaurant ingredients to retail stock to salon services—all need tracking.
 - **What to include**:
   - Item-level inventory tracking
@@ -78,6 +83,7 @@ For a truly unified platform across restaurant, retail, salon, and service busin
   - Expiry date management (for perishables)
 
 #### 6. **Integration Ecosystem**
+
 - **Why**: Businesses don't work in isolation. They use accounting software, delivery platforms, loyalty systems, email marketing, etc.
 - **What to include**:
   - Webhook infrastructure for external integrations
@@ -88,6 +94,7 @@ For a truly unified platform across restaurant, retail, salon, and service busin
   - Custom API access for power users
 
 #### 7. **Compliance & Reporting Infrastructure**
+
 - **Why**: Businesses face tax, labor, and regulatory requirements that vary by jurisdiction.
 - **What to include**:
   - Tax calculations and category management
@@ -97,6 +104,7 @@ For a truly unified platform across restaurant, retail, salon, and service busin
   - PCI compliance for payment data
 
 #### 8. **Customer Communication**
+
 - **Why**: Businesses need to reach customers (receipts, promotions, reminders).
 - **What to include**:
   - Email receipt option
@@ -194,16 +202,17 @@ Stage 3: Optimization - Do when ready
 
 #### Form Fields - Business Essentials
 
-| Field | Type | Validation | Required |
-|-------|------|-----------|----------|
-| Business Name | Text Input | 2-100 chars, unique | Yes |
-| Business Type | Select Dropdown | Predefined options | Yes |
-| Country | Select Dropdown | ISO 3166-1 codes | Yes |
-| City/Region | Text Input | 2-50 chars | Yes |
-| Timezone | Select Dropdown | IANA timezone database | Yes |
-| Currency | Select Dropdown | ISO 4217 codes | Yes |
+| Field         | Type            | Validation             | Required |
+| ------------- | --------------- | ---------------------- | -------- |
+| Business Name | Text Input      | 2-100 chars, unique    | Yes      |
+| Business Type | Select Dropdown | Predefined options     | Yes      |
+| Country       | Select Dropdown | ISO 3166-1 codes       | Yes      |
+| City/Region   | Text Input      | 2-50 chars             | Yes      |
+| Timezone      | Select Dropdown | IANA timezone database | Yes      |
+| Currency      | Select Dropdown | ISO 4217 codes         | Yes      |
 
 **Why these fields only?**
+
 - Everything else can be configured or refined later
 - These are fundamental to how the system operates
 - Changing these later is more disruptive, so we get them right upfront
@@ -296,6 +305,7 @@ Done in first week based on business readiness.
 #### Step 2: Payment Method Setup
 
 **Key Insight**: Don't overwhelm with "split payments," "tipping configuration," etc. upfront.
+
 - Just ask: "How do you accept payments?"
 - Everything else is configured when actually processing transactions
 
@@ -374,9 +384,11 @@ Set up when business is ready to go deeper.
 ### Problem with Traditional Approach
 
 Traditional POS systems ask about payment configuration upfront:
+
 - "Enable split payments? Tipping? Gift cards? Digital wallets?"
 
 **Users don't know** what they need until they start using the system. This creates:
+
 1. Analysis paralysis during onboarding
 2. Incorrect decisions made upfront
 3. Poor configuration discovery
@@ -384,18 +396,21 @@ Traditional POS systems ask about payment configuration upfront:
 ### New Approach: Progressive Payment Configuration
 
 **At Onboarding**: Ask "What payment methods do you accept?"
+
 - Cash: Yes/No
 - Cards: Which provider? (Stripe, Square, PayPal)
 - Digital Wallets: Yes/No (only if cards enabled)
 - Other: Any additional methods?
 
 **During First Transaction**: Present configuration options contextually
+
 - **First cash transaction** → "Do you want to track cash balance?"
 - **First card transaction** → "Configure tipping now?"
 - **Customer requests split payment** → "Enable split payments?"
 - **Customer wants digital receipt** → "Enable email receipts?"
 
 **In Settings**: All payment configurations grouped logically
+
 ```
 Payment Methods
 ├── Cash
@@ -498,6 +513,7 @@ Routes:
 ### Modifier Management
 
 Modifiers can be:
+
 1. **Managed inline** while creating items (simple cases)
 2. **Reused across items** (most common)
 3. **Standardized** for the entire business
@@ -525,44 +541,48 @@ Modifiers Management Interface
 ### Form Components Overview
 
 #### 1. Field Component
+
 ```svelte
 <Field.Group>
-  <Field.Field>
-    <Field.Label for="business-name">Business Name</Field.Label>
-    <Input id="business-name" type="text" placeholder="Your business" />
-    <Field.Description>This is how customers will see you</Field.Description>
-  </Field.Field>
+	<Field.Field>
+		<Field.Label for="business-name">Business Name</Field.Label>
+		<Input id="business-name" type="text" placeholder="Your business" />
+		<Field.Description>This is how customers will see you</Field.Description>
+	</Field.Field>
 </Field.Group>
 ```
 
 #### 2. Select Component
+
 ```svelte
 <Select.Root bind:value={selected}>
-  <Select.Trigger>
-    <Select.Value placeholder="Select option" />
-  </Select.Trigger>
-  <Select.Content>
-    <Select.Item value="option1">Option 1</Select.Item>
-    <Select.Item value="option2">Option 2</Select.Item>
-  </Select.Content>
+	<Select.Trigger>
+		<Select.Value placeholder="Select option" />
+	</Select.Trigger>
+	<Select.Content>
+		<Select.Item value="option1">Option 1</Select.Item>
+		<Select.Item value="option2">Option 2</Select.Item>
+	</Select.Content>
 </Select.Root>
 ```
 
 #### 3. Radio Group Component
+
 ```svelte
 <RadioGroup.Root bind:value={selection}>
-  <div class="flex items-center gap-2">
-    <RadioGroupItem value="small" id="small" />
-    <Label for="small">Small</Label>
-  </div>
+	<div class="flex items-center gap-2">
+		<RadioGroupItem value="small" id="small" />
+		<Label for="small">Small</Label>
+	</div>
 </RadioGroup.Root>
 ```
 
 #### 4. Checkbox Component
+
 ```svelte
 <div class="flex items-center gap-2">
-  <Checkbox id="terms" bind:checked={accepted} />
-  <Label for="terms">I agree to terms</Label>
+	<Checkbox id="terms" bind:checked={accepted} />
+	<Label for="terms">I agree to terms</Label>
 </div>
 ```
 
@@ -575,24 +595,28 @@ Modifiers Management Interface
 Each business type has different operational needs:
 
 #### Restaurant
+
 - **Default Features**: Table management, kitchen display, course ordering
 - **Setup Emphasis**: Menu categories, modifiers for food customization
 - **Payment**: Split payments common, tipping expected
 - **Key Metrics**: Table turnover, average check size, peak hours
 
 #### Retail Store
+
 - **Default Features**: Barcode scanning, inventory tracking, customer loyalty
 - **Setup Emphasis**: Product variants (size, color), SKU management
 - **Payment**: Card/cash split, gift cards, returns processing
 - **Key Metrics**: Inventory turnover, items per transaction, stock levels
 
 #### Salon/Spa
+
 - **Default Features**: Appointment booking, staff scheduling, service assignment
 - **Setup Emphasis**: Service listings with duration and pricing
 - **Payment**: Tipping expected, service packages, staff commissions
 - **Key Metrics**: Therapist utilization, service popularity, client retention
 
 #### Coffee Shop
+
 - **Default Features**: Quick service, size variants, combo deals
 - **Setup Emphasis**: Customization options (milk, temperature, add-ons)
 - **Payment**: Mobile payments preferred, loyalty programs
@@ -620,19 +644,22 @@ Each business type has different operational needs:
 
 ## Implementation Priority
 
-**Phase 1 (MVP)**: 
+**Phase 1 (MVP)**:
+
 - Quick-start onboarding (business essentials + first store)
 - Basic payment setup (cash + one card provider)
 - Menu + simple modifiers
 - Basic reporting
 
 **Phase 2**:
+
 - Team management
 - Multi-location support
 - Advanced payment configuration
 - Customer management
 
 **Phase 3**:
+
 - Loyalty programs
 - Advanced analytics
 - Integration ecosystem

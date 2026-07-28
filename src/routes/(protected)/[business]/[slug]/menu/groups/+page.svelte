@@ -12,12 +12,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import PageShell from '$lib/components/global/page-shell.svelte';
 	import SettingsSection from '$lib/components/global/settings-section.svelte';
-	import {
-		IconPlus,
-		IconPencil,
-		IconTrash,
-		IconSearch,
-	} from '@tabler/icons-svelte';
+	import { IconPlus, IconPencil, IconTrash, IconSearch } from '@tabler/icons-svelte';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import { EmptyState } from '$lib/components/data-display';
 	import { toast } from 'svelte-sonner';
@@ -41,8 +36,12 @@
 	let groups = $state<MenuGroup[]>(data.groups || []);
 	let allItems = $state<MenuItem[]>(data.menuItems || []);
 
-	$effect(() => { groups = data.groups || []; });
-	$effect(() => { allItems = data.menuItems || []; });
+	$effect(() => {
+		groups = data.groups || [];
+	});
+	$effect(() => {
+		allItems = data.menuItems || [];
+	});
 
 	let searchQuery = $state('');
 	let showAddDialog = $state(false);
@@ -60,15 +59,14 @@
 	let itemSearchQuery = $state('');
 
 	const filteredGroups = $derived(
-		groups.filter(g =>
-			g.name.toLowerCase().includes(searchQuery.toLowerCase())
-		).sort((a, b) => a.sortOrder - b.sortOrder)
+		groups
+			.filter((g) => g.name.toLowerCase().includes(searchQuery.toLowerCase()))
+			.sort((a, b) => a.sortOrder - b.sortOrder)
 	);
 
 	const filteredAvailableItems = $derived(
-		allItems.filter(item =>
-			item.isAvailable &&
-			item.name.toLowerCase().includes(itemSearchQuery.toLowerCase())
+		allItems.filter(
+			(item) => item.isAvailable && item.name.toLowerCase().includes(itemSearchQuery.toLowerCase())
 		)
 	);
 
@@ -99,14 +97,14 @@
 
 	function toggleItem(itemId: string) {
 		if (formItemIds.includes(itemId)) {
-			formItemIds = formItemIds.filter(id => id !== itemId);
+			formItemIds = formItemIds.filter((id) => id !== itemId);
 		} else {
 			formItemIds = [...formItemIds, itemId];
 		}
 	}
 
 	function getItemName(itemId: string): string {
-		return allItems.find(i => i.id === itemId)?.name || itemId;
+		return allItems.find((i) => i.id === itemId)?.name || itemId;
 	}
 
 	async function handleSubmit() {
@@ -121,7 +119,7 @@
 				description: formDescription.trim() || undefined,
 				color: formColor.trim() || undefined,
 				itemIds: formItemIds,
-				isActive: formIsActive,
+				isActive: formIsActive
 			};
 
 			if (editingGroup) {
@@ -162,14 +160,13 @@
 	title="Delete Group"
 	description="This will remove this group from the POS tab bar. Items in this group are not affected."
 	onConfirm={handleDelete}
-	onCancel={() => { deleteDialogOpen = false; deleteTarget = null; }}
+	onCancel={() => {
+		deleteDialogOpen = false;
+		deleteTarget = null;
+	}}
 />
 
-<PageShell
-	back
-	title="Groups"
-	description="Create custom item collections for the POS tab bar"
->
+<PageShell back title="Groups" description="Create custom item collections for the POS tab bar">
 	<div>
 		<SettingsSection
 			title="Item groups"
@@ -182,7 +179,9 @@
 			{/snippet}
 
 			<div class="relative max-w-sm">
-				<IconSearch class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+				<IconSearch
+					class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+				/>
 				<Input placeholder="Search groups..." bind:value={searchQuery} class="pl-9" />
 			</div>
 
@@ -224,7 +223,9 @@
 											<Badge variant="outline" class="text-xs">{getItemName(itemId)}</Badge>
 										{/each}
 										{#if group.itemIds.length > 5}
-											<Badge variant="outline" class="text-xs">+{group.itemIds.length - 5} more</Badge>
+											<Badge variant="outline" class="text-xs"
+												>+{group.itemIds.length - 5} more</Badge
+											>
 										{/if}
 									</div>
 								{/if}
@@ -243,7 +244,10 @@
 									variant="ghost"
 									size="icon"
 									aria-label="Delete {group.name}"
-									onclick={() => { deleteTarget = group; deleteDialogOpen = true; }}
+									onclick={() => {
+										deleteTarget = group;
+										deleteDialogOpen = true;
+									}}
 								>
 									<IconTrash />
 								</Button>
@@ -258,7 +262,7 @@
 
 <!-- Create/Edit Dialog -->
 <Dialog.Root bind:open={showAddDialog}>
-	<Dialog.Content class="max-w-lg max-h-[85vh] overflow-y-auto">
+	<Dialog.Content class="max-h-[85vh] max-w-lg overflow-y-auto">
 		<Dialog.Header>
 			<Dialog.Title>{editingGroup ? 'Edit Group' : 'New Group'}</Dialog.Title>
 			<Dialog.Description>
@@ -279,7 +283,12 @@
 
 			<Field.Field>
 				<Field.Label for="group-desc">Description</Field.Label>
-				<Textarea id="group-desc" bind:value={formDescription} rows={2} placeholder="Optional description" />
+				<Textarea
+					id="group-desc"
+					bind:value={formDescription}
+					rows={2}
+					placeholder="Optional description"
+				/>
 			</Field.Field>
 
 			<Field.Field>
@@ -298,7 +307,11 @@
 			</Field.Field>
 
 			<div class="flex items-center gap-2">
-				<Switch id="group-active" checked={formIsActive} onCheckedChange={(v) => formIsActive = v} />
+				<Switch
+					id="group-active"
+					checked={formIsActive}
+					onCheckedChange={(v) => (formIsActive = v)}
+				/>
 				<Label for="group-active" class="text-sm font-medium">
 					{formIsActive ? 'Active — visible in POS' : 'Inactive — hidden from POS'}
 				</Label>
@@ -308,7 +321,9 @@
 			<Field.Field>
 				<Field.Label for="group-item-search">Items ({formItemIds.length} selected)</Field.Label>
 				<div class="relative">
-					<IconSearch class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+					<IconSearch
+						class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+					/>
 					<Input
 						id="group-item-search"
 						placeholder="Search items..."
@@ -324,7 +339,10 @@
 								checked={formItemIds.includes(item.id)}
 								onCheckedChange={() => toggleItem(item.id)}
 							/>
-							<Label for="group-item-{item.id}" class="min-w-0 flex-1 cursor-pointer truncate font-normal">
+							<Label
+								for="group-item-{item.id}"
+								class="min-w-0 flex-1 cursor-pointer truncate font-normal"
+							>
 								{item.name}
 							</Label>
 							<span class="ml-auto shrink-0 text-xs text-muted-foreground">{item.categoryId}</span>
@@ -338,7 +356,7 @@
 		</div>
 
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => showAddDialog = false}>Cancel</Button>
+			<Button variant="outline" onclick={() => (showAddDialog = false)}>Cancel</Button>
 			<Button onclick={handleSubmit} disabled={isSubmitting}>
 				{#if isSubmitting}
 					<Loader2 class="mr-2 h-4 w-4 animate-spin" />

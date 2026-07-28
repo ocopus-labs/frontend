@@ -183,7 +183,9 @@
 				{#if errors.businessName}
 					<Field.Error id="business-name-error">{errors.businessName}</Field.Error>
 				{:else}
-					<Field.Description id="business-name-desc">This is how customers will see your business</Field.Description>
+					<Field.Description id="business-name-desc"
+						>This is how customers will see your business</Field.Description
+					>
 				{/if}
 			</Field.Field>
 		</Field.Group>
@@ -218,7 +220,9 @@
 						label="Restaurant Type"
 						describedBy="restaurant-subtype-desc"
 					/>
-					<Field.Description id="restaurant-subtype-desc">What type of restaurant service do you offer?</Field.Description>
+					<Field.Description id="restaurant-subtype-desc"
+						>What type of restaurant service do you offer?</Field.Description
+					>
 				</Field.Field>
 			</Field.Group>
 		{/if}
@@ -323,7 +327,9 @@
 				{#if errors.timezone}
 					<Field.Error id="timezone-error">{errors.timezone}</Field.Error>
 				{:else}
-					<Field.Description id="timezone-desc">Used for reporting and business hours calculation</Field.Description>
+					<Field.Description id="timezone-desc"
+						>Used for reporting and business hours calculation</Field.Description
+					>
 				{/if}
 			</Field.Field>
 		</Field.Group>

@@ -48,26 +48,26 @@ Visit `http://localhost:5173`.
 
 ### Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Vite dev server with API proxy |
-| `npm run build` | Production build |
-| `npm run preview` | Preview production build |
-| `npm run check` | Svelte type checking (`svelte-check`) |
-| `npm run lint` | Prettier + ESLint check |
-| `npm run format` | Prettier formatting |
-| `npm run test:e2e` | Playwright E2E tests |
-| `npm run storybook` | Component dev on port 6006 |
+| Command             | Description                           |
+| ------------------- | ------------------------------------- |
+| `npm run dev`       | Vite dev server with API proxy        |
+| `npm run build`     | Production build                      |
+| `npm run preview`   | Preview production build              |
+| `npm run check`     | Svelte type checking (`svelte-check`) |
+| `npm run lint`      | Prettier + ESLint check               |
+| `npm run format`    | Prettier formatting                   |
+| `npm run test:e2e`  | Playwright E2E tests                  |
+| `npm run storybook` | Component dev on port 6006            |
 
 ## Environment Variables
 
 Public env vars (accessible in client code) are prefixed with `PUBLIC_`:
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `PUBLIC_API_BASE` | No | Backend API base URL (default: `/api`) |
-| `PUBLIC_SUPPORT_EMAIL` | No | Support email shown in UI |
-| `PUBLIC_BACKEND_URL` | No | Public backend origin for webhook URL display in credentials settings. Leave empty in dev (auto-detected from `window.location`); set to e.g. `https://api.yourdomain.com` in production. |
+| Variable               | Required | Description                                                                                                                                                                               |
+| ---------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PUBLIC_API_BASE`      | No       | Backend API base URL (default: `/api`)                                                                                                                                                    |
+| `PUBLIC_SUPPORT_EMAIL` | No       | Support email shown in UI                                                                                                                                                                 |
+| `PUBLIC_BACKEND_URL`   | No       | Public backend origin for webhook URL display in credentials settings. Leave empty in dev (auto-detected from `window.location`); set to e.g. `https://api.yourdomain.com` in production. |
 
 ## Architecture
 
@@ -286,6 +286,7 @@ export async function getResource(
 ```
 
 The base client (`client.ts`) handles:
+
 - 30-second client-side GET cache
 - Automatic credentials inclusion for session cookies
 - Session expiry redirect to login
@@ -302,19 +303,19 @@ import type { PageLoad } from './$types';
 import { getResource } from '$lib/api';
 
 export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
-  depends('app:resource');  // Enable manual invalidation
-  const parentData = await parent();  // Inherit from layout (businessId, business)
-  
-  const [resourceResult, statsResult] = await Promise.allSettled([
-    getResource(parentData.businessId, undefined, { fetch }),
-    getStats(parentData.businessId, undefined, { fetch }),
-  ]);
-  
-  return {
-    ...parentData,
-    resource: resourceResult.status === 'fulfilled' ? resourceResult.value : null,
-    stats: statsResult.status === 'fulfilled' ? statsResult.value : null,
-  };
+	depends('app:resource'); // Enable manual invalidation
+	const parentData = await parent(); // Inherit from layout (businessId, business)
+
+	const [resourceResult, statsResult] = await Promise.allSettled([
+		getResource(parentData.businessId, undefined, { fetch }),
+		getStats(parentData.businessId, undefined, { fetch })
+	]);
+
+	return {
+		...parentData,
+		resource: resourceResult.status === 'fulfilled' ? resourceResult.value : null,
+		stats: statsResult.status === 'fulfilled' ? statsResult.value : null
+	};
 };
 ```
 
@@ -326,23 +327,25 @@ All new components use Svelte 5 runes:
 
 ```svelte
 <script lang="ts">
-  interface Props {
-    open: boolean;
-    businessId: string;
-    onClose: () => void;
-  }
-  
-  let { open, businessId, onClose }: Props = $props();
-  
-  let loading = $state(false);
-  let items = $state<Item[]>([]);
-  const filtered = $derived(items.filter(i => i.active));
-  
-  $effect(() => {
-    if (open && businessId) loadData();
-  });
-  
-  async function loadData() { /* ... */ }
+	interface Props {
+		open: boolean;
+		businessId: string;
+		onClose: () => void;
+	}
+
+	let { open, businessId, onClose }: Props = $props();
+
+	let loading = $state(false);
+	let items = $state<Item[]>([]);
+	const filtered = $derived(items.filter((i) => i.active));
+
+	$effect(() => {
+		if (open && businessId) loadData();
+	});
+
+	async function loadData() {
+		/* ... */
+	}
 </script>
 ```
 
@@ -367,12 +370,14 @@ Public customer-facing ordering with 3-step checkout:
 3. **Payment** — gateway selection (Stripe / Razorpay / Cash on Pickup)
 
 Stripe flow:
+
 - Lazy-loads `@stripe/stripe-js` only when needed
 - Creates payment intent via backend `/create-payment-intent` endpoint
 - Mounts Stripe Payment Element with business's publishable key
 - Handles 3DS redirect with sessionStorage context restore
 
 Razorpay flow:
+
 - Lazy-loads `checkout.razorpay.com/v1/checkout.js` script
 - Creates server-side order via backend `/create-razorpay-order`
 - Opens Razorpay Checkout popup with business's keyId
@@ -511,21 +516,21 @@ The app uses `svelte-adapter-bun` for production deployment. Change the adapter 
 
 The UI is built on [shadcn-svelte](https://shadcn-svelte.com/) with 60+ base components in `src/lib/components/ui/`. Key custom components:
 
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| `ConfirmDialog` | `global/confirm-dialog.svelte` | Destructive confirmation dialogs |
-| `EmptyState` | `data-display/empty-state.svelte` | Empty data placeholders |
-| `PageHeader` | `global/page-header.svelte` | Consistent page headers with actions |
-| `StatCard` | `global/stat-card.svelte` | Metric display cards |
-| `BusinessSwitcher` | `global/business-switcher.svelte` | Multi-business selector |
-| `ThemeToggle` | `global/theme-toggle.svelte` | Dark/light mode switch |
-| `LocaleSwitcher` | `global/locale-switcher.svelte` | Language picker |
-| `BarcodeScanner` | `pos/BarcodeScanner.svelte` | Camera-based barcode scanning |
-| `PaymentDialog` | `pos/PaymentDialog.svelte` | Multi-gateway payment flow |
-| `ReceiptDialog` | `pos/ReceiptDialog.svelte` | Print + email + WhatsApp delivery |
-| `TableFloorPlan` | `pos/TableFloorPlan.svelte` | Drag-and-drop floor plan editor |
-| `LazyBarChart` | `chart/lazy-bar-chart.svelte` | Code-split chart wrapper |
-| `LazyPieChart` | `chart/lazy-pie-chart.svelte` | Code-split chart wrapper |
+| Component          | Location                          | Purpose                              |
+| ------------------ | --------------------------------- | ------------------------------------ |
+| `ConfirmDialog`    | `global/confirm-dialog.svelte`    | Destructive confirmation dialogs     |
+| `EmptyState`       | `data-display/empty-state.svelte` | Empty data placeholders              |
+| `PageHeader`       | `global/page-header.svelte`       | Consistent page headers with actions |
+| `StatCard`         | `global/stat-card.svelte`         | Metric display cards                 |
+| `BusinessSwitcher` | `global/business-switcher.svelte` | Multi-business selector              |
+| `ThemeToggle`      | `global/theme-toggle.svelte`      | Dark/light mode switch               |
+| `LocaleSwitcher`   | `global/locale-switcher.svelte`   | Language picker                      |
+| `BarcodeScanner`   | `pos/BarcodeScanner.svelte`       | Camera-based barcode scanning        |
+| `PaymentDialog`    | `pos/PaymentDialog.svelte`        | Multi-gateway payment flow           |
+| `ReceiptDialog`    | `pos/ReceiptDialog.svelte`        | Print + email + WhatsApp delivery    |
+| `TableFloorPlan`   | `pos/TableFloorPlan.svelte`       | Drag-and-drop floor plan editor      |
+| `LazyBarChart`     | `chart/lazy-bar-chart.svelte`     | Code-split chart wrapper             |
+| `LazyPieChart`     | `chart/lazy-pie-chart.svelte`     | Code-split chart wrapper             |
 
 Before creating new UI components, check `@ieedan/shadcn-svelte-extras` for existing implementations.
 
@@ -570,7 +575,9 @@ Then update `svelte.config.js`:
 ```js
 import adapter from '@sveltejs/adapter-node';
 // ...
-kit: { adapter: adapter() }
+kit: {
+	adapter: adapter();
+}
 ```
 
 ### Environment

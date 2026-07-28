@@ -212,7 +212,7 @@
 					<Button
 						variant="outline"
 						onclick={() => (selectedProvider = provider.id)}
-						class="h-auto flex-col items-stretch gap-1 whitespace-normal border-2 p-4 text-left {selectedProvider ===
+						class="h-auto flex-col items-stretch gap-1 border-2 p-4 text-left whitespace-normal {selectedProvider ===
 						provider.id
 							? 'border-primary bg-primary/5'
 							: 'border-border'}"
@@ -240,7 +240,7 @@
 					<Field.Label for="start-date">Start date</Field.Label>
 					<div class="relative">
 						<IconCalendar
-							class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+							class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
 						/>
 						<Input id="start-date" type="date" bind:value={startDate} class="max-w-sm pl-10" />
 					</div>
@@ -249,7 +249,7 @@
 					<Field.Label for="end-date">End date</Field.Label>
 					<div class="relative">
 						<IconCalendar
-							class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+							class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
 						/>
 						<Input id="end-date" type="date" bind:value={endDate} class="max-w-sm pl-10" />
 					</div>
@@ -349,7 +349,7 @@
 									<Table.Cell class="font-medium">
 										{getProviderName(exportItem.provider)}
 									</Table.Cell>
-									<Table.Cell class="text-sm text-muted-foreground hidden md:table-cell">
+									<Table.Cell class="hidden text-sm text-muted-foreground md:table-cell">
 										{formatDate(exportItem.startDate)} - {formatDate(exportItem.endDate)}
 									</Table.Cell>
 									<Table.Cell>
@@ -366,9 +366,12 @@
 											{getStatusLabel(exportItem.status)}
 										</Badge>
 									</Table.Cell>
-									<Table.Cell class="uppercase hidden lg:table-cell">{exportItem.format}</Table.Cell>
-									<Table.Cell class="hidden lg:table-cell">{exportItem.recordCount ?? '-'}</Table.Cell>
-									<Table.Cell class="text-sm text-muted-foreground hidden lg:table-cell">
+									<Table.Cell class="hidden uppercase lg:table-cell">{exportItem.format}</Table.Cell
+									>
+									<Table.Cell class="hidden lg:table-cell"
+										>{exportItem.recordCount ?? '-'}</Table.Cell
+									>
+									<Table.Cell class="hidden text-sm text-muted-foreground lg:table-cell">
 										{formatDate(exportItem.createdAt)}
 									</Table.Cell>
 									<Table.Cell class="text-right">

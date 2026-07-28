@@ -7,7 +7,12 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
 	import PageHeader from '$lib/components/global/page-header.svelte';
-	import { IconArrowLeft, IconDownload, IconLoader2, IconFileSpreadsheet } from '@tabler/icons-svelte';
+	import {
+		IconArrowLeft,
+		IconDownload,
+		IconLoader2,
+		IconFileSpreadsheet
+	} from '@tabler/icons-svelte';
 	import { toast } from 'svelte-sonner';
 	import { EmptyState } from '$lib/components/data-display';
 	import { exportTaxReport, type TaxSettings } from '$lib/api';
@@ -69,7 +74,11 @@
 		const businessId = (data as any).businessId;
 
 		try {
-			const result = await exportTaxReport(businessId, { from: fromDate, to: toDate, format: 'json' });
+			const result = await exportTaxReport(businessId, {
+				from: fromDate,
+				to: toDate,
+				format: 'json'
+			});
 			if (result && typeof result === 'object' && !('size' in result)) {
 				previewData = result as Record<string, unknown>;
 			}
@@ -92,13 +101,21 @@
 
 		try {
 			if (format === 'csv') {
-				const blob = await exportTaxReport(businessId, { from: fromDate, to: toDate, format: 'csv' });
+				const blob = await exportTaxReport(businessId, {
+					from: fromDate,
+					to: toDate,
+					format: 'csv'
+				});
 				if (blob instanceof Blob) {
 					downloadBlob(blob, `tax-report-${fromDate}-to-${toDate}.csv`);
 					toast.success('Report downloaded');
 				}
 			} else {
-				const result = await exportTaxReport(businessId, { from: fromDate, to: toDate, format: 'json' });
+				const result = await exportTaxReport(businessId, {
+					from: fromDate,
+					to: toDate,
+					format: 'json'
+				});
 				const jsonStr = JSON.stringify(result, null, 2);
 				const blob = new Blob([jsonStr], { type: 'application/json' });
 				downloadBlob(blob, `tax-report-${fromDate}-to-${toDate}.json`);
@@ -200,11 +217,11 @@
 					<div class="grid gap-2">
 						<label class="text-sm font-medium">Export Format</label>
 						<div class="flex gap-3">
-							<label class="flex items-center gap-2 cursor-pointer">
+							<label class="flex cursor-pointer items-center gap-2">
 								<input type="radio" bind:group={format} value="csv" class="accent-primary" />
 								<span class="text-sm">CSV (Spreadsheet)</span>
 							</label>
-							<label class="flex items-center gap-2 cursor-pointer">
+							<label class="flex cursor-pointer items-center gap-2">
 								<input type="radio" bind:group={format} value="json" class="accent-primary" />
 								<span class="text-sm">JSON (Data)</span>
 							</label>
@@ -280,7 +297,9 @@
 									{#each Object.entries(report.componentTotals) as [name, amount]}
 										<Table.Row>
 											<Table.Cell>{name}</Table.Cell>
-											<Table.Cell class="text-right font-medium">{(amount as number).toFixed(2)}</Table.Cell>
+											<Table.Cell class="text-right font-medium"
+												>{(amount as number).toFixed(2)}</Table.Cell
+											>
 										</Table.Row>
 									{/each}
 								</Table.Body>
@@ -318,7 +337,9 @@
 					<!-- GST-specific sections -->
 					{#if report.b2b && report.b2b.length > 0}
 						<div class="mt-4">
-							<h4 class="mb-2 text-sm font-medium">B2B Transactions ({report.b2b.length} customers)</h4>
+							<h4 class="mb-2 text-sm font-medium">
+								B2B Transactions ({report.b2b.length} customers)
+							</h4>
 							<Table.Root>
 								<Table.Header>
 									<Table.Row>
@@ -357,7 +378,7 @@
 									{#each report.hsnSummary as h}
 										<Table.Row>
 											<Table.Cell class="font-mono text-xs">{h.hsnCode}</Table.Cell>
-											<Table.Cell class="truncate max-w-[150px]">{h.description}</Table.Cell>
+											<Table.Cell class="max-w-[150px] truncate">{h.description}</Table.Cell>
 											<Table.Cell class="text-right">{h.quantity}</Table.Cell>
 											<Table.Cell class="text-right">{h.taxableValue.toFixed(2)}</Table.Cell>
 											<Table.Cell class="text-right">{h.totalTax.toFixed(2)}</Table.Cell>

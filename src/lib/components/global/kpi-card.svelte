@@ -126,14 +126,14 @@
 	<Card.Root
 		class={cn(
 			'relative gap-0 overflow-hidden',
-			href && 'transition-all group-hover:ring-primary/40 group-hover:shadow-md',
+			href && 'transition-all group-hover:shadow-md group-hover:ring-primary/40',
 			className
 		)}
 	>
 		{#if sparklinePath}
 			<svg
 				class={cn(
-					'pointer-events-none absolute bottom-0 right-0 h-12 w-28 opacity-[0.10]',
+					'pointer-events-none absolute right-0 bottom-0 h-12 w-28 opacity-[0.10]',
 					sparkColor
 				)}
 				viewBox="0 0 120 40"
@@ -154,7 +154,7 @@
 		<div class="flex flex-col px-4">
 			<div class="flex items-start justify-between gap-2">
 				<span
-					class="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground"
+					class="truncate text-xs font-medium tracking-wide text-muted-foreground uppercase"
 					title={label}
 				>
 					{label}
@@ -173,7 +173,7 @@
 
 			<div
 				class={cn(
-					'text-2xl font-semibold leading-none tabular-nums',
+					'text-2xl leading-none font-semibold tabular-nums',
 					emphasize && accentText[accent]
 				)}
 			>

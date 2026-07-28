@@ -4,16 +4,7 @@
  */
 
 export type CurrencyCode =
-	| 'USD'
-	| 'EUR'
-	| 'GBP'
-	| 'JPY'
-	| 'CAD'
-	| 'AUD'
-	| 'CHF'
-	| 'CNY'
-	| 'INR'
-	| 'BRL';
+	'USD' | 'EUR' | 'GBP' | 'JPY' | 'CAD' | 'AUD' | 'CHF' | 'CNY' | 'INR' | 'BRL';
 
 export type Locale =
 	| 'en-US'

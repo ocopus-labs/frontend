@@ -136,10 +136,7 @@
 							}}
 						>
 							{#each chartSeries as s, i (s.key)}
-								<Area
-									{...getAreaProps(s, i)}
-									fill="url(#fill-{s.key})"
-								/>
+								<Area {...getAreaProps(s, i)} fill="url(#fill-{s.key})" />
 							{/each}
 						</ChartClipPath>
 					{/snippet}

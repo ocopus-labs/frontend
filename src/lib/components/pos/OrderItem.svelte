@@ -32,10 +32,10 @@
 	// Check if item has any modifiers to show
 	const hasModifiers = $derived(
 		item.modifiers?.size ||
-		item.modifiers?.spiceLevel ||
-		(item.modifiers?.addOns && item.modifiers.addOns.length > 0) ||
-		(item.modifiers?.removals && item.modifiers.removals.length > 0) ||
-		(item.modifiers?.specialInstructions && item.modifiers.specialInstructions !== 'None')
+			item.modifiers?.spiceLevel ||
+			(item.modifiers?.addOns && item.modifiers.addOns.length > 0) ||
+			(item.modifiers?.removals && item.modifiers.removals.length > 0) ||
+			(item.modifiers?.specialInstructions && item.modifiers.specialInstructions !== 'None')
 	);
 </script>
 
@@ -56,11 +56,9 @@
 					<h3 class="truncate text-sm font-semibold">{item.name}</h3>
 					{#if hasModifiers}
 						<p class="truncate text-xs text-muted-foreground">
-							{[
-								item.modifiers?.size,
-								item.modifiers?.spiceLevel,
-								...(item.modifiers?.addOns || [])
-							].filter(Boolean).join(' • ')}
+							{[item.modifiers?.size, item.modifiers?.spiceLevel, ...(item.modifiers?.addOns || [])]
+								.filter(Boolean)
+								.join(' • ')}
 						</p>
 					{/if}
 				</div>

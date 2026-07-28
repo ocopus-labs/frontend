@@ -60,11 +60,7 @@
 
 	// Combine flat results into groups or use provided groups
 	const displayGroups = $derived(
-		groups.length > 0
-			? groups
-			: results.length > 0
-				? [{ heading: 'Results', results }]
-				: []
+		groups.length > 0 ? groups : results.length > 0 ? [{ heading: 'Results', results }] : []
 	);
 
 	const hasResults = $derived(displayGroups.some((g) => g.results.length > 0));
@@ -110,7 +106,7 @@
 
 <Command.Dialog
 	bind:open
-	onOpenChange={onOpenChange}
+	{onOpenChange}
 	title="Search"
 	description="Search for pages, actions, and more"
 >
@@ -119,11 +115,11 @@
 	<Command.List class="max-h-[400px]">
 		{#if loading}
 			<div class="flex items-center justify-center py-6">
-				<LoaderCircleIcon class="text-muted-foreground h-6 w-6 animate-spin" />
+				<LoaderCircleIcon class="h-6 w-6 animate-spin text-muted-foreground" />
 			</div>
 		{:else if !hasResults && query}
 			<Command.Empty class="py-6 text-center">
-				<div class="text-muted-foreground flex flex-col items-center gap-2">
+				<div class="flex flex-col items-center gap-2 text-muted-foreground">
 					<SearchIcon class="h-10 w-10 opacity-50" />
 					<p>{emptyMessage}</p>
 					<p class="text-xs">Try adjusting your search terms</p>
@@ -139,7 +135,7 @@
 							onSearch?.(search);
 						}}
 					>
-						<SearchIcon class="text-muted-foreground mr-2 h-4 w-4" />
+						<SearchIcon class="mr-2 h-4 w-4 text-muted-foreground" />
 						<span>{search}</span>
 					</Command.Item>
 				{/each}
@@ -159,14 +155,14 @@
 								>
 									<div class="flex flex-1 items-center gap-3">
 										{#if result.icon}
-											<result.icon class="text-muted-foreground h-4 w-4" />
+											<result.icon class="h-4 w-4 text-muted-foreground" />
 										{:else}
-											<FileIcon class="text-muted-foreground h-4 w-4" />
+											<FileIcon class="h-4 w-4 text-muted-foreground" />
 										{/if}
 										<div class="flex flex-col">
 											<span class="font-medium">{result.title}</span>
 											{#if result.description}
-												<span class="text-muted-foreground text-xs">{result.description}</span>
+												<span class="text-xs text-muted-foreground">{result.description}</span>
 											{/if}
 										</div>
 									</div>
@@ -174,7 +170,7 @@
 										<Badge variant="outline" class="text-xs">{result.category}</Badge>
 									{/if}
 									<ArrowRightIcon
-										class="text-muted-foreground ml-2 h-4 w-4 opacity-0 transition-opacity group-data-[selected]:opacity-100"
+										class="ml-2 h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-data-[selected]:opacity-100"
 									/>
 								</Command.LinkItem>
 							{:else}
@@ -186,14 +182,14 @@
 								>
 									<div class="flex flex-1 items-center gap-3">
 										{#if result.icon}
-											<result.icon class="text-muted-foreground h-4 w-4" />
+											<result.icon class="h-4 w-4 text-muted-foreground" />
 										{:else}
-											<FileIcon class="text-muted-foreground h-4 w-4" />
+											<FileIcon class="h-4 w-4 text-muted-foreground" />
 										{/if}
 										<div class="flex flex-col">
 											<span class="font-medium">{result.title}</span>
 											{#if result.description}
-												<span class="text-muted-foreground text-xs">{result.description}</span>
+												<span class="text-xs text-muted-foreground">{result.description}</span>
 											{/if}
 										</div>
 									</div>
@@ -201,7 +197,7 @@
 										<Badge variant="outline" class="text-xs">{result.category}</Badge>
 									{/if}
 									<ArrowRightIcon
-										class="text-muted-foreground ml-2 h-4 w-4 opacity-0 transition-opacity group-data-[selected]:opacity-100"
+										class="ml-2 h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-data-[selected]:opacity-100"
 									/>
 								</Command.Item>
 							{/if}
@@ -213,7 +209,7 @@
 	</Command.List>
 
 	<!-- Footer with keyboard hints -->
-	<div class="text-muted-foreground flex items-center justify-between border-t px-3 py-2 text-xs">
+	<div class="flex items-center justify-between border-t px-3 py-2 text-xs text-muted-foreground">
 		<div class="flex items-center gap-3">
 			<span class="flex items-center gap-1">
 				<Kbd class="text-[10px]">↑</Kbd>

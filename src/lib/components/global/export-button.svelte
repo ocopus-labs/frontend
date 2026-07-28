@@ -58,7 +58,12 @@
 		</DropdownMenu.Content>
 	</DropdownMenu.Root>
 {:else if onExportCsv}
-	<Button variant="outline" size="sm" disabled={disabled || isExporting} onclick={() => handleExport(onExportCsv)}>
+	<Button
+		variant="outline"
+		size="sm"
+		disabled={disabled || isExporting}
+		onclick={() => handleExport(onExportCsv)}
+	>
 		{#if isExporting}
 			<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
 		{:else}

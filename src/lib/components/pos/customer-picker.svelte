@@ -2,14 +2,13 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
+	import { IconSearch, IconX, IconPlus, IconLoader2, IconUser } from '@tabler/icons-svelte';
 	import {
-		IconSearch,
-		IconX,
-		IconPlus,
-		IconLoader2,
-		IconUser
-	} from '@tabler/icons-svelte';
-	import { findCustomerByPhone, createCustomer, type Customer, type CreateCustomerPayload } from '$lib/api';
+		findCustomerByPhone,
+		createCustomer,
+		type Customer,
+		type CreateCustomerPayload
+	} from '$lib/api';
 	import { toast } from 'svelte-sonner';
 	import { userFriendlyError } from '$lib/utils/error';
 
@@ -19,11 +18,7 @@
 		onSelect?: (customer: Customer | null) => void;
 	}
 
-	let {
-		businessId,
-		selectedCustomer = $bindable(null),
-		onSelect
-	}: Props = $props();
+	let { businessId, selectedCustomer = $bindable(null), onSelect }: Props = $props();
 
 	let phoneQuery = $state('');
 	let isSearching = $state(false);
@@ -102,14 +97,14 @@
 </script>
 
 <div class="flex flex-col gap-2">
-	<label class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Customer</label>
+	<label class="text-xs font-medium tracking-wider text-muted-foreground uppercase">Customer</label>
 
 	{#if selectedCustomer}
 		<!-- Selected customer chip -->
 		<div class="flex items-center gap-2 rounded-md border bg-muted/50 px-3 py-2">
 			<IconUser class="h-4 w-4 text-muted-foreground" />
-			<div class="flex-1 min-w-0">
-				<p class="text-sm font-medium truncate">{selectedCustomer.name}</p>
+			<div class="min-w-0 flex-1">
+				<p class="truncate text-sm font-medium">{selectedCustomer.name}</p>
 				<p class="text-xs text-muted-foreground">{selectedCustomer.phone}</p>
 			</div>
 			<Button variant="ghost" size="icon" class="h-6 w-6 shrink-0" onclick={clearCustomer}>
@@ -144,33 +139,24 @@
 			{#if searchResult}
 				<!-- Found customer -->
 				<button
-					class="flex items-center gap-2 rounded-md border p-2 text-left hover:bg-muted/50 transition-colors"
+					class="flex items-center gap-2 rounded-md border p-2 text-left transition-colors hover:bg-muted/50"
 					onclick={() => selectCustomer(searchResult!)}
 				>
 					<IconUser class="h-4 w-4 text-muted-foreground" />
-					<div class="flex-1 min-w-0">
+					<div class="min-w-0 flex-1">
 						<p class="text-sm font-medium">{searchResult.name}</p>
 						<p class="text-xs text-muted-foreground">{searchResult.phone}</p>
 					</div>
-					<Badge variant="outline" class="text-xs shrink-0">Select</Badge>
+					<Badge variant="outline" class="shrink-0 text-xs">Select</Badge>
 				</button>
 			{:else}
 				<!-- Not found — Quick Add -->
 				<div class="rounded-md border border-dashed p-2">
-					<p class="text-xs text-muted-foreground mb-2">No customer found</p>
+					<p class="mb-2 text-xs text-muted-foreground">No customer found</p>
 					{#if showQuickAdd}
 						<div class="flex gap-1.5">
-							<Input
-								bind:value={quickAddName}
-								placeholder="Customer name"
-								class="h-8 text-sm"
-							/>
-							<Button
-								size="sm"
-								class="h-8 shrink-0"
-								onclick={handleQuickAdd}
-								disabled={isAdding}
-							>
+							<Input bind:value={quickAddName} placeholder="Customer name" class="h-8 text-sm" />
+							<Button size="sm" class="h-8 shrink-0" onclick={handleQuickAdd} disabled={isAdding}>
 								{#if isAdding}
 									<IconLoader2 class="h-3.5 w-3.5 animate-spin" />
 								{:else}

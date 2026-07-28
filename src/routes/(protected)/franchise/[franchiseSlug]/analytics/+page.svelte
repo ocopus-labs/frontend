@@ -124,9 +124,10 @@
 		return rows.map((row, i) => ({
 			...row,
 			avgOrder: row.orders > 0 ? row.revenue / row.orders : 0,
-			share: (totalPerCurrency.get(row.currency) ?? 0) > 0
-				? row.revenue / (totalPerCurrency.get(row.currency) as number)
-				: 0,
+			share:
+				(totalPerCurrency.get(row.currency) ?? 0) > 0
+					? row.revenue / (totalPerCurrency.get(row.currency) as number)
+					: 0,
 			accent: CHART_ACCENTS[i % CHART_ACCENTS.length]
 		}));
 	});

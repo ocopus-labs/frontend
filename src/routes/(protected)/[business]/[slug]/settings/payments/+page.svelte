@@ -127,9 +127,7 @@
 >
 	<!-- Navigational tile to the credentials child route — a genuine card, not a settings section. -->
 	<Card.Root>
-		<Card.Content
-			class="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between"
-		>
+		<Card.Content class="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
 			<div class="flex items-start gap-4">
 				<div
 					class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
@@ -185,7 +183,13 @@
 				>
 					<Field.Field>
 						<Field.Label for="vpa">UPI VPA (Virtual Payment Address)</Field.Label>
-						<Input id="vpa" type="text" bind:value={vpa} placeholder="merchant@upi" class="max-w-sm" />
+						<Input
+							id="vpa"
+							type="text"
+							bind:value={vpa}
+							placeholder="merchant@upi"
+							class="max-w-sm"
+						/>
 						<Field.Description>e.g., yourstore@paytm, shop@ybl, business@oksbi</Field.Description>
 					</Field.Field>
 
@@ -199,9 +203,7 @@
 							maxlength={50}
 							class="max-w-sm"
 						/>
-						<Field.Description>
-							Displayed on UPI payment apps (max 50 characters)
-						</Field.Description>
+						<Field.Description>Displayed on UPI payment apps (max 50 characters)</Field.Description>
 					</Field.Field>
 				</SettingsSection>
 			{/if}

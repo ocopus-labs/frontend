@@ -51,7 +51,7 @@
 			this={href ? 'a' : 'div'}
 			href={href || undefined}
 			class={href
-				? 'group rounded-xl no-underline transition-all hover:ring-2 hover:ring-primary/20 hover:shadow-md'
+				? 'group rounded-xl no-underline transition-all hover:shadow-md hover:ring-2 hover:ring-primary/20'
 				: ''}
 		>
 			<Card.Root
@@ -61,7 +61,7 @@
 			>
 				{#if sparklinePath}
 					<svg
-						class="pointer-events-none absolute bottom-0 right-0 h-12 w-28 opacity-[0.08]"
+						class="pointer-events-none absolute right-0 bottom-0 h-12 w-28 opacity-[0.08]"
 						viewBox="0 0 120 40"
 						preserveAspectRatio="none"
 					>

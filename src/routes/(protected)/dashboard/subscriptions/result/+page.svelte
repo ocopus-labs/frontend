@@ -116,7 +116,9 @@
 		{#if status === 'processing'}
 			<!-- Processing State -->
 			<Card.Root class="overflow-hidden">
-				<div class="bg-gradient-to-br from-blue-500 to-indigo-600 px-6 py-10 text-center text-white">
+				<div
+					class="bg-gradient-to-br from-blue-500 to-indigo-600 px-6 py-10 text-center text-white"
+				>
 					<div class="mb-4 flex justify-center">
 						<div class="rounded-full bg-white/20 p-4">
 							<Loader2 class="h-12 w-12 animate-spin" />
@@ -129,20 +131,17 @@
 				<Card.Content class="p-6">
 					<div class="py-8 text-center">
 						<Loader2 class="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
-						<p class="mt-4 text-muted-foreground">
-							Activating your subscription...
-						</p>
-						<p class="mt-1 text-sm text-muted-foreground">
-							This usually takes a few seconds
-						</p>
+						<p class="mt-4 text-muted-foreground">Activating your subscription...</p>
+						<p class="mt-1 text-sm text-muted-foreground">This usually takes a few seconds</p>
 					</div>
 				</Card.Content>
 			</Card.Root>
-
 		{:else if status === 'success'}
 			<!-- Success State -->
 			<Card.Root class="overflow-hidden">
-				<div class="bg-gradient-to-br from-green-500 to-emerald-600 px-6 py-10 text-center text-white">
+				<div
+					class="bg-gradient-to-br from-green-500 to-emerald-600 px-6 py-10 text-center text-white"
+				>
 					<div class="mb-4 flex justify-center">
 						<div class="rounded-full bg-white/20 p-4">
 							<CheckCircle class="h-12 w-12" />
@@ -165,7 +164,10 @@
 										<div>
 											<h3 class="font-semibold">{plan.displayName} Plan</h3>
 											<p class="text-sm text-muted-foreground">
-												{formatPrice(plan.priceMonthly, plan.currency || 'USD')}{plan.priceMonthly > 0 ? '/month' : ''}
+												{formatPrice(plan.priceMonthly, plan.currency || 'USD')}{plan.priceMonthly >
+												0
+													? '/month'
+													: ''}
 											</p>
 										</div>
 									</div>
@@ -174,7 +176,9 @@
 							</div>
 
 							<!-- Celebration Message -->
-							<div class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
+							<div
+								class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950"
+							>
 								<PartyPopper class="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
 								<div>
 									<p class="font-medium text-amber-900 dark:text-amber-100">
@@ -230,9 +234,7 @@
 						</div>
 					{:else}
 						<div class="py-8 text-center">
-							<p class="text-muted-foreground">
-								Unable to load subscription details.
-							</p>
+							<p class="text-muted-foreground">Unable to load subscription details.</p>
 							<p class="mt-1 text-sm text-muted-foreground">
 								Your payment may still be processing. Please check your subscriptions page.
 							</p>
@@ -248,21 +250,18 @@
 						</Button>
 
 						<div class="grid grid-cols-2 gap-3">
-							<Button variant="outline" onclick={goToBusinesses}>
-								Create Business
-							</Button>
-							<Button variant="outline" onclick={goToSubscriptions}>
-								View Subscription
-							</Button>
+							<Button variant="outline" onclick={goToBusinesses}>Create Business</Button>
+							<Button variant="outline" onclick={goToSubscriptions}>View Subscription</Button>
 						</div>
 					</div>
 				</Card.Content>
 			</Card.Root>
-
 		{:else}
 			<!-- Cancelled/Failed State -->
 			<Card.Root class="overflow-hidden">
-				<div class="bg-gradient-to-br from-slate-500 to-slate-600 px-6 py-10 text-center text-white">
+				<div
+					class="bg-gradient-to-br from-slate-500 to-slate-600 px-6 py-10 text-center text-white"
+				>
 					<div class="mb-4 flex justify-center">
 						<div class="rounded-full bg-white/20 p-4">
 							<XCircle class="h-12 w-12" />
@@ -277,8 +276,8 @@
 						<!-- Info Message -->
 						<div class="rounded-lg border bg-muted/30 p-4 text-center">
 							<p class="text-muted-foreground">
-								Your payment was cancelled and you have not been charged.
-								Your current plan remains unchanged.
+								Your payment was cancelled and you have not been charged. Your current plan remains
+								unchanged.
 							</p>
 						</div>
 
@@ -300,16 +299,16 @@
 						<Separator />
 
 						<!-- Help Section -->
-						<div class="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
+						<div
+							class="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950"
+						>
 							<div class="flex items-start gap-3">
 								<HelpCircle class="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" />
 								<div>
-									<p class="font-medium text-blue-900 dark:text-blue-100">
-										Need help deciding?
-									</p>
+									<p class="font-medium text-blue-900 dark:text-blue-100">Need help deciding?</p>
 									<p class="mt-1 text-sm text-blue-700 dark:text-blue-300">
-										Our team is here to help you choose the right plan for your business.
-										Contact us for a personalized recommendation.
+										Our team is here to help you choose the right plan for your business. Contact us
+										for a personalized recommendation.
 									</p>
 								</div>
 							</div>

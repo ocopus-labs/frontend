@@ -32,7 +32,6 @@
 		return i18nFormatCurrency(value, currency);
 	}
 
-
 	function onDateRangeChange(value: string) {
 		dateRange = value;
 		const url = new URL($page.url);

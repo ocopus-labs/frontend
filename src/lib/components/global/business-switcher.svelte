@@ -75,7 +75,7 @@
 			groups.push({
 				type: 'franchise',
 				franchise: franchiseMap.get(fId),
-				businesses: bizList,
+				businesses: bizList
 			});
 		}
 
@@ -83,7 +83,7 @@
 		if (independent.length > 0) {
 			groups.push({
 				type: 'independent',
-				businesses: independent,
+				businesses: independent
 			});
 		}
 
@@ -157,15 +157,11 @@
 											class="size-3.5 object-contain"
 										/>
 									{:else}
-										<span class="text-xs font-medium"
-											>{getInitial(business.name)}</span
-										>
+										<span class="text-xs font-medium">{getInitial(business.name)}</span>
 									{/if}
 								</div>
 								<span class="flex-1 truncate">{business.name}</span>
-								<span class="text-xs text-muted-foreground capitalize"
-									>{business.type}</span
-								>
+								<span class="text-xs text-muted-foreground capitalize">{business.type}</span>
 							</DropdownMenu.Item>
 						{/each}
 						<DropdownMenu.Separator />
@@ -188,15 +184,11 @@
 											class="size-3.5 object-contain"
 										/>
 									{:else}
-										<span class="text-xs font-medium"
-											>{getInitial(business.name)}</span
-										>
+										<span class="text-xs font-medium">{getInitial(business.name)}</span>
 									{/if}
 								</div>
 								<span class="flex-1 truncate">{business.name}</span>
-								<span class="text-xs text-muted-foreground capitalize"
-									>{business.type}</span
-								>
+								<span class="text-xs text-muted-foreground capitalize">{business.type}</span>
 							</DropdownMenu.Item>
 						{/each}
 						<DropdownMenu.Separator />
@@ -209,29 +201,20 @@
 					<DropdownMenu.Separator />
 				{/if}
 				<DropdownMenu.Item class="gap-2 p-2" onSelect={goToAllBusinesses}>
-					<div
-						class="flex size-6 items-center justify-center rounded-md border bg-transparent"
-					>
+					<div class="flex size-6 items-center justify-center rounded-md border bg-transparent">
 						<LayoutGridIcon class="size-4" />
 					</div>
 					<div class="font-medium text-muted-foreground">All businesses</div>
 				</DropdownMenu.Item>
 				<DropdownMenu.Item class="gap-2 p-2" onSelect={addBusiness}>
-					<div
-						class="flex size-6 items-center justify-center rounded-md border bg-transparent"
-					>
+					<div class="flex size-6 items-center justify-center rounded-md border bg-transparent">
 						<PlusIcon class="size-4" />
 					</div>
 					<div class="font-medium text-muted-foreground">Add business</div>
 				</DropdownMenu.Item>
 				{#if (franchises ?? []).length > 0}
-					<DropdownMenu.Item
-						class="gap-2 p-2"
-						onSelect={() => goto('/franchise')}
-					>
-						<div
-							class="flex size-6 items-center justify-center rounded-md border bg-transparent"
-						>
+					<DropdownMenu.Item class="gap-2 p-2" onSelect={() => goto('/franchise')}>
+						<div class="flex size-6 items-center justify-center rounded-md border bg-transparent">
 							<Building2Icon class="size-4" />
 						</div>
 						<div class="font-medium text-muted-foreground">My Franchises</div>

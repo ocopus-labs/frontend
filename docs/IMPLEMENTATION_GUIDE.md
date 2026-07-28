@@ -128,33 +128,33 @@ src/routes/
 // src/routes/(protected)/[business]/setup/quick-start/+page.server.ts
 
 export const actions = {
-  default: async ({ request, locals }) => {
-    const formData = await request.formData();
+	default: async ({ request, locals }) => {
+		const formData = await request.formData();
 
-    // Validate business essentials
-    const businessData = {
-      name: formData.get('business-name'),
-      type: formData.get('business-type'),
-      country: formData.get('country'),
-      city: formData.get('city'),
-      timezone: formData.get('timezone'),
-      currency: formData.get('currency')
-    };
+		// Validate business essentials
+		const businessData = {
+			name: formData.get('business-name'),
+			type: formData.get('business-type'),
+			country: formData.get('country'),
+			city: formData.get('city'),
+			timezone: formData.get('timezone'),
+			currency: formData.get('currency')
+		};
 
-    // Validate input
-    if (!businessData.name) {
-      return { success: false, error: 'Business name required' };
-    }
+		// Validate input
+		if (!businessData.name) {
+			return { success: false, error: 'Business name required' };
+		}
 
-    // Create business
-    const business = await createBusiness(businessData, locals.userId);
+		// Create business
+		const business = await createBusiness(businessData, locals.userId);
 
-    // Store in session
-    locals.currentBusiness = business.id;
+		// Store in session
+		locals.currentBusiness = business.id;
 
-    // Redirect to store creation
-    throw redirect(307, `/[${business.id}]/setup/store-creation`);
-  }
+		// Redirect to store creation
+		throw redirect(307, `/[${business.id}]/setup/store-creation`);
+	}
 };
 ```
 
@@ -166,17 +166,17 @@ export const actions = {
 import { writable } from 'svelte/store';
 
 export const onboardingState = writable({
-  stage: 'quick-start', // 'quick-start' | 'essential-ops' | 'optimization' | 'complete'
-  completed: {
-    quickStart: false,
-    firstStore: false,
-    teamAdded: false,
-    paymentConfigured: false,
-    businessHours: false
-  },
-  currentStep: 1, // 1-5 for quick-start
-  startedAt: null,
-  completedAt: null
+	stage: 'quick-start', // 'quick-start' | 'essential-ops' | 'optimization' | 'complete'
+	completed: {
+		quickStart: false,
+		firstStore: false,
+		teamAdded: false,
+		paymentConfigured: false,
+		businessHours: false
+	},
+	currentStep: 1, // 1-5 for quick-start
+	startedAt: null,
+	completedAt: null
 });
 ```
 
@@ -327,33 +327,33 @@ export const onboardingState = writable({
 // src/lib/services/contextual-config.service.ts
 
 export async function checkPaymentConfiguration(
-  businessId: string,
-  transactionType: 'cash' | 'card' | 'digital'
+	businessId: string,
+	transactionType: 'cash' | 'card' | 'digital'
 ) {
-  const business = await getBusinessConfig(businessId);
-  const paymentConfigs = business.paymentConfiguration || {};
+	const business = await getBusinessConfig(businessId);
+	const paymentConfigs = business.paymentConfiguration || {};
 
-  const needs = [];
+	const needs = [];
 
-  if (transactionType === 'cash' && !paymentConfigs.cashBalanceTracking) {
-    needs.push({
-      type: 'CASH_BALANCE_TRACKING',
-      title: 'Track Cash Balance?',
-      description: 'Enable cash balance tracking for accurate shift reports',
-      action: 'enableCashBalanceTracking'
-    });
-  }
+	if (transactionType === 'cash' && !paymentConfigs.cashBalanceTracking) {
+		needs.push({
+			type: 'CASH_BALANCE_TRACKING',
+			title: 'Track Cash Balance?',
+			description: 'Enable cash balance tracking for accurate shift reports',
+			action: 'enableCashBalanceTracking'
+		});
+	}
 
-  if (transactionType === 'card' && !paymentConfigs.tipping) {
-    needs.push({
-      type: 'CARD_TIPPING',
-      title: 'Enable Tipping on Cards?',
-      description: 'Let customers add tips to their card payments',
-      action: 'enableTipping'
-    });
-  }
+	if (transactionType === 'card' && !paymentConfigs.tipping) {
+		needs.push({
+			type: 'CARD_TIPPING',
+			title: 'Enable Tipping on Cards?',
+			description: 'Let customers add tips to their card payments',
+			action: 'enableTipping'
+		});
+	}
 
-  return needs;
+	return needs;
 }
 ```
 
@@ -418,66 +418,62 @@ export async function checkPaymentConfiguration(
 // src/lib/services/menu.service.ts
 
 export interface MenuItemInput {
-  name: string;
-  categoryId: string;
-  price: number;
-  description?: string;
-  image?: string;
-  modifiers: {
-    modifierId: string;
-    isRequired: boolean;
-  }[];
-  taxCategoryId: string;
-  availableAt: string[]; // location IDs
+	name: string;
+	categoryId: string;
+	price: number;
+	description?: string;
+	image?: string;
+	modifiers: {
+		modifierId: string;
+		isRequired: boolean;
+	}[];
+	taxCategoryId: string;
+	availableAt: string[]; // location IDs
 }
 
-export async function createMenuItem(
-  businessId: string,
-  locationId: string,
-  item: MenuItemInput
-) {
-  // Validate modifiers exist
-  for (const modifier of item.modifiers) {
-    const exists = await getModifier(businessId, modifier.modifierId);
-    if (!exists) throw new Error(`Modifier ${modifier.modifierId} not found`);
-  }
+export async function createMenuItem(businessId: string, locationId: string, item: MenuItemInput) {
+	// Validate modifiers exist
+	for (const modifier of item.modifiers) {
+		const exists = await getModifier(businessId, modifier.modifierId);
+		if (!exists) throw new Error(`Modifier ${modifier.modifierId} not found`);
+	}
 
-  // Create item
-  const created = await db.menuItem.create({
-    businessId,
-    locationId,
-    ...item
-  });
+	// Create item
+	const created = await db.menuItem.create({
+		businessId,
+		locationId,
+		...item
+	});
 
-  // Attach modifiers
-  for (const modifier of item.modifiers) {
-    await db.itemModifier.create({
-      itemId: created.id,
-      modifierId: modifier.modifierId,
-      isRequired: modifier.isRequired,
-      displayOrder: item.modifiers.indexOf(modifier)
-    });
-  }
+	// Attach modifiers
+	for (const modifier of item.modifiers) {
+		await db.itemModifier.create({
+			itemId: created.id,
+			modifierId: modifier.modifierId,
+			isRequired: modifier.isRequired,
+			displayOrder: item.modifiers.indexOf(modifier)
+		});
+	}
 
-  return created;
+	return created;
 }
 
 export async function createModifier(
-  businessId: string,
-  modifier: {
-    name: string;
-    type: 'single' | 'multiple'; // single choice or multiple choice
-    options: {
-      name: string;
-      priceAdjustment: number;
-      isDefault?: boolean;
-    }[];
-  }
+	businessId: string,
+	modifier: {
+		name: string;
+		type: 'single' | 'multiple'; // single choice or multiple choice
+		options: {
+			name: string;
+			priceAdjustment: number;
+			isDefault?: boolean;
+		}[];
+	}
 ) {
-  return db.modifier.create({
-    businessId,
-    ...modifier
-  });
+	return db.modifier.create({
+		businessId,
+		...modifier
+	});
 }
 ```
 
@@ -556,56 +552,56 @@ export async function createModifier(
 // src/lib/types/onboarding.ts
 
 export interface OnboardingState {
-  userId: string;
-  businessId: string;
-  stage: 'quick-start' | 'essential-ops' | 'optimization' | 'complete';
-  startedAt: Date;
-  completedAt?: Date;
-  tasksCompleted: {
-    businessEssentials: boolean;
-    firstStore: boolean;
-    teamAdded: boolean;
-    paymentConfigured: boolean;
-    businessHoursSet: boolean;
-    menuCreated: boolean;
-  };
+	userId: string;
+	businessId: string;
+	stage: 'quick-start' | 'essential-ops' | 'optimization' | 'complete';
+	startedAt: Date;
+	completedAt?: Date;
+	tasksCompleted: {
+		businessEssentials: boolean;
+		firstStore: boolean;
+		teamAdded: boolean;
+		paymentConfigured: boolean;
+		businessHoursSet: boolean;
+		menuCreated: boolean;
+	};
 }
 
 export interface BusinessConfig {
-  id: string;
-  userId: string;
-  name: string;
-  type: string;
-  country: string;
-  city: string;
-  timezone: string;
-  currency: string;
-  locations: Location[];
-  payments: PaymentConfiguration;
-  team: TeamMember[];
-  menu?: MenuStructure;
+	id: string;
+	userId: string;
+	name: string;
+	type: string;
+	country: string;
+	city: string;
+	timezone: string;
+	currency: string;
+	locations: Location[];
+	payments: PaymentConfiguration;
+	team: TeamMember[];
+	menu?: MenuStructure;
 }
 
 export interface Location {
-  id: string;
-  name: string;
-  address?: string;
-  phone?: string;
-  taxRate: number;
-  businessHours: BusinessHours;
+	id: string;
+	name: string;
+	address?: string;
+	phone?: string;
+	taxRate: number;
+	businessHours: BusinessHours;
 }
 
 export interface PaymentConfiguration {
-  methods: {
-    cash?: { enabled: boolean };
-    card?: { enabled: boolean; provider: string; apiKey: string };
-    digitalWallets?: { enabled: boolean; methods: string[] };
-    other?: { enabled: boolean };
-  };
-  // Advanced config (set later)
-  tipping?: { enabled: boolean; percentages: number[] };
-  splitPayments?: { enabled: boolean };
-  surcharge?: { enabled: boolean; percentage: number };
+	methods: {
+		cash?: { enabled: boolean };
+		card?: { enabled: boolean; provider: string; apiKey: string };
+		digitalWallets?: { enabled: boolean; methods: string[] };
+		other?: { enabled: boolean };
+	};
+	// Advanced config (set later)
+	tipping?: { enabled: boolean; percentages: number[] };
+	splitPayments?: { enabled: boolean };
+	surcharge?: { enabled: boolean; percentage: number };
 }
 ```
 

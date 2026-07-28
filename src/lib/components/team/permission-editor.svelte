@@ -119,7 +119,7 @@
 			<Sheet.Title>Edit Permissions</Sheet.Title>
 			<Sheet.Description>
 				{#if member}
-					<div class="flex items-center gap-2 mt-1">
+					<div class="mt-1 flex items-center gap-2">
 						<span class="font-medium text-foreground">{member.user.name}</span>
 						<Badge variant="secondary">{member.role}</Badge>
 					</div>
@@ -136,8 +136,13 @@
 						{@const total = category.permissions.length}
 						{@const isExpanded = expandedCategories.has(category.category)}
 
-						<Collapsible.Root open={isExpanded} onOpenChange={() => toggleCategory(category.category)}>
-							<Collapsible.Trigger class="flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium hover:bg-muted/50 transition-colors">
+						<Collapsible.Root
+							open={isExpanded}
+							onOpenChange={() => toggleCategory(category.category)}
+						>
+							<Collapsible.Trigger
+								class="flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted/50"
+							>
 								<div class="flex items-center gap-2">
 									{#if isExpanded}
 										<IconChevronDown class="h-4 w-4 text-muted-foreground" />
@@ -146,7 +151,9 @@
 									{/if}
 									<span>{category.label}</span>
 									{#if category.businessLabel}
-										<Badge variant="outline" class="text-xs font-normal">{category.businessLabel}</Badge>
+										<Badge variant="outline" class="text-xs font-normal"
+											>{category.businessLabel}</Badge
+										>
 									{/if}
 								</div>
 								<span class="text-xs text-muted-foreground">{granted}/{total}</span>
@@ -158,18 +165,25 @@
 										{@const roleDefault = isRoleDefault(perm.key)}
 										{@const isCustom = customPermissions.has(perm.key) && !roleDefault}
 
-										<div class="flex items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors">
-											<div class="flex-1 min-w-0 mr-3">
+										<div
+											class="flex items-center justify-between rounded-md px-3 py-2 transition-colors hover:bg-muted/30"
+										>
+											<div class="mr-3 min-w-0 flex-1">
 												<div class="flex items-center gap-2">
 													<span class="text-sm">{perm.label}</span>
 													{#if roleDefault}
-														<Badge variant="secondary" class="text-[10px] px-1.5 py-0 h-4">Role default</Badge>
+														<Badge variant="secondary" class="h-4 px-1.5 py-0 text-[10px]"
+															>Role default</Badge
+														>
 													{:else if isCustom}
-														<Badge class="text-[10px] px-1.5 py-0 h-4 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Custom</Badge>
+														<Badge
+															class="h-4 bg-blue-100 px-1.5 py-0 text-[10px] text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+															>Custom</Badge
+														>
 													{/if}
 												</div>
 												{#if perm.description}
-													<p class="text-xs text-muted-foreground mt-0.5">{perm.description}</p>
+													<p class="mt-0.5 text-xs text-muted-foreground">{perm.description}</p>
 												{/if}
 											</div>
 											<Switch

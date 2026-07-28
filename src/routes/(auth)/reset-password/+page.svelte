@@ -138,7 +138,9 @@
 				{#if passwordError}
 					<Field.Description class="text-destructive">{passwordError}</Field.Description>
 				{:else if confirmPassword && password === confirmPassword}
-					<Field.Description class="text-emerald-600 dark:text-emerald-400">Passwords match</Field.Description>
+					<Field.Description class="text-emerald-600 dark:text-emerald-400"
+						>Passwords match</Field.Description
+					>
 				{/if}
 			</Field.Field>
 

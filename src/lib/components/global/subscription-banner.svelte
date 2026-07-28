@@ -5,7 +5,9 @@
 	import AlertCircle from '@lucide/svelte/icons/alert-circle';
 	import X from '@lucide/svelte/icons/x';
 
-	let warnings = $state<{ id: string; level: 'warning' | 'critical'; message: string; cta?: string; href: string }[]>([]);
+	let warnings = $state<
+		{ id: string; level: 'warning' | 'critical'; message: string; cta?: string; href: string }[]
+	>([]);
 	let dismissed = $state<Set<string>>(new Set());
 
 	const DISMISSED_KEY = 'dismissed-sub-warnings';
@@ -14,7 +16,9 @@
 		try {
 			const raw = localStorage.getItem(DISMISSED_KEY);
 			if (raw) return new Set(JSON.parse(raw));
-		} catch { /* ignore */ }
+		} catch {
+			/* ignore */
+		}
 		return new Set();
 	}
 
@@ -22,7 +26,9 @@
 		dismissed = new Set([...dismissed, id]);
 		try {
 			localStorage.setItem(DISMISSED_KEY, JSON.stringify([...dismissed]));
-		} catch { /* ignore */ }
+		} catch {
+			/* ignore */
+		}
 	}
 
 	const visibleWarnings = $derived(warnings.filter((w) => !dismissed.has(w.id)));
@@ -33,7 +39,7 @@
 
 		Promise.all([
 			getMySubscription().catch(() => ({ subscription: null as Subscription | null })),
-			getSubscriptionUsage().catch(() => ({ usage: null })),
+			getSubscriptionUsage().catch(() => ({ usage: null }))
 		]).then(([subResult, usageResult]) => {
 			if (cancelled) return;
 
@@ -48,7 +54,7 @@
 					level: 'critical',
 					message: 'Payment failed. Update your payment method to avoid service interruption.',
 					cta: 'Update Payment',
-					href: '/dashboard/billing',
+					href: '/dashboard/billing'
 				});
 			}
 
@@ -59,7 +65,7 @@
 					level: 'warning',
 					message: `Your plan is set to cancel at the end of the billing period.`,
 					cta: 'Reactivate',
-					href: '/dashboard/billing',
+					href: '/dashboard/billing'
 				});
 			}
 
@@ -72,7 +78,7 @@
 						level: 'critical',
 						message: `You've used ${usage.ordersThisMonth} of ${usage.orderLimit} orders this month. Upgrade to avoid hitting the limit.`,
 						cta: 'Upgrade',
-						href: '/dashboard/billing',
+						href: '/dashboard/billing'
 					});
 				} else if (pct >= 80) {
 					result.push({
@@ -80,7 +86,7 @@
 						level: 'warning',
 						message: `You've used ${usage.ordersThisMonth} of ${usage.orderLimit} orders this month.`,
 						cta: 'Upgrade',
-						href: '/dashboard/billing',
+						href: '/dashboard/billing'
 					});
 				}
 			}
@@ -93,7 +99,7 @@
 						level: 'critical',
 						message: `You've used ${usage.teamMembersCount} of ${usage.teamMemberLimit} team member slots.`,
 						cta: 'Upgrade',
-						href: '/dashboard/billing',
+						href: '/dashboard/billing'
 					});
 				} else if (pct >= 80) {
 					result.push({
@@ -101,7 +107,7 @@
 						level: 'warning',
 						message: `You've used ${usage.teamMembersCount} of ${usage.teamMemberLimit} team member slots.`,
 						cta: 'Upgrade',
-						href: '/dashboard/billing',
+						href: '/dashboard/billing'
 					});
 				}
 			}
@@ -109,7 +115,9 @@
 			warnings = result;
 		});
 
-		return () => { cancelled = true; };
+		return () => {
+			cancelled = true;
+		};
 	});
 </script>
 
@@ -119,8 +127,8 @@
 			{@const isCritical = warning.level === 'critical'}
 			<div
 				class="flex items-center gap-3 border-b px-4 py-2.5 text-sm {isCritical
-					? 'bg-destructive/10 border-destructive/30 text-destructive'
-					: 'bg-yellow-50 border-yellow-300 text-yellow-800 dark:bg-yellow-950 dark:border-yellow-800 dark:text-yellow-200'}"
+					? 'border-destructive/30 bg-destructive/10 text-destructive'
+					: 'border-yellow-300 bg-yellow-50 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-200'}"
 				role="alert"
 			>
 				{#if isCritical}
@@ -141,7 +149,7 @@
 				{/if}
 				<button
 					onclick={() => dismiss(warning.id)}
-					class="shrink-0 rounded-sm p-0.5 opacity-70 hover:opacity-100 transition-opacity"
+					class="shrink-0 rounded-sm p-0.5 opacity-70 transition-opacity hover:opacity-100"
 					aria-label="Dismiss"
 				>
 					<X class="h-4 w-4" />

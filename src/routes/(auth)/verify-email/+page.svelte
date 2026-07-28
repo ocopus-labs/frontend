@@ -78,9 +78,7 @@
 </script>
 
 <div class="flex flex-col items-center gap-6 text-center">
-	<div
-		class="flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary"
-	>
+	<div class="flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
 		<Mail class="size-8" />
 	</div>
 
@@ -92,8 +90,7 @@
 				<strong>{email}</strong>
 			{:else}
 				your email address
-			{/if}.
-			Enter the code below to verify your account.
+			{/if}. Enter the code below to verify your account.
 		</p>
 	</div>
 
@@ -119,12 +116,7 @@
 			{isVerifying ? 'Verifying...' : 'Verify Email'}
 		</Button>
 
-		<Button
-			variant="outline"
-			class="w-full"
-			onclick={sendOtp}
-			disabled={isSending || cooldown > 0}
-		>
+		<Button variant="outline" class="w-full" onclick={sendOtp} disabled={isSending || cooldown > 0}>
 			{#if isSending}
 				Sending...
 			{:else if cooldown > 0}

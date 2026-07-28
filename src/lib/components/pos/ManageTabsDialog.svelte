@@ -49,9 +49,10 @@
 			const seen = new Set<string>();
 
 			for (const tab of currentTabs) {
-				const name = tab.type === 'category'
-					? categories.find(c => c.id === tab.referenceId)?.name
-					: groups.find(g => g.id === tab.referenceId)?.name;
+				const name =
+					tab.type === 'category'
+						? categories.find((c) => c.id === tab.referenceId)?.name
+						: groups.find((g) => g.id === tab.referenceId)?.name;
 				if (!name) continue; // deleted reference
 				seen.add(`${tab.type}:${tab.referenceId}`);
 				result.push({
@@ -60,12 +61,12 @@
 					referenceId: tab.referenceId,
 					name,
 					visible: true,
-					sortOrder: tab.sortOrder,
+					sortOrder: tab.sortOrder
 				});
 			}
 
 			// Add unseen categories
-			for (const cat of categories.filter(c => c.isActive)) {
+			for (const cat of categories.filter((c) => c.isActive)) {
 				const key = `category:${cat.id}`;
 				if (!seen.has(key)) {
 					result.push({
@@ -74,13 +75,13 @@
 						referenceId: cat.id,
 						name: cat.name,
 						visible: false,
-						sortOrder: result.length,
+						sortOrder: result.length
 					});
 				}
 			}
 
 			// Add unseen groups
-			for (const grp of groups.filter(g => g.isActive)) {
+			for (const grp of groups.filter((g) => g.isActive)) {
 				const key = `group:${grp.id}`;
 				if (!seen.has(key)) {
 					result.push({
@@ -89,7 +90,7 @@
 						referenceId: grp.id,
 						name: grp.name,
 						visible: false,
-						sortOrder: result.length,
+						sortOrder: result.length
 					});
 				}
 			}
@@ -99,24 +100,26 @@
 
 		// Default: all active categories, then groups
 		const items: TabItem[] = [];
-		for (const cat of categories.filter(c => c.isActive).sort((a, b) => a.sortOrder - b.sortOrder)) {
+		for (const cat of categories
+			.filter((c) => c.isActive)
+			.sort((a, b) => a.sortOrder - b.sortOrder)) {
 			items.push({
 				id: crypto.randomUUID(),
 				type: 'category',
 				referenceId: cat.id,
 				name: cat.name,
 				visible: true,
-				sortOrder: items.length,
+				sortOrder: items.length
 			});
 		}
-		for (const grp of groups.filter(g => g.isActive).sort((a, b) => a.sortOrder - b.sortOrder)) {
+		for (const grp of groups.filter((g) => g.isActive).sort((a, b) => a.sortOrder - b.sortOrder)) {
 			items.push({
 				id: crypto.randomUUID(),
 				type: 'group',
 				referenceId: grp.id,
 				name: grp.name,
 				visible: true,
-				sortOrder: items.length,
+				sortOrder: items.length
 			});
 		}
 		return items;
@@ -142,21 +145,19 @@
 	}
 
 	function toggleVisibility(index: number) {
-		tabs = tabs.map((t, i) =>
-			i === index ? { ...t, visible: !t.visible } : t
-		);
+		tabs = tabs.map((t, i) => (i === index ? { ...t, visible: !t.visible } : t));
 	}
 
 	async function handleSave() {
 		isSaving = true;
 		try {
 			const visibleTabs = tabs
-				.filter(t => t.visible)
+				.filter((t) => t.visible)
 				.map((t, i) => ({
 					id: t.id,
 					type: t.type as 'category' | 'group',
 					referenceId: t.referenceId,
-					sortOrder: i,
+					sortOrder: i
 				}));
 
 			await savePOSLayout(businessId, visibleTabs);
@@ -174,7 +175,7 @@
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Content class="max-w-md max-h-[80vh] overflow-hidden flex flex-col">
+	<Dialog.Content class="flex max-h-[80vh] max-w-md flex-col overflow-hidden">
 		<Dialog.Header>
 			<Dialog.Title>Manage POS Tabs</Dialog.Title>
 			<Dialog.Description>Drag to reorder. Toggle visibility.</Dialog.Description>
@@ -183,14 +184,19 @@
 		<div class="flex-1 overflow-y-auto py-2">
 			{#each tabs as tab, index (tab.id)}
 				<div
-					class="flex items-center gap-2 rounded-md px-2 py-2 {dragIndex === index ? 'bg-accent' : 'hover:bg-accent/50'} {!tab.visible ? 'opacity-50' : ''}"
+					class="flex items-center gap-2 rounded-md px-2 py-2 {dragIndex === index
+						? 'bg-accent'
+						: 'hover:bg-accent/50'} {!tab.visible ? 'opacity-50' : ''}"
 					draggable="true"
 					ondragstart={() => handleDragStart(index)}
 					ondragover={(e) => handleDragOver(e, index)}
 					ondragend={handleDragEnd}
 					role="listitem"
 				>
-					<button class="cursor-grab text-muted-foreground active:cursor-grabbing" aria-label="Drag to reorder">
+					<button
+						class="cursor-grab text-muted-foreground active:cursor-grabbing"
+						aria-label="Drag to reorder"
+					>
 						<IconGripVertical class="h-4 w-4" />
 					</button>
 					<span class="flex-1 text-sm font-medium">{tab.name}</span>
@@ -205,12 +211,14 @@
 				</div>
 			{/each}
 			{#if tabs.length === 0}
-				<p class="p-4 text-center text-sm text-muted-foreground">No categories or groups available</p>
+				<p class="p-4 text-center text-sm text-muted-foreground">
+					No categories or groups available
+				</p>
 			{/if}
 		</div>
 
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => open = false}>Cancel</Button>
+			<Button variant="outline" onclick={() => (open = false)}>Cancel</Button>
 			<Button onclick={handleSave} disabled={isSaving}>
 				{#if isSaving}
 					<Loader2 class="mr-2 h-4 w-4 animate-spin" />

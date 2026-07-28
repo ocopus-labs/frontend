@@ -18,11 +18,4 @@ export type { SearchResult, SearchGroup } from './command-search.svelte';
 export { searchInputVariants, type SearchInputSize } from './search-input.svelte';
 export { filterChipVariants, type FilterChipVariant } from './filter-chip.svelte';
 
-export {
-	SearchInput,
-	FilterChip,
-	FilterBar,
-	FilterDropdown,
-	FilterSheet,
-	CommandSearch
-};
+export { SearchInput, FilterChip, FilterBar, FilterDropdown, FilterSheet, CommandSearch };

@@ -49,9 +49,7 @@
 	}: Props = $props();
 
 	// Combine flat options into a single group if no groups provided
-	const allGroups = $derived(
-		groups.length > 0 ? groups : options.length > 0 ? [{ options }] : []
-	);
+	const allGroups = $derived(groups.length > 0 ? groups : options.length > 0 ? [{ options }] : []);
 
 	// Find selected option label
 	const selectedOption = $derived(() => {
@@ -62,16 +60,14 @@
 		return null;
 	});
 
-	const displayValue = $derived(
-		value === '' ? allOptionLabel : (selectedOption()?.label ?? value)
-	);
+	const displayValue = $derived(value === '' ? allOptionLabel : (selectedOption()?.label ?? value));
 
 	const isActive = $derived(value !== '');
 </script>
 
 <div class={cn('flex flex-col gap-1.5', className)} data-slot="filter-dropdown">
 	{#if label}
-		<span class="text-muted-foreground text-xs font-medium">{label}</span>
+		<span class="text-xs font-medium text-muted-foreground">{label}</span>
 	{/if}
 
 	<Select.Root
@@ -98,7 +94,7 @@
 				<div class="flex w-full items-center justify-between gap-2">
 					<span>{allOptionLabel}</span>
 					{#if showCheckmark && value === ''}
-						<CheckIcon class="text-primary h-4 w-4" />
+						<CheckIcon class="h-4 w-4 text-primary" />
 					{/if}
 				</div>
 			</Select.Item>
@@ -122,7 +118,7 @@
 										</Badge>
 									{/if}
 									{#if showCheckmark && value === option.value}
-										<CheckIcon class="text-primary h-4 w-4" />
+										<CheckIcon class="h-4 w-4 text-primary" />
 									{/if}
 								</div>
 							</div>

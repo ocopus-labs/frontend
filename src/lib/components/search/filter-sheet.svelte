@@ -97,7 +97,7 @@
 	});
 </script>
 
-<Sheet.Root bind:open onOpenChange={onOpenChange}>
+<Sheet.Root bind:open {onOpenChange}>
 	<Sheet.Trigger>
 		{#snippet child({ props })}
 			{#if trigger}

@@ -2,10 +2,29 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Dialog from '$lib/components/ui/dialog';
-	import { IconPrinter, IconX, IconCheck, IconDownload, IconMail, IconBrandWhatsapp, IconSend, IconLoader2, IconHistory, IconUsb } from '@tabler/icons-svelte';
+	import {
+		IconPrinter,
+		IconX,
+		IconCheck,
+		IconDownload,
+		IconMail,
+		IconBrandWhatsapp,
+		IconSend,
+		IconLoader2,
+		IconHistory,
+		IconUsb
+	} from '@tabler/icons-svelte';
 	import { Separator } from '$lib/components/ui/separator';
 	import Receipt from './Receipt.svelte';
-	import { generateReceipt, getPaymentById, sendReceipt, getReceiptDeliveries, type Receipt as ReceiptType, type PaymentMethod, type ReceiptDelivery } from '$lib/api';
+	import {
+		generateReceipt,
+		getPaymentById,
+		sendReceipt,
+		getReceiptDeliveries,
+		type Receipt as ReceiptType,
+		type PaymentMethod,
+		type ReceiptDelivery
+	} from '$lib/api';
 	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
 	import { env } from '$env/dynamic/public';
@@ -21,7 +40,15 @@
 		region?: string;
 	}
 
-	let { open, paymentId, orderId, change, onClose, onPrintComplete, region = 'us' }: Props = $props();
+	let {
+		open,
+		paymentId,
+		orderId,
+		change,
+		onClose,
+		onPrintComplete,
+		region = 'us'
+	}: Props = $props();
 
 	let isLoading = $state(true);
 	let isPrinting = $state(false);
@@ -212,9 +239,7 @@
 			}
 
 			const iface = device.configuration?.interfaces.find((i: any) =>
-				i.alternate.endpoints.some(
-					(e: any) => e.direction === 'out' && e.type === 'bulk'
-				)
+				i.alternate.endpoints.some((e: any) => e.direction === 'out' && e.type === 'bulk')
 			);
 
 			if (!iface) {
@@ -322,7 +347,9 @@
 		<div class="max-h-[60vh] overflow-y-auto py-4">
 			{#if isLoading}
 				<div class="flex h-48 items-center justify-center">
-					<div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+					<div
+						class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"
+					></div>
 				</div>
 			{:else if error}
 				<div class="flex h-48 flex-col items-center justify-center gap-4 text-center">
@@ -390,11 +417,7 @@
 							class="h-9 text-sm"
 							disabled={isSending}
 						/>
-						<Button
-							size="sm"
-							onclick={handleSendReceipt}
-							disabled={isSending || !recipient.trim()}
-						>
+						<Button size="sm" onclick={handleSendReceipt} disabled={isSending || !recipient.trim()}>
 							{#if isSending}
 								<IconLoader2 class="mr-2 h-4 w-4 animate-spin" />
 								Sending...
@@ -450,7 +473,11 @@
 						{isThermalPrinting ? 'Sending...' : 'Thermal'}
 					</Button>
 				{/if}
-				<Button variant="outline" onclick={handleDownloadPdf} disabled={isLoading || !!error || isDownloading}>
+				<Button
+					variant="outline"
+					onclick={handleDownloadPdf}
+					disabled={isLoading || !!error || isDownloading}
+				>
 					<IconDownload class="mr-2 h-4 w-4" />
 					{isDownloading ? 'Downloading...' : 'Download PDF'}
 				</Button>

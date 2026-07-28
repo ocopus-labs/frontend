@@ -8,7 +8,7 @@
 	<!-- Decorative elements -->
 	<div
 		aria-hidden="true"
-		class="absolute right-0 top-0 h-64 w-64 -translate-y-1/2 translate-x-1/2 rounded-full bg-primary/5 blur-3xl"
+		class="absolute top-0 right-0 h-64 w-64 translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-3xl"
 	></div>
 
 	<div class="relative mx-auto max-w-7xl px-6 py-16 lg:px-8">
@@ -60,14 +60,13 @@
 
 			<!-- Product -->
 			<div class="space-y-4">
-				<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+				<h3 class="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
 					Product
 				</h3>
 				<ul class="space-y-3 text-sm">
 					<li>
-						<a
-							href="/#features"
-							class="text-foreground/70 transition-colors hover:text-foreground">Features</a
+						<a href="/#features" class="text-foreground/70 transition-colors hover:text-foreground"
+							>Features</a
 						>
 					</li>
 					<li>
@@ -86,7 +85,7 @@
 
 			<!-- Company -->
 			<div class="space-y-4">
-				<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+				<h3 class="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
 					Company
 				</h3>
 				<ul class="space-y-3 text-sm">
@@ -110,7 +109,7 @@
 
 			<!-- Resources -->
 			<div class="space-y-4">
-				<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+				<h3 class="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
 					Resources
 				</h3>
 				<ul class="space-y-3 text-sm">
@@ -132,7 +131,8 @@
 
 		<div class="flex flex-col items-center justify-between gap-4 sm:flex-row">
 			<p class="text-xs text-muted-foreground">
-				&copy; {new Date().getFullYear()} {APP_NAME}. All rights reserved.
+				&copy; {new Date().getFullYear()}
+				{APP_NAME}. All rights reserved.
 			</p>
 			<p class="flex items-center gap-1.5 text-xs text-muted-foreground">
 				Made with care in India

@@ -1,5 +1,10 @@
 import type { PageLoad } from './$types';
-import { getInventoryItems, getInventoryStats, getDemandPrediction, getReorderSuggestions } from '$lib/api';
+import {
+	getInventoryItems,
+	getInventoryStats,
+	getDemandPrediction,
+	getReorderSuggestions
+} from '$lib/api';
 
 export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 	depends('app:inventory');

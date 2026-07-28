@@ -81,8 +81,7 @@
 		{
 			name: 'Rajesh Kumar',
 			role: 'Spice Garden Restaurant, Mumbai',
-			content:
-				`${APP_NAME} transformed how we manage our restaurant. Table management and KOT printing have reduced our order errors by 80%.`,
+			content: `${APP_NAME} transformed how we manage our restaurant. Table management and KOT printing have reduced our order errors by 80%.`,
 			rating: 5
 		},
 		{

@@ -87,18 +87,18 @@
 		<div aria-hidden="true" class="absolute inset-0 -z-10">
 			<div class="dot-grid absolute inset-0 opacity-30 dark:opacity-15"></div>
 			<div
-				class="absolute left-1/2 top-0 h-[500px] w-[700px] -translate-x-1/2 -translate-y-1/4 rounded-full bg-primary/5 blur-3xl"
+				class="absolute top-0 left-1/2 h-[500px] w-[700px] -translate-x-1/2 -translate-y-1/4 rounded-full bg-primary/5 blur-3xl"
 			></div>
 		</div>
 
 		<div class="mx-auto max-w-7xl px-6 text-center lg:px-8">
-			<p class="animate-fade-up text-sm font-semibold uppercase tracking-wider text-primary">
+			<p class="animate-fade-up text-sm font-semibold tracking-wider text-primary uppercase">
 				Blog
 			</p>
-			<h1 class="animate-fade-up delay-100 mt-3 font-display text-4xl md:text-5xl lg:text-6xl">
+			<h1 class="animate-fade-up font-display mt-3 text-4xl delay-100 md:text-5xl lg:text-6xl">
 				Insights for <span class="italic">modern</span> businesses
 			</h1>
-			<p class="animate-fade-up delay-200 mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
+			<p class="animate-fade-up mx-auto mt-4 max-w-xl text-lg text-muted-foreground delay-200">
 				Guides, tips, and industry insights to help you run a smarter business.
 			</p>
 		</div>
@@ -109,7 +109,9 @@
 		<div class="mx-auto max-w-7xl px-6 lg:px-8">
 			<!-- Featured post -->
 			<div class="animate-fade-up mb-12">
-				<div class="group relative overflow-hidden rounded-xl border bg-card transition-all hover:shadow-lg">
+				<div
+					class="group relative overflow-hidden rounded-xl border bg-card transition-all hover:shadow-lg"
+				>
 					<div class="grid md:grid-cols-2">
 						<div class="flex flex-col justify-center p-8 md:p-10">
 							<div class="flex items-center gap-3">
@@ -123,7 +125,7 @@
 									{posts[0].readTime}
 								</span>
 							</div>
-							<h2 class="mt-4 font-display text-2xl md:text-3xl">{posts[0].title}</h2>
+							<h2 class="font-display mt-4 text-2xl md:text-3xl">{posts[0].title}</h2>
 							<p class="mt-3 text-sm leading-relaxed text-muted-foreground">{posts[0].excerpt}</p>
 							<div class="mt-6">
 								<span class="text-xs text-muted-foreground">{posts[0].date}</span>
@@ -161,7 +163,7 @@
 								{post.readTime}
 							</span>
 						</div>
-						<h3 class="mt-4 text-lg font-semibold leading-snug">{post.title}</h3>
+						<h3 class="mt-4 text-lg leading-snug font-semibold">{post.title}</h3>
 						<p class="mt-2 text-sm leading-relaxed text-muted-foreground">{post.excerpt}</p>
 						<div class="mt-4">
 							<span class="text-xs text-muted-foreground">{post.date}</span>

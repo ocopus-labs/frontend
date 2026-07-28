@@ -11,7 +11,7 @@ export const load: PageLoad = async ({ parent, fetch, depends }) => {
 		return {
 			...parentData,
 			credentials: [],
-			credentialsError: (err as Error).message,
+			credentialsError: (err as Error).message
 		};
 	}
 };

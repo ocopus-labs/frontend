@@ -60,13 +60,11 @@
 		{#if showInput}
 			<div class="py-4">
 				{#if inputLabel}
-					<Label for="confirm-dialog-input" class="mb-2 block text-sm font-medium">{inputLabel}</Label>
+					<Label for="confirm-dialog-input" class="mb-2 block text-sm font-medium"
+						>{inputLabel}</Label
+					>
 				{/if}
-				<Input
-					id="confirm-dialog-input"
-					bind:value={inputValue}
-					placeholder={inputPlaceholder}
-				/>
+				<Input id="confirm-dialog-input" bind:value={inputValue} placeholder={inputPlaceholder} />
 			</div>
 		{/if}
 		<AlertDialog.Footer>

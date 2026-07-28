@@ -12,10 +12,8 @@ export const load: PageLoad = async ({ parent, fetch, depends }) => {
 			getSegments(businessId, { fetch })
 		]);
 
-		const campaigns =
-			campaignsData.status === 'fulfilled' ? campaignsData.value.campaigns : [];
-		const segments =
-			segmentsData.status === 'fulfilled' ? segmentsData.value.segments : [];
+		const campaigns = campaignsData.status === 'fulfilled' ? campaignsData.value.campaigns : [];
+		const segments = segmentsData.status === 'fulfilled' ? segmentsData.value.segments : [];
 
 		return {
 			...parentData,

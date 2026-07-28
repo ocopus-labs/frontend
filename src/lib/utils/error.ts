@@ -22,7 +22,10 @@ const MESSAGE_PATTERNS: [RegExp, string][] = [
 /**
  * Maps raw API/network errors to user-friendly messages.
  */
-export function userFriendlyError(error: unknown, fallback = 'Something went wrong. Please try again.'): string {
+export function userFriendlyError(
+	error: unknown,
+	fallback = 'Something went wrong. Please try again.'
+): string {
 	if (error instanceof ApiError) {
 		return STATUS_MESSAGES[error.statusCode] || error.message || fallback;
 	}

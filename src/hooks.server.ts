@@ -16,7 +16,7 @@ async function isMaintenanceMode(): Promise<boolean> {
 		const baseUrl = env.PUBLIC_API_BASE || 'http://localhost:3000/api/v1';
 		const pingUrl = `${baseUrl}/ping`;
 		const res = await fetch(pingUrl, {
-			signal: AbortSignal.timeout(3000),
+			signal: AbortSignal.timeout(3000)
 		}).catch((err) => {
 			console.error('[maintenance-check] fetch failed:', pingUrl, err?.message);
 			return null;
@@ -58,9 +58,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		pathname.startsWith('/forget-password') ||
 		pathname.startsWith('/reset-password') ||
 		pathname.startsWith('/verify-email');
-	const isPublicRoute =
-		pathname.startsWith('/pricing') ||
-		pathname.startsWith('/about');
+	const isPublicRoute = pathname.startsWith('/pricing') || pathname.startsWith('/about');
 	const isOrderRoute = pathname.startsWith('/order');
 
 	// Public and order routes don't need session at all
@@ -98,7 +96,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// Check maintenance mode for non-admin users on protected routes
 	// Skip for auth routes so users can log out / switch accounts
-	if (sessionData.user?.role !== 'super_admin' && !pathname.startsWith('/admin') && !isAuthRoute && !isLandingPage) {
+	if (
+		sessionData.user?.role !== 'super_admin' &&
+		!pathname.startsWith('/admin') &&
+		!isAuthRoute &&
+		!isLandingPage
+	) {
 		const inMaintenance = await isMaintenanceMode();
 		if (inMaintenance) {
 			redirect(307, '/maintenance');

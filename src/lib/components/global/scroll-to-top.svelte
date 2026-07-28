@@ -19,7 +19,7 @@
 	<Button
 		variant="secondary"
 		size="icon"
-		class="fixed bottom-6 right-6 z-50 rounded-full shadow-lg"
+		class="fixed right-6 bottom-6 z-50 rounded-full shadow-lg"
 		onclick={scrollToTop}
 		aria-label="Scroll to top"
 	>

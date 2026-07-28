@@ -9,7 +9,10 @@
 
 {#if isMobile.current && backHref}
 	<div class="flex items-center gap-3 border-b px-4 py-3 md:hidden">
-		<a href={backHref} class="-ml-1 rounded-lg p-1 hover:bg-muted active:scale-95 transition-transform">
+		<a
+			href={backHref}
+			class="-ml-1 rounded-lg p-1 transition-transform hover:bg-muted active:scale-95"
+		>
 			<ArrowLeftIcon class="h-5 w-5" />
 		</a>
 		<h1 class="truncate text-lg font-semibold">{title}</h1>

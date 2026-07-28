@@ -50,7 +50,7 @@
 		Array.from({ length: tableCount }, (_, i) => ({
 			number: `T${i + 1}`,
 			x: i % columns,
-			y: Math.floor(i / columns),
+			y: Math.floor(i / columns)
 		}))
 	);
 
@@ -73,7 +73,9 @@
 <div class="space-y-8">
 	<div>
 		<h1 class="step-heading text-3xl font-bold" tabindex="-1">Set up your tables</h1>
-		<p class="mt-2 text-muted-foreground">Choose how many tables you have. We'll create a layout for you.</p>
+		<p class="mt-2 text-muted-foreground">
+			Choose how many tables you have. We'll create a layout for you.
+		</p>
 	</div>
 
 	{#if completed}
@@ -129,9 +131,14 @@
 		<!-- Preview grid -->
 		<div class="space-y-3">
 			<p class="text-sm font-medium">Preview</p>
-			<div class="grid grid-cols-4 gap-2 rounded-lg border bg-muted/30 p-4" style="max-width: 320px">
+			<div
+				class="grid grid-cols-4 gap-2 rounded-lg border bg-muted/30 p-4"
+				style="max-width: 320px"
+			>
 				{#each previewTables as table}
-					<div class="flex aspect-square items-center justify-center rounded-md border bg-background text-xs font-medium shadow-sm">
+					<div
+						class="flex aspect-square items-center justify-center rounded-md border bg-background text-xs font-medium shadow-sm"
+					>
 						{table.number}
 					</div>
 				{/each}

@@ -157,7 +157,7 @@
 		onkeydown={handleKeydown}
 		{placeholder}
 		class={cn(
-			'border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex w-full rounded-lg border shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
+			'flex w-full rounded-lg border border-input bg-background shadow-sm ring-offset-background transition-all placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:outline-none',
 			'[&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden',
 			sizeClasses.input
 		)}
@@ -165,10 +165,13 @@
 	/>
 
 	<!-- Right side content -->
-	<div class={cn('absolute top-1/2 flex -translate-y-1/2 items-center gap-1.5', sizeClasses.clearBtn)}>
+	<div
+		class={cn('absolute top-1/2 flex -translate-y-1/2 items-center gap-1.5', sizeClasses.clearBtn)}
+	>
 		{#if resultCount !== null && value}
-			<span class="text-muted-foreground mr-1 text-xs tabular-nums">
-				{resultCount} {resultCount === 1 ? 'result' : 'results'}
+			<span class="mr-1 text-xs text-muted-foreground tabular-nums">
+				{resultCount}
+				{resultCount === 1 ? 'result' : 'results'}
 			</span>
 		{/if}
 
@@ -176,7 +179,7 @@
 			<button
 				type="button"
 				onclick={handleClear}
-				class="text-muted-foreground hover:text-foreground rounded-sm transition-colors focus:outline-none"
+				class="rounded-sm text-muted-foreground transition-colors hover:text-foreground focus:outline-none"
 				aria-label="Clear search"
 			>
 				<XIcon class="h-full w-full" />

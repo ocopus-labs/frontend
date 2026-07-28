@@ -37,10 +37,20 @@
 		if (action.endsWith('.create') || action.includes('invite')) {
 			return 'bg-green-500';
 		}
-		if (action.endsWith('.update') || action.includes('update') || action.includes('extend') || action.includes('split')) {
+		if (
+			action.endsWith('.update') ||
+			action.includes('update') ||
+			action.includes('extend') ||
+			action.includes('split')
+		) {
 			return 'bg-blue-500';
 		}
-		if (action.endsWith('.delete') || action.endsWith('.cancel') || action.includes('ban') || action.includes('remove')) {
+		if (
+			action.endsWith('.delete') ||
+			action.endsWith('.cancel') ||
+			action.includes('ban') ||
+			action.includes('remove')
+		) {
 			return 'bg-red-500';
 		}
 		if (action.endsWith('.refund')) {
@@ -49,7 +59,9 @@
 		return 'bg-yellow-500';
 	}
 
-	function getResourceBadgeVariant(resource: string): 'default' | 'secondary' | 'outline' | 'destructive' {
+	function getResourceBadgeVariant(
+		resource: string
+	): 'default' | 'secondary' | 'outline' | 'destructive' {
 		switch (resource) {
 			case 'business':
 				return 'default';
@@ -82,7 +94,9 @@
 {:else if activities.length === 0}
 	<div class="flex flex-col items-center justify-center py-8 text-center">
 		<p class="text-sm text-muted-foreground">No recent activity</p>
-		<p class="mt-1 text-xs text-muted-foreground">Platform activity will appear here as it happens</p>
+		<p class="mt-1 text-xs text-muted-foreground">
+			Platform activity will appear here as it happens
+		</p>
 	</div>
 {:else}
 	<div class="relative max-h-[480px] overflow-y-auto pr-1">
@@ -91,17 +105,24 @@
 			<div class="relative flex gap-3 {isLast ? '' : 'pb-4'}">
 				<!-- Timeline connector -->
 				<div class="flex flex-col items-center">
-					<div class="relative z-10 mt-1.5 h-2.5 w-2.5 flex-shrink-0 rounded-full {getActionColor(activity.action)}"></div>
+					<div
+						class="relative z-10 mt-1.5 h-2.5 w-2.5 flex-shrink-0 rounded-full {getActionColor(
+							activity.action
+						)}"
+					></div>
 					{#if !isLast}
 						<div class="mt-0.5 w-px flex-1 bg-border"></div>
 					{/if}
 				</div>
 
 				<!-- Content -->
-				<div class="flex-1 min-w-0 pb-1">
+				<div class="min-w-0 flex-1 pb-1">
 					<div class="flex items-start justify-between gap-2">
 						<p class="text-sm leading-snug">{activity.description}</p>
-						<Badge variant={getResourceBadgeVariant(activity.resource)} class="flex-shrink-0 text-[10px] px-1.5 py-0">
+						<Badge
+							variant={getResourceBadgeVariant(activity.resource)}
+							class="flex-shrink-0 px-1.5 py-0 text-[10px]"
+						>
 							{activity.resource}
 						</Badge>
 					</div>

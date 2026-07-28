@@ -4,12 +4,13 @@
  * Stores:
  *   - 'offline-orders' — orders queued for sync while offline
  *   - 'menu-cache'     — persistent menu snapshot for offline use
+ *   - 'tables-cache'   — persistent tables snapshot for offline use
  */
 
-import { browser } from "$app/environment";
+import { browser } from '$app/environment';
 
 const DB_NAME = 'restaurantpro-offline';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export interface OfflineOrder {
 	id: string; // local UUID
@@ -38,6 +39,9 @@ function openDB(): Promise<IDBDatabase> {
 			}
 			if (!db.objectStoreNames.contains('menu-cache')) {
 				db.createObjectStore('menu-cache', { keyPath: 'businessId' });
+			}
+			if (!db.objectStoreNames.contains('tables-cache')) {
+				db.createObjectStore('tables-cache', { keyPath: 'businessId' });
 			}
 		};
 
@@ -117,6 +121,35 @@ export async function getCachedMenu(businessId: string): Promise<any | null> {
 		req.onsuccess = () => {
 			const result = req.result;
 			resolve(result ? result.menuData : null);
+		};
+		req.onerror = () => reject(req.error);
+		tx.oncomplete = () => db.close();
+	});
+}
+
+/** Persist tables data to IndexedDB for offline access. */
+export async function cacheTables(businessId: string, tablesData: any): Promise<void> {
+	const db = await openDB();
+	return new Promise((resolve, reject) => {
+		const tx = db.transaction('tables-cache', 'readwrite');
+		const store = tx.objectStore('tables-cache');
+		const req = store.put({ businessId, tablesData, cachedAt: new Date().toISOString() });
+		req.onsuccess = () => resolve();
+		req.onerror = () => reject(req.error);
+		tx.oncomplete = () => db.close();
+	});
+}
+
+/** Retrieve cached tables data, or null if not found. */
+export async function getCachedTables(businessId: string): Promise<any | null> {
+	const db = await openDB();
+	return new Promise((resolve, reject) => {
+		const tx = db.transaction('tables-cache', 'readonly');
+		const store = tx.objectStore('tables-cache');
+		const req = store.get(businessId);
+		req.onsuccess = () => {
+			const result = req.result;
+			resolve(result ? result.tablesData : null);
 		};
 		req.onerror = () => reject(req.error);
 		tx.oncomplete = () => db.close();

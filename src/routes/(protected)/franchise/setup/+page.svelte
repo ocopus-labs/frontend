@@ -26,7 +26,12 @@
 	const steps = [
 		{ id: 'brand', name: 'Brand', icon: Building2, description: 'Name and identity' },
 		{ id: 'location', name: 'First location', icon: Store, description: 'Your first outlet' },
-		{ id: 'menu', name: 'Menu template', icon: UtensilsCrossed, description: 'Shared starting menu' }
+		{
+			id: 'menu',
+			name: 'Menu template',
+			icon: UtensilsCrossed,
+			description: 'Shared starting menu'
+		}
 	];
 
 	let currentStep = $state(0);
@@ -105,9 +110,7 @@
 				} catch (error: unknown) {
 					// The plan gate lands here for single-location plans; its message
 					// already explains the upgrade, so surface it verbatim.
-					toast.error(
-						error instanceof Error ? error.message : 'Failed to create the franchise'
-					);
+					toast.error(error instanceof Error ? error.message : 'Failed to create the franchise');
 					return;
 				} finally {
 					isSubmitting = false;

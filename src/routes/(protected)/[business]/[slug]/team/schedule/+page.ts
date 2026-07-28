@@ -33,22 +33,10 @@ export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 			getTeamMembers(businessId, { status: 'active', limit: 100 }, { fetch })
 		]);
 
-		const roster =
-			rosterResult.status === 'fulfilled'
-				? rosterResult.value.roster
-				: [];
-		const templates =
-			templatesResult.status === 'fulfilled'
-				? templatesResult.value.templates
-				: [];
-		const leaveRequests =
-			leaveResult.status === 'fulfilled'
-				? leaveResult.value.leaveRequests
-				: [];
-		const teamMembers =
-			membersResult.status === 'fulfilled'
-				? membersResult.value.members
-				: [];
+		const roster = rosterResult.status === 'fulfilled' ? rosterResult.value.roster : [];
+		const templates = templatesResult.status === 'fulfilled' ? templatesResult.value.templates : [];
+		const leaveRequests = leaveResult.status === 'fulfilled' ? leaveResult.value.leaveRequests : [];
+		const teamMembers = membersResult.status === 'fulfilled' ? membersResult.value.members : [];
 
 		return {
 			...parentData,

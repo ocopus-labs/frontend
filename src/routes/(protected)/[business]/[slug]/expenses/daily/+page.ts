@@ -14,7 +14,11 @@ export const load: PageLoad = async ({ parent, fetch, url, depends }) => {
 
 	try {
 		const [expensesData, categoriesData] = await Promise.all([
-			getExpenses(businessId, { startDate: selectedDate, endDate: selectedDate, limit, offset }, { fetch }),
+			getExpenses(
+				businessId,
+				{ startDate: selectedDate, endDate: selectedDate, limit, offset },
+				{ fetch }
+			),
 			getExpenseCategories(businessId, false, { fetch })
 		]);
 

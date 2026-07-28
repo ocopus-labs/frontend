@@ -76,7 +76,12 @@
 			if (result.error) {
 				const errorMsg = result.error.message?.toLowerCase() || '';
 				const errorCode = (result.error as any).code || '';
-				if (errorCode === 'TWO_FACTOR_REQUIRED' || errorMsg.includes('two factor') || errorMsg.includes('two-factor') || errorMsg.includes('2fa')) {
+				if (
+					errorCode === 'TWO_FACTOR_REQUIRED' ||
+					errorMsg.includes('two factor') ||
+					errorMsg.includes('two-factor') ||
+					errorMsg.includes('2fa')
+				) {
 					// User has 2FA enabled — show the TOTP challenge screen
 					show2FAChallenge = true;
 				} else if (errorMsg.includes('email') && errorMsg.includes('verified')) {
@@ -204,7 +209,9 @@
 					bind:value={totpCode}
 					maxlength={6}
 					autocomplete="one-time-code"
-					oninput={() => { totpCode = totpCode.replace(/\D/g, ''); }}
+					oninput={() => {
+						totpCode = totpCode.replace(/\D/g, '');
+					}}
 					disabled={isVerifying2FA}
 				/>
 			</Field.Field>
@@ -221,137 +228,142 @@
 				<Button
 					type="button"
 					variant="ghost"
-					onclick={() => { show2FAChallenge = false; totpCode = ''; }}
+					onclick={() => {
+						show2FAChallenge = false;
+						totpCode = '';
+					}}
 				>
 					Back to Login
 				</Button>
 			</Field.Field>
 		{:else}
-
-		<Field.Field>
-			<Field.Label for="email">Email</Field.Label>
-			<Input
-				id="email"
-				type="email"
-				placeholder="m@example.com"
-				bind:value={email}
-				required
-				disabled={isLoading || showVerification}
-			/>
-		</Field.Field>
-		{#if !showVerification}
 			<Field.Field>
-				<Field.Label for="password">Password</Field.Label>
-				<InputGroup.Root>
-					<InputGroup.Input
-						id="password"
-						type={showPassword ? 'text' : 'password'}
-						bind:value={password}
-						required
-						disabled={isLoading}
-					/>
-					<InputGroup.Button
-						size="icon-sm"
-						ontouchstart={(e) => e.preventDefault()}
-						onclick={() => (showPassword = !showPassword)}
-						aria-label={showPassword ? 'Hide password' : 'Show password'}
-					>
-						{#if showPassword}
-							<EyeOff class="size-4" />
-						{:else}
-							<Eye class="size-4" />
-						{/if}
-					</InputGroup.Button>
-				</InputGroup.Root>
+				<Field.Label for="email">Email</Field.Label>
+				<Input
+					id="email"
+					type="email"
+					placeholder="m@example.com"
+					bind:value={email}
+					required
+					disabled={isLoading || showVerification}
+				/>
 			</Field.Field>
+			{#if !showVerification}
+				<Field.Field>
+					<Field.Label for="password">Password</Field.Label>
+					<InputGroup.Root>
+						<InputGroup.Input
+							id="password"
+							type={showPassword ? 'text' : 'password'}
+							bind:value={password}
+							required
+							disabled={isLoading}
+						/>
+						<InputGroup.Button
+							size="icon-sm"
+							ontouchstart={(e) => e.preventDefault()}
+							onclick={() => (showPassword = !showPassword)}
+							aria-label={showPassword ? 'Hide password' : 'Show password'}
+						>
+							{#if showPassword}
+								<EyeOff class="size-4" />
+							{:else}
+								<Eye class="size-4" />
+							{/if}
+						</InputGroup.Button>
+					</InputGroup.Root>
+				</Field.Field>
+				<Field.Field>
+					<Field.Description class="text-right">
+						<a href="/forget-password" class="text-sm underline">Forgot your password?</a>
+					</Field.Description>
+				</Field.Field>
+				<Field.Field>
+					<Button type="submit" disabled={isLoading}>
+						{isLoading ? 'Logging in...' : 'Log In'}
+					</Button>
+				</Field.Field>
+			{:else}
+				<div
+					class="rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950"
+				>
+					<p class="text-sm text-amber-800 dark:text-amber-200">
+						Your email is not verified. Enter the verification code sent to your email, or click
+						"Send Code" to receive a new one.
+					</p>
+				</div>
+				<Field.Field>
+					<Field.Label for="otp">Verification Code</Field.Label>
+					<div class="flex gap-2">
+						<Input
+							id="otp"
+							type="text"
+							inputmode="numeric"
+							pattern="[0-9]*"
+							placeholder="Enter 6-digit code"
+							bind:value={otp}
+							maxlength={6}
+							class="flex-1"
+							oninput={() => {
+								otp = otp.replace(/\D/g, '');
+							}}
+						/>
+						<Button
+							type="button"
+							variant="outline"
+							onclick={sendVerificationOtp}
+							disabled={isSendingOtp || cooldown > 0}
+						>
+							{#if isSendingOtp}
+								Sending...
+							{:else if cooldown > 0}
+								Resend ({cooldown}s)
+							{:else}
+								Send Code
+							{/if}
+						</Button>
+					</div>
+				</Field.Field>
+				<Field.Field>
+					<Button type="button" onclick={verifyEmail} disabled={isLoading || !otp}>
+						{isLoading ? 'Verifying...' : 'Verify Email'}
+					</Button>
+				</Field.Field>
+				<Field.Field>
+					<Button type="button" variant="ghost" onclick={() => (showVerification = false)}>
+						Back to Login
+					</Button>
+				</Field.Field>
+			{/if}
+			<Field.Separator>Or continue with</Field.Separator>
 			<Field.Field>
-				<Field.Description class="text-right">
-					<a href="/forget-password" class="text-sm underline">Forgot your password?</a>
+				<Button
+					variant="outline"
+					type="button"
+					onclick={async () => {
+						try {
+							const frontendUrl = env.PUBLIC_FRONTEND_URL || 'http://localhost:5173';
+							await authClient.signIn.social({
+								provider: 'google',
+								callbackURL: `${frontendUrl}${redirectTo}`
+							});
+						} catch {
+							toast.error('Google sign-in failed. Please try again.');
+						}
+					}}
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+						<path
+							d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
+							fill="currentColor"
+						/>
+					</svg>
+					Continue with Google
+				</Button>
+				<Field.Description class="px-6 text-center">
+					Don't have an account? <a href="/register">Sign up</a>
 				</Field.Description>
 			</Field.Field>
-			<Field.Field>
-				<Button type="submit" disabled={isLoading}>
-					{isLoading ? 'Logging in...' : 'Log In'}
-				</Button>
-			</Field.Field>
-		{:else}
-			<div
-				class="rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950"
-			>
-				<p class="text-sm text-amber-800 dark:text-amber-200">
-					Your email is not verified. Enter the verification code sent to your email, or click "Send
-					Code" to receive a new one.
-				</p>
-			</div>
-			<Field.Field>
-				<Field.Label for="otp">Verification Code</Field.Label>
-				<div class="flex gap-2">
-					<Input
-						id="otp"
-						type="text"
-						inputmode="numeric"
-						pattern="[0-9]*"
-						placeholder="Enter 6-digit code"
-						bind:value={otp}
-						maxlength={6}
-						class="flex-1"
-						oninput={() => {
-							otp = otp.replace(/\D/g, '');
-						}}
-					/>
-					<Button
-						type="button"
-						variant="outline"
-						onclick={sendVerificationOtp}
-						disabled={isSendingOtp || cooldown > 0}
-					>
-						{#if isSendingOtp}
-							Sending...
-						{:else if cooldown > 0}
-							Resend ({cooldown}s)
-						{:else}
-							Send Code
-						{/if}
-					</Button>
-				</div>
-			</Field.Field>
-			<Field.Field>
-				<Button type="button" onclick={verifyEmail} disabled={isLoading || !otp}>
-					{isLoading ? 'Verifying...' : 'Verify Email'}
-				</Button>
-			</Field.Field>
-			<Field.Field>
-				<Button type="button" variant="ghost" onclick={() => (showVerification = false)}>
-					Back to Login
-				</Button>
-			</Field.Field>
-		{/if}
-		<Field.Separator>Or continue with</Field.Separator>
-		<Field.Field>
-			<Button variant="outline" type="button" onclick={async() => {
-				try {
-					const frontendUrl = env.PUBLIC_FRONTEND_URL || 'http://localhost:5173';
-					await authClient.signIn.social({
-						provider: 'google',
-						callbackURL: `${frontendUrl}${redirectTo}`
-					});
-				} catch {
-					toast.error('Google sign-in failed. Please try again.');
-				}
-			}}>
-				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-					<path
-						d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
-						fill="currentColor"
-					/>
-				</svg>
-				Continue with Google
-			</Button>
-			<Field.Description class="px-6 text-center">
-				Don't have an account? <a href="/register">Sign up</a>
-			</Field.Description>
-		</Field.Field>
-
 		{/if}
 	</Field.Group>
 </form>

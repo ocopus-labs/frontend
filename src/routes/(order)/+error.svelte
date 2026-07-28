@@ -3,7 +3,9 @@
 	import { Button } from '$lib/components/ui/button';
 </script>
 
-<div class="flex min-h-screen flex-col items-center justify-center gap-6 p-8 text-center bg-background">
+<div
+	class="flex min-h-screen flex-col items-center justify-center gap-6 bg-background p-8 text-center"
+>
 	<div class="text-6xl">😕</div>
 	<h1 class="text-2xl font-bold">Oops, something went wrong</h1>
 	<p class="max-w-md text-muted-foreground">
