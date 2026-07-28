@@ -1,5 +1,6 @@
 import { getBusinessContext } from '$lib/api';
 import { VALID_BUSINESS_TYPES, BUSINESS_TYPE_CONFIG } from '$lib/types/business';
+import { catalogFeatureSlug } from '$lib/utils/catalog';
 import { isRedirect, redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 
@@ -21,7 +22,13 @@ const ROUTE_FEATURE_MAP: Record<string, string> = {
 	// on both reservation.controller.ts and waitlist.controller.ts).
 	'/tables/reservations': 'reservations',
 	'/tables/waitlist': 'reservations',
-	'/menu': 'menu',
+	// `/menu` is deliberately absent — the catalog's gating slug depends on the
+	// vertical (`menu` for food, `services` for salon/spa/clinic), which a flat
+	// prefix→slug map cannot express. It is resolved below via
+	// `catalogFeatureSlug()`. Gating it on `menu` here would bounce a salon
+	// owner with `?feature_disabled=menu` — a feature their vertical cannot even
+	// enable, so the dashboard banner would offer them no way out.
+	'/services': 'services',
 	'/inventory': 'inventory',
 	'/expenses': 'expenses',
 	'/kitchen-display': 'kds',
@@ -57,7 +64,14 @@ export const load: LayoutServerLoad = async ({ params, url, fetch, depends }) =>
 		const enabledFeatures = businessData.enabledFeatures ?? [];
 		if (enabledFeatures.length > 0) {
 			const pathAfterSlug = url.pathname.split(`/${slug}`)[1] || '';
-			for (const [routeSegment, featureSlug] of Object.entries(ROUTE_FEATURE_MAP)) {
+			const routeFeatures: Record<string, string> = {
+				...ROUTE_FEATURE_MAP,
+				// The catalog under `/menu` is gated on whichever slug this
+				// vertical actually enables: `services` for salon/spa/clinic,
+				// `menu` for everyone else.
+				'/menu': catalogFeatureSlug(business)
+			};
+			for (const [routeSegment, featureSlug] of Object.entries(routeFeatures)) {
 				if (pathAfterSlug.startsWith(routeSegment) && !enabledFeatures.includes(featureSlug)) {
 					redirect(307, `/${business}/${slug}/dashboard?feature_disabled=${featureSlug}`);
 				}
