@@ -21,14 +21,28 @@
 	import { Spinner } from '$lib/components/ui/spinner/index.js';
 	import ToolCall from './tool-call/tool-call.svelte';
 	import ResultSources from './tool-call/result-sources.svelte';
+	import MessageActions from './message-actions.svelte';
+	import MessageEditor from './message-editor.svelte';
 	import type { ConsequenceData, ToolPart } from '$lib/api/agent';
 	import Composer from './composer.svelte';
 	import StatusLine from './status-line.svelte';
 	import AgentError from './agent-error.svelte';
 	import { agentErrorCopy, agentErrorFrom } from './agent-errors';
 	import { agent, ASSISTANT_NAME } from '$lib/stores/agent.svelte';
+	import { cn } from '$lib/utils.js';
 
 	let { chat, compact = false, empty }: AgentThreadProps = $props();
+
+	/**
+	 * One centred column for every row of the thread.
+	 *
+	 * The pane runs the full width of the window on a desktop. Left-aligned
+	 * answers and right-aligned questions were landing the better part of a
+	 * metre apart, which reads as two unrelated columns rather than one
+	 * conversation. Applied per row rather than to the scroll container so the
+	 * scrollbar stays at the edge of the pane where it belongs.
+	 */
+	const COLUMN = 'mx-auto w-full max-w-3xl';
 
 	const readiness = $derived(agent.readiness);
 	const busy = $derived(chat.status === 'submitted' || chat.status === 'streaming');
@@ -53,25 +67,42 @@
 	}
 
 	/**
-	 * Retry is offered only when the turn failed before the model produced
-	 * anything.
+	 * Retry after a failed turn.
 	 *
-	 * The transport posts one message — `messages[last]` — so `regenerate()`
-	 * re-sends whatever is on the end. With a trailing *user* message that is
-	 * exactly right, and the server resolves its model before persisting the
-	 * turn, so nothing was written and nothing is duplicated. With a trailing
-	 * *assistant* message it would post that back as an approval continuation,
-	 * which is a different operation entirely. Proper regeneration needs
-	 * `regenerateFromMessageId`, which is B4.
+	 * Since B4 the transport distinguishes a regeneration from a send, so this
+	 * is safe whichever role the trailing message has: a trailing user turn is
+	 * re-asked, and a trailing assistant turn is superseded and re-answered
+	 * rather than being posted back as an approval continuation. It is still
+	 * refused mid-stream, where there is nothing to retry yet.
 	 */
-	const canRetry = $derived(chat.messages[chat.messages.length - 1]?.role === 'user');
+	const canRetry = $derived(chat.messages.length > 0 && !busy);
 
 	function handleRetry() {
-		if (canRetry) void chat.regenerate();
+		const last = chat.messages[chat.messages.length - 1];
+		if (!canRetry || !last) return;
+		void agent.regenerate(chat.id, last.id);
+	}
+
+	/** Plain text of a turn, for the copy button and the inline editor. */
+	function textOf(parts: readonly { type: string }[]): string {
+		return parts
+			.filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+			.map((p) => p.text)
+			.join('\n\n')
+			.trim();
+	}
+
+	function handleEditSubmit(messageId: string, text: string) {
+		void agent.editAndResend(chat.id, messageId, text);
 	}
 
 	function handleApprove(id: string, approved: boolean) {
 		void chat.addToolApprovalResponse({ id, approved });
+	}
+
+	/** The turn at the end of the thread — the only one that can be streaming. */
+	function isLast(messageId: string): boolean {
+		return chat.messages[chat.messages.length - 1]?.id === messageId;
 	}
 
 	/** Tool parts cover both the typed (`tool-*`) and MCP-discovered shapes. */
@@ -125,9 +156,22 @@
 		</div>
 	{:else}
 		<Conversation.Root class="min-h-0 flex-1">
-			<Conversation.Content class={compact ? 'space-y-3 p-3' : 'space-y-4 p-4'}>
+			<!--
+				`gap-*`, not `space-y-*`: the content div is a flex column with its
+				own `gap-8`, and tailwind-merge only collapses like with like — a
+				`space-y` class left both in play and spaced every turn three rems
+				apart.
+			-->
+			<Conversation.Content class={compact ? 'gap-3 p-3' : 'gap-5 p-4'}>
 				{#if chat.messages.length === 0 && empty}
-					{@render empty()}
+					<!--
+						`m-auto`, so the greeting sits in the middle of an empty thread.
+						As a plain first child it clung to the top of a 900px-tall pane
+						with the whole conversation area blank beneath it.
+					-->
+					<div class="m-auto">
+						{@render empty()}
+					</div>
 				{/if}
 
 				<!--
@@ -137,7 +181,7 @@
 					50 with no sign the earlier ones existed.
 				-->
 				{#if agent.hasOlderMessages(chat.id)}
-					<div class="flex justify-center">
+					<div class={cn(COLUMN, 'flex justify-center')}>
 						<Button
 							variant="ghost"
 							size="sm"
@@ -156,47 +200,103 @@
 
 				{#each chat.messages as message (message.id)}
 					{@const consequences = consequenceIndex(message.parts)}
-					<div class={message.role === 'user' ? 'flex justify-end' : ''}>
-						<div
-							class={message.role === 'user'
-								? 'max-w-[85%] rounded-lg bg-primary px-3 py-2 text-primary-foreground'
-								: // 68ch is the readable measure for prose; unconstrained
-									// assistant answers run the full width of a desktop
-									// window and become hard to track line to line.
-									'w-full max-w-[68ch]'}
-						>
-							{#each message.parts as part, i (i)}
-								{#if part.type === 'text'}
-									{#if message.role === 'user'}
-										<p class="text-sm whitespace-pre-wrap">{part.text}</p>
-									{:else}
-										<Response content={part.text} />
-									{/if}
-								{:else if part.type === 'reasoning'}
-									<Reasoning.Root isStreaming={chat.status === 'streaming'}>
-										<Reasoning.Trigger />
-										<Reasoning.Content content={part.text} />
-									</Reasoning.Root>
-								{:else if isToolPart(part)}
-									{@const tool = part as unknown as ToolPart}
-									<ToolCall
-										part={tool}
-										consequence={consequences[tool.toolCallId]}
-										onApprove={handleApprove}
-										{busy}
-									/>
-								{/if}
-							{/each}
-
+					{@const editing = agent.editingMessageId === message.id}
+					<!--
+						`group/message` is what the hover-revealed action row keys off.
+						Named rather than bare so a nested `group` inside a tool result
+						cannot capture the hover and light up the wrong message's buttons.
+					-->
+					<div
+						class={cn(
+							'group/message',
+							COLUMN,
+							message.role === 'user' && 'flex flex-col items-end'
+						)}
+					>
+						{#if editing}
 							<!--
+								Full width while editing regardless of role: a rewrite needs
+								room, and the 85% bubble width makes a three-line question
+								scroll inside a box the size of a tooltip.
+							-->
+							<div class="w-full max-w-[68ch] self-end">
+								<MessageEditor
+									initial={textOf(message.parts)}
+									onSubmit={(text) => handleEditSubmit(message.id, text)}
+									onCancel={() => (agent.editingMessageId = null)}
+								/>
+							</div>
+						{:else}
+							<!--
+								The assistant block takes the whole column, and the 68ch
+								reading measure is applied to the prose alone (below). Capping
+								the block itself also cropped the tool-result cards, so a
+								six-column table was squeezed into two thirds of the room
+								available to it.
+							-->
+							<div
+								class={message.role === 'user'
+									? 'max-w-[85%] rounded-lg bg-primary px-3 py-2 text-primary-foreground'
+									: 'w-full min-w-0'}
+							>
+								{#each message.parts as part, i (i)}
+									{#if part.type === 'text'}
+										{#if message.role === 'user'}
+											<p class="text-sm whitespace-pre-wrap">{part.text}</p>
+										{:else}
+											<Response content={part.text} class="max-w-[68ch]" />
+										{/if}
+									{:else if part.type === 'reasoning'}
+										<!--
+											Only the turn actually being written is streaming.
+											Passed for every message, each completed turn in the
+											thread flipped back to "Thinking…" the moment a new
+											answer started — a thread that looked stuck in six
+											places at once.
+										-->
+										<Reasoning.Root isStreaming={chat.status === 'streaming' && isLast(message.id)}>
+											<Reasoning.Trigger />
+											<Reasoning.Content content={part.text} />
+										</Reasoning.Root>
+									{:else if isToolPart(part)}
+										{@const tool = part as unknown as ToolPart}
+										<ToolCall
+											part={tool}
+											consequence={consequences[tool.toolCallId]}
+											onApprove={handleApprove}
+											{busy}
+										/>
+									{/if}
+								{/each}
+
+								<!--
 								Only once the turn has settled. A strip that appears
 								mid-stream, then grows as each further tool call lands,
 								moves the text the operator is reading.
 							-->
-							{#if message.role === 'assistant' && !busy}
-								<ResultSources calls={sourceCalls(message.parts)} />
+								{#if message.role === 'assistant' && !busy}
+									<ResultSources calls={sourceCalls(message.parts)} />
+								{/if}
+							</div>
+
+							<!--
+								Withheld while a turn is streaming. Half the actions mutate
+								the thread, and the last message is still being written into
+								the array they would truncate.
+							-->
+							{#if !busy}
+								<MessageActions
+									messageId={message.id}
+									role={message.role === 'user' ? 'user' : 'assistant'}
+									text={textOf(message.parts)}
+									sessionId={chat.id}
+									{busy}
+									onEdit={message.role === 'user'
+										? (id) => (agent.editingMessageId = id)
+										: undefined}
+								/>
 							{/if}
-						</div>
+						{/if}
 					</div>
 				{/each}
 

@@ -43,7 +43,13 @@
 </script>
 
 {#if calls.length > 0}
-	<Sources.Root>
+	<!--
+		Muted, not the brand colour the primitive ships with. A line rendered in
+		`primary` under every answer reads as a call to action — on an orange
+		theme it looked like a warning attached to the figures above it, which is
+		the opposite of what "here is where this came from" should convey.
+	-->
+	<Sources.Root class="mt-3 mb-0 text-muted-foreground">
 		<Sources.Trigger count={calls.length}>
 			<p class="font-medium">
 				Based on {calls.length}

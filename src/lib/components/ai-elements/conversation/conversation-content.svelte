@@ -39,7 +39,17 @@
 <div
 	bind:this={element}
 	bind:this={ref}
-	class={cn("flex flex-col gap-8 p-4", className)}
+	class={cn(
+		// This is the element `StickToBottomContext` scrolls — it reads
+		// `scrollTop`/`scrollHeight` off it and listens for `scroll` here. Without
+		// `overflow-y-auto` on *this* div there is no scroll container anywhere in
+		// the thread: the parent clips with `overflow-hidden`, so every message
+		// past the first screenful was unreachable and the scroll button never
+		// appeared. `min-h-0` is what lets it shrink inside the flex column
+		// instead of growing to fit its content.
+		"flex min-h-0 flex-1 flex-col gap-8 overflow-y-auto overscroll-contain p-4",
+		className
+	)}
 	{...restProps}
 >
 	{@render children?.()}

@@ -6,18 +6,22 @@ import {
 } from 'ai';
 import { ApiError } from '$lib/api/client';
 import {
+	branchSession,
 	chatStreamUrl,
 	createSession,
 	deleteSession,
 	getAgentStatus,
 	getSession,
 	listSessions,
+	sendMessageFeedback,
 	updateSession,
 	type AgentMessage,
 	type AgentSession,
 	type AgentStatus,
 	type UpdateSessionParams
 } from '$lib/api/agent';
+import { downloadBlob } from '$lib/utils/export';
+import { exportFilename, toMarkdown } from '$lib/components/assistant/export-session';
 
 /** The assistant's name, mirrored from the backend system prompt. */
 export const ASSISTANT_NAME = 'JAY';
@@ -107,6 +111,23 @@ class AgentStore {
 	/** Provider override from the model picker. Null means server default. */
 	providerSlug = $state<string | null>(null);
 
+	/**
+	 * Per-message state the SDK's `UIMessage` has no room for.
+	 *
+	 * `Chat` owns `messages`, and its part array is the AI SDK's shape — there is
+	 * nowhere in it for a rating or a token count. Both are contract fields that
+	 * arrive with the persisted transcript, so they are kept beside it, keyed by
+	 * message id, and seeded on hydrate.
+	 */
+	messageFeedback = $state<Record<string, 'up' | 'down'>>({});
+	messageUsage = $state<Record<string, NonNullable<AgentMessage['usage']>>>({});
+
+	/** Message id currently open in the inline editor; null when none is. */
+	editingMessageId = $state<string | null>(null);
+
+	/** Session currently being exported, so its menu item can show progress. */
+	exporting = $state<string | null>(null);
+
 	#chats = new Map<string, Chat>();
 	/** Sessions whose transcript has already been fetched. */
 	#hydrated = new Set<string>();
@@ -133,6 +154,10 @@ class AgentStore {
 		this.panelSessionId = null;
 		this.pendingPrompt = null;
 		this.providerSlug = null;
+		this.messageFeedback = {};
+		this.messageUsage = {};
+		this.editingMessageId = null;
+		this.exporting = null;
 		this.#chats.clear();
 		this.#hydrated.clear();
 	}
@@ -252,6 +277,9 @@ class AgentStore {
 		this.loadingOlder = sessionId;
 		try {
 			const detail = await getSession(this.businessId, sessionId, { before });
+			// Older turns carry their own ratings and token counts; without this
+			// the thumbs on a page loaded backwards render blank.
+			this.#absorbMessageMeta(detail.messages);
 			const older = toUiMessages(detail.messages);
 			const seen = new Set(chat.messages.map((m) => m.id));
 			chat.messages = [...older.filter((m) => !seen.has(m.id)), ...chat.messages];
@@ -385,13 +413,41 @@ class AgentStore {
 				 * fabricated tool results into the model's context — and would
 				 * grow the request without bound on a long thread.
 				 */
-				prepareSendMessagesRequest: ({ messages, body }) => ({
-					body: {
-						message: messages[messages.length - 1],
-						...(this.providerSlug ? { providerSlug: this.providerSlug } : {}),
-						...body
+				prepareSendMessagesRequest: ({ messages, body, trigger, messageId }) => {
+					const provider = this.providerSlug ? { providerSlug: this.providerSlug } : {};
+
+					if (trigger === 'regenerate-message') {
+						/**
+						 * A plain regeneration carries no message — the question being
+						 * re-asked is already in the server's copy of the thread.
+						 *
+						 * `messageId` is undefined when `regenerate()` is called with no
+						 * argument. By then the SDK has already sliced the assistant turn
+						 * off `messages`, so the last entry is the user turn before it —
+						 * and naming that is equivalent, since the server keeps a named
+						 * user turn and re-asks it.
+						 */
+						return {
+							body: {
+								regenerateFromMessageId: messageId ?? messages[messages.length - 1]?.id,
+								...provider,
+								...body
+							}
+						};
 					}
-				})
+
+					// `body` is spread last so an edit-and-resend — which passes
+					// `regenerateFromMessageId` through `sendMessage`'s options — arrives
+					// alongside the replacement message. The server reads the pair as
+					// "supersede that turn, then append this one".
+					return {
+						body: {
+							message: messages[messages.length - 1],
+							...provider,
+							...body
+						}
+					};
+				}
 			}),
 			// Once every pending approval in the last assistant message has a
 			// response, resume the run automatically instead of making the user
@@ -442,14 +498,179 @@ class AgentStore {
 			}
 		}
 
+		// Ratings and token counts travel with the persisted transcript but have
+		// nowhere to live inside a `UIMessage`, so they are lifted out here —
+		// before `toUiMessages` drops everything the SDK does not model.
+		this.#absorbMessageMeta(messages);
+
 		this.#hydrated.add(sessionId);
 		return this.chatFor(sessionId, toUiMessages(messages));
+	}
+
+	#absorbMessageMeta(messages: AgentMessage[]) {
+		for (const message of messages) {
+			if (message.feedback) this.messageFeedback[message.id] = message.feedback;
+			if (message.usage) this.messageUsage[message.id] = message.usage;
+		}
 	}
 
 	/** Whether a turn is in flight for this session. */
 	isBusy(sessionId: string): boolean {
 		const status = this.#chats.get(sessionId)?.status;
 		return status === 'submitted' || status === 'streaming';
+	}
+
+	// ==================== message actions ====================
+
+	/**
+	 * Rate an answer, applied locally first.
+	 *
+	 * Clicking the same thumb again clears the rating: the control reads as a
+	 * toggle, and leaving it stuck on would make an accidental click permanent.
+	 * Clearing is local-only — the contract has no DELETE, so the server keeps
+	 * the last explicit rating. That asymmetry is deliberate: an operator
+	 * un-highlighting a thumb is undoing a UI gesture, not asking to be
+	 * forgotten, and inventing an endpoint for it is a contract change.
+	 */
+	async rateMessage(messageId: string, rating: 'up' | 'down') {
+		if (!this.businessId) return;
+
+		const previous = this.messageFeedback[messageId];
+		if (previous === rating) {
+			delete this.messageFeedback[messageId];
+			return;
+		}
+
+		this.messageFeedback[messageId] = rating;
+		try {
+			await sendMessageFeedback(this.businessId, messageId, rating);
+		} catch (e) {
+			// Put the thumb back rather than leave it showing a rating the server
+			// never took.
+			if (previous) this.messageFeedback[messageId] = previous;
+			else delete this.messageFeedback[messageId];
+			this.sessionsError = e instanceof Error ? e.message : 'Could not save that rating.';
+		}
+	}
+
+	/**
+	 * Re-run the thread from a message.
+	 *
+	 * The SDK truncates its own copy and the server supersedes its own, by the
+	 * same rule: an assistant turn is replaced, a user turn is re-asked. Refused
+	 * mid-stream — regenerating while a turn is in flight would race the
+	 * response being written into the array being truncated.
+	 */
+	async regenerate(sessionId: string, messageId: string) {
+		if (this.isBusy(sessionId)) return;
+		const chat = this.#chats.get(sessionId);
+		if (!chat) return;
+
+		try {
+			await chat.regenerate({ messageId });
+		} catch (e) {
+			this.sessionsError = e instanceof Error ? e.message : 'Could not regenerate that answer.';
+		}
+	}
+
+	/**
+	 * Replace a question and ask it again.
+	 *
+	 * Two things have to agree: the SDK's local array and the server's stored
+	 * thread. The local slice drops the edited turn and everything after it, and
+	 * `regenerateFromMessageId` tells the server to do the same before appending
+	 * the replacement — sent together, which the contract reads as
+	 * edit-and-resend.
+	 */
+	async editAndResend(sessionId: string, messageId: string, text: string) {
+		if (this.isBusy(sessionId)) return;
+		const chat = this.#chats.get(sessionId);
+		if (!chat) return;
+
+		const trimmed = text.trim();
+		if (!trimmed) return;
+
+		const index = chat.messages.findIndex((m) => m.id === messageId);
+		if (index < 0) return;
+
+		const snapshot = chat.messages;
+		chat.messages = chat.messages.slice(0, index);
+		this.editingMessageId = null;
+
+		try {
+			await chat.sendMessage({ text: trimmed }, { body: { regenerateFromMessageId: messageId } });
+		} catch (e) {
+			// The turn never left, so the thread the operator was looking at is
+			// still the truth. Restoring it beats leaving them with a transcript
+			// that silently lost its last exchange.
+			chat.messages = snapshot;
+			this.sessionsError = e instanceof Error ? e.message : 'Could not resend that message.';
+		}
+	}
+
+	/**
+	 * Download a whole conversation as Markdown.
+	 *
+	 * Pages the transcript to the beginning rather than exporting what happens
+	 * to be on screen. `GET /sessions/:id` returns the newest 50 by default, so
+	 * exporting the cached thread would silently truncate a long conversation to
+	 * its tail — and an export that drops history is worse than none, because
+	 * nobody checks.
+	 */
+	async exportSession(sessionId: string): Promise<boolean> {
+		if (!this.businessId) return false;
+
+		this.exporting = sessionId;
+		try {
+			const first = await getSession(this.businessId, sessionId);
+			let messages = first.messages;
+			let cursor = first.prevCursor;
+
+			// Bounded so a corrupt cursor cannot spin forever; 200 pages is far
+			// past any real thread and still terminates.
+			for (let page = 0; cursor && page < 200; page++) {
+				const older = await getSession(this.businessId, sessionId, { before: cursor });
+				if (!older.messages.length) break;
+				messages = [...older.messages, ...messages];
+				cursor = older.prevCursor;
+			}
+
+			const markdown = toMarkdown(first.session, messages, {
+				timezone: this.timezone,
+				assistantName: ASSISTANT_NAME
+			});
+			downloadBlob(
+				new Blob([markdown], { type: 'text/markdown;charset=utf-8' }),
+				exportFilename(first.session, 'md')
+			);
+			return true;
+		} catch (e) {
+			this.sessionsError = e instanceof Error ? e.message : 'Could not export that conversation.';
+			return false;
+		} finally {
+			this.exporting = null;
+		}
+	}
+
+	/**
+	 * Fork the thread at a message into a new one.
+	 *
+	 * Returns the new session so the caller can navigate to it; the sidebar is
+	 * updated here so the fork is visible even if navigation is declined.
+	 */
+	async branch(sessionId: string, messageId: string): Promise<AgentSession | null> {
+		if (!this.businessId) return null;
+		try {
+			const session = await branchSession(this.businessId, sessionId, messageId);
+			this.sessions = [session, ...this.sessions];
+			this.#resort();
+			// Not marked hydrated: the fork has a copied transcript on the server,
+			// so the session page must fetch it rather than render an empty thread.
+			return session;
+		} catch (e) {
+			this.sessionsError = e instanceof Error ? e.message : 'Could not branch that conversation.';
+			return null;
+		}
 	}
 
 	// ==================== panel ====================

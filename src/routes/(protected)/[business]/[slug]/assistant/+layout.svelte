@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
+	import { createShortcutHandler } from '$lib/utils/keyboard-shortcuts';
 	import * as Sheet from '$lib/components/ui/sheet/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import SessionSidebar from '$lib/components/assistant/session-sidebar.svelte';
@@ -31,7 +33,53 @@
 		void activeSessionId;
 		mobileNavOpen = false;
 	});
+
+	/**
+	 * Assistant shortcuts.
+	 *
+	 * Unmodified single keys, on purpose. `createShortcutHandler` refuses to fire
+	 * while an input, textarea, select or contenteditable has focus, so these
+	 * cannot steal a keystroke from the composer — which is where an operator
+	 * spends nearly all their time, and the reason plain letters are safe here at
+	 * all. It is the same convention Gmail and GitHub use.
+	 *
+	 * The alternative, Ctrl-combinations, collides with the browser: Ctrl+Shift+N
+	 * opens an incognito window in Chrome and never reaches the page.
+	 *
+	 * Deliberately few, and none destructive — a mistyped shortcut must not be
+	 * able to delete a conversation.
+	 */
+	const shortcuts = createShortcutHandler([
+		{
+			key: 'n',
+			description: 'Start a new conversation',
+			handler: () => void startNewSession()
+		},
+		{
+			key: 'e',
+			description: 'Export the open conversation',
+			handler: () => {
+				if (activeSessionId) void agent.exportSession(activeSessionId);
+			}
+		},
+		{
+			key: '/',
+			description: 'Focus the conversation search',
+			handler: () => {
+				const search = document.querySelector<HTMLInputElement>('[data-agent-session-search]');
+				search?.focus();
+				search?.select();
+			}
+		}
+	]);
+
+	async function startNewSession() {
+		const session = await agent.newSession();
+		if (session) await goto(`${basePath}/${session.id}`);
+	}
 </script>
+
+<svelte:window onkeydown={shortcuts} />
 
 <svelte:head>
 	<title>{ASSISTANT_NAME} | Assistant</title>
@@ -42,7 +90,7 @@
 	keyboard opens, and 100vh keeps reporting the taller value — which pushes
 	the composer under the keyboard exactly when it is being typed into.
 -->
-<div class="flex h-[calc(100dvh-8rem)] min-h-0 gap-4">
+<div class="flex h-dvh min-h-0 gap-4 p-2">
 	<aside class="hidden w-64 shrink-0 lg:block" aria-label="Conversation list">
 		<SessionSidebar {basePath} {activeSessionId} />
 	</aside>

@@ -140,6 +140,7 @@
 			class="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
 			aria-hidden="true"
 		/>
+		<!-- The `/` shortcut in the assistant layout focuses this by attribute. -->
 		<Input
 			bind:value={agent.query}
 			oninput={onSearchInput}
@@ -147,6 +148,7 @@
 			type="search"
 			placeholder="Search conversations"
 			aria-label="Search conversations"
+			data-agent-session-search
 		/>
 	</div>
 

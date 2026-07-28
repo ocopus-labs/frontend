@@ -184,9 +184,30 @@ export interface SessionDetailResponse {
 	prevCursor?: Cursor;
 }
 
+export type UsageScope = 'me' | 'business';
+
+export interface UsageDay {
+	/** Business-local calendar day, `YYYY-MM-DD`. Empty days are omitted. */
+	date: string;
+	messages: number;
+	tokens: number;
+	costMinor: number;
+}
+
 export interface UsageResponse {
+	/** Echoed by the server, so a chart cannot be mislabelled client-side. */
+	scope: UsageScope;
+	/** The range actually applied, after the server filled in defaults. */
+	from: string;
+	to: string;
+	/**
+	 * `costMinor` is structurally `0` today — no per-model prices are persisted,
+	 * so nothing has ever written a non-zero value. Render tokens, not money,
+	 * until that changes. See the contract's §5 note.
+	 */
 	totals: { messages: number; tokens: number; costMinor: number; currency: string };
-	daily: { date: string; messages: number; tokens: number; costMinor: number }[];
+	daily: UsageDay[];
+	/** Always about the caller, whatever the scope. Absent when uncapped. */
 	quota?: { messagesLimit: number | null; resetsAt: Timestamp };
 }
 
@@ -311,17 +332,39 @@ export async function sendMessageFeedback(
 
 export async function getUsage(
 	businessId: string,
-	params: { from?: string; to?: string } = {},
+	params: { from?: string; to?: string; scope?: UsageScope } = {},
 	options?: { fetch?: typeof fetch }
 ): Promise<UsageResponse> {
-	if (AGENT_MOCK) return mockAgentApi.usage();
+	if (AGENT_MOCK) return mockAgentApi.usage(params.scope ?? 'me');
 
 	const query = new URLSearchParams();
 	if (params.from) query.set('from', params.from);
 	if (params.to) query.set('to', params.to);
+	// `me` is the server's default; sending it would only make the URL noisier.
+	if (params.scope === 'business') query.set('scope', 'business');
 
 	const qs = query.toString();
 	return client(options?.fetch).get<UsageResponse>(
 		`${base(businessId)}/usage${qs ? `?${qs}` : ''}`
 	);
+}
+
+/**
+ * Fork a thread at a message into a new one.
+ *
+ * The alternative to regenerating: rather than replacing the answer in front of
+ * you, keep it and take the conversation elsewhere from that point. The copy
+ * includes the named message.
+ */
+export async function branchSession(
+	businessId: string,
+	sessionId: string,
+	messageId: string,
+	title?: string
+): Promise<AgentSession> {
+	if (AGENT_MOCK) return mockAgentApi.branchSession(sessionId, messageId, title);
+	return getApiClient().post<AgentSession>(`${base(businessId)}/sessions/${sessionId}/branch`, {
+		messageId,
+		...(title ? { title } : {})
+	});
 }

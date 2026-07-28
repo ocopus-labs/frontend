@@ -24,6 +24,8 @@
 	import ArchiveRestoreIcon from '@lucide/svelte/icons/archive-restore';
 	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import TrashIcon from '@lucide/svelte/icons/trash-2';
+	import DownloadIcon from '@lucide/svelte/icons/download';
+	import { agent } from '$lib/stores/agent.svelte';
 
 	let {
 		session,
@@ -147,6 +149,13 @@
 						<ArchiveIcon class="size-3.5" />
 						Archive
 					{/if}
+				</DropdownMenu.Item>
+				<DropdownMenu.Item
+					disabled={agent.exporting === session.id}
+					onSelect={() => void agent.exportSession(session.id)}
+				>
+					<DownloadIcon class="size-3.5" />
+					{agent.exporting === session.id ? 'Exporting…' : 'Export'}
 				</DropdownMenu.Item>
 				<DropdownMenu.Separator />
 				<DropdownMenu.Item variant="destructive" onSelect={() => onDelete(session.id)}>

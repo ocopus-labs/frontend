@@ -17,11 +17,15 @@
 	let getThinkingMessage = $derived.by(() => {
 		let { isStreaming, duration } = reasoningContext;
 
-		if (isStreaming || duration === 0) {
+		if (isStreaming) {
 			return "Thinking...";
 		}
-		if (duration === undefined) {
-			return "Thought for a few seconds";
+		// A duration is only ever measured for a turn this tab watched arrive.
+		// A thread loaded from the server has none, and `duration === 0` used to
+		// mean "Thinking..." — so every reasoning block in a reopened
+		// conversation claimed to still be thinking, days after it finished.
+		if (!duration) {
+			return "Thought process";
 		}
 		return `Thought for ${duration} seconds`;
 	});

@@ -5,7 +5,8 @@ import type {
 	SessionDetailResponse,
 	SessionListResponse,
 	UpdateSessionParams,
-	UsageResponse
+	UsageResponse,
+	UsageScope
 } from './agent';
 
 /**
@@ -359,17 +360,66 @@ export const mockAgentApi = {
 		return delay(undefined, 120);
 	},
 
-	usage: (): Promise<UsageResponse> =>
-		delay({
-			totals: { messages: 342, tokens: 1_284_000, costMinor: 0, currency: 'INR' },
-			daily: Array.from({ length: 7 }, (_, i) => ({
-				date: new Date(now - (6 - i) * 86_400_000).toISOString().slice(0, 10),
-				messages: 30 + i * 7,
-				tokens: 120_000 + i * 18_000,
+	/**
+	 * Fork a thread at a message.
+	 *
+	 * The copy carries the messages up to and including `messageId`, so the
+	 * branched thread renders with real history rather than empty.
+	 */
+	branchSession: (sessionId: string, messageId: string, title?: string): Promise<AgentSession> => {
+		const source = findSession(sessionId);
+		const thread = seededMessages[sessionId] ?? [];
+		const at = thread.findIndex((m) => m.id === messageId);
+		const copied = at >= 0 ? thread.slice(0, at + 1) : [];
+
+		const session: AgentSession = {
+			id: makeId(),
+			title: title ?? source.title,
+			pinned: false,
+			archived: false,
+			messageCount: copied.length,
+			lastMessageAt: new Date().toISOString(),
+			createdAt: new Date().toISOString(),
+			providerSlug: source.providerSlug,
+			modelId: source.modelId
+		};
+		// Fresh ids: the fork is a different conversation, and reusing them
+		// would make the two threads share keys in any list rendered from both.
+		seededMessages[session.id] = copied.map((m, i) => ({
+			...m,
+			id: `${session.id}-m${i + 1}`
+		}));
+		sessions = [session, ...sessions];
+		return delay(session, 140);
+	},
+
+	usage: (scope: UsageScope = 'me'): Promise<UsageResponse> => {
+		// Business scope is every operator's usage folded together, so it is
+		// simply larger — the shape is identical, which is the point.
+		const factor = scope === 'business' ? 4 : 1;
+		const days = 7;
+		return delay({
+			scope,
+			from: new Date(now - (days - 1) * 86_400_000).toISOString().slice(0, 10),
+			to: new Date(now).toISOString().slice(0, 10),
+			totals: {
+				messages: 342 * factor,
+				tokens: 1_284_000 * factor,
+				// Zero on purpose: no per-model prices are persisted, so the real
+				// endpoint cannot return anything else. A fixture with money in it
+				// would let a UI ship that displays a number production never sends.
+				costMinor: 0,
+				currency: 'INR'
+			},
+			daily: Array.from({ length: days }, (_, i) => ({
+				date: new Date(now - (days - 1 - i) * 86_400_000).toISOString().slice(0, 10),
+				messages: (30 + i * 7) * factor,
+				tokens: (120_000 + i * 18_000) * factor,
 				costMinor: 0
 			})),
 			quota: { messagesLimit: 500, resetsAt: iso(-540) }
-		}),
+		});
+	},
 
 	/** Reset in-memory state — for tests and story setup. */
 	__reset: () => {
