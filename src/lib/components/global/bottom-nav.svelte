@@ -13,6 +13,7 @@
 	import MenuIcon from '@lucide/svelte/icons/menu';
 	import PanelLeftIcon from '@lucide/svelte/icons/panel-left';
 	import TableIcon from '@lucide/svelte/icons/table';
+	import CalendarClockIcon from '@lucide/svelte/icons/calendar-clock';
 	import MonitorIcon from '@lucide/svelte/icons/monitor';
 	import ContactIcon from '@lucide/svelte/icons/contact';
 	import StarIcon from '@lucide/svelte/icons/star';
@@ -97,6 +98,14 @@
 		{
 			label: 'Operations',
 			items: [
+				// Filtered out for every vertical that cannot enable `appointments`,
+				// which is all of them except salon/spa/clinic.
+				{
+					label: 'Appointments',
+					icon: CalendarClockIcon,
+					href: '/appointments',
+					feature: 'appointments'
+				},
 				{ label: 'Tables', icon: TableIcon, href: '/tables/layout', feature: 'tables' },
 				{ label: 'KDS', icon: MonitorIcon, href: '/kitchen-display/orders', feature: 'kds' },
 				{ label: 'Customers', icon: ContactIcon, href: '/customers' },

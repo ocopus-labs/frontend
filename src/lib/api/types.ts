@@ -40,6 +40,14 @@ export interface Business {
 	address: BusinessAddress;
 	contact: BusinessContact;
 	settings: BusinessSettings;
+	/**
+	 * The outlet's IANA zone, promoted out of `settings` into its own column so
+	 * analytics can group by business day in a query. It — not
+	 * `settings.timezone` — is what the backend composes every timestamp
+	 * against, and the two are allowed to drift. Optional because not every
+	 * endpoint that returns a Business selects the whole row.
+	 */
+	timezone?: string;
 	enabledFeatures?: string[];
 	status: string;
 	franchiseId?: string;

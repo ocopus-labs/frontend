@@ -772,3 +772,23 @@ export {
 	type ListSessionsParams,
 	type UpdateSessionParams
 } from './agent';
+
+// Appointments API (salon / spa / clinic)
+export {
+	listAppointments,
+	getAppointment,
+	getAvailability,
+	createAppointment,
+	rescheduleAppointment,
+	updateAppointmentStatus,
+	type Appointment,
+	type AppointmentStatus,
+	type AppointmentSource,
+	type AppointmentServiceLine,
+	type AvailabilitySlot,
+	type AvailabilityResponse,
+	type ListAppointmentsParams,
+	type AvailabilityParams,
+	type CreateAppointmentPayload,
+	type RescheduleAppointmentPayload
+} from './appointment';
