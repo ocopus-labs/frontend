@@ -170,6 +170,8 @@
 	bind:open={detailOpen}
 	businessId={data.businessId}
 	timeZone={data.timeZone}
+	{basePath}
+	currency={data.currency}
 	appointment={selected}
 	staff={data.staff}
 	onChanged={refresh}

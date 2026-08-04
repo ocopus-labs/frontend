@@ -18,6 +18,9 @@ export const load: PageLoad = async ({ parent, url, fetch, depends }) => {
 	// booking against the column.
 	const timeZone =
 		parentData.business?.timezone ?? parentData.business?.settings?.timezone ?? 'UTC';
+	// The outlet bills in one currency, so this stays a scalar — only figures
+	// that span outlets are per-currency sets.
+	const currency = parentData.business?.settings?.currency ?? 'INR';
 	const date = url.searchParams.get('date') || todayInZone(timeZone);
 
 	try {
@@ -31,6 +34,7 @@ export const load: PageLoad = async ({ parent, url, fetch, depends }) => {
 			...parentData,
 			date,
 			timeZone,
+			currency,
 			appointments,
 			// `TeamMember.id` is the `BusinessUser` id, which is what a booking's
 			// `staffId` references — not `user.id`, which is the account.
@@ -45,6 +49,7 @@ export const load: PageLoad = async ({ parent, url, fetch, depends }) => {
 			...parentData,
 			date,
 			timeZone,
+			currency,
 			appointments: [],
 			staff: [],
 			services: [],
