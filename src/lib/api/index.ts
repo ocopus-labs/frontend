@@ -801,6 +801,19 @@ export {
 	type RescheduleAppointmentPayload
 } from './appointment';
 
+// Resources — chairs, rooms, equipment (salon / spa / clinic)
+export {
+	listResources,
+	createResource,
+	updateResource,
+	deleteResource,
+	type Resource,
+	type ResourceType,
+	type ResourceStatus,
+	type CreateResourcePayload,
+	type UpdateResourcePayload
+} from './resource';
+
 // Staff commission (salon / spa / clinic)
 export {
 	getCommissionReport,

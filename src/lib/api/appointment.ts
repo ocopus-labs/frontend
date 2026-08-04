@@ -36,6 +36,8 @@ export interface Appointment {
 	 */
 	customer: { id: string; name: string } | null;
 	staffId: string | null;
+	/** The chair or room this booking occupies. Null when the service needs none. */
+	resourceId: string | null;
 	orderId: string | null;
 	/** The service window — what the customer is told. UTC ISO. */
 	startAt: string;
@@ -61,6 +63,12 @@ export interface Appointment {
 /** One bookable opening for one staff member. Half-open, like everything else. */
 export interface AvailabilitySlot {
 	staffId: string;
+	/**
+	 * The resource this slot would occupy, chosen server-side. Null when the
+	 * service needs none. Sent back on create so the booking lands in the room
+	 * the operator was shown.
+	 */
+	resourceId: string | null;
 	startAt: string;
 	endAt: string;
 	blockStartAt: string;
@@ -83,6 +91,7 @@ export interface ListAppointmentsParams {
 	from: string;
 	to: string;
 	staffId?: string;
+	resourceId?: string;
 	status?: AppointmentStatus;
 }
 
@@ -103,6 +112,8 @@ export interface CreateAppointmentPayload {
 	startTime: string;
 	services: { menuItemId: string; staffId?: string }[];
 	staffId?: string;
+	/** Omit and the server picks the first eligible resource that is free. */
+	resourceId?: string;
 	customerId?: string;
 	source?: AppointmentSource;
 	notes?: string;
@@ -112,6 +123,7 @@ export interface RescheduleAppointmentPayload {
 	date: string;
 	startTime: string;
 	staffId?: string;
+	resourceId?: string;
 }
 
 /**

@@ -152,7 +152,21 @@ export const sidebarData: Record<string, SidebarData> = {
 				title: 'Appointments',
 				url: '/[business]/[slug]/appointments',
 				icon: CalendarClockIcon,
-				requiredFeature: 'appointments'
+				requiredFeature: 'appointments',
+				items: [
+					{
+						title: 'Diary',
+						url: '/[business]/[slug]/appointments'
+					},
+					{
+						// Chairs and rooms. Under Appointments rather than Settings
+						// because it is the other half of what a booking occupies —
+						// the person and the place — and the diary is where anyone
+						// looking for it will be.
+						title: 'Chairs & rooms',
+						url: '/[business]/[slug]/appointments/resources'
+					}
+				]
 			},
 			{
 				// Status views live in the orders tab bar (`orders/+layout.svelte`),
