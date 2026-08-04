@@ -1,12 +1,31 @@
 import type { PageLoad } from './$types';
 import { getItems, getTeamMembers, listAppointments } from '$lib/api';
-import { todayInZone } from '$lib/utils/timezone';
+import { shiftDateKey, todayInZone } from '$lib/utils/timezone';
+
+/** How the diary is laid out. Day = one date, columns of people. Week = seven dates. */
+export type DiaryView = 'day' | 'week';
+
+/**
+ * Monday of the week containing `dateKey`.
+ *
+ * Walks date keys with `shiftDateKey`, which steps through UTC rather than
+ * adding 24 hours to a local instant — the latter lands on the wrong date on a
+ * DST changeover day, which in a week view shows up as a duplicated or missing
+ * column. The weekday is read at noon UTC for the same reason: midnight is the
+ * one instant a zone offset can push across a date boundary.
+ */
+function startOfWeek(dateKey: string): string {
+	const at = new Date(`${dateKey}T12:00:00.000Z`);
+	const weekday = at.getUTCDay();
+	return shiftDateKey(dateKey, weekday === 0 ? -6 : 1 - weekday);
+}
 
 /**
  * The day the diary opens on is the outlet's today, not the viewer's.
  *
  * `?date=` wins when present so a link to a specific day survives a reload, and
- * so "next day" is a navigation rather than component state.
+ * so "next day" is a navigation rather than component state. `?view=week`
+ * likewise, so a week is linkable.
  */
 export const load: PageLoad = async ({ parent, url, fetch, depends }) => {
 	depends('app:appointments');
@@ -22,10 +41,16 @@ export const load: PageLoad = async ({ parent, url, fetch, depends }) => {
 	// that span outlets are per-currency sets.
 	const currency = parentData.business?.settings?.currency ?? 'INR';
 	const date = url.searchParams.get('date') || todayInZone(timeZone);
+	const view: DiaryView = url.searchParams.get('view') === 'week' ? 'week' : 'day';
+
+	// The range actually fetched. A week view asks for seven days in one call --
+	// `listAppointments` already takes a range, so this needs no new endpoint.
+	const from = view === 'week' ? startOfWeek(date) : date;
+	const to = view === 'week' ? shiftDateKey(from, 6) : date;
 
 	try {
 		const [appointments, team, catalog] = await Promise.all([
-			listAppointments(businessId, { from: date, to: date }, { fetch }),
+			listAppointments(businessId, { from, to }, { fetch }),
 			getTeamMembers(businessId, { status: 'active' }, { fetch }),
 			getItems(businessId, undefined, { fetch })
 		]);
@@ -33,6 +58,9 @@ export const load: PageLoad = async ({ parent, url, fetch, depends }) => {
 		return {
 			...parentData,
 			date,
+			view,
+			from,
+			to,
 			timeZone,
 			currency,
 			appointments,
@@ -48,6 +76,9 @@ export const load: PageLoad = async ({ parent, url, fetch, depends }) => {
 		return {
 			...parentData,
 			date,
+			view,
+			from,
+			to,
 			timeZone,
 			currency,
 			appointments: [],

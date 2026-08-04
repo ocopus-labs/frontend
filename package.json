@@ -88,6 +88,7 @@
 	},
 	"dependencies": {
 		"@ai-sdk/svelte": "^5.0.31",
+		"@atlaskit/pragmatic-drag-and-drop": "^2.0.1",
 		"@dodopayments/better-auth": "^1.6.3",
 		"@humanspeak/svelte-markdown": "^1.8.4",
 		"@shikijs/themes": "^4.0.2",

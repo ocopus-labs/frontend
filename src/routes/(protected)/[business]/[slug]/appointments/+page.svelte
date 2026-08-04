@@ -11,13 +11,25 @@
 		AppointmentDialog,
 		BookingDialog,
 		DayCalendar,
+		WeekCalendar,
 		STATUS_BADGE_VARIANT,
 		STATUS_LABEL,
 		occupiesChair
 	} from '$lib/components/appointments';
-	import type { Appointment } from '$lib/api';
+	import type { GridColumn } from '$lib/components/appointments/calendar/appointment-grid.svelte';
+	import { rescheduleAppointment, type Appointment } from '$lib/api';
+	import { toast } from 'svelte-sonner';
+	import { userFriendlyError } from '$lib/utils/error';
 	import { canModify } from '$lib/utils/permissions';
-	import { formatDateKey, formatZonedTime, shiftDateKey, todayInZone } from '$lib/utils/timezone';
+	import {
+		formatDateKey,
+		formatZonedTime,
+		shiftDateKey,
+		todayInZone,
+		zonedDateKey,
+		zonedMinutesOfDay,
+		minutesToWallClock
+	} from '$lib/utils/timezone';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import PlusIcon from '@lucide/svelte/icons/plus';
@@ -40,11 +52,67 @@
 	let bookingOpen = $state(false);
 	let selected = $state<Appointment | null>(null);
 	let detailOpen = $state(false);
+	/** The booking whose drag is in flight. Dimmed until the reload settles it. */
+	let movingId = $state<string | null>(null);
 
-	// The day lives in the URL, so back/forward work and a day can be linked.
+	// The day and the layout both live in the URL, so back/forward work and a
+	// particular week can be linked.
 	function goToDate(date: string) {
-		goto(`?date=${date}`, { keepFocus: true, noScroll: true });
+		goto(`?view=${data.view}&date=${date}`, { keepFocus: true, noScroll: true });
 	}
+
+	function goToView(view: 'day' | 'week') {
+		goto(`?view=${view}&date=${data.date}`, { keepFocus: true, noScroll: true });
+	}
+
+	/** One day at a time in the day view, a whole week in the week view. */
+	const step = $derived(data.view === 'week' ? 7 : 1);
+
+	/**
+	 * Commit a drag.
+	 *
+	 * No optimistic move. The server can refuse this — two exclusion constraints
+	 * can 409 it, and a completed booking cannot be rescheduled at all — so
+	 * showing the booking in its new place before the write lands would mean
+	 * animating it back on failure. Instead the block dims where it is, and the
+	 * reload afterwards is what moves it. That reload runs whether the write
+	 * succeeded or failed, which is also what puts a refused booking back.
+	 *
+	 * `startMinutes` is a wall clock in the outlet's zone and `column.dateKey` is
+	 * an outlet date, which is exactly what `reschedule` takes — the server
+	 * composes the instant. Nothing here builds one.
+	 */
+	async function moveAppointment(
+		appointment: Appointment,
+		column: GridColumn,
+		startMinutes: number
+	) {
+		const startTime = minutesToWallClock(startMinutes);
+		const sameDay = column.dateKey === zonedDateKeyOf(appointment);
+		const sameStaff = column.staffId === null || column.staffId === appointment.staffId;
+		if (sameDay && sameStaff && startTime === wallClockOf(appointment)) return;
+
+		movingId = appointment.id;
+		try {
+			await rescheduleAppointment(data.businessId, appointment.id, {
+				date: column.dateKey,
+				startTime,
+				...(column.staffId ? { staffId: column.staffId } : {})
+			});
+			toast.success('Appointment moved');
+		} catch (error) {
+			// A clash comes back as a 409 naming whether the stylist or the room
+			// collided, written for the front desk. Shown as-is.
+			toast.error(userFriendlyError(error, 'Could not move that appointment'));
+		} finally {
+			movingId = null;
+			refresh();
+		}
+	}
+
+	const zonedDateKeyOf = (a: Appointment) => zonedDateKey(a.startAt, data.timeZone);
+	const wallClockOf = (a: Appointment) =>
+		minutesToWallClock(zonedMinutesOfDay(a.startAt, data.timeZone));
 
 	function refresh() {
 		invalidate('app:appointments');
@@ -56,7 +124,12 @@
 	}
 </script>
 
-<PageShell title="Appointments" description={formatDateKey(data.date)}>
+<PageShell
+	title="Appointments"
+	description={data.view === 'week'
+		? `${formatDateKey(data.from)} – ${formatDateKey(data.to)}`
+		: formatDateKey(data.date)}
+>
 	{#snippet actions()}
 		{#if canBook}
 			<Button onclick={() => (bookingOpen = true)} disabled={data.services.length === 0}>
@@ -70,16 +143,16 @@
 		<Button
 			variant="outline"
 			size="icon"
-			aria-label="Previous day"
-			onclick={() => goToDate(shiftDateKey(data.date, -1))}
+			aria-label={data.view === 'week' ? 'Previous week' : 'Previous day'}
+			onclick={() => goToDate(shiftDateKey(data.date, -step))}
 		>
 			<ChevronLeftIcon />
 		</Button>
 		<Button
 			variant="outline"
 			size="icon"
-			aria-label="Next day"
-			onclick={() => goToDate(shiftDateKey(data.date, 1))}
+			aria-label={data.view === 'week' ? 'Next week' : 'Next day'}
+			onclick={() => goToDate(shiftDateKey(data.date, step))}
 		>
 			<ChevronRightIcon />
 		</Button>
@@ -97,6 +170,25 @@
 			aria-label="Pick a day"
 			onchange={(e) => goToDate(e.currentTarget.value)}
 		/>
+		<div class="flex overflow-hidden rounded-md border border-border">
+			<Button
+				variant={data.view === 'day' ? 'secondary' : 'ghost'}
+				size="sm"
+				class="rounded-none border-0"
+				onclick={() => goToView('day')}
+			>
+				Day
+			</Button>
+			<Button
+				variant={data.view === 'week' ? 'secondary' : 'ghost'}
+				size="sm"
+				class="rounded-none border-0"
+				onclick={() => goToView('week')}
+			>
+				Week
+			</Button>
+		</div>
+
 		<span class="text-xs text-muted-foreground">
 			{bookedCount}
 			{bookedCount === 1 ? 'booking' : 'bookings'}
@@ -114,13 +206,28 @@
 		</p>
 	{/if}
 
-	<DayCalendar
-		appointments={data.appointments}
-		staff={data.staff}
-		timeZone={data.timeZone}
-		dateKey={data.date}
-		onSelect={openAppointment}
-	/>
+	{#if data.view === 'week'}
+		<WeekCalendar
+			appointments={data.appointments}
+			timeZone={data.timeZone}
+			fromDateKey={data.from}
+			canDrag={canBook}
+			pendingId={movingId}
+			onSelect={openAppointment}
+			onMove={moveAppointment}
+		/>
+	{:else}
+		<DayCalendar
+			appointments={data.appointments}
+			staff={data.staff}
+			timeZone={data.timeZone}
+			dateKey={data.date}
+			canDrag={canBook}
+			pendingId={movingId}
+			onSelect={openAppointment}
+			onMove={moveAppointment}
+		/>
+	{/if}
 
 	{#if released.length > 0}
 		<Collapsible.Root>
