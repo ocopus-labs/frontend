@@ -38,6 +38,10 @@ const ROUTE_FEATURE_MAP: Record<string, string> = {
 	'/expenses': 'expenses',
 	'/kitchen-display': 'kds',
 	'/team': 'team',
+	// Commission is salon payroll, and the backend gates it on `appointments`
+	// like the rest of the diary. Listed after `/team` so a business missing the
+	// parent feature is bounced on that rather than on this.
+	'/team/commissions': 'appointments',
 	// The backend gates every agent endpoint on this slug, so without the entry
 	// the page renders, calls `/status`, and shows a 403 the operator has to
 	// interpret — rather than the dashboard banner every other disabled feature

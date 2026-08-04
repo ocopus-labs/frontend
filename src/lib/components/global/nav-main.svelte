@@ -72,6 +72,19 @@
 		return pathname === subItem.url;
 	}
 
+	/**
+	 * Sub-items carry their own feature gate, because a parent can be enabled
+	 * while a child is not — Team is on for every vertical, but Commission is
+	 * gated on `appointments` and would 403 for a restaurant.
+	 */
+	function visibleSubItems(item: NavItem) {
+		const subItems = item.items ?? [];
+		if (enabledFeatures === null) return subItems;
+		return subItems.filter(
+			(subItem) => !subItem.requiredFeature || enabledFeatures.includes(subItem.requiredFeature)
+		);
+	}
+
 	// Check if a nav item is locked based on subscription tier (only relevant for owners)
 	function isItemLocked(item: NavItem): boolean {
 		if (!item.requiredPlan) return false;
@@ -105,7 +118,8 @@
 		{#each visibleItems as item (item.title)}
 			{@const locked = isItemLocked(item)}
 			{@const groupActive = isGroupActive(item)}
-			{@const hasSubItems = item.items && item.items.length > 0}
+			{@const subItems = visibleSubItems(item)}
+			{@const hasSubItems = subItems.length > 0}
 			{#if hasSubItems}
 				<Collapsible.Root open={groupActive && !locked} class="group/collapsible">
 					{#snippet child({ props })}
@@ -141,7 +155,7 @@
 							{#if !locked}
 								<Collapsible.Content>
 									<Sidebar.MenuSub>
-										{#each item.items ?? [] as subItem (subItem.title)}
+										{#each subItems as subItem (subItem.title)}
 											<Sidebar.MenuSubItem>
 												<Sidebar.MenuSubButton isActive={isSubItemActive(subItem)}>
 													{#snippet child({ props })}

@@ -20,6 +20,15 @@ import CalendarClockIcon from '@lucide/svelte/icons/calendar-clock';
 export interface NavSubItem {
 	title: string;
 	url: string;
+	/**
+	 * Business-level feature gate, same semantics as `NavItem.requiredFeature`.
+	 *
+	 * A parent can be enabled while one of its children is not — Team is on for
+	 * every vertical, but Commission is gated on `appointments` and 403s for a
+	 * restaurant. Without this the link renders and dies on its first call,
+	 * which is how a permission boundary reaches the user as a bug report.
+	 */
+	requiredFeature?: string;
 }
 
 export type SidebarRole =
@@ -241,7 +250,26 @@ export const sidebarData: Record<string, SidebarData> = {
 				url: '/[business]/[slug]/team',
 				icon: UsersIcon,
 				requiredFeature: 'team',
-				allowedRoles: ['owner', 'restaurant_owner', 'manager']
+				allowedRoles: ['owner', 'restaurant_owner', 'manager'],
+				items: [
+					{
+						title: 'Members',
+						url: '/[business]/[slug]/team'
+					},
+					{
+						// Previously reachable only from the appointments page, which
+						// meant a restaurant could not find its own rota.
+						title: 'Schedule',
+						url: '/[business]/[slug]/team/schedule'
+					},
+					{
+						// Payroll, and salon-only: the backend gates it on
+						// `appointments`, so a restaurant must not see the link.
+						title: 'Commission',
+						url: '/[business]/[slug]/team/commissions',
+						requiredFeature: 'appointments'
+					}
+				]
 			},
 			{
 				// Settings owns its own tab bar (`settings/+layout.svelte`), which
