@@ -7,11 +7,15 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { NativeSelect, NativeSelectOption } from '$lib/components/ui/native-select';
 	import {
+		checkoutAppointment,
 		rescheduleAppointment,
 		updateAppointmentStatus,
 		type Appointment,
+		type AppointmentPriceChange,
 		type AppointmentStatus
 	} from '$lib/api';
+	import { goto } from '$app/navigation';
+	import { formatCurrency, type CurrencyCode } from '$lib/utils/i18n';
 	import { toast } from 'svelte-sonner';
 	import { userFriendlyError } from '$lib/utils/error';
 	import {
@@ -29,11 +33,17 @@
 	} from './status';
 	import type { CalendarStaff } from './day-calendar.svelte';
 	import Loader2Icon from '@lucide/svelte/icons/loader-2';
+	import ReceiptIcon from '@lucide/svelte/icons/receipt';
+	import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
 
 	interface Props {
 		open: boolean;
 		businessId: string;
 		timeZone: string;
+		/** `/{business}/{slug}` — the prefix the order link is built on. */
+		basePath: string;
+		/** The outlet's billing currency, for the price-change notice. */
+		currency: string;
 		appointment: Appointment | null;
 		staff: CalendarStaff[];
 		onChanged?: () => void;
@@ -43,6 +53,8 @@
 		open = $bindable(false),
 		businessId,
 		timeZone,
+		basePath,
+		currency,
 		appointment,
 		staff,
 		onChanged
@@ -54,6 +66,9 @@
 	let moveDate = $state('');
 	let moveTime = $state('');
 	let moveStaffId = $state('');
+	let checkingOut = $state(false);
+	let priceChanges = $state<AppointmentPriceChange[]>([]);
+	let checkedOutOrderId = $state<string | null>(null);
 
 	// Seed the reschedule fields from the booking every time one is opened.
 	$effect(() => {
@@ -62,6 +77,8 @@
 		moveTime = minutesToWallClock(zonedMinutesOfDay(appointment.startAt, timeZone));
 		moveStaffId = appointment.staffId ?? '';
 		reason = '';
+		priceChanges = [];
+		checkedOutOrderId = null;
 	});
 
 	const transitions = $derived(appointment ? ALLOWED_TRANSITIONS[appointment.status] : []);
@@ -110,6 +127,50 @@
 		} finally {
 			moving = false;
 		}
+	}
+
+	/**
+	 * Hand the booking to the till.
+	 *
+	 * The order is where payment, tax, invoice numbering and loyalty happen, so
+	 * this navigates rather than trying to do any of it here. The one thing it
+	 * pauses for is a price that moved between booking and now: the customer was
+	 * quoted one figure and is about to be asked for another, and that is a
+	 * conversation the front desk should not have to discover mid-transaction.
+	 */
+	async function checkout() {
+		if (!appointment) return;
+		checkingOut = true;
+		try {
+			const result = await checkoutAppointment(businessId, appointment.id);
+			onChanged?.();
+
+			if (result.priceChanges.length > 0) {
+				// The order exists either way — the server committed it. Holding
+				// the dialog open is what makes the difference visible before the
+				// customer is asked to pay it, which a toast on the next screen
+				// would not.
+				priceChanges = result.priceChanges;
+				checkedOutOrderId = result.order.id;
+				toast.warning('Prices have changed since this was booked');
+				return;
+			}
+
+			toast.success(`Order ${result.order.orderNumber} created`);
+			open = false;
+			await goto(`${basePath}/orders/${result.order.id}`);
+		} catch (error) {
+			// A second checkout comes back as a 409 whose message says so.
+			toast.error(userFriendlyError(error, 'Could not check that appointment out'));
+		} finally {
+			checkingOut = false;
+		}
+	}
+
+	async function openCheckedOutOrder() {
+		if (!checkedOutOrderId) return;
+		open = false;
+		await goto(`${basePath}/orders/${checkedOutOrderId}`);
 	}
 
 	function staffName(id: string | null): string {
@@ -182,6 +243,65 @@
 						</Button>
 					{/each}
 				</div>
+			{/if}
+
+			{#if appointment.status === 'completed'}
+				<Separator />
+				{#if priceChanges.length > 0}
+					<!--
+						`bg-warning/10 text-warning-text border-warning/20` — the tinted
+						status surface used across the assistant's tool cards.
+						`--warning` itself is tuned as a *fill* and reads at 1.9:1 as text;
+						`--warning-text` is the readable variant and carries its own dark
+						mode, so no `dark:` pair is needed here. Not `destructive`: the
+						order is created and correct, it just costs more than the quote.
+					-->
+					<div class="rounded-md border border-warning/20 bg-warning/10 p-2.5 text-xs">
+						<p class="font-medium text-warning-text">
+							Charged at today's prices, not the ones quoted
+						</p>
+						<ul class="mt-1.5 flex flex-col gap-0.5">
+							{#each priceChanges as change (change.menuItemId)}
+								<li class="flex items-baseline justify-between gap-3">
+									<span class="truncate">{change.name}</span>
+									<span class="shrink-0 text-muted-foreground tabular-nums">
+										{formatCurrency(change.bookedPrice, currency as CurrencyCode)} →
+										<span class="font-medium text-foreground">
+											{formatCurrency(change.chargedPrice, currency as CurrencyCode)}
+										</span>
+									</span>
+								</li>
+							{/each}
+						</ul>
+					</div>
+					<Button variant="default" onclick={openCheckedOutOrder}>
+						Open order
+						<ArrowRightIcon class="size-3.5" />
+					</Button>
+				{:else if appointment.orderId}
+					<Button
+						variant="outline"
+						onclick={() => goto(`${basePath}/orders/${appointment.orderId}`)}
+					>
+						<ReceiptIcon class="size-3.5" />
+						View order
+					</Button>
+				{:else}
+					<!--
+						The prices on this screen are the snapshot from booking time. The
+						bill is re-read from the catalog server-side, so the two can
+						differ — and when they do, the difference comes back and is shown
+						above rather than appearing silently on the order.
+					-->
+					<Button onclick={checkout} disabled={checkingOut}>
+						{#if checkingOut}
+							<Loader2Icon class="size-3.5 animate-spin" />
+						{:else}
+							<ReceiptIcon class="size-3.5" />
+						{/if}
+						Check out
+					</Button>
+				{/if}
 			{/if}
 
 			{#if canReschedule(appointment.status)}

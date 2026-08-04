@@ -114,6 +114,28 @@ export interface RescheduleAppointmentPayload {
 	staffId?: string;
 }
 
+/**
+ * A service whose catalog price moved between booking and checkout.
+ *
+ * The customer was quoted `bookedPrice` and is being charged `chargedPrice`.
+ * Surfaced rather than swallowed so the front desk hears it from the screen
+ * and not from the customer.
+ */
+export interface AppointmentPriceChange {
+	menuItemId: string;
+	name: string;
+	bookedPrice: number;
+	chargedPrice: number;
+}
+
+export interface AppointmentCheckoutResponse {
+	message: string;
+	/** The order the till now works with: payment, tax, invoice, loyalty. */
+	order: { id: string; orderNumber: string; [key: string]: unknown };
+	appointment: Appointment;
+	priceChanges: AppointmentPriceChange[];
+}
+
 type FetchOption = { fetch?: typeof fetch };
 
 /**
@@ -215,4 +237,27 @@ export async function updateAppointmentStatus(
 	);
 	clearApiCache(appointmentCacheKey(businessId));
 	return updated;
+}
+
+/**
+ * Turn a completed appointment into an order.
+ *
+ * Sends no body: the services and their prices are read server-side from the
+ * catalog, and a client that could send a price would be choosing what to
+ * charge itself. The order cache is cleared as well as the diary's — the till
+ * and the orders list are both now out of date.
+ */
+export async function checkoutAppointment(
+	businessId: string,
+	id: string,
+	options?: FetchOption
+): Promise<AppointmentCheckoutResponse> {
+	const api = options?.fetch ? createApiClient({ fetch: options.fetch }) : getApiClient();
+	const result = await api.post<AppointmentCheckoutResponse>(
+		`/business/${businessId}/appointments/${id}/checkout`,
+		{}
+	);
+	clearApiCache(appointmentCacheKey(businessId));
+	clearApiCache(`/business/${businessId}/orders`);
+	return result;
 }
