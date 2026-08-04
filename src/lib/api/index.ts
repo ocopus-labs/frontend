@@ -501,24 +501,29 @@ export {
 	getRoster,
 	createShift,
 	bulkCreateShifts,
+	getShiftConflicts,
 	getLeaveRequests,
 	createLeaveRequest,
 	approveLeaveRequest,
 	rejectLeaveRequest,
 	getOvertimeReport,
+	type StaffRef,
 	type ShiftTemplate,
 	type ShiftTemplateColor,
 	type CreateShiftTemplatePayload,
 	type ScheduledShift,
+	type ShiftStatus,
 	type CreateShiftPayload,
 	type BulkCreateShiftsPayload,
+	type RosterShift,
 	type RosterEntry,
-	type RosterResponse,
+	type ShiftConflict,
 	type LeaveRequest,
 	type LeaveType,
 	type LeaveStatus,
 	type CreateLeaveRequestPayload,
 	type OvertimeEntry,
+	type StaffOvertime,
 	type OvertimeReport
 } from './schedule';
 
@@ -772,3 +777,23 @@ export {
 	type ListSessionsParams,
 	type UpdateSessionParams
 } from './agent';
+
+// Appointments API (salon / spa / clinic)
+export {
+	listAppointments,
+	getAppointment,
+	getAvailability,
+	createAppointment,
+	rescheduleAppointment,
+	updateAppointmentStatus,
+	type Appointment,
+	type AppointmentStatus,
+	type AppointmentSource,
+	type AppointmentServiceLine,
+	type AvailabilitySlot,
+	type AvailabilityResponse,
+	type ListAppointmentsParams,
+	type AvailabilityParams,
+	type CreateAppointmentPayload,
+	type RescheduleAppointmentPayload
+} from './appointment';

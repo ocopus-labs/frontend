@@ -16,6 +16,7 @@ import LandmarkIcon from '@lucide/svelte/icons/landmark';
 import StarIcon from '@lucide/svelte/icons/star';
 import TicketPercentIcon from '@lucide/svelte/icons/ticket-percent';
 import SparklesIcon from '@lucide/svelte/icons/sparkles';
+import CalendarClockIcon from '@lucide/svelte/icons/calendar-clock';
 export interface NavSubItem {
 	title: string;
 	url: string;
@@ -134,6 +135,15 @@ export const sidebarData: Record<string, SidebarData> = {
 				allowedRoles: ['owner', 'restaurant_owner', 'manager']
 				// Sections live in the menu tab bar (`menu/+layout.svelte`).
 				// `/menu` redirects to Items.
+			},
+			{
+				// Only the service verticals can enable `appointments`, so this entry
+				// is invisible to a restaurant without any per-type nav list: the
+				// feature filter in `nav-main.svelte` does the work.
+				title: 'Appointments',
+				url: '/[business]/[slug]/appointments',
+				icon: CalendarClockIcon,
+				requiredFeature: 'appointments'
 			},
 			{
 				// Status views live in the orders tab bar (`orders/+layout.svelte`),

@@ -32,8 +32,8 @@
 		approveLeaveRequest,
 		rejectLeaveRequest,
 		type RosterEntry,
+		type RosterShift,
 		type ShiftTemplate,
-		type ScheduledShift,
 		type LeaveRequest,
 		type LeaveType,
 		type LeaveStatus,
@@ -75,8 +75,11 @@
 	let cellClickUserId = $state('');
 	let cellClickDate = $state('');
 
-	// Add shift form
-	let shiftUserId = $state('');
+	// Add shift form. The id is `BusinessUser.id` — the membership — because
+	// that is what `Shift.businessUserId` references. `TeamMember.userId` is the
+	// account behind it, a different value; sending that wrote rows the roster,
+	// the conflict check and appointment availability could never join to.
+	let shiftBusinessUserId = $state('');
 	let shiftDate = $state('');
 	let shiftTemplateId = $state('');
 	let shiftStartTime = $state('09:00');
@@ -95,6 +98,13 @@
 	let leaveStartDate = $state('');
 	let leaveEndDate = $state('');
 	let leaveReason = $state('');
+
+	/** A grid row: the membership, a display name, and its shifts by date. */
+	interface RosterRow {
+		businessUserId: string;
+		name: string;
+		days: Record<string, RosterShift[]>;
+	}
 
 	// ==================== DERIVED ====================
 
@@ -115,12 +125,40 @@
 			if (lr.status !== 'approved') continue;
 			const dates = getDatesInRange(lr.startDate, lr.endDate);
 			for (const d of dates) {
-				const key = lr.userId;
+				const key = lr.businessUserId;
 				if (!map.has(key)) map.set(key, new Set());
 				map.get(key)!.add(d);
 			}
 		}
 		return map;
+	});
+
+	/**
+	 * One row per active team member, not one per person who already has a
+	 * shift.
+	 *
+	 * `getRoster` is built from `Shift` rows, so it returns nobody on a week that
+	 * has not been rostered yet — which left a brand-new business staring at an
+	 * empty grid with no cell to click. Rows come from the team; the roster only
+	 * fills them in. Anyone in the roster who is no longer on the team is kept at
+	 * the end rather than dropped, so their shifts stay visible.
+	 */
+	const rosterRows = $derived.by(() => {
+		const rows: RosterRow[] = teamMembers.map((member) => ({
+			businessUserId: member.id,
+			name: member.user.name || member.user.email,
+			days: roster.find((entry) => entry.businessUserId === member.id)?.days ?? {}
+		}));
+
+		for (const entry of roster) {
+			if (rows.some((row) => row.businessUserId === entry.businessUserId)) continue;
+			rows.push({
+				businessUserId: entry.businessUserId,
+				name: entry.businessUser?.user.name || entry.businessUser?.user.email || 'Former member',
+				days: entry.days
+			});
+		}
+		return rows;
 	});
 
 	const pendingLeaveRequests = $derived(leaveRequests.filter((lr) => lr.status === 'pending'));
@@ -148,6 +186,16 @@
 		pink: 'bg-pink-500',
 		gray: 'bg-gray-500'
 	};
+
+	function templateDot(color: string | null): string {
+		return templateColorDots[color ?? 'gray'] ?? templateColorDots.gray;
+	}
+
+	function leaveTypeLabel(type: string): string {
+		// `type` is `@IsString() @MaxLength(50)` on the backend, not an enum, so
+		// a row can legitimately carry something this map has never seen.
+		return leaveTypeLabels[type as LeaveType] ?? type;
+	}
 
 	const leaveTypeLabels: Record<LeaveType, string> = {
 		annual: 'Annual Leave',
@@ -200,14 +248,14 @@
 		return dates;
 	}
 
-	function getShiftsForCell(entry: RosterEntry, date: string): ScheduledShift[] {
-		return entry.shifts.filter((s) => s.date === date);
+	function getShiftsForCell(row: RosterRow, date: string): RosterShift[] {
+		// The handler nests a week's shifts under `days`, keyed by `YYYY-MM-DD`,
+		// and omits days with none. It does not return a flat `shifts` array.
+		return row.days[date] ?? [];
 	}
 
-	function isOnLeave(userId: string, date: string): boolean {
-		const map = approvedLeaveMap();
-		const userDates = map.get(userId);
-		return userDates?.has(date) ?? false;
+	function isOnLeave(businessUserId: string, date: string): boolean {
+		return approvedLeaveMap().get(businessUserId)?.has(date) ?? false;
 	}
 
 	function formatShiftTime(time: string): string {
@@ -246,11 +294,11 @@
 
 	// ==================== CELL CLICK ====================
 
-	function handleCellClick(userId: string, date: string) {
+	function handleCellClick(businessUserId: string, date: string) {
 		if (!canModify(data.userRole)) return;
-		cellClickUserId = userId;
+		cellClickUserId = businessUserId;
 		cellClickDate = date;
-		shiftUserId = userId;
+		shiftBusinessUserId = businessUserId;
 		shiftDate = date;
 		shiftTemplateId = '';
 		shiftStartTime = '09:00';
@@ -262,7 +310,7 @@
 	// ==================== SHIFT ACTIONS ====================
 
 	function openAddShiftDialog() {
-		shiftUserId = '';
+		shiftBusinessUserId = '';
 		shiftDate = '';
 		shiftTemplateId = '';
 		shiftStartTime = '09:00';
@@ -283,14 +331,14 @@
 	}
 
 	async function handleCreateShift() {
-		if (!shiftUserId || !shiftDate) {
+		if (!shiftBusinessUserId || !shiftDate) {
 			toast.error('Please select a staff member and date');
 			return;
 		}
 		isSubmitting = true;
 		try {
 			await createShift(data.businessId, {
-				userId: shiftUserId,
+				businessUserId: shiftBusinessUserId,
 				date: shiftDate,
 				startTime: shiftStartTime,
 				endTime: shiftEndTime,
@@ -460,11 +508,9 @@
 				<!-- Shift Templates Legend -->
 				{#if templates.length > 0}
 					<div class="flex flex-wrap gap-2">
-						{#each templates.filter((t) => t.isActive) as tpl (tpl.id)}
+						{#each templates as tpl (tpl.id)}
 							<div class="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs">
-								<span
-									class="h-2.5 w-2.5 rounded-full {templateColorDots[tpl.color] || 'bg-gray-500'}"
-								></span>
+								<span class="h-2.5 w-2.5 rounded-full {templateDot(tpl.color)}"></span>
 								<span class="font-medium">{tpl.name}</span>
 								<span class="text-muted-foreground">{tpl.startTime}-{tpl.endTime}</span>
 							</div>
@@ -473,7 +519,7 @@
 				{/if}
 
 				<!-- Roster Grid -->
-				{#if roster.length > 0}
+				{#if rosterRows.length > 0}
 					<Card.Root>
 						<div class="overflow-x-auto">
 							<table class="w-full min-w-[700px] border-collapse">
@@ -500,34 +546,25 @@
 									</tr>
 								</thead>
 								<tbody>
-									{#each roster as entry (entry.userId)}
+									{#each rosterRows as entry (entry.businessUserId)}
 										<tr class="border-b last:border-b-0">
 											<td class="sticky left-0 z-10 bg-card px-4 py-3">
 												<div class="flex items-center gap-2.5">
 													<div
 														class="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-medium"
 													>
-														{#if entry.user.image}
-															<img
-																src={entry.user.image}
-																alt={entry.user.name ?? ''}
-																class="h-8 w-8 rounded-full object-cover"
-																loading="lazy"
-															/>
-														{:else}
-															{getUserInitials(entry.user.name)}
-														{/if}
+														{getUserInitials(entry.name)}
 													</div>
 													<div class="min-w-0">
 														<p class="truncate text-sm font-medium">
-															{entry.user.name || entry.user.email}
+															{entry.name}
 														</p>
 													</div>
 												</div>
 											</td>
 											{#each weekDays as day (day.date)}
 												{@const shifts = getShiftsForCell(entry, day.date)}
-												{@const onLeave = isOnLeave(entry.userId, day.date)}
+												{@const onLeave = isOnLeave(entry.businessUserId, day.date)}
 												<td
 													class="relative px-1 py-1.5 text-center align-top {day.isToday
 														? 'bg-primary/5'
@@ -538,7 +575,7 @@
 													<!-- svelte-ignore a11y_no_static_element_interactions -->
 													<div
 														class="min-h-[48px] cursor-pointer rounded-md border border-transparent p-0.5 transition-colors hover:border-primary/30 hover:bg-primary/5"
-														onclick={() => handleCellClick(entry.userId, day.date)}
+														onclick={() => handleCellClick(entry.businessUserId, day.date)}
 													>
 														{#if onLeave}
 															<div class="flex h-full items-center justify-center">
@@ -610,8 +647,8 @@
 								<Card.Content class="p-4">
 									<div class="flex items-start justify-between">
 										<div>
-											<p class="text-sm font-medium">{lr.user?.name || 'Unknown'}</p>
-											<p class="text-xs text-muted-foreground">{leaveTypeLabels[lr.type]}</p>
+											<p class="text-sm font-medium">{lr.businessUser?.user.name || 'Unknown'}</p>
+											<p class="text-xs text-muted-foreground">{leaveTypeLabel(lr.type)}</p>
 										</div>
 										<Badge variant={leaveStatusConfig[lr.status].variant}>
 											{leaveStatusConfig[lr.status].text}
@@ -673,25 +710,20 @@
 													<div
 														class="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-medium"
 													>
-														{#if lr.user?.image}
-															<img
-																src={lr.user.image}
-																alt={lr.user.name ?? ''}
-																class="h-8 w-8 rounded-full object-cover"
-																loading="lazy"
-															/>
-														{:else}
-															{getUserInitials(lr.user?.name ?? null)}
-														{/if}
+														{getUserInitials(lr.businessUser?.user.name ?? null)}
 													</div>
 													<div>
-														<p class="text-sm font-medium">{lr.user?.name || 'Unknown'}</p>
-														<p class="text-xs text-muted-foreground">{lr.user?.email}</p>
+														<p class="text-sm font-medium">
+															{lr.businessUser?.user.name || 'Unknown'}
+														</p>
+														<p class="text-xs text-muted-foreground">
+															{lr.businessUser?.user.email}
+														</p>
 													</div>
 												</div>
 											</Table.Cell>
 											<Table.Cell>
-												<Badge variant="outline">{leaveTypeLabels[lr.type]}</Badge>
+												<Badge variant="outline">{leaveTypeLabel(lr.type)}</Badge>
 											</Table.Cell>
 											<Table.Cell class="text-muted-foreground"
 												>{formatDate(lr.startDate)}</Table.Cell
@@ -730,9 +762,9 @@
 															<IconX class="h-4 w-4" />
 														</Button>
 													</div>
-												{:else if lr.status !== 'pending'}
+												{:else if lr.approvedAt}
 													<span class="text-xs text-muted-foreground">
-														{lr.reviewer?.name ? `by ${lr.reviewer.name}` : ''}
+														{formatDate(lr.approvedAt)}
 													</span>
 												{/if}
 											</Table.Cell>
@@ -766,10 +798,10 @@
 		<div class="grid gap-4 py-4">
 			<div class="grid gap-2">
 				<label for="shift-staff" class="text-sm font-medium">Staff Member *</label>
-				<Select.Root type="single" bind:value={shiftUserId}>
+				<Select.Root type="single" bind:value={shiftBusinessUserId}>
 					<Select.Trigger class="w-full">
-						{#if shiftUserId}
-							{@const member = teamMembers.find((m) => m.userId === shiftUserId)}
+						{#if shiftBusinessUserId}
+							{@const member = teamMembers.find((m) => m.id === shiftBusinessUserId)}
 							{member?.user.name || 'Select staff'}
 						{:else}
 							Select staff member
@@ -777,7 +809,7 @@
 					</Select.Trigger>
 					<Select.Content>
 						{#each teamMembers as member (member.id)}
-							<Select.Item value={member.userId}>{member.user.name}</Select.Item>
+							<Select.Item value={member.id}>{member.user.name || member.user.email}</Select.Item>
 						{/each}
 					</Select.Content>
 				</Select.Root>
@@ -804,7 +836,7 @@
 						</Select.Trigger>
 						<Select.Content>
 							<Select.Item value="">Custom times</Select.Item>
-							{#each templates.filter((t) => t.isActive) as tpl (tpl.id)}
+							{#each templates as tpl (tpl.id)}
 								<Select.Item value={tpl.id}>
 									{tpl.name} ({tpl.startTime}-{tpl.endTime})
 								</Select.Item>

@@ -29,6 +29,11 @@ const ROUTE_FEATURE_MAP: Record<string, string> = {
 	// owner with `?feature_disabled=menu` — a feature their vertical cannot even
 	// enable, so the dashboard banner would offer them no way out.
 	'/services': 'services',
+	// The diary is gated on its own slug, which only the service verticals list
+	// (`salon`/`spa`/`clinic` in the backend registry). Without this entry a
+	// restaurant that typed the URL would get the page shell and then a 403 from
+	// `@RequireBusinessFeature('appointments')` on every call it made.
+	'/appointments': 'appointments',
 	'/inventory': 'inventory',
 	'/expenses': 'expenses',
 	'/kitchen-display': 'kds',
