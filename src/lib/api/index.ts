@@ -800,3 +800,19 @@ export {
 	type CreateAppointmentPayload,
 	type RescheduleAppointmentPayload
 } from './appointment';
+
+// Staff commission (salon / spa / clinic)
+export {
+	getCommissionReport,
+	getCommissionStatement,
+	setStaffCommissionRate,
+	type CommissionRateType,
+	type CommissionSource,
+	type CommissionStaffTotal,
+	type CommissionReport,
+	type CommissionLine,
+	type CommissionStatement,
+	type CommissionPeriod,
+	type SetCommissionRatePayload,
+	type StaffCommissionRate
+} from './commission';
