@@ -180,9 +180,16 @@ export const sidebarData: Record<string, SidebarData> = {
 				requiredFeature: 'tables'
 			},
 			{
+				// Excludes viewer and accountant, matching the backend: every read on
+				// CustomerController except `/stats` returns PII decrypted from
+				// AES-256-GCM, and neither role holds a customer permission. Without
+				// this the entry stays visible and the page 403s on its first call —
+				// a dead link is how a permission change reaches the user as a bug
+				// report instead of as a boundary.
 				title: 'Customers',
 				url: '/[business]/[slug]/customers',
 				icon: ContactIcon,
+				allowedRoles: ['owner', 'restaurant_owner', 'manager', 'staff'],
 				items: [
 					{
 						title: 'All Customers',

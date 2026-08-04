@@ -93,6 +93,8 @@
 
 	const MANAGE_ROLES = ['owner', 'restaurant_owner', 'manager'];
 	const OWNER_ROLES = ['owner', 'restaurant_owner'];
+	/** Everyone who works the floor — MANAGE_ROLES plus staff, minus the read-only roles. */
+	const TILL_ROLES = [...MANAGE_ROLES, 'staff'];
 
 	const moreGroups: { label: string; items: MoreItem[] }[] = [
 		{
@@ -108,7 +110,14 @@
 				},
 				{ label: 'Tables', icon: TableIcon, href: '/tables/layout', feature: 'tables' },
 				{ label: 'KDS', icon: MonitorIcon, href: '/kitchen-display/orders', feature: 'kds' },
-				{ label: 'Customers', icon: ContactIcon, href: '/customers' },
+				// Mirrors the sidebar and the backend's `CUSTOMER_PII_ROLES`: viewer
+				// and accountant hold no customer permission, so the page would 403.
+				{
+					label: 'Customers',
+					icon: ContactIcon,
+					href: '/customers',
+					roles: TILL_ROLES
+				},
 				{
 					label: 'Reviews',
 					icon: StarIcon,
