@@ -156,6 +156,11 @@
 				// unassigned booking holds no chair — the exclusion constraint
 				// only applies where `staff_id` is not null.
 				staffId: chosen.candidates[0].staffId,
+				// And the room, when the service needs one. Sent back rather
+				// than left to the server to re-pick: the slot was offered on
+				// the basis that *this* room was free, and re-deriving it a
+				// moment later could land the booking somewhere else.
+				...(chosen.candidates[0].resourceId ? { resourceId: chosen.candidates[0].resourceId } : {}),
 				...(customer ? { customerId: customer.id } : {}),
 				...(notes.trim() ? { notes: notes.trim() } : {})
 			});
